@@ -41,10 +41,11 @@ class DesignTokensTest {
 
     @Test
     void largeButtonsOnlyWhereTheyAreFullWidthOrIHaveReadThis() throws IOException {
-        // Sign-in, registration and signed-out error pages (w-100; the error pages' button is in
+        // Sign-in, registration, forgot password (P14) and signed-out error pages (w-100; the error pages' button is in
         // layout/parts :: errorPage, P12), and the crew "I have read this" button.
         Path templates = Path.of("src/main/resources/templates");
         List<String> allowed = List.of("login/login.html", "registration/register.html", "registration/invalid.html",
+                "passwordreset/forgot.html", "passwordreset/sent.html", "passwordreset/reset.html", "passwordreset/invalid.html",
                 "layout/parts.html", "library/item.html");
         List<String> found = new ArrayList<>();
         try (Stream<Path> files = Files.walk(templates)) {

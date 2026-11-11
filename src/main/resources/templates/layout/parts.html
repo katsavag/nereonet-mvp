@@ -49,6 +49,11 @@
     </div>
 </main>
 
+<!-- A text link between the signed-out pages (P14): "Forgot your password?" under the password on the sign-in page,
+     "Back to sign in" on the forgot password pages. A 40px (44px on phones) touch target. url: an app path.
+     Use: <p th:replace="~{layout/parts :: authLink('/password/forgot', #{login.forgot})}"></p> -->
+<p th:fragment="authLink(url, label)" class="auth-link"><a th:href="@{${url}}" th:text="${label}">Back to sign in</a></p>
+
 <!-- Password fields (P13): sign-in and registration. The input sits in a .password-field with passwordToggle after
      it; capsLockHint goes right after the .password-field. js/password.js brings both to life; without it the
      field is an ordinary password field.
@@ -68,6 +73,57 @@
             th:text="#{password.showShort}">Show</button>
     <span class="visually-hidden" aria-live="polite" th:id="${fieldId + 'Visibility'}"
           th:data-shown="#{password.shown}" th:data-hidden="#{password.hidden}"></span>
+</th:block>
+
+<!-- A new password and its repetition (registration P13, password reset P14), for a form class that extends
+     core/form/NewPasswordForm. Inside the form (th:object set). Both fields have show / hide and the Caps Lock hint;
+     under the first, the rules the server checks as a checklist that js/password.js ticks while the user types (a
+     check mark and "done" for a rule that is met, an empty circle and "not yet" for one that is not; without the
+     script the same list, without ticks), and the character counter. Server errors stay under each field.
+     passwordLabel, repeatLabel: the two labels ("Password" / "Repeat password", "New password" / ...).
+     Use: <th:block th:replace="~{layout/parts :: newPasswordFields(${form}, #{...}, #{...})}"></th:block> -->
+<th:block th:fragment="newPasswordFields(form, passwordLabel, repeatLabel)">
+    <div>
+        <label for="password" class="form-label" th:text="${passwordLabel}">Password</label>
+        <div class="password-field">
+            <input type="password" th:field="*{password}" class="form-control form-control-lg"
+                   th:errorclass="is-invalid" autocomplete="new-password"
+                   aria-describedby="passwordRules passwordCounter" required
+                   th:autofocus="${#fields.detailedErrors().size() <= 1}">
+            <th:block th:replace="~{layout/parts :: passwordToggle('password')}"></th:block>
+        </div>
+        <p th:replace="~{layout/parts :: capsLockHint('password')}"></p>
+        <div class="invalid-feedback" th:classappend="${#fields.hasErrors('password')} ? 'd-block'"
+             th:errors="*{password}"></div>
+        <div class="form-meta">
+            <ul id="passwordRules" class="password-rules"
+                th:attr="aria-label=#{password.rules}"
+                th:data-met="#{password.rule.met}" th:data-unmet="#{password.rule.unmet}"
+                th:with="min=${@formFields.minLength(form, 'password')}">
+                <li th:if="${min != null}" data-rule="min-length" th:data-min="${min}" aria-atomic="true">
+                    <span th:text="#{password.rule.length(${min})}">At least 8 characters</span><span
+                        class="visually-hidden password-rule-state"></span>
+                </li>
+                <li data-rule="match" data-match="confirmPassword" aria-atomic="true">
+                    <span th:text="#{password.rule.match}">Both passwords are the same</span><span
+                        class="visually-hidden password-rule-state"></span>
+                </li>
+            </ul>
+            <div th:replace="~{layout/parts :: counter(${form}, 'password', 'password')}"></div>
+        </div>
+    </div>
+    <div>
+        <label for="confirmPassword" class="form-label" th:text="${repeatLabel}">Repeat password</label>
+        <div class="password-field">
+            <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
+                   th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
+                   autocomplete="new-password" required>
+            <th:block th:replace="~{layout/parts :: passwordToggle('confirmPassword')}"></th:block>
+        </div>
+        <p th:replace="~{layout/parts :: capsLockHint('confirmPassword')}"></p>
+        <div class="invalid-feedback" th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'd-block'"
+             th:errors="*{passwordConfirmed}"></div>
+    </div>
 </th:block>
 
 <!-- "Caps Lock is on." under a password field while the field has focus and Caps Lock is on (js/password.js fills

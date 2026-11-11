@@ -16,9 +16,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Signs a user in without the sign-in form (P13: right after registration, the new user is signed in and goes to
- * their home page). Does what a successful form login does: a new session id (no session fixation), a new CSRF
- * token, and the security context stored in the session. The caller has just checked who the user is.
+ * Signs a user in without the sign-in form (P13: right after registration; P14: right after a password reset; the
+ * user then goes to their home page). Does what a successful form login does: a new session id (no session
+ * fixation), a new CSRF token, and the security context stored in the session. The caller has just checked who the
+ * user is.
  */
 @Component
 public class SignIn {
@@ -48,7 +49,7 @@ public class SignIn {
         context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities()));
         holder.setContext(context);
         contextRepository.saveContext(context, request, response);
-        log.info("Login: {} (after registration)", user.getUsername());
+        log.info("Login: {} (without the sign-in form)", user.getUsername());
         return user.getHomeUrl();
     }
 }

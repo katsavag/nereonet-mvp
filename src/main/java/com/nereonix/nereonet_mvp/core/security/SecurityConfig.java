@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .authenticationManager(new ProviderManager(signInProvider(users, passwordEncoder)))
                 .authorizeHttpRequests(auth -> auth
                         // /error is public so error pages are not replaced by a login redirect.
-                        .requestMatchers("/login", "/register/**", "/error",
+                        .requestMatchers("/login", "/register/**", "/password/**", "/error",
                                 "/css/**", "/js/**", "/vendor/**", "/fonts/**", "/images/**",
                                 "/favicon*.svg", "/favicon.ico").permitAll()
                         .requestMatchers("/office/**").hasRole("OFFICE_USER")

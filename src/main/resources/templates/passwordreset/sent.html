@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.sent.title}, ~{::main})}">
+<body>
+<!-- After /password/forgot (P14). Byte for byte the same page for every address, known or not: it names no address
+     and has no form (so no CSRF token). -->
+<main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
+    <th:block th:fragment="authContent">
+        <header th:replace="~{layout/parts :: pageHeader(heading=#{passwordReset.sent.heading})}"></header>
+        <p th:text="#{passwordReset.sent.text}">If an account exists for this address, we sent a link to set a new password.</p>
+        <p class="text-body-secondary" th:text="#{passwordReset.sent.help(${validMinutes})}">
+            The link works once and for 60 minutes. Nothing arrived? Check your spam folder, or ask the office.</p>
+        <a th:href="@{/login}" class="btn btn-primary btn-lg w-100 mt-3"
+           th:text="#{passwordReset.backToSignIn}">Back to sign in</a>
+    </th:block>
+</main>
+</body>
+</html>

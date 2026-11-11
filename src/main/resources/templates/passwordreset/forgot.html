@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.forgot.title}, ~{::main})}">
+<body>
+<!-- Forgot password (P14): one email field. Whatever the address, the answer is /password/forgot/sent. -->
+<main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
+    <th:block th:fragment="authContent">
+        <header th:replace="~{layout/parts :: pageHeader(heading=#{passwordReset.forgot.heading},
+                subtitle=#{passwordReset.forgot.subtitle})}"></header>
+
+        <form th:action="@{/password/forgot}" th:object="${form}" method="post" novalidate>
+            <div class="form-grid">
+                <div>
+                    <label for="email" class="form-label" th:text="#{login.email}">Email</label>
+                    <input type="email" th:field="*{email}" class="form-control form-control-lg"
+                           th:errorclass="is-invalid" autocomplete="username" required autofocus>
+                    <div class="invalid-feedback" th:errors="*{email}"></div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg w-100"
+                        th:text="#{passwordReset.forgot.submit}">Send link</button>
+            </div>
+        </form>
+        <p th:replace="~{layout/parts :: authLink('/login', #{passwordReset.backToSignIn})}"></p>
+    </th:block>
+</main>
+</body>
+</html>

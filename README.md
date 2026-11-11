@@ -187,7 +187,7 @@ Requirements: Java 25, Docker.
 
 10. Audit log (signed in as an office user): **Audit log** in the sidebar (`/office/audit`). Lists who did what and
    when, newest first, 50 rows per page, filterable by ship and date range (UTC days). Recorded so far: ship added,
-   edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted;
+   edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted; password reset (the user, by their email; see 17);
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
    certificate reminder sent (by "System"); announcement sent; requests exported (count and ids).
    Entries are read-only.
@@ -314,6 +314,27 @@ Requirements: Java 25, Docker.
    has not yet (full name, role). Only enabled users with a ship role who are on that ship now are counted: someone
    who left the ship is not listed, even if they acknowledged. To try it: as `cook.demo@example.com` acknowledge
    "Drug and alcohol policy"; as `master.demo@example.com` open **Library** and click the count next to it.
+
+17. Forgot password (any user, signed out): **Forgot your password?** under the password on the sign-in page opens
+   `/password/forgot`, one email field. **Send link** always goes to `/password/forgot/sent`, "If an account exists
+   for this address, we sent a link to set a new password.": the same page, byte for byte, for a known and an unknown
+   address (it names no address and has no form). The email (Mailpit in dev; in the language of the page it was asked
+   from) holds a `/password/reset?token=...` link that works once and for 60 minutes; no password is ever emailed.
+   - No email goes to an unknown or a deactivated address, nor to an address that already got 5 links within the
+     last hour (the 6th request shows the same page and sends nothing). The email is sent on another thread, so the
+     answer takes as long for a known address as for an unknown one.
+   - The link opens **Set a new password**: the account's email as text, then **New password** and **Repeat new
+     password** with the rules, show / hide and checklist of registration (see 7 and "sign-in and registration
+     (P13)"). **Save new password** signs the user in at once and opens their home page with "Your password is
+     changed. You are signed in.". It records "Password reset" in the audit log (see 10) with the user as actor and
+     their email as details; never the password or the link.
+   - Using one link stops every other open link of that user. A link that was used, is older than 60 minutes, or
+     belongs to a user who was since deactivated or deleted shows "This reset link is invalid or has expired",
+     with **Request a new link** (`/password/forgot`).
+   - The tokens are signed like invitation tokens (`core/passwordreset/PasswordResetTokenService`, HS256 with
+     `INVITATION_JWT_SECRET`), with the audience `password-reset`, so an invitation link is never accepted as a reset
+     link. Each link sent is a `password_reset` row (token id, user, email, sent at, expires at, used at), kept for the
+     hourly limit.
 
 Run the tests (H2 in memory, no Docker needed):
 
@@ -528,11 +549,14 @@ The app makes no request to any other host: everything a page needs is served fr
       the field "Caps Lock is on." appears while the field has focus and Caps Lock is on
       (`layout/parts :: capsLockHint`). Both come from `js/password.js`; without it the button stays hidden and the
       field is an ordinary password field;
-    - the registration password rules are a checklist under the field, "At least 8 characters" (the `@Size(min)` of
-      `RegistrationForm`, via `@formFields.minLength`) and "Both passwords are the same", which `js/password.js`
-      ticks while the user types: a green circle with a check mark and "done" for screen readers, an empty circle
-      and "not yet" otherwise. Without the script it is a plain list. The server checks the same rules again; its
-      messages stay under the fields.
+    - the new password rules are a checklist under the field, "At least 8 characters" (the `@Size(min)` of
+      `core/form/NewPasswordForm`, via `@formFields.minLength`) and "Both passwords are the same", which
+      `js/password.js` ticks while the user types: a green circle with a check mark and "done" for screen readers, an
+      empty circle and "not yet" otherwise. Without the script it is a plain list. The server checks the same rules
+      again; its messages stay under the fields. Registration and password reset (P14) share the two fields, the rules
+      and the checklist: `layout/parts :: newPasswordFields`, for a form class that extends `NewPasswordForm`;
+    - text links between the signed-out pages ("Forgot your password?", "Back to sign in", P14) are
+      `layout/parts :: authLink`: underlined, 14 px semibold, a 40 px (44 px on phones) touch target.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
@@ -557,7 +581,7 @@ Set these environment variables:
 | `APP_BASE_URL` | public URL used in email links, no trailing slash, e.g. `https://nereonet.example.com` |
 | `CERTIFICATE_REMINDER_CRON` | optional; when the certificate reminder job runs (UTC), default `0 0 6 * * *` |
 | `LIBRARY_STORAGE_DIR` | folder for library files, created if missing, e.g. `/var/lib/nereonet/library`; back it up with the database |
-| `INVITATION_JWT_SECRET` | random secret, at least 32 characters, for signing invitation links |
+| `INVITATION_JWT_SECRET` | random secret, at least 32 characters, for signing invitation and password reset links |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
 | `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |

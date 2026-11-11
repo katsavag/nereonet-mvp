@@ -20,14 +20,14 @@ import jakarta.servlet.http.HttpSession;
  *   - a form sent after the session expired (SignedOutHandler): the page the form was on, from the Referer header,
  *     kept in the new session under ATTRIBUTE;
  *   - a page opened while signed out: the request Spring Security saved before sending the user to /login.
- * Only paths of this app, never /login, /logout, /register or /error, and never a page of the other side
- * (an /office page for crew, a /ship page for the office): on a shared PC the next person may be someone else.
+ * Only paths of this app, never /login, /logout, /register, /password (P14) or /error, and never a page of the other
+ * side (an /office page for crew, a /ship page for the office): on a shared PC the next person may be someone else.
  */
 public final class ReturnTo {
 
     static final String ATTRIBUTE = ReturnTo.class.getName();
 
-    private static final List<String> NEVER = List.of("/login", "/logout", "/register", "/error");
+    private static final List<String> NEVER = List.of("/login", "/logout", "/register", "/password", "/error");
 
     private static final RequestCache REQUEST_CACHE = new HttpSessionRequestCache();
 

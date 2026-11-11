@@ -20,6 +20,13 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /** Sets a new password (P14, password reset). Only its hash is stored. */
+    @Transactional
+    public void changePassword(User user, String rawPassword) {
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        userRepository.save(user);
+    }
+
     /** rank is for ship roles only and may be null. */
     @Transactional
     public User createUser(String email, String fullName, String rawPassword, Role role, Ship ship,

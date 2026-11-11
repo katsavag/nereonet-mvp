@@ -1715,3 +1715,19 @@ fieldset:disabled button.btn {
     margin-bottom: var(--nn-space-5);
     padding-left: 1.25rem;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Forgot password (P14): passwordreset/*.html, layout/parts :: authLink.
+     - .auth-link: a text link between the signed-out pages ("Forgot your password?" under the sign-in password,
+       "Back to sign in"): underlined, 14px semibold navy (9:1 on the page), and a 40px (44px on phones) touch target.
+   --------------------------------------------------------------------------------------------------------------- */
+.auth-link {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.auth-link > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}

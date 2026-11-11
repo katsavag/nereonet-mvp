@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.invalid.title}, ~{::main})}">
+<body>
+<!-- A reset link that was used already, is older than 60 minutes, or is not a reset link (P14): say why, and the way
+     to a new one. -->
+<main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
+    <th:block th:fragment="authContent">
+        <header th:replace="~{layout/parts :: pageHeader(heading=#{passwordReset.invalid.heading})}"></header>
+        <p th:text="#{passwordReset.invalid.text(${validMinutes})}">A password reset link works once and for 60
+            minutes. This one was used already or is older than that. Ask for a new link: it only takes a minute.</p>
+        <a th:href="@{/password/forgot}" class="btn btn-primary btn-lg w-100 mt-3"
+           th:text="#{passwordReset.invalid.requestNew}">Request a new link</a>
+        <p th:replace="~{layout/parts :: authLink('/login', #{passwordReset.backToSignIn})}"></p>
+    </th:block>
+</main>
+</body>
+</html>
