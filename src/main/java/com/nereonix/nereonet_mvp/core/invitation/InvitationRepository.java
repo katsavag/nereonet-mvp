@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 
 public interface InvitationRepository extends JpaRepository<Invitation, Long> {
 
-    List<Invitation> findAllByRoleOrderByCreatedAtDesc(Role role);
+    List<Invitation> findAllByStatusAndRoleOrderByFullNameAsc(Invitation.Status status, Role role);
 
     List<Invitation> findAllByStatusAndRoleNotOrderByFullNameAsc(Invitation.Status status, Role role);
 

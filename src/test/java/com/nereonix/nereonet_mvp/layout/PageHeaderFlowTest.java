@@ -148,7 +148,6 @@ class PageHeaderFlowTest {
         add(pages, "/office/ships", null, "Ships", List.of(), null);
         add(pages, "/office/crew", null, "Crew", List.of(), null);
         add(pages, "/office/users", null, "Office users", List.of(), null);
-        add(pages, "/office/invitations", null, "Office invitations", List.of(), null);
         add(pages, "/office/audit", null, "Audit log", List.of(), null);
         add(pages, "/office/certificates", null, "Expiring certificates", List.of(), null);
         add(pages, "/office/announcements", null, "Announcements", List.of(), null);
@@ -242,7 +241,7 @@ class PageHeaderFlowTest {
         request.setCreatedAt(Instant.now());
         requestRepository.save(request);
 
-        for (String url : List.of("/office/ships", "/office/crew", "/office/users", "/office/invitations",
+        for (String url : List.of("/office/ships", "/office/crew", "/office/users",
                 "/office/audit", "/office/certificates", "/office/announcements", "/office/requests",
                 "/office/ships/" + ship.getId() + "/items")) {
             String html = html(get(url));

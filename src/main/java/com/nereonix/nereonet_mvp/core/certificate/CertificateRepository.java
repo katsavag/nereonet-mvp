@@ -23,6 +23,9 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
             order by c.expiresOn asc, c.id asc""")
     List<Certificate> findExpiringUntil(LocalDate until, Long shipId);
 
+    // Expired or expiring on or before "until", every ship: the sidebar counter of Certificates.
+    long countByExpiresOnLessThanEqual(LocalDate until);
+
     // Not expired yet, expiring on or before "until", of enabled users. For the reminder job.
     @EntityGraph(attributePaths = {"user", "user.ship"})
     @Query("""

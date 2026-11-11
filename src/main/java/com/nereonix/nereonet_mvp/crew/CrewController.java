@@ -87,12 +87,6 @@ public class CrewController {
         return "redirect:/office/crew";
     }
 
-    @GetMapping("/office/users")
-    public String officeUsers(Model model) {
-        model.addAttribute("users", crewService.findOfficeUsers());
-        return "crew/office-users";
-    }
-
     @PostMapping("/office/users/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @AuthenticationPrincipal CurrentUser currentUser,
                              RedirectAttributes redirectAttributes) {
@@ -117,7 +111,7 @@ public class CrewController {
         return redirectToList(user);
     }
 
-    // Back to the list the button was on.
+    // Back to the list the button was on. The office users list is OfficeUserController.
     private static String redirectToList(User user) {
         return user.getRole() == Role.OFFICE_USER ? "redirect:/office/users" : "redirect:/office/crew";
     }

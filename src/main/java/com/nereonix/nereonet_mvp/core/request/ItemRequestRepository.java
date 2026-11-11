@@ -24,6 +24,9 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     List<ItemRequest> findAllByIdInAndStatusOrderByDecidedAtDescIdDesc(Collection<Long> ids, RequestStatus status);
 
+    // Requests with this status never exported, every ship: the sidebar counter of Requests.
+    long countByStatusAndExportedAtIsNull(RequestStatus status);
+
     // Requests with this status never exported, per ship.
     @Query("""
             select new com.nereonix.nereonet_mvp.core.ship.ShipCount(r.ship.id, count(r))

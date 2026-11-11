@@ -110,7 +110,6 @@ class TablesFlowTest {
                 "/office/ships", "Ships",
                 "/office/crew", "Crew",
                 "/office/users", "Office users",
-                "/office/invitations", "Office invitations",
                 "/office/certificates", "Certificates",
                 "/office/announcements", "Announcements",
                 "/office/ships/" + ship.getId() + "/items", "Galley items",
@@ -163,7 +162,7 @@ class TablesFlowTest {
         Matcher crewBody = TBODY.matcher(crewList);
         assertThat(crewBody.find()).isTrue();
         assertThat(crewBody.group(1)).as("emails broken mid-word").doesNotContain("text-break");
-        assertThat(html("/office/invitations")).contains("More actions: New Office", "status-badge status-primary");
+        assertThat(html("/office/users")).contains("More actions: New Office", "status-badge status-primary");
         assertThat(html("/office/certificates")).contains(
                 "href=\"/office/crew/" + crew.getId() + "/certificates/" + certificate.getId() + "/edit\">STCW Basic Safety</a>",
                 "status-badge status-danger");

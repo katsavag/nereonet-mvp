@@ -1,9 +1,10 @@
-package com.nereonix.nereonet_mvp.invitation;
+package com.nereonix.nereonet_mvp.crew;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+// "Invite office user" on the Office users page.
 public class OfficeInvitationForm {
 
     @NotBlank(message = "{invitation.error.fullNameRequired}")

@@ -142,12 +142,11 @@ public class InvitationService {
         return true;
     }
 
-    /** Office invitations, newest first. status may be null for all. */
+    /** PENDING office invitations, expired or not, by name. Listed on the Office users page. */
     @Transactional(readOnly = true)
-    public List<Invitation> findOfficeInvitations(Invitation.DisplayStatus status) {
-        return invitationRepository.findAllByRoleOrderByCreatedAtDesc(Role.OFFICE_USER).stream()
-                .filter(invitation -> status == null || invitation.getDisplayStatus() == status)
-                .toList();
+    public List<Invitation> findPendingOfficeInvitations() {
+        return invitationRepository.findAllByStatusAndRoleOrderByFullNameAsc(Invitation.Status.PENDING,
+                Role.OFFICE_USER);
     }
 
     private Optional<Invitation> findPending(Long id) {

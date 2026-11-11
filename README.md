@@ -68,13 +68,13 @@ Requirements: Java 25, Docker.
 
 6. Invitations (signed in as an office user). The email with the `/register?token=...` link
    appears in Mailpit.
-   - Office users: **Office invitations** in the sidebar (`/office/invitations`), then **Invite office user** (opens a pop-up form
-     with full name and email; the email is asked once, and the success message names the address the invitation went to,
-     e.g. "Invitation sent to jane@example.com.").
-     The list shows each invitation's status (Pending, Expired, Accepted, Cancelled; "Expired" is a pending invitation
-     past its expiry date) and can be filtered by status. Pending invitations, expired or not, have **Resend** (new link
-     and expiry date, new email; the old link stops working) and, in the row's **⋯** menu, **Cancel** (the link then
-     shows the "invalid or expired" page).
+   - Office users: **Office users** in the sidebar (`/office/users`, see 9), then **Invite office user** (opens a pop-up
+     form with full name and email; the email is asked once, and the success message names the address the invitation
+     went to, e.g. "Invitation sent to jane@example.com."). There is no separate invitations page any more:
+     `/office/invitations` redirects to `/office/users`. Pending invitations are listed there with the users, as
+     "Invited", or "Invitation expired" when past their expiry date; accepted and cancelled invitations are not listed
+     (an accepted one is a user). Each has **Resend** (new link and expiry date, new email; the old link stops
+     working) and, in the row's **⋯** menu, **Cancel** (the link then shows the "invalid or expired" page).
    - Crew members: **Add crew member** on the **Crew** page (see 8), or open
      `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`). The form asks for full name, email (once; the
      success message names the address) and role, and an optional rank (from a fixed list),
@@ -108,7 +108,8 @@ Requirements: Java 25, Docker.
      members (example.com emails) for the demo ship `MV Demo` (IMO 9074729): one Master, one Chief cook and eight crew
      members. Regenerate it with `./mvnw test -Dtest=CrewSampleFileGenerator -DgenerateSample=true`.
 
-9. Office users (signed in as an office user): **Office users** in the sidebar (`/office/users`).
+9. Office users (signed in as an office user): **Office users** in the sidebar (`/office/users`) lists the office users
+   and the pending office invitations together, with **Invite office user** (see 6).
    Any user, crew or office, can be deactivated (they can no longer sign in) and activated again, from the **⋯** menu
    at the end of their row (here and on **Crew**). A deactivated user can also be deleted (**Delete** in the same
    menu, after a confirmation): the user and every invitation for their email are removed,
@@ -154,8 +155,8 @@ Requirements: Java 25, Docker.
    To try it without waiting, set `CERTIFICATE_REMINDER_CRON` to e.g. `0 */1 * * * *` (every minute), add a
    certificate expiring in 60 days, and watch Mailpit.
 
-13. Notifications (any signed-in user): the bell in the top bar (phones) and **Notifications** in the sidebar show the
-   number of unread notifications. `/notifications` lists them, newest first; opening it marks them as read
+13. Notifications (any signed-in user): the bell in the top bar (phones) and **Notifications** in the sidebar (a pill,
+   see "sidebar navigation" below) show the number of unread notifications. `/notifications` lists them, newest first; opening it marks them as read
    (new ones stay highlighted on that visit).
 
 14. Announcements (signed in as an office user): **Announcements** in the sidebar (`/office/announcements`) lists every
@@ -352,6 +353,26 @@ The app makes no request to any other host: everything a page needs is served fr
     the sidebar, with 24 px between the header, the filters and the content; it has `min-width: 0`, so a wide table
     scrolls inside its card instead of widening the page (no page scrolls sideways at 1440, 1024 or 390 px; the
     import review and audit log tables scroll inside their card).
+
+  - sidebar navigation (P07): the navy sidebar (`layout/layout.html`, entries `layout/parts :: navItem`) has small
+    uppercase group labels:
+    - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Announcements, Requests),
+      **Administration** (Office users, Audit log), **Account** (Notifications, the language switch); crew: **On board**
+      (Library; Home and Announcements come with P26 and P27) and **Account** (Notifications). The user block (name,
+      role, **Sign out**) is pinned at the bottom; when the window is shorter than the navigation, only the navigation
+      scrolls. The brand (logo and name) links to the user's home page (`/office` or `/ship`);
+    - the entry of the current section is active: lighter background, a 3 px pink bar on its left edge, white semibold
+      text and `aria-current="page"`. Pages below an entry keep it active (`/office/crew/12/edit` → Crew,
+      `/office/ships/3/library` → Ships, `/office/invitations` → Office users), also their error pages. Exactly one entry
+      is active on every page except `/ship`, which has no entry until P26. The section comes from one place,
+      `navigation/NavigationAdvice` (model attribute `navSection`, from the URL via `NavSection`); controllers do not set it;
+    - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
+      screen readers: **Certificates** expired or expiring within 30 days (UTC days), **Requests** approved and not
+      exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
+      office users only; `unreadNotifications` from `NotificationBellAdvice`);
+    - phones (below 768 px): the sidebar is an offcanvas opened from the top bar's menu button and closed with Esc or
+      the backdrop. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
+      out, then the page.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

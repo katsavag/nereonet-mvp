@@ -1,0 +1,59 @@
+package com.nereonix.nereonet_mvp.navigation;
+
+import java.util.List;
+
+/**
+ * The sidebar entry a URL belongs to. A page below an entry keeps it active: /office/crew/12/edit is CREW,
+ * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew').
+ */
+public enum NavSection {
+
+    // Office, Operations
+    OVERVIEW("overview", List.of()),           // /office itself only, see of()
+    SHIPS("ships", List.of("/office/ships")),
+    CREW("crew", List.of("/office/crew")),
+    CERTIFICATES("certificates", List.of("/office/certificates")),
+    ANNOUNCEMENTS("announcements", List.of("/office/announcements")),
+    REQUESTS("requests", List.of("/office/requests")),
+    // Office, Administration. Office invitations are part of the Office users page.
+    USERS("users", List.of("/office/users", "/office/invitations")),
+    AUDIT("audit", List.of("/office/audit")),
+    // Ship
+    LIBRARY("library", List.of("/ship/library")),
+    // Account, everyone
+    NOTIFICATIONS("notifications", List.of("/notifications"));
+
+    private final String key;
+    private final List<String> prefixes;
+
+    NavSection(String key, List<String> prefixes) {
+        this.key = key;
+        this.prefixes = prefixes;
+    }
+
+    public String key() {
+        return key;
+    }
+
+    /**
+     * The section of a path within the application (no context path), or null for a page with no sidebar entry
+     * (/ship until the ship home page gets one in P26, the sign-in page).
+     */
+    public static NavSection of(String path) {
+        if (path == null) {
+            return null;
+        }
+        String p = path.length() > 1 && path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+        if (p.equals("/office")) {
+            return OVERVIEW;
+        }
+        for (NavSection section : values()) {
+            for (String prefix : section.prefixes) {
+                if (p.equals(prefix) || p.startsWith(prefix + "/")) {
+                    return section;
+                }
+            }
+        }
+        return null;
+    }
+}

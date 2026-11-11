@@ -879,13 +879,134 @@ fieldset:disabled button.btn {
 
 .login-box { max-width: 32rem; }
 
-/* Sidebar navigation links, as in the mocks */
-.sidebar .nav-link {
-    color: rgba(255, 255, 255, .85);
-    border-radius: var(--nn-radius-control);
+/* ---------------------------------------------------------------------------------------------------------------
+   Sidebar (P07): layout/layout.html, entries from layout/parts :: navItem.
+     - .sidebar-body: a column; the brand on top, .sidebar-nav in the middle scrolls on its own when the window is
+       shorter than the navigation, .sidebar-user stays pinned at the bottom.
+     - .nav-group-label: small uppercase group name (Operations, Administration, Account; On board for the crew).
+     - .sidebar-link: a 40px (44px on phones) row. Active (.active, aria-current="page"): lighter background, a 3px
+       accent bar on the left edge and white semibold text, so it is not shown by colour alone.
+     - .nav-count: a quiet pill on the right of an entry with the number waiting (hidden when zero).
+   Text on the navy: links 12:1, group labels and the role line 6.9:1, pill numbers 7:1 or more.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-sidebar-width: 16rem;
+    --nn-sidebar-text: rgba(255, 255, 255, .85);
+    --nn-sidebar-muted: rgba(255, 255, 255, .62);
+    --nn-sidebar-hover: rgba(255, 255, 255, .08);
+    --nn-sidebar-active: rgba(255, 255, 255, .14);
+    --nn-sidebar-accent: #e98bd0;    /* the tagline pink, 6.9:1 on the navy */
+    --nn-sidebar-count-bg: rgba(255, 255, 255, .16);
 }
-.sidebar .nav-link:hover,
-.sidebar .nav-link:focus { color: #fff; background-color: rgba(255, 255, 255, .08); }
+
+/* .sidebar in front: Bootstrap's .offcanvas-md .offcanvas-body (no padding, the whole body scrolls) is overridden
+   at every width; here only the navigation scrolls. */
+.sidebar .sidebar-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    height: 100%;
+    padding: var(--nn-space-4);
+}
+.sidebar .sidebar-body { overflow: hidden; }
+
+.sidebar-brand {
+    display: block;
+    flex-shrink: 0;
+    margin-bottom: var(--nn-space-5);
+    border-radius: var(--nn-radius-control);
+    color: #fff;
+    text-decoration: none;
+}
+.sidebar-brand:hover { color: #fff; }
+
+.sidebar-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Room for the focus ring of the entries, which the scrolling box would otherwise cut off. */
+    margin: 0 calc(-1 * var(--nn-space-2));
+    padding: var(--nn-space-1) var(--nn-space-2);
+}
+
+.nav-group-label {
+    margin: var(--nn-space-4) 0 var(--nn-space-1);
+    padding: 0 var(--nn-space-2);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--nn-sidebar-muted);
+}
+.nav-group-label:first-child { margin-top: 0; }
+
+.sidebar-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
+    border-radius: var(--nn-radius-control);
+    color: var(--nn-sidebar-text);
+}
+.sidebar-link:hover,
+.sidebar-link:focus { color: #fff; background-color: var(--nn-sidebar-hover); }
+.sidebar-link.active {
+    color: #fff;
+    font-weight: 600;
+    background-color: var(--nn-sidebar-active);
+}
+.sidebar-link.active::before {
+    content: "";
+    position: absolute;
+    top: var(--nn-space-2);
+    bottom: var(--nn-space-2);
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background-color: var(--nn-sidebar-accent);
+}
+.sidebar-icon { flex-shrink: 0; }
+.sidebar-link-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.nav-count {
+    flex-shrink: 0;
+    min-width: 1.5rem;
+    padding: 0 var(--nn-space-2);
+    border-radius: 999px;
+    background-color: var(--nn-sidebar-count-bg);
+    color: #fff;
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-align: center;
+}
+
+.sidebar-lang {
+    margin-top: var(--nn-space-2);
+    padding: 0 var(--nn-space-2) 0 var(--nn-space-3);
+}
+.sidebar-lang .lang-switch a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+
+.sidebar-user {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-3);
+    padding-top: var(--nn-space-4);
+    border-top: 1px solid rgba(255, 255, 255, .1);
+}
+.sidebar-user-role { color: var(--nn-sidebar-muted); }
 
 .avatar {
     width: 2.5rem;
@@ -899,10 +1020,11 @@ fieldset:disabled button.btn {
     font-weight: 600;
 }
 
-/* Sidebar: fixed column from md up; below md it is an offcanvas opened from the header. */
+/* Fixed column from md up, as tall as the window; below md it is an offcanvas opened from the top bar
+   (Esc or the backdrop closes it). */
 @media (min-width: 768px) {
     .sidebar {
-        width: 16rem;
+        width: var(--nn-sidebar-width);
         height: 100vh;
         position: sticky;
         top: 0;

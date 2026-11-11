@@ -228,7 +228,7 @@ class FormsFlowTest {
 
     @Test
     void modalFootersHaveCancelThenPrimary() throws Exception {
-        for (String page : List.of("/office/ships", "/office/invitations", "/office/crew")) {
+        for (String page : List.of("/office/ships", "/office/users", "/office/crew")) {
             Matcher footers = Pattern.compile("(?s)<div class=\"modal-footer\">(.*?)</div>").matcher(page(page));
             int found = 0;
             while (footers.find()) {
@@ -243,17 +243,17 @@ class FormsFlowTest {
 
     @Test
     void invitationsHaveNoRepeatEmailAndTheSuccessMessageNamesTheAddress() throws Exception {
-        assertThat(page("/office/invitations")).doesNotContain("confirmEmail", "Repeat email");
+        assertThat(page("/office/users")).doesNotContain("confirmEmail", "Repeat email");
         Ship ship = ship();
         assertThat(page("/office/ships/" + ship.getId() + "/invitations/new")).doesNotContain("confirmEmail");
 
         MvcResult sent = mockMvc.perform(post("/office/invitations")
                         .param("fullName", "New Office").param("email", "New.Office@Example.com").with(csrf()))
-                .andExpect(redirectedUrl("/office/invitations"))
+                .andExpect(redirectedUrl("/office/users"))
                 .andExpect(flash().attribute("successMessage", "invitation.sent"))
                 .andReturn();
         FlashMap flashMap = sent.getFlashMap();
-        String html = mockMvc.perform(get("/office/invitations").flashAttrs(flashMap))
+        String html = mockMvc.perform(get("/office/users").flashAttrs(flashMap))
                 .andReturn().getResponse().getContentAsString();
         assertThat(html).contains("Invitation sent to new.office@example.com.");
 

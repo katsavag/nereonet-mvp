@@ -4,7 +4,8 @@
     <html th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
   title: the page name as text. The browser tab shows "Page name · Nereonet"; on phones the top bar shows the page
   name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
-  Logged in: navy sidebar (an offcanvas below md) with the user's name and a logout button.
+  Logged in: navy sidebar (an offcanvas below md, closed with Esc): grouped navigation with the active entry and
+  counters (P07, see the comment on the aside), the user's name and a logout button.
   Not logged in: the page's <main> fills the screen and brings its own container.
   Messages: add a flash attribute "successMessage" or "errorMessage"
   holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved"); for a message
@@ -24,137 +25,61 @@
 <body>
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
+    <!-- Sidebar (P07): brand, the navigation groups (scroll on their own when the window is short), and the user
+         block pinned at the bottom. The active entry and the counters come from navigation/NavigationAdvice
+         (navSection, navCounts) and notification/NotificationBellAdvice (unreadNotifications). -->
     <aside class="sidebar flex-shrink-0 bg-navy">
         <div class="offcanvas-md offcanvas-start bg-navy text-white h-100" tabindex="-1" id="sidebar"
              th:attr="aria-label=#{app.name}">
-            <div class="offcanvas-body d-flex flex-column h-100 p-3">
-                <div class="mb-4">
-                    <div sec:authorize="hasRole('OFFICE_USER')"
-                         th:replace="~{layout/parts :: brand(#{portal.office})}"></div>
-                    <div sec:authorize="!hasRole('OFFICE_USER')"
-                         th:replace="~{layout/parts :: brand(#{portal.ship})}"></div>
-                </div>
+            <div class="offcanvas-body sidebar-body">
+                <!-- The brand goes to the user's home page: /office or /ship. -->
+                <a class="sidebar-brand" th:href="@{${#authentication.principal.homeUrl}}"
+                   th:with="office=${#authentication.principal.role.name() == 'OFFICE_USER'}">
+                    <div th:replace="~{layout/parts :: brand(${office} ? #{portal.office} : #{portal.ship})}"></div>
+                </a>
 
-                <nav class="flex-grow-1">
-                    <ul sec:authorize="hasRole('OFFICE_USER')" class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/ships}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 14h18l-2.5 5h-13z"/>
-                                    <path d="M6 14V9h12v5M12 9V4"/>
-                                </svg>
-                                <span th:text="#{nav.ships}">Ships</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/crew}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <circle cx="9" cy="8" r="3.5"/>
-                                    <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>
-                                </svg>
-                                <span th:text="#{nav.crew}">Crew</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/users}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="3" y="5" width="18" height="14" rx="2"/>
-                                    <circle cx="9" cy="11" r="2"/>
-                                    <path d="M6 16a3 3 0 0 1 6 0M14 10h4M14 14h3"/>
-                                </svg>
-                                <span th:text="#{nav.officeUsers}">Office users</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/invitations}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                                    <rect x="3" y="5" width="18" height="14" rx="2"/>
-                                    <path d="M3 7l9 6 9-6"/>
-                                </svg>
-                                <span th:text="#{nav.invitations}">Invitations</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/audit}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
-                                    <path d="M3 3v5h5M12 7v5l3 2"/>
-                                </svg>
-                                <span th:text="#{nav.audit}">Audit log</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/certificates}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="4" y="3" width="16" height="13" rx="2"/>
-                                    <path d="M8 7h8M8 11h5M10 16l-1.5 5 3.5-2 3.5 2-1.5-5"/>
-                                </svg>
-                                <span th:text="#{nav.certificates}">Certificates</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/announcements}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 10v4h4l7 5V5L7 10z"/>
-                                    <path d="M17.5 9a4 4 0 0 1 0 6"/>
-                                </svg>
-                                <span th:text="#{nav.announcements}">Announcements</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/office/requests}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="5" y="4" width="14" height="17" rx="2"/>
-                                    <path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>
-                                </svg>
-                                <span th:text="#{nav.requests}">Requests</span>
-                            </a>
-                        </li>
+                <nav class="sidebar-nav" th:attr="aria-label=#{nav.label}">
+                    <th:block sec:authorize="hasRole('OFFICE_USER')">
+                        <p class="nav-group-label" id="navGroupOperations" th:text="#{nav.group.operations}">Operations</p>
+                        <ul class="nav flex-column" aria-labelledby="navGroupOperations">
+                            <li th:replace="~{layout/parts :: navItem('overview', '/office', #{nav.overview}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('ships', '/office/ships', #{nav.ships}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('certificates', '/office/certificates', #{nav.certificates},
+                                    ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
+                            <li th:replace="~{layout/parts :: navItem('announcements', '/office/announcements', #{nav.announcements}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('requests', '/office/requests', #{nav.requests},
+                                    ${navCounts.requests}, #{nav.count.requests(${navCounts.requests})})}"></li>
+                        </ul>
+                        <p class="nav-group-label" id="navGroupAdministration" th:text="#{nav.group.administration}">Administration</p>
+                        <ul class="nav flex-column" aria-labelledby="navGroupAdministration">
+                            <li th:replace="~{layout/parts :: navItem('users', '/office/users', #{nav.officeUsers}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
+                        </ul>
+                    </th:block>
+                    <!-- Ship: Home (P26) and Announcements (P27) are added to this group, Home first. -->
+                    <th:block sec:authorize="!hasRole('OFFICE_USER')">
+                        <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
+                        <ul class="nav flex-column" aria-labelledby="navGroupShip">
+                            <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
+                        </ul>
+                    </th:block>
+                    <p class="nav-group-label" id="navGroupAccount" th:text="#{nav.group.account}">Account</p>
+                    <ul class="nav flex-column" aria-labelledby="navGroupAccount">
+                        <li th:replace="~{layout/parts :: navItem('notifications', '/notifications', #{nav.notifications},
+                                ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
                     </ul>
-                    <ul sec:authorize="!hasRole('OFFICE_USER')" class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/ship/library}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/>
-                                    <path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/>
-                                </svg>
-                                <span th:text="#{nav.library}">Library</span>
-                            </a>
-                        </li>
-                    </ul>
-                    <!-- Every logged-in user. unreadNotifications comes from NotificationBellAdvice. -->
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-3 px-2" th:href="@{/notifications}">
-                                <th:block th:replace="~{layout/parts :: bellIcon}"></th:block>
-                                <span class="flex-grow-1" th:text="#{nav.notifications}">Notifications</span>
-                                <span th:if="${unreadNotifications != null and unreadNotifications > 0}"
-                                      class="badge rounded-pill bg-danger"
-                                      th:text="${unreadNotifications > 99} ? '99+' : ${unreadNotifications}">3</span>
-                            </a>
-                        </li>
-                    </ul>
+                    <!-- Office screens are English and Greek; crew screens are English only. -->
+                    <div sec:authorize="hasRole('OFFICE_USER')" class="sidebar-lang">
+                        <div th:replace="~{layout/parts :: langSwitch('link-light link-underline-opacity-0')}"></div>
+                    </div>
                 </nav>
 
-                <!-- Office screens are English and Greek; crew screens are English only. -->
-                <div sec:authorize="hasRole('OFFICE_USER')" class="mb-3">
-                    <div th:replace="~{layout/parts :: langSwitch('link-light link-underline-opacity-0')}"></div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2 border-top border-light border-opacity-10 pt-3">
-                    <div class="avatar" th:text="${#authentication.principal.initials}">JD</div>
+                <div class="sidebar-user">
+                    <div class="avatar" aria-hidden="true" th:text="${#authentication.principal.initials}">JD</div>
                     <div class="flex-grow-1 lh-sm small text-break">
                         <div class="fw-semibold" th:text="${#authentication.principal.fullName}">John Doe</div>
-                        <div class="text-white-50"
+                        <div class="sidebar-user-role"
                              th:text="#{${'role.' + #authentication.principal.role}}">Office user</div>
                     </div>
                     <form th:action="@{/logout}" method="post">

@@ -25,6 +25,7 @@ import com.nereonix.nereonet_mvp.core.user.ShipRoleTakenException;
 
 import jakarta.validation.Valid;
 
+// Crew invitations for one ship. Office invitations are on the Office users page (crew/OfficeUserController).
 // /office/** is limited to OFFICE_USER in SecurityConfig.
 @Controller
 public class InvitationController {
@@ -35,51 +36,6 @@ public class InvitationController {
 
     public InvitationController(InvitationService invitationService) {
         this.invitationService = invitationService;
-    }
-
-    // Office users
-
-    // The invite form is a modal on the list page.
-    @GetMapping("/office/invitations")
-    public String list(@ModelAttribute("filter") InvitationFilterForm filter, Model model) {
-        model.addAttribute("form", new OfficeInvitationForm());
-        return showList(filter, model);
-    }
-
-    // On errors the list page is shown again and the modal reopens with the errors.
-    @PostMapping("/office/invitations")
-    public String inviteOfficeUser(@Valid @ModelAttribute("form") OfficeInvitationForm form, BindingResult result,
-                                   @AuthenticationPrincipal CurrentUser user, Model model,
-                                   RedirectAttributes redirectAttributes) {
-        if (result.hasErrors()) {
-            return showList(new InvitationFilterForm(), model);
-        }
-        Invitation invitation;
-        try {
-            invitation = invitationService.invite(form.getEmail(), form.getFullName(), Role.OFFICE_USER, null, null,
-                    user.getUsername());
-        } catch (EmailAlreadyRegisteredException e) {
-            result.rejectValue("email", "invitation.error.userExists");
-            return showList(new InvitationFilterForm(), model);
-        }
-        sent(invitation, redirectAttributes);
-        return "redirect:/office/invitations";
-    }
-
-    @PostMapping("/office/invitations/{id}/resend")
-    public String resend(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        boolean done = invitationService.resend(id);
-        redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
-                done ? "invitation.resent" : "invitation.error.notPending");
-        return "redirect:/office/invitations";
-    }
-
-    @PostMapping("/office/invitations/{id}/cancel")
-    public String cancel(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        boolean done = invitationService.cancel(id);
-        redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
-                done ? "invitation.cancelled" : "invitation.error.notPending");
-        return "redirect:/office/invitations";
     }
 
     // Crew members of one ship
@@ -119,13 +75,6 @@ public class InvitationController {
     private static void sent(Invitation invitation, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
         redirectAttributes.addFlashAttribute("successArgs", new Object[] {invitation.getEmail()});
-    }
-
-    private String showList(InvitationFilterForm filter, Model model) {
-        model.addAttribute("filter", filter);
-        model.addAttribute("statuses", Invitation.DisplayStatus.values());
-        model.addAttribute("invitations", invitationService.findOfficeInvitations(filter.getStatus()));
-        return "invitation/list";
     }
 
     private Ship findShip(Long shipId) {

@@ -16,7 +16,7 @@
 </div>
 
 <!-- English / Greek links. linkClass sets the link colour. -->
-<div th:fragment="langSwitch(linkClass)" class="small">
+<div th:fragment="langSwitch(linkClass)" class="lang-switch small">
     <a th:class="${linkClass}" th:classappend="${#locale.language == 'en'} ? 'fw-bold'"
        th:href="@{''(lang='en')}" th:text="#{nav.lang.en}">English</a>
     <span class="mx-1 opacity-50">·</span>
@@ -24,12 +24,47 @@
        th:href="@{''(lang='el')}" th:text="#{nav.lang.el}">Ελληνικά</a>
 </div>
 
+<!-- One sidebar entry (P07). section: its NavSection key; the entry whose key is navSection (navigation/NavigationAdvice,
+     from the URL) is active: lighter background, a 3px accent bar on the left, aria-current="page". Exactly one entry
+     is active on a page, none on a page without an entry (/ship until P26).
+     url: an app path. label: text. count: a number shown as a quiet pill on the right, hidden when null or zero,
+     "99+" above 99; countLabel: the same number in words for screen readers ("3 unread"), or null without count.
+     The icon is navIcon(section).
+     Use: <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li> -->
+<li th:fragment="navItem(section, url, label, count, countLabel)" class="nav-item"
+    th:with="active=${navSection == section}">
+    <a class="nav-link sidebar-link" th:classappend="${active} ? 'active'" th:href="@{${url}}" th:aria-current="${active} ? 'page'">
+        <svg th:replace="~{layout/parts :: navIcon(${section})}"></svg>
+        <span class="sidebar-link-label" th:text="${label}">Crew</span>
+        <th:block th:if="${count != null and count > 0}">
+            <span class="nav-count num" aria-hidden="true" th:text="${count > 99} ? '99+' : ${count}">3</span>
+            <span class="visually-hidden" th:text="${countLabel}">3 unread</span>
+        </th:block>
+    </a>
+</li>
+
+<!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). -->
+<svg th:fragment="navIcon(name)" class="sidebar-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+     focusable="false">
+    <th:block th:if="${name == 'overview'}"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></th:block>
+    <th:block th:if="${name == 'ships'}"><path d="M3 14h18l-2.5 5h-13z"/><path d="M6 14V9h12v5M12 9V4"/></th:block>
+    <th:block th:if="${name == 'crew'}"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></th:block>
+    <th:block th:if="${name == 'certificates'}"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M8 7h8M8 11h5M10 16l-1.5 5 3.5-2 3.5 2-1.5-5"/></th:block>
+    <th:block th:if="${name == 'announcements'}"><path d="M3 10v4h4l7 5V5L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/></th:block>
+    <th:block th:if="${name == 'requests'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></th:block>
+    <th:block th:if="${name == 'users'}"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M14 10h4M14 14h3"/></th:block>
+    <th:block th:if="${name == 'audit'}"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></th:block>
+    <th:block th:if="${name == 'library'}"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/></th:block>
+    <th:block th:if="${name == 'notifications'}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></th:block>
+</svg>
+
 <!-- A date and time. instant is stored as UTC; js/local-time.js shows it in the browser's time zone.
      Use: <time th:replace="~{layout/parts :: localTime(${entity.createdAt})}"></time> -->
 <time th:fragment="localTime(instant)" class="local-time text-nowrap" th:datetime="${#temporals.format(instant, 'yyyy-MM-dd''T''HH:mm:ss''Z''', 'UTC')}"
       th:text="${#temporals.format(instant, 'd MMM yyyy · HH:mm', 'UTC')} + ' UTC'">21 Oct 2026 · 12:40 UTC</time>
 
-<!-- Bell icon for the notifications link. -->
+<!-- Bell icon for the notification button in the phone top bar (the sidebar uses navIcon('notifications')). -->
 <svg th:fragment="bellIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/>

@@ -83,7 +83,7 @@ class ButtonHierarchyFlowTest {
         mockMvc.perform(post("/office/invitations")
                 .param("fullName", "New Office").param("email", "new.office@example.com").with(csrf()));
 
-        List<String> pages = List.of("/office/ships", "/office/crew", "/office/users", "/office/invitations",
+        List<String> pages = List.of("/office/ships", "/office/crew", "/office/users",
                 "/office/certificates", "/office/announcements", "/office/requests", "/office/audit",
                 "/office/ships/" + ship.getId() + "/items", "/office/ships/" + ship.getId() + "/items/import",
                 "/office/ships/" + ship.getId() + "/library", "/office/crew/" + crew.getId() + "/edit",
