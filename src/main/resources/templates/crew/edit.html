@@ -50,8 +50,8 @@
                     <div id="shipHint" class="form-text" th:text="#{crew.edit.shipHint}">Pick another ship to move this crew member.</div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg" th:text="#{crew.form.save}">Save</button>
-                    <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/crew}"
+                    <button type="submit" class="btn btn-primary" th:text="#{crew.form.save}">Save</button>
+                    <a class="btn btn-outline-secondary" th:href="@{/office/crew}"
                        th:text="#{crew.form.cancel}">Cancel</a>
                 </div>
             </form>
@@ -62,7 +62,7 @@
     <div class="card form-box mt-4">
         <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
             <h2 class="h5 fw-bold mb-0" th:text="#{certificate.heading}">Certificates</h2>
-            <a class="btn btn-outline-primary btn-sm" th:href="@{/office/crew/{id}/certificates/new(id=${member.id})}"
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/crew/{id}/certificates/new(id=${member.id})}"
                th:text="#{certificate.add}">Add certificate</a>
         </div>
 
@@ -79,16 +79,19 @@
                     </div>
                 </div>
                 <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-secondary btn-sm"
+                <div class="d-flex align-items-start gap-2">
+                    <a class="btn btn-ghost btn-sm"
                        th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${member.id},cid=${c.id})}"
                        th:text="#{certificate.edit}">Edit</a>
-                    <form th:action="@{/office/crew/{id}/certificates/{cid}/delete(id=${member.id},cid=${c.id})}"
-                          method="post" th:data-confirm="#{certificate.delete.confirm(${c.type})}"
-                          onsubmit="return confirm(this.dataset.confirm)">
-                        <button type="submit" class="btn btn-outline-danger btn-sm"
-                                th:text="#{certificate.delete}">Delete</button>
-                    </form>
+                    <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${c.type})}, ~{::certificateMenuItems})}">
+                        <form th:fragment="certificateMenuItems"
+                              th:action="@{/office/crew/{id}/certificates/{cid}/delete(id=${member.id},cid=${c.id})}"
+                              method="post" th:data-confirm="#{certificate.delete.confirm(${c.type})}"
+                              onsubmit="return confirm(this.dataset.confirm)">
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                    th:text="#{certificate.delete}">Delete</button>
+                        </form>
+                    </details>
                 </div>
             </li>
         </ul>

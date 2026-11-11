@@ -97,9 +97,10 @@
         <div class="d-flex flex-wrap gap-2">
             <button type="submit" class="btn btn-outline-secondary" th:text="#{itemImport.review.check}">Check again</button>
             <button type="submit" class="btn btn-primary" th:formaction="@{/office/ships/{id}/items/import/submit(id=${ship.id})}"
-                    th:disabled="${!itemImport.ready}" th:text="#{itemImport.review.submit}">Import items</button>
+                    th:disabled="${!itemImport.ready}" th:attr="aria-describedby=${itemImport.ready} ? null : 'submitHint'"
+                    th:text="#{itemImport.review.submit}">Import items</button>
         </div>
-        <p th:unless="${itemImport.ready}" class="small text-body-secondary mt-2 mb-0"
+        <p th:unless="${itemImport.ready}" id="submitHint" class="small text-body-secondary mt-2 mb-0"
            th:text="#{itemImport.review.submitHint}">Import items is available when no included row has errors.</p>
     </form>
 </main>

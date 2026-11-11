@@ -34,7 +34,7 @@
                     <td>
                         <!-- A user cannot deactivate themselves. -->
                         <div th:unless="${u.email == #authentication.name}" class="d-flex justify-content-end gap-2">
-                            <div th:replace="~{crew/parts :: enableButton(${u})}"></div>
+                            <details th:replace="~{crew/parts :: enableMenu(${u})}"></details>
                         </div>
                     </td>
                 </tr>

@@ -10,11 +10,15 @@
             <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
             <h1 class="fw-bold mb-0" th:text="#{crew.list.heading}">Crew</h1>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addCrewModal"
-                    th:text="#{crew.list.add}">Add crew member</button>
-            <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/crew/import}"
-               th:text="#{crew.list.import}">Import from file</a>
+        <div class="page-actions">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{crew.list.add}">Add crew member</span>
+            </button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/crew/import}">
+                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                <span th:text="#{crew.list.import}">Import from file</span>
+            </a>
         </div>
     </div>
 
@@ -29,8 +33,8 @@
             </select>
         </div>
         <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-outline-secondary" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
+            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
 
@@ -78,10 +82,10 @@
                     <td th:text="${u.ship.name}">MV Demo</td>
                     <td th:insert="~{crew/parts :: status(${u.enabled})}"></td>
                     <td>
-                        <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/crew/{id}/edit(id=${u.id})}"
+                        <div class="d-flex justify-content-end align-items-start gap-2">
+                            <a class="btn btn-ghost btn-sm" th:href="@{/office/crew/{id}/edit(id=${u.id})}"
                                th:text="#{user.edit}">Edit</a>
-                            <div th:replace="~{crew/parts :: enableButton(${u})}"></div>
+                            <details th:replace="~{crew/parts :: enableMenu(${u})}"></details>
                         </div>
                     </td>
                 </tr>

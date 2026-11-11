@@ -10,8 +10,12 @@
             <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
             <h1 class="fw-bold mb-0" th:text="#{ship.list.heading}">Ships</h1>
         </div>
-        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#newShipModal"
-                th:text="#{ship.list.add}">Add ship</button>
+        <div class="page-actions">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newShipModal">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{ship.list.add}">Add ship</span>
+            </button>
+        </div>
     </div>
 
     <div class="card">
@@ -48,27 +52,31 @@
                               th:text="#{ship.status.inactive}">Inactive</span>
                     </td>
                     <td>
-                        <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/ships/{id}/items(id=${s.id})}"
+                        <div class="d-flex justify-content-end align-items-start gap-2">
+                            <a class="btn btn-ghost btn-sm" th:href="@{/office/ships/{id}/items(id=${s.id})}"
                                th:text="#{ship.items}">Items</a>
-                            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/ships/{id}/library(id=${s.id})}"
+                            <a class="btn btn-ghost btn-sm" th:href="@{/office/ships/{id}/library(id=${s.id})}"
                                th:text="#{ship.library}">Library</a>
                             <!-- The data-* values fill the edit modal (see the script below). -->
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <button type="button" class="btn btn-ghost btn-sm"
                                     data-bs-toggle="modal" data-bs-target="#editShipModal"
                                     th:data-action="@{/office/ships/{id}/edit(id=${s.id})}"
                                     th:data-imo="#{ship.codeValue(${s.imoNumber})}"
                                     th:data-name="${s.name}" th:data-type="${s.type}"
                                     th:data-flag="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : ''"
                                     th:text="#{ship.edit}">Edit</button>
-                            <form th:if="${s.active}" th:action="@{/office/ships/{id}/deactivate(id=${s.id})}" method="post">
-                                <button type="submit" class="btn btn-outline-danger btn-sm"
-                                        th:text="#{ship.deactivate}">Deactivate</button>
-                            </form>
-                            <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
-                                <button type="submit" class="btn btn-outline-primary btn-sm"
-                                        th:text="#{ship.activate}">Activate</button>
-                            </form>
+                            <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${s.name})}, ~{::shipMenuItems})}">
+                                <th:block th:fragment="shipMenuItems">
+                                    <form th:if="${s.active}" th:action="@{/office/ships/{id}/deactivate(id=${s.id})}" method="post">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                th:text="#{ship.deactivate}">Deactivate</button>
+                                    </form>
+                                    <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
+                                        <button type="submit" class="btn btn-ghost btn-sm"
+                                                th:text="#{ship.activate}">Activate</button>
+                                    </form>
+                                </th:block>
+                            </details>
                         </div>
                     </td>
                 </tr>

@@ -11,7 +11,12 @@
             <h1 class="fw-bold mb-1" th:text="#{announcement.list.heading}">Announcements</h1>
             <p class="text-body-secondary mb-0" th:text="#{announcement.list.hint}">Newest first.</p>
         </div>
-        <a class="btn btn-primary" th:href="@{/office/announcements/new}" th:text="#{announcement.new}">New announcement</a>
+        <div class="page-actions">
+            <a class="btn btn-primary" th:href="@{/office/announcements/new}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{announcement.new}">New announcement</span>
+            </a>
+        </div>
     </div>
 
     <!-- Filter by ship: that ship's announcements and the ones to all ships. -->
@@ -25,8 +30,8 @@
             </select>
         </div>
         <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-outline-secondary" th:href="@{/office/announcements}" th:text="#{crew.filter.clear}">Clear</a>
+            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-ghost" th:href="@{/office/announcements}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
 

@@ -262,11 +262,76 @@ h1, .h1 {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Buttons (colours and radius only; sizes come in P03)
+   Buttons
+   Sizes, three only:
+     default 40px  page header actions, form actions, filters, modal footers
+     .btn-sm 32px  inside table rows, list rows and card toolbars only
+     .btn-lg 48px  only the full-width buttons of sign-in, registration and error pages, and "I have read this"
+   Every button is a touch target of at least 40px (44px on phones): a small button keeps its 32px look and an
+   invisible ::before extends the area you can tap.
+   Hierarchy, four levels:
+     .btn-primary            filled navy; at most one per view (and one per modal)
+     .btn-outline-secondary  secondary: surface background, visible border, navy text
+     .btn-ghost              tertiary: navy text only, a background on hover; low-priority and row actions
+     .btn-outline-danger     danger: only inside a confirmation dialog or a row's overflow menu (rowMenu)
+   Disabled: 50% opacity and a not-allowed cursor; say why in the text next to it (aria-describedby).
    --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-btn-height: 2.5rem;         /* 40px */
+    --nn-btn-height-sm: 2rem;        /* 32px */
+    --nn-btn-height-lg: 3rem;        /* 48px */
+    --nn-touch-target: 40px;
+    --nn-icon-size: 1rem;            /* 16px icons in buttons */
+}
+@media (max-width: 575.98px) {
+    :root { --nn-touch-target: 44px; }
+}
+
 .btn,
 .btn-sm,
 .btn-lg { --bs-btn-border-radius: var(--nn-radius-control); }
+
+.btn {
+    --bs-btn-padding-y: .4375rem;    /* 7px: 24px line + 14px + 2px border = 40px */
+    --bs-btn-disabled-opacity: .5;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-btn-height);
+}
+.btn-sm {
+    --bs-btn-padding-y: .25rem;
+    min-height: var(--nn-btn-height-sm);
+}
+.btn-lg {
+    --bs-btn-padding-y: .5rem;
+    min-height: var(--nn-btn-height-lg);
+}
+/* Tap area: never smaller than the touch target, centred on the button. */
+.btn::before {
+    content: "";
+    position: absolute;
+    top: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    bottom: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    left: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+}
+.btn > svg {
+    width: var(--nn-icon-size);
+    height: var(--nn-icon-size);
+    flex-shrink: 0;
+}
+
+/* pointer-events back on so the cursor shows: a disabled button ignores clicks anyway, and a disabled link
+   has no href (see the audit pagination). A link that still has one stays click-through, as in Bootstrap. */
+.btn:disabled,
+.btn.disabled:not([href]),
+fieldset:disabled button.btn {
+    cursor: not-allowed;
+    pointer-events: auto;
+}
 
 .btn-primary {
     --bs-btn-bg: var(--nn-blue);
@@ -291,6 +356,87 @@ h1, .h1 {
     --bs-btn-disabled-color: var(--nn-blue);
     --bs-btn-disabled-border-color: var(--nn-blue);
 }
+/* Secondary. Bootstrap's grey outline reads as disabled; this one is a surface with a 3:1 border and navy text. */
+.btn-outline-secondary {
+    --bs-btn-color: var(--nn-blue);
+    --bs-btn-bg: var(--nn-surface);
+    --bs-btn-border-color: var(--nn-field-border);
+    --bs-btn-hover-color: var(--nn-blue-dark);
+    --bs-btn-hover-bg: var(--nn-primary-bg);
+    --bs-btn-hover-border-color: var(--nn-blue);
+    --bs-btn-active-color: var(--nn-blue-dark);
+    --bs-btn-active-bg: var(--nn-primary-border);
+    --bs-btn-active-border-color: var(--nn-blue);
+    --bs-btn-disabled-color: var(--nn-blue);
+    --bs-btn-disabled-bg: var(--nn-surface);
+    --bs-btn-disabled-border-color: var(--nn-field-border);
+    font-weight: 600;
+}
+/* Tertiary: text only. */
+.btn-ghost {
+    --bs-btn-color: var(--nn-blue);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: var(--nn-blue-dark);
+    --bs-btn-hover-bg: var(--nn-primary-bg);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--nn-blue-dark);
+    --bs-btn-active-bg: var(--nn-primary-border);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: var(--nn-blue);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: transparent;
+    font-weight: 600;
+}
+.btn-outline-danger {
+    --bs-btn-color: var(--nn-danger);
+    --bs-btn-bg: var(--nn-surface);
+    --bs-btn-border-color: var(--nn-danger);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--nn-danger);
+    --bs-btn-hover-border-color: var(--nn-danger);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--nn-danger-text);
+    --bs-btn-active-border-color: var(--nn-danger-text);
+    --bs-btn-disabled-color: var(--nn-danger);
+    --bs-btn-disabled-border-color: var(--nn-danger);
+    font-weight: 600;
+}
+
+/* Page header actions (.page-actions): side by side; on phones stacked, full width, equal widths. */
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+@media (max-width: 575.98px) {
+    .page-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+}
+
+/* Row overflow menu (layout/parts :: rowMenu): a native details element, so it opens without JavaScript.
+   The list opens in place below the button, so a table's scroll container never cuts it off. */
+.row-menu > summary { list-style: none; }
+.row-menu > summary::-webkit-details-marker { display: none; }
+.row-menu > summary.btn { min-width: var(--nn-btn-height-sm); padding-inline: var(--nn-space-2); }
+.row-menu[open] > summary { background-color: var(--nn-primary-bg); }
+.row-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-2);
+    padding: var(--nn-space-2);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+    box-shadow: var(--nn-shadow);
+}
+.row-menu-list form,
+.row-menu-list .btn { width: 100%; }
+.row-menu-list .btn { justify-content: flex-start; white-space: nowrap; }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Surfaces: cards, tables, list groups, modals, dropdown menus

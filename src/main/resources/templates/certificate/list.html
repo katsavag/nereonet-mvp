@@ -22,8 +22,8 @@
             </select>
         </div>
         <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-outline-secondary" th:href="@{/office/certificates}" th:text="#{crew.filter.clear}">Clear</a>
+            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-ghost" th:href="@{/office/certificates}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
 
@@ -63,7 +63,7 @@
                     </td>
                     <td th:text="${c.user.ship} ? ${c.user.ship.name} : '—'">MV Demo</td>
                     <td class="text-end">
-                        <a class="btn btn-outline-secondary btn-sm"
+                        <a class="btn btn-ghost btn-sm"
                            th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
                            th:text="#{certificate.edit}">Edit</a>
                     </td>

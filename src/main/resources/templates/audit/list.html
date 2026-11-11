@@ -29,8 +29,8 @@
             <input type="date" th:field="*{to}" class="form-control">
         </div>
         <div class="col-12 col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{audit.filter.apply}">Filter</button>
-            <a class="btn btn-outline-secondary" th:href="@{/office/audit}" th:text="#{audit.filter.clear}">Clear</a>
+            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{audit.filter.apply}">Filter</button>
+            <a class="btn btn-ghost" th:href="@{/office/audit}" th:text="#{audit.filter.clear}">Clear</a>
         </div>
     </form>
 
@@ -87,13 +87,16 @@
         <!-- 50 rows per page. The links keep the filters. -->
         <div th:if="${entries.totalPages > 1}"
              class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3">
+            <!-- On the first or last page the link is disabled: no href, so it cannot be followed. -->
             <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.first} ? 'disabled'"
-               th:href="@{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number - 1})}"
+               th:attr="aria-disabled=${entries.first} ? 'true' : null"
+               th:href="${entries.first} ? null : @{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number - 1})}"
                th:text="#{audit.previous}">Previous</a>
             <span class="small text-body-secondary"
                   th:text="#{audit.pageOf(${entries.number + 1}, ${entries.totalPages})}">Page 1 of 2</span>
             <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.last} ? 'disabled'"
-               th:href="@{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number + 1})}"
+               th:attr="aria-disabled=${entries.last} ? 'true' : null"
+               th:href="${entries.last} ? null : @{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number + 1})}"
                th:text="#{audit.next}">Next</a>
         </div>
     </div>

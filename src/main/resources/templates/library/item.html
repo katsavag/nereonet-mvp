@@ -17,7 +17,7 @@
         </p>
         <!-- Only the Master (the item is always of the user's own ship). -->
         <div sec:authorize="hasRole('MASTER')" class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary"
+            <a class="btn btn-outline-secondary"
                th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">Edit this item</a>
             <th:block th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'})}"></th:block>
         </div>
@@ -38,7 +38,9 @@
                             : (${size < 1048576} ? #{library.file.kb(${#numbers.formatDecimal(size / 1024.0, 1, 1)})}
                             : #{library.file.mb(${#numbers.formatDecimal(size / 1048576.0, 1, 1)})})">1.2 MB</div>
             </div>
-            <a class="btn btn-primary" th:href="@{/ship/library/{id}/file(id=${item.id})}"
+            <!-- Secondary while "I have read this" is on the page: one primary button per view. -->
+            <a class="btn" th:classappend="${item.required and acknowledgement == null} ? 'btn-outline-secondary' : 'btn-primary'"
+               th:href="@{/ship/library/{id}/file(id=${item.id})}"
                th:text="#{library.download}">Download</a>
         </div>
     </div>

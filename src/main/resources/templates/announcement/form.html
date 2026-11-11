@@ -35,8 +35,8 @@
                 </div>
                 <p class="form-text mb-4" th:text="#{announcement.new.hint}">The crew on board now must acknowledge it. It cannot be edited or deleted after it is sent.</p>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg" th:text="#{announcement.send}">Send</button>
-                    <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/announcements}"
+                    <button type="submit" class="btn btn-primary" th:text="#{announcement.send}">Send</button>
+                    <a class="btn btn-outline-secondary" th:href="@{/office/announcements}"
                        th:text="#{announcement.cancel}">Cancel</a>
                 </div>
             </form>

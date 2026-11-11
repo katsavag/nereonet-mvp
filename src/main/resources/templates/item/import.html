@@ -11,8 +11,10 @@
     <div th:if="${notTemplate}" class="alert alert-danger" role="alert">
         <p class="fw-semibold mb-1" th:text="#{itemImport.error.notTemplate}">This file does not follow the template</p>
         <p class="mb-3" th:text="#{itemImport.error.notTemplateHint}">The first row must have the template's column names, in the same order.</p>
-        <a class="btn btn-outline-danger" th:href="@{/office/items/import/template}"
-           th:text="#{itemImport.downloadTemplate}">Download template</a>
+        <a class="btn btn-outline-secondary" th:href="@{/office/items/import/template}">
+            <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+            <span th:text="#{itemImport.downloadTemplate}">Download template</span>
+        </a>
     </div>
 
     <div th:if="${unreadable}" class="alert alert-danger" role="alert"
@@ -29,8 +31,10 @@
             <p class="small text-body-secondary" th:text="#{itemImport.nothingSaved}">
                 Nothing is saved until you confirm the import.</p>
 
-            <a class="btn btn-outline-secondary mb-4" th:href="@{/office/items/import/template}"
-               th:text="#{itemImport.downloadTemplate}">Download template</a>
+            <a class="btn btn-outline-secondary mb-4" th:href="@{/office/items/import/template}">
+                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                <span th:text="#{itemImport.downloadTemplate}">Download template</span>
+            </a>
 
             <form th:action="@{/office/ships/{id}/items/import(id=${ship.id})}" method="post" enctype="multipart/form-data">
                 <label for="file" class="form-label fw-semibold" th:text="#{itemImport.file}">Item file</label>

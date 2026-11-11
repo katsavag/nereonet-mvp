@@ -15,7 +15,7 @@
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
                 <h2 class="h5 fw-bold mb-0" th:text="#{library.particulars}">Ship particulars</h2>
-                <a th:if="${particularsUrl}" class="btn btn-outline-primary btn-sm" th:href="@{${particularsUrl}}"
+                <a th:if="${particularsUrl}" class="btn btn-outline-secondary btn-sm" th:href="@{${particularsUrl}}"
                    th:text="#{library.particulars.edit}">Edit ship particulars</a>
             </div>
             <p class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
@@ -66,7 +66,7 @@
                            th:href="@{/office/ships/{shipId}/library/{id}/acknowledgements(shipId=${ship.id}, id=${item.id})}"
                            th:text="#{library.acknowledgements.count(${acknowledgementCounts.of(item.id)}, ${acknowledgementCounts.crew})}">12 of 20 acknowledged</a>
                     </div>
-                    <a class="btn btn-outline-primary btn-sm"
+                    <a class="btn btn-ghost btn-sm"
                        th:href="@{/office/ships/{shipId}/library/{id}/edit(shipId=${ship.id}, id=${item.id})}"
                        th:text="#{library.edit}">Edit this item</a>
                 </div>
@@ -131,9 +131,10 @@
     </section>
 </th:block>
 
-<!-- "Retire this item" button and its confirmation modal, which posts to action. -->
+<!-- "Retire this item" button and its confirmation modal, which posts to action. The button that opens the modal is
+     secondary: danger buttons appear only inside a confirmation dialog or an overflow menu. -->
 <th:block th:fragment="retire(action)">
-    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#retireModal"
+    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#retireModal"
             th:text="#{library.retire}">Retire this item</button>
     <div class="modal fade" id="retireModal" tabindex="-1" aria-labelledby="retireModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -150,7 +151,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
                             th:text="#{library.form.cancel}">Cancel</button>
-                    <button type="submit" class="btn btn-danger" th:text="#{library.retire.submit}">Retire</button>
+                    <button type="submit" class="btn btn-outline-danger" th:text="#{library.retire.submit}">Retire</button>
                 </div>
             </form>
         </div>
@@ -218,8 +219,8 @@
         </div>
     </fieldset>
     <div class="d-flex flex-wrap gap-2">
-        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.form.save}">Add item</button>
-        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+        <button type="submit" class="btn btn-primary" th:text="#{library.form.save}">Add item</button>
+        <a class="btn btn-outline-secondary" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
     </div>
 </form>
 
@@ -269,8 +270,8 @@
         </div>
     </fieldset>
     <div class="d-flex flex-wrap gap-2">
-        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.form.publish}">Publish new version</button>
-        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+        <button type="submit" class="btn btn-primary" th:text="#{library.form.publish}">Publish new version</button>
+        <a class="btn btn-outline-secondary" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
     </div>
 </form>
 
@@ -292,8 +293,8 @@
             Dimensions, tonnages, engine and other details. The IMO number and flag come from the ship record.</div>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.particulars.save}">Save</button>
-        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+        <button type="submit" class="btn btn-primary" th:text="#{library.particulars.save}">Save</button>
+        <a class="btn btn-outline-secondary" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
     </div>
 </form>
 

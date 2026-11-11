@@ -63,7 +63,7 @@ Requirements: Java 25, Docker.
 
 5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,
-   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be edited in a pop-up (except the IMO number) and deactivated or activated, never deleted.
+   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be edited in a pop-up (except the IMO number) and deactivated or activated (the row's **⋯** menu), never deleted.
    Inactive ships stay in the list but cannot get new crew invitations.
 
 6. Invitations (signed in as an office user). The email with the `/register?token=...` link
@@ -71,7 +71,8 @@ Requirements: Java 25, Docker.
    - Office users: **Office invitations** in the sidebar (`/office/invitations`), then **Invite office user** (opens a pop-up form).
      The list shows each invitation's status (Pending, Expired, Accepted, Cancelled; "Expired" is a pending invitation
      past its expiry date) and can be filtered by status. Pending invitations, expired or not, have **Resend** (new link
-     and expiry date, new email; the old link stops working) and **Cancel** (the link then shows the "invalid or expired" page).
+     and expiry date, new email; the old link stops working) and, in the row's **⋯** menu, **Cancel** (the link then
+     shows the "invalid or expired" page).
    - Crew members: **Add crew member** on the **Crew** page (see 8), or open
      `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`). The form also asks for an optional rank (from a fixed list),
      which is copied to the user on registration. A ship can have only one active Master and one
@@ -104,8 +105,9 @@ Requirements: Java 25, Docker.
      members. Regenerate it with `./mvnw test -Dtest=CrewSampleFileGenerator -DgenerateSample=true`.
 
 9. Office users (signed in as an office user): **Office users** in the sidebar (`/office/users`).
-   Any user, crew or office, can be deactivated (they can no longer sign in) and activated again. A deactivated user
-   can also be deleted (**Delete**, after a confirmation): the user and every invitation for their email are removed,
+   Any user, crew or office, can be deactivated (they can no longer sign in) and activated again, from the **⋯** menu
+   at the end of their row (here and on **Crew**). A deactivated user can also be deleted (**Delete** in the same
+   menu, after a confirmation): the user and every invitation for their email are removed,
    so they can be invited again. Their audit log entries stay and show "Deleted user"; invitations they sent stay.
    They are removed from the recipient lists of announcements; announcements they sent stay and show "Deleted user".
    You cannot deactivate or delete yourself.
@@ -119,7 +121,7 @@ Requirements: Java 25, Docker.
 
 11. Galley items (signed in as an office user): **Items** on a ship's row in **Ships** (`/office/ships/{id}/items`).
    Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`) and an optional category.
-   **Add item** and **Edit** open a form; items can be deactivated and activated, never deleted.
+   **Add item** and **Edit** open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted.
    **Import** (`/office/ships/{id}/items/import`) adds many items at once:
    - **Download template** gives `items-template.xlsx` with the header row `Name | Unit | Category`. Only this header is accepted.
    - Upload it as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). The review screen shows every row, editable, with
@@ -138,7 +140,7 @@ Requirements: Java 25, Docker.
 
 12. Certificates (signed in as an office user): on a crew member's **Edit** page (`/office/crew/{id}/edit`) the
    **Certificates** card lists their certificates (type, optional number, expiry date) with **Add certificate**,
-   **Edit** and **Delete**. **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
+   **Edit** and, in the row's **⋯** menu, **Delete**. **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
    expires within 90 days or has expired, soonest first, filterable by ship, with a badge: Expired, 30, 60 or 90 days.
 
    A daily job (06:00 UTC; change it with `CERTIFICATE_REMINDER_CRON`, a Spring cron such as `0 0 6 * * *`) reminds
@@ -256,7 +258,19 @@ The app makes no request to any other host: everything a page needs is served fr
   - radius 6 px badges (never pills), 8 px buttons and fields, 12 px cards, 16 px modals;
   - type h1 28 px, card title 18 px, body 16 px, tables and helper text 14 px, eyebrow 12 px; `.num` gives
     tabular figures for IMO numbers, dates, counts and quantities;
-  - spacing 4 / 8 / 12 / 16 / 24 / 32 px: 24 px between page sections, 16 px inside cards, card padding 20 px.
+  - spacing 4 / 8 / 12 / 16 / 24 / 32 px: 24 px between page sections, 16 px inside cards, card padding 20 px;
+  - buttons, three sizes: 40 px by default (page header actions, form actions, filters, modal footers), `btn-sm`
+    32 px only in table rows, list rows and card toolbars, `btn-lg` 48 px only for the full-width buttons on the
+    sign-in, registration and error pages and for **I have read this**. Every button can be tapped over at least
+    40 px (44 px on phones), also the small ones. Four levels: `btn-primary` (filled navy, at most one per view and
+    one per modal), `btn-outline-secondary` (secondary: surface, visible border, navy text), `btn-ghost`
+    (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog
+    or a row's overflow menu, never directly in a row). Filter forms use secondary **Filter** and tertiary
+    **Clear**. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
+  - page header actions sit in `.page-actions` with a 16 px icon before the label (`layout/parts :: icon`: plus,
+    upload, download); on phones they stack full width;
+  - row state changes (activate, deactivate, delete, cancel) live in the row's **⋯** overflow menu
+    (`layout/parts :: rowMenu`), a native `<details>` element, so it opens and submits without JavaScript.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

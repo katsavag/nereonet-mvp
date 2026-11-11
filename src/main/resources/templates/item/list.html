@@ -10,11 +10,15 @@
             <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
             <h1 class="fw-bold mb-0" th:text="#{item.list.heading}">Galley items</h1>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-primary btn-lg" th:href="@{/office/ships/{id}/items/new(id=${ship.id})}"
-               th:text="#{item.list.add}">Add item</a>
-            <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}"
-               th:text="#{item.list.import}">Import</a>
+        <div class="page-actions">
+            <a class="btn btn-primary" th:href="@{/office/ships/{id}/items/new(id=${ship.id})}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{item.list.add}">Add item</span>
+            </a>
+            <a class="btn btn-outline-secondary" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}">
+                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                <span th:text="#{item.list.import}">Import</span>
+            </a>
         </div>
     </div>
 
@@ -59,20 +63,24 @@
                               th:text="#{item.status.inactive}">Inactive</span>
                     </td>
                     <td>
-                        <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-outline-secondary btn-sm"
+                        <div class="d-flex justify-content-end align-items-start gap-2">
+                            <a class="btn btn-ghost btn-sm"
                                th:href="@{/office/ships/{id}/items/{itemId}/edit(id=${ship.id},itemId=${i.id})}"
                                th:text="#{item.edit}">Edit</a>
-                            <form th:if="${i.active}" method="post"
-                                  th:action="@{/office/ships/{id}/items/{itemId}/deactivate(id=${ship.id},itemId=${i.id})}">
-                                <button type="submit" class="btn btn-outline-danger btn-sm"
-                                        th:text="#{item.deactivate}">Deactivate</button>
-                            </form>
-                            <form th:unless="${i.active}" method="post"
-                                  th:action="@{/office/ships/{id}/items/{itemId}/activate(id=${ship.id},itemId=${i.id})}">
-                                <button type="submit" class="btn btn-outline-primary btn-sm"
-                                        th:text="#{item.activate}">Activate</button>
-                            </form>
+                            <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${i.name})}, ~{::itemMenuItems})}">
+                                <th:block th:fragment="itemMenuItems">
+                                    <form th:if="${i.active}" method="post"
+                                          th:action="@{/office/ships/{id}/items/{itemId}/deactivate(id=${ship.id},itemId=${i.id})}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                th:text="#{item.deactivate}">Deactivate</button>
+                                    </form>
+                                    <form th:unless="${i.active}" method="post"
+                                          th:action="@{/office/ships/{id}/items/{itemId}/activate(id=${ship.id},itemId=${i.id})}">
+                                        <button type="submit" class="btn btn-ghost btn-sm"
+                                                th:text="#{item.activate}">Activate</button>
+                                    </form>
+                                </th:block>
+                            </details>
                         </div>
                     </td>
                 </tr>
