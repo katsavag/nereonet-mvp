@@ -12,18 +12,22 @@
 <details th:fragment="userMenu(u, editUrl)"
          th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${u.fullName})}, ~{crew/parts :: userMenuItems(${u}, ${editUrl})})}"></details>
 
+<!-- On the ship page's Crew tab (shipTab set) each form sends tab=crew, so CrewController returns there. -->
 <th:block th:fragment="userMenuItems(u, editUrl)">
     <a th:if="${editUrl != null}" class="dropdown-item" th:href="${editUrl}" th:text="#{user.edit}">Edit</a>
     <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/activate(id=${u.id})}" method="post">
+        <input th:if="${shipTab != null}" type="hidden" name="tab" th:value="${shipTab}">
         <button type="submit" class="dropdown-item" th:text="#{user.activate}">Activate</button>
     </form>
     <hr class="dropdown-divider">
     <form th:if="${u.enabled}" th:action="@{/office/users/{id}/deactivate(id=${u.id})}" method="post">
+        <input th:if="${shipTab != null}" type="hidden" name="tab" th:value="${shipTab}">
         <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.deactivate}">Deactivate</button>
     </form>
     <!-- Deleting cannot be undone, so the browser asks first. -->
     <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/delete(id=${u.id})}" method="post"
           th:data-confirm="#{user.delete.confirm(${u.email})}" onsubmit="return confirm(this.dataset.confirm)">
+        <input th:if="${shipTab != null}" type="hidden" name="tab" th:value="${shipTab}">
         <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.delete}">Delete</button>
     </form>
 </th:block>

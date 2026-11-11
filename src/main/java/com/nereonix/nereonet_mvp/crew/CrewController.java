@@ -18,6 +18,8 @@ import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.ShipRoleTakenException;
 import com.nereonix.nereonet_mvp.core.user.User;
+import com.nereonix.nereonet_mvp.ship.ShipFrame;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
@@ -26,9 +28,11 @@ import jakarta.validation.Valid;
 public class CrewController {
 
     private final CrewService crewService;
+    private final ShipFrame shipFrame;
 
-    public CrewController(CrewService crewService) {
+    public CrewController(CrewService crewService, ShipFrame shipFrame) {
         this.crewService = crewService;
+        this.shipFrame = shipFrame;
     }
 
     // The "Add crew member" form is a modal on the list page.
@@ -36,6 +40,16 @@ public class CrewController {
     public String list(@RequestParam(required = false) Long shipId, Model model) {
         model.addAttribute("addForm", new AddCrewForm());
         return showList(shipId, model);
+    }
+
+    // The Crew tab of the ship page: the same list for one ship, without the ship filter and column. Add crew member
+    // opens the ship's invitation form (/office/ships/{id}/invitations/new), which never asks for the ship.
+    @GetMapping("/office/ships/{id}/crew")
+    public String shipCrew(@PathVariable Long id, Model model) {
+        shipFrame.show(model, shipFrame.ship(id), ShipTab.CREW);
+        model.addAttribute("crew", crewService.findCrew(id));
+        model.addAttribute("invited", crewService.findInvited(id));
+        return "crew/list";
     }
 
     // On errors the list page is shown again and the modal reopens with the errors.
@@ -88,32 +102,39 @@ public class CrewController {
     }
 
     @PostMapping("/office/users/{id}/deactivate")
-    public String deactivate(@PathVariable Long id, @AuthenticationPrincipal CurrentUser currentUser,
-                             RedirectAttributes redirectAttributes) {
+    public String deactivate(@PathVariable Long id, @RequestParam(required = false) String tab,
+                             @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
         User user = crewService.setEnabled(id, false, currentUser.getUsername());
         redirectAttributes.addFlashAttribute("successMessage", "user.deactivated");
-        return redirectToList(user);
+        return redirectToList(user, tab);
     }
 
     @PostMapping("/office/users/{id}/activate")
-    public String activate(@PathVariable Long id, @AuthenticationPrincipal CurrentUser currentUser,
-                           RedirectAttributes redirectAttributes) {
+    public String activate(@PathVariable Long id, @RequestParam(required = false) String tab,
+                           @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
         User user = crewService.setEnabled(id, true, currentUser.getUsername());
         redirectAttributes.addFlashAttribute("successMessage", "user.activated");
-        return redirectToList(user);
+        return redirectToList(user, tab);
     }
 
     @PostMapping("/office/users/{id}/delete")
-    public String delete(@PathVariable Long id, @AuthenticationPrincipal CurrentUser currentUser,
-                         RedirectAttributes redirectAttributes) {
+    public String delete(@PathVariable Long id, @RequestParam(required = false) String tab,
+                         @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
         User user = crewService.delete(id, currentUser.getUsername());
         redirectAttributes.addFlashAttribute("successMessage", "user.deleted");
-        return redirectToList(user);
+        return redirectToList(user, tab);
     }
 
-    // Back to the list the button was on. The office users list is OfficeUserController.
-    private static String redirectToList(User user) {
-        return user.getRole() == Role.OFFICE_USER ? "redirect:/office/users" : "redirect:/office/crew";
+    // Back to the list the button was on: the ship page's Crew tab (tab=crew, sent by crew/parts :: userMenuItems
+    // there), Crew or Office users (OfficeUserController).
+    private static String redirectToList(User user, String tab) {
+        if (user.getRole() == Role.OFFICE_USER) {
+            return "redirect:/office/users";
+        }
+        if (ShipTab.of(tab).orElse(null) == ShipTab.CREW && user.getShip() != null) {
+            return "redirect:" + ShipTab.CREW.url(user.getShip().getId());
+        }
+        return "redirect:/office/crew";
     }
 
     private String showList(Long shipId, Model model) {

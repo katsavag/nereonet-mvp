@@ -3,7 +3,7 @@
       th:replace="~{layout/layout :: layout(#{library.title}, ~{::main})}">
 <body>
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrowShip=${ship}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
         <!-- Only the Master adds items. -->
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/ship/library/new}">

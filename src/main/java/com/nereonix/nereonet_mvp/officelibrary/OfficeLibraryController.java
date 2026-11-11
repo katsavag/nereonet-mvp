@@ -20,6 +20,8 @@ import com.nereonix.nereonet_mvp.core.library.PublishVersionForm;
 import com.nereonix.nereonet_mvp.core.library.VersionLabelUnchangedException;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.ship.ShipFrame;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
@@ -28,15 +30,18 @@ import jakarta.validation.Valid;
 public class OfficeLibraryController {
 
     private final LibraryService libraryService;
+    private final ShipFrame shipFrame;
 
-    public OfficeLibraryController(LibraryService libraryService) {
+    public OfficeLibraryController(LibraryService libraryService, ShipFrame shipFrame) {
         this.libraryService = libraryService;
+        this.shipFrame = shipFrame;
     }
 
+    // The ship page's Library tab.
     @GetMapping("/office/ships/{id}/library")
     public String library(@PathVariable Long id, Model model) {
         Ship ship = libraryService.ship(id);
-        model.addAttribute("ship", ship);
+        shipFrame.show(model, ship, ShipTab.LIBRARY);
         model.addAttribute("itemsByCategory", libraryService.itemsByCategory(ship));
         model.addAttribute("acknowledgementCounts", libraryService.acknowledgementCounts(ship));
         return "officelibrary/list";

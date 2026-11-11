@@ -1,21 +1,41 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout((${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}), ~{::main})}">
 <body>
-<!-- Add and edit. certificate is null when adding. -->
-<main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}, crumbs=~{::pageCrumbs})}">
+<!-- Add and edit. certificate is null when adding.
+     For one crew member (member set, from their page) or, from the ship page's Certificates tab, for a ship (ship set,
+     member null): the crew member is then picked from that ship's crew (shipCrew) and the form returns to the tab. -->
+<main th:with="onShip=${member == null},
+               action=${member == null} ? ${'/office/ships/' + ship.id + '/certificates/new'} : (${certificate == null} ? ${'/office/crew/' + member.id + '/certificates/new'} : ${'/office/crew/' + member.id + '/certificates/' + certificate.id + '/edit'}),
+               backUrl=${member == null} ? ${'/office/ships/' + ship.id + '/certificates'} : ${'/office/crew/' + member.id + '/edit'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${onShip} ? ${ship} : null)}">
         <th:block th:fragment="pageCrumbs">
-            <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>
-            <li th:replace="~{layout/parts :: crumb(${member.fullName}, ${'/office/crew/' + member.id + '/edit'})}"></li>
+            <th:block th:if="${onShip}">
+                <th:block th:replace="~{ship/parts :: crumbs(${ship}, 'certificates')}"></th:block>
+            </th:block>
+            <th:block th:unless="${onShip}">
+                <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>
+                <li th:replace="~{layout/parts :: crumb(${member.fullName}, ${'/office/crew/' + member.id + '/edit'})}"></li>
+            </th:block>
         </th:block>
     </header>
 
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">
-            <form th:object="${form}" method="post" novalidate
-                  th:action="${certificate == null} ? @{/office/crew/{id}/certificates/new(id=${member.id})} : @{/office/crew/{id}/certificates/{cid}/edit(id=${member.id},cid=${certificate.id})}">
+            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
                 <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
                 <div class="form-grid">
+                    <!-- Full width, so long names are never cut off. Only this ship's active crew. -->
+                    <div th:if="${onShip}">
+                        <label for="userId" class="form-label" th:text="#{certificate.crewMember}">Crew member</label>
+                        <select th:field="*{userId}" class="form-select" th:errorclass="is-invalid" required
+                                aria-describedby="userIdHint">
+                            <option value="" th:text="#{certificate.chooseCrewMember}">Choose a crew member</option>
+                            <option th:each="u : ${shipCrew}" th:value="${u.id}"
+                                    th:text="${u.rank} ? ${u.fullName} + ' · ' + #{${'rank.' + u.rank}} : ${u.fullName}">Jane Doe · Second Officer</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{userId}"></div>
+                        <div id="userIdHint" class="form-text" th:text="#{certificate.crewMemberHint(${ship.name})}">Active crew of MV Demo.</div>
+                    </div>
                     <div>
                         <label for="type" class="form-label" th:text="#{certificate.type}">Type</label>
                         <input type="text" th:field="*{type}" class="form-control" th:errorclass="is-invalid"
@@ -45,8 +65,7 @@
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
-                    <a class="btn btn-ghost" th:href="@{/office/crew/{id}/edit(id=${member.id})}"
-                       th:text="#{form.cancel}">Cancel</a>
+                    <a class="btn btn-ghost" th:href="@{${backUrl}}" th:text="#{form.cancel}">Cancel</a>
                 </div>
             </form>
         </div>

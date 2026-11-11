@@ -83,7 +83,8 @@ class InvitationFlowTest {
                         .param("email", "crew.member@example.com")
                         .param("role", "CREW_MEMBER")
                         .with(csrf()))
-                .andExpect(redirectedUrl(url));
+                // Back to the ship page's Crew tab, where the new member is listed as "Invited".
+                .andExpect(redirectedUrl("/office/ships/" + ship.getId() + "/crew"));
 
         Invitation invitation = onlyInvitation();
         assertThat(invitation.getRole()).isEqualTo(Role.CREW_MEMBER);

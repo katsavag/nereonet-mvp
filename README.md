@@ -63,8 +63,39 @@ Requirements: Java 25, Docker.
 
 5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,
-   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be edited in a pop-up (**Edit** on the row, except the IMO number) and deactivated or activated (the row's **⋯** menu, which also links to the ship's **Items** and **Library**), never deleted. The ship's name opens its library page, which shows its particulars.
+   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be
+   edited in a pop-up (except the IMO number) and deactivated or activated, never deleted: on the list both are in the
+   row's **⋯** menu (**Edit**, then **Activate** or **Deactivate**). The ship's name opens its ship page.
    Inactive ships stay in the list but cannot get new crew invitations.
+
+   **Ship page** (`/office/ships/{id}`, P08): one place per ship. Every tab starts with the same ship header:
+   breadcrumbs (Ships › MV Demo), the ship's name as the heading, then IMO number, type, flag and an Active / Inactive
+   badge, with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
+   same form as a page) and a **⋯** menu (**Activate** or **Deactivate**). Edit, Activate and Deactivate come back to
+   the tab they were started on. Under the header a tab bar of ordinary links, one URL each, so every tab can be
+   bookmarked; each shows a count:
+   - **Overview** (`/office/ships/{id}`): the ship's open items, with the fleet Overview's rule (expired
+     certificates, certificates expiring within 30 days, approved requests not exported), each listed with a link;
+     the crew on board (enabled users) by the department of their rank (Deck, Engine, Galley, or "Rank not set");
+     and the particulars (name, IMO number, type, flag and the first lines of the particulars text, with **Edit ship
+     particulars** and a link to the library). The tab's count is the number of open items, in red when above zero.
+   - **Crew** (`/crew`), **Certificates** (`/certificates`), **Announcements** (`/announcements`) and **Requests**
+     (`/requests`): the fleet-wide lists of 8, 12, 14 and 15 for this ship only, without the ship filter and the Ship
+     column (Requests keeps "Not exported yet" and **Export CSV**). The fleet-wide pages keep their ship filter.
+   - **Library** (`/library`, see 16) and **Items** (`/items`, see 11): the existing pages, now inside the frame.
+   Actions started on a tab keep the ship and return to the tab: **Add crew member** opens
+   `/office/ships/{id}/invitations/new`, which never asks which ship; **Add certificate** (`/certificates/new`) picks the
+   crew member from this ship's active crew only; **New announcement** opens the form with this ship preselected (the
+   target can still be changed) and returns to the tab once sent; a crew member's **⋯** menu returns to the Crew tab.
+   The counts: Crew, every user on the ship and its pending invitations; Certificates, expired or expiring within 90
+   days; Library, items not retired; Items, all; Announcements, sent to this ship or to all ships; Requests, approved.
+
+   An inactive ship shows a banner on every tab: crew cannot be invited to it or moved to it, it gets no
+   announcements and it is not on the Overview; its records stay as they are; **Activate** in the **⋯** menu undoes it.
+   Its Crew and Announcements tabs offer no **Add crew member** / **New announcement**.
+   On phones the tab bar scrolls sideways and starts with the active tab in view (`js/ship-tabs.js`; without it the bar
+   still scrolls). Every ship name in the office (lists, the Overview cards, the audit log, the eyebrow of ship-scoped
+   pages) links to the ship page. An unknown id gives 404 on every tab.
 
 6. Invitations (signed in as an office user). The email with the `/register?token=...` link
    appears in Mailpit.
@@ -75,9 +106,9 @@ Requirements: Java 25, Docker.
      "Invited", or "Invitation expired" when past their expiry date; accepted and cancelled invitations are not listed
      (an accepted one is a user). Each has **Resend** (new link and expiry date, new email; the old link stops
      working) and, in the row's **⋯** menu, **Cancel** (the link then shows the "invalid or expired" page).
-   - Crew members: **Add crew member** on the **Crew** page (see 8), or open
-     `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`). The form asks for full name, email (once; the
-     success message names the address) and role, and an optional rank (from a fixed list),
+   - Crew members: **Add crew member** on the **Crew** page (see 8), or on a ship page's **Crew** tab, which opens
+     `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`) and returns to the tab. The form asks for
+     full name, email (once; the success message names the address) and role, and an optional rank (from a fixed list),
      which is copied to the user on registration. A ship can have only one active Master and one
      active Chief cook; inviting a second one shows an error on the role field.
 
@@ -124,7 +155,7 @@ Requirements: Java 25, Docker.
    certificate reminder sent (by "System"); announcement sent; requests exported (count and ids).
    Entries are read-only.
 
-11. Galley items (signed in as an office user): **Items** in the **⋯** menu of a ship's row in **Ships** (`/office/ships/{id}/items`).
+11. Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see 5).
    Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`) and an optional category.
    **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted.
    **Import** (`/office/ships/{id}/items/import`) adds many items at once:
@@ -189,8 +220,8 @@ Requirements: Java 25, Docker.
    `app.library.storage-dir` (dev: `./data/library`).
 
    **Add an item**: the Master has the button on **Library** (`/ship/library/new`; Chief cook and crew members get
-   403). Office users open a ship's library from its name, or **Library** in the **⋯** menu of its row, in **Ships**
-   (`/office/ships/{id}/library`, same content as the crew page) and add items there
+   403). Office users open the **Library** tab of a ship page (`/office/ships/{id}/library`, same content as the crew
+   page, see 5) and add items there
    (`/office/ships/{id}/library/new`). The form asks for title, category, version label (e.g. `1` or `2026-10`),
    Required / Not required, and the content: text **or** one file (PDF, DOCX or XLSX, at most 10 MB), not both.
    A ship can have at most 50 items that are not retired. The item is visible to the crew at once. A Required item
@@ -280,9 +311,9 @@ The app makes no request to any other host: everything a page needs is served fr
     first column share one left edge. Every row is at least 52 px high, with or without actions, and every cell
     stays on one line so all rows have the same height. Header cells are 12 px, 600, secondary colour, uppercase,
     letter-spacing 0.04em. Rows get a hover background; counts (`.num`) are right-aligned. The record's name
-    (`.cell-primary`) links to its page and is the only bold cell; ships have no page of their own, so a ship's
-    name opens its library page (particulars). The record count sits after the page title, muted
-    ("Crew · 84", see the page header below); list cards have no header of their own. Email addresses never break: they are cut with an ellipsis and the
+    (`.cell-primary`) links to its page and is the only bold cell; a ship's name opens its ship page (P08). The record
+    count sits after the page title, muted ("Crew · 84", see the page header below); on the tabs of the ship page it is
+    on the tab instead; list cards have no header of their own. Email addresses never break: they are cut with an ellipsis and the
     full address is in the title attribute (`layout/parts :: email`). Status badges are a dot plus text in the
     status colours (`layout/parts :: status`, tones ok, warning, danger, info, primary, neutral);
   - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
@@ -332,14 +363,15 @@ The app makes no request to any other host: everything a page needs is served fr
     `layout/parts :: pageHeader`, in this order:
     - breadcrumbs on every page below the top level (the sidebar entries are the top level): section › record ›
       page, each a link except the last, which is the page itself (`aria-current="page"`). The section is the sidebar
-      entry (Ships, Crew, Announcements, Requests; Library for the crew). A ship has no page of its own, so its crumb
-      opens its library page: Ships › MV Demo › Galley items › Add item. On the ship's library page the trail is
-      Ships › Library. Links are underlined and each is a 40 px (44 px on phones) touch target. They replace the
+      entry (Ships, Crew, Announcements, Requests; Library for the crew). Below a ship the trail goes through the ship
+      page and its tab (`ship/parts :: crumbs`): Ships › MV Demo › Items › Add item; on the ship page's tabs it is
+      Ships › MV Demo. Links are underlined and each is a 40 px (44 px on phones) touch target. They replace the
       "← Library" style links and the "Back to ships" link;
-    - the eyebrow, only for real context: the ship's name and IMO number on every ship-scoped page ("MV Demo · IMO
-      9074729": items, office and crew library pages, crew invitation, request detail, announcement to one ship;
-      "All ships" for a fleet announcement) and the status code on the error page. There is no "Office portal"
-      eyebrow;
+    - the eyebrow, only for real context: the ship's name and IMO number on every ship-scoped page below the ship page
+      ("MV Demo · IMO 9074729": item and library forms, crew invitation, request detail, announcement to one ship;
+      `pageHeader(eyebrowShip=${ship})`, a link to the ship page for office users) and on the crew library pages;
+      "All ships" for a fleet announcement; the status code on the error page. The tabs of the ship page have the
+      ship's name as their heading instead. There is no "Office portal" eyebrow;
     - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
       a card header as well. **Export CSV** on **Requests** moved from the card header to the page header and still
       submits the list's form without JavaScript (`form="exportForm"`);

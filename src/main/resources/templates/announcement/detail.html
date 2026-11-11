@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
 <body>
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : (${announcement.ship.name} + ' · ' + #{ship.codeValue(${announcement.ship.imoNumber})}))}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : null, eyebrowShip=${announcement.ship})}">
         <!-- The target: All ships, or the ship's name and IMO number. -->
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{nav.announcements}, '/office/announcements')}"></li>
@@ -40,7 +40,7 @@
                 <tr th:each="r : ${recipients.acknowledged}">
                     <td class="fw-semibold" th:text="${r.user.fullName}">Jane Doe</td>
                     <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
-                    <td th:text="${r.ship.name}">MV Demo</td>
+                    <td><a th:replace="~{layout/parts :: shipLink(${r.ship})}">MV Demo</a></td>
                     <td><time th:replace="~{layout/parts :: localTime(${r.acknowledgedAt})}"></time></td>
                 </tr>
                 </tbody>
@@ -69,7 +69,7 @@
                 <tr th:each="r : ${recipients.pending}">
                     <td class="fw-semibold" th:text="${r.user.fullName}">John Doe</td>
                     <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
-                    <td th:text="${r.ship.name}">MV Demo</td>
+                    <td><a th:replace="~{layout/parts :: shipLink(${r.ship})}">MV Demo</a></td>
                 </tr>
                 </tbody>
             </table>

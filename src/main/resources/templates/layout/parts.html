@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- Small fragments shared by the layout and pages. -->
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
 <!-- Logo, app name and a tagline. For dark backgrounds. static/favicon.svg is the same wave mark: change both together. -->
@@ -92,8 +92,12 @@
      in a row. A divider with nothing above it is not shown.
      label: accessible name naming the row, e.g. #{common.moreActions(${s.name})}
      items: the menu's content, e.g. ~{::shipMenuItems} with th:fragment="shipMenuItems" inside the host element. -->
-<details th:fragment="rowMenu(label, items)" class="row-menu dropdown">
-    <summary class="btn btn-ghost btn-sm" th:title="${label}" data-bs-toggle="dropdown" aria-expanded="false"
+<details th:fragment="rowMenu(label, items)" th:replace="~{layout/parts :: moreMenu(${label}, ${items}, 'btn btn-ghost btn-sm')}"></details>
+
+<!-- The same "more" menu outside a row, with the button style given: the ship page header uses
+     'btn btn-outline-secondary' (40px), next to its Edit button. -->
+<details th:fragment="moreMenu(label, items, buttonClass)" class="row-menu dropdown">
+    <summary th:class="${buttonClass}" th:title="${label}" data-bs-toggle="dropdown" aria-expanded="false"
              data-bs-popper-config='{"strategy":"fixed"}'>
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
             <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
@@ -108,15 +112,19 @@
 <!-- Page header (P06): the first thing in every page's <main>, so every page starts the same way. In this order:
        breadcrumbs  every page below the top level (the sidebar entries are the top level): the section, the record,
                     then this page, each a link except the last; the last is the heading and is added here.
-       eyebrow      real context only: the ship's name and IMO number on ship-scoped pages, the target of an
-                    announcement, the status code of the error page. Never "Office portal".
+       eyebrow      real context only: the ship's name and IMO number on ship-scoped pages (always in this place,
+                    see eyebrowShip), the target of an announcement, the status code of the error page. Never
+                    "Office portal". On the tabs of the ship page the ship is the heading itself (ship/parts :: header).
        heading      the h1, with the record count after it on list pages ("Crew · 84").
        subtitle     one line under the heading.
        actions      the page header buttons, on the right (stacked full width on phones).
      Every parameter is named and optional except heading:
        heading      text
        crumbs       a fragment of crumb(...) items, ~{::pageCrumbs}; none on top-level pages
-       eyebrow      text; for a ship use eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}
+       eyebrow      text
+       eyebrowShip  a ship: the eyebrow is then "MV Demo · IMO 9074729", linking to the ship page for office users
+                    (crew pages show it as text). Use it on every ship-scoped page instead of eyebrow.
+       headerClass  extra classes on the header element (ship-header on the ship page)
        count        a number shown after the heading, muted
        subtitle     text; subtitleParts instead when the line has markup (e.g. a localTime), ~{::pageSubtitle}
        actions      a fragment of buttons, ~{::pageActions}
@@ -129,7 +137,7 @@
            <th:block th:fragment="pageActions"><a class="btn btn-primary" ...>Add item</a></th:block>
        </header>
      The tab title and the phone top bar come from the title given to layout/layout, not from here. -->
-<header th:fragment="pageHeader" class="page-header">
+<header th:fragment="pageHeader" class="page-header" th:classappend="${headerClass}">
     <nav th:if="${crumbs != null}" class="page-breadcrumbs" th:attr="aria-label=#{breadcrumbs.label}">
         <ol class="breadcrumb">
             <th:block th:replace="${crumbs}"></th:block>
@@ -139,6 +147,11 @@
     <div class="page-header-row">
         <div class="page-heading">
             <p th:if="${eyebrow != null}" class="eyebrow" th:text="${eyebrow}">MV Demo · IMO 9074729</p>
+            <th:block th:if="${eyebrow == null and eyebrowShip != null}"
+                      th:with="shipLabel=${eyebrowShip.name} + ' · ' + #{ship.codeValue(${eyebrowShip.imoNumber})}">
+                <p class="eyebrow" sec:authorize="hasRole('OFFICE_USER')"><a th:href="@{/office/ships/{id}(id=${eyebrowShip.id})}" th:text="${shipLabel}">MV Demo · IMO 9074729</a></p>
+                <p class="eyebrow" sec:authorize="!hasRole('OFFICE_USER')" th:text="${shipLabel}">MV Demo · IMO 9074729</p>
+            </th:block>
             <h1 class="page-title">
                 <span th:text="${heading}">Galley items</span>
                 <span th:if="${count != null}" class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${count}">84</span></span>
@@ -155,7 +168,8 @@
     </div>
 </header>
 
-<!-- One link of the page header's breadcrumbs. url: an app path, e.g. '/office/ships' or ${'/office/ships/' + ship.id + '/library'}. -->
+<!-- One link of the page header's breadcrumbs. url: an app path, e.g. '/office/ships' or ${'/office/ships/' + ship.id}.
+     Below a ship use ship/parts :: crumbs, which adds Ships, the ship and its tab. -->
 <li th:fragment="crumb(label, url)" class="breadcrumb-item"><a th:href="@{${url}}" th:text="${label}">Ships</a></li>
 
 <!-- Status badge: a dot and the text, in a status colour. The text carries the meaning, the colour only repeats it.
@@ -163,6 +177,10 @@
      Use: <span th:replace="~{layout/parts :: status('ok', #{ship.status.active})}"></span> -->
 <span th:fragment="status(tone, label)" class="badge status-badge" th:classappend="'status-' + ${tone}"
       th:text="${label}">Active</span>
+
+<!-- A ship's name, linking to its page (office pages; P08: every ship name in the office links there).
+     Use: <td><a th:replace="~{layout/parts :: shipLink(${u.ship})}"></a></td> -->
+<a th:fragment="shipLink(ship)" class="ship-link" th:href="@{/office/ships/{id}(id=${ship.id})}" th:text="${ship.name}">MV Demo</a>
 
 <!-- An email address on one line: never broken mid-word, cut with an ellipsis when too long, full value in the
      title attribute. -->

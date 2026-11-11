@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.dashboard;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,21 +12,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
+import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateCounts;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
+import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.user.Rank;
+import com.nereonix.nereonet_mvp.core.user.Role;
+import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 // The office home page. Read only: one "group by ship" count query per number, no lists loaded to count.
 @Service
 public class DashboardService {
+
+    /** A certificate is an open item when it has expired or expires within this many days (UTC). */
+    public static final int OPEN_ITEM_CERTIFICATE_DAYS = 30;
 
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
@@ -54,7 +63,8 @@ public class DashboardService {
                            long announcementsNotAcknowledged, long requestsNotExported,
                            long libraryNotAcknowledged) {
 
-        /** Expired certificates, certificates expiring within 30 days and approved requests not exported. */
+        /** Expired certificates, certificates expiring within 30 days and approved requests not exported.
+         *  The same rule as openItemCount and shipOverview for one ship. */
         public long openItems() {
             return certificatesExpired + certificates30 + requestsNotExported;
         }
@@ -76,6 +86,56 @@ public class DashboardService {
         }
     }
 
+    /** The crew on board in one department; department is null for users without a rank. */
+    public record Department(Rank.Department department, List<User> crew) {
+    }
+
+    /** The Overview tab of one ship (active or not): its open items and the crew on board by department. */
+    public record ShipOverview(List<Certificate> certificates, List<ItemRequest> requests,
+                               List<Department> departments) {
+
+        public long openItems() {
+            return certificates.size() + requests.size();
+        }
+
+        public long crewOnBoard() {
+            return departments.stream().mapToLong(d -> d.crew().size()).sum();
+        }
+    }
+
+    /** One ship's open items: expired or expiring certificates (soonest first), then requests not exported. */
+    @Transactional(readOnly = true)
+    public ShipOverview shipOverview(Ship ship) {
+        List<Certificate> certificates = certificateRepository.findExpiringUntil(openItemsUntil(), ship.getId());
+        List<ItemRequest> requests = requestRepository.findDecided(RequestStatus.APPROVED, ship.getId(), true);
+        // Crew on board: enabled users with a ship role, as the fleet Overview counts them.
+        List<User> crew = userRepository.findAllByShipAndRoleNotAndEnabledTrueOrderByFullNameAsc(ship, Role.OFFICE_USER);
+        List<Department> departments = new ArrayList<>();
+        for (Rank.Department department : Rank.Department.values()) {
+            List<User> members = crew.stream()
+                    .filter(u -> u.getRank() != null && u.getRank().department() == department).toList();
+            if (!members.isEmpty()) {
+                departments.add(new Department(department, members));
+            }
+        }
+        List<User> noRank = crew.stream().filter(u -> u.getRank() == null).toList();
+        if (!noRank.isEmpty()) {
+            departments.add(new Department(null, noRank));
+        }
+        return new ShipOverview(certificates, requests, departments);
+    }
+
+    /** The number shipOverview(ship).openItems() gives, counted without loading the rows (the ship page's tab bar). */
+    @Transactional(readOnly = true)
+    public long openItemCount(Ship ship) {
+        return certificateRepository.countExpiringUntil(openItemsUntil(), ship.getId())
+                + requestRepository.countByStatusAndShipIdAndExportedAtIsNull(RequestStatus.APPROVED, ship.getId());
+    }
+
+    private static LocalDate openItemsUntil() {
+        return LocalDate.now(ZoneOffset.UTC).plusDays(OPEN_ITEM_CERTIFICATE_DAYS);
+    }
+
     @Transactional(readOnly = true)
     public Dashboard load() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
@@ -85,7 +145,7 @@ public class DashboardService {
         Map<Long, Long> requests = byShip(requestRepository.countNotExportedByShip(RequestStatus.APPROVED));
         Map<Long, Long> library = libraryService.requiredNotAcknowledgedByShip();
         Map<Long, CertificateCounts> certificates = certificateRepository
-                .countExpiringByShip(today, today.plusDays(30), today.plusDays(60), today.plusDays(90)).stream()
+                .countExpiringByShip(today, today.plusDays(OPEN_ITEM_CERTIFICATE_DAYS), today.plusDays(60), today.plusDays(90)).stream()
                 .collect(Collectors.toMap(CertificateCounts::shipId, c -> c));
         CertificateCounts none = new CertificateCounts(null, 0, 0, 0, 0);
 

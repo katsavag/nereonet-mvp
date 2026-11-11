@@ -23,6 +23,12 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
             order by c.expiresOn asc, c.id asc""")
     List<Certificate> findExpiringUntil(LocalDate until, Long shipId);
 
+    // The same certificates as findExpiringUntil for one ship, counted: the ship page's tab counters.
+    @Query("""
+            select count(c) from Certificate c
+            where c.expiresOn <= :until and c.user.ship.id = :shipId""")
+    long countExpiringUntil(LocalDate until, Long shipId);
+
     // Expired or expiring on or before "until", every ship: the sidebar counter of Certificates.
     long countByExpiresOnLessThanEqual(LocalDate until);
 

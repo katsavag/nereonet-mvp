@@ -30,9 +30,8 @@
                 </thead>
                 <tbody>
                 <tr th:each="s : ${ships}" th:classappend="${!s.active} ? 'text-body-secondary'">
-                    <!-- Ships have no page of their own; the library page shows the ship's particulars. -->
                     <td class="cell-primary">
-                        <a th:href="@{/office/ships/{id}/library(id=${s.id})}" th:text="${s.name}">MV Demo</a>
+                        <a th:replace="~{layout/parts :: shipLink(${s})}">MV Demo</a>
                     </td>
                     <td class="text-nowrap" th:attr="data-label=#{ship.code}"
                         th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
@@ -41,22 +40,19 @@
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status(${s.active} ? 'ok' : 'neutral', ${s.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
                     </td>
+                    <!-- Only the "more" menu: the ship page (its name) has everything else. Edit opens the pop-up; the
+                         data-* values fill it (see the script below). Without JavaScript it opens the Edit page. -->
                     <td class="cell-actions">
                         <div class="row-actions">
-                            <!-- The data-* values fill the edit modal (see the script below). -->
-                            <button type="button" class="btn btn-ghost btn-sm"
-                                    data-bs-toggle="modal" data-bs-target="#editShipModal"
-                                    th:data-action="@{/office/ships/{id}/edit(id=${s.id})}"
-                                    th:data-imo="#{ship.codeValue(${s.imoNumber})}"
-                                    th:data-name="${s.name}" th:data-type="${s.type}"
-                                    th:data-flag="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : ''"
-                                    th:text="#{ship.edit}">Edit</button>
                             <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${s.name})}, ~{::shipMenuItems})}">
                                 <th:block th:fragment="shipMenuItems">
-                                    <a class="dropdown-item" th:href="@{/office/ships/{id}/items(id=${s.id})}"
-                                       th:text="#{ship.items}">Items</a>
-                                    <a class="dropdown-item" th:href="@{/office/ships/{id}/library(id=${s.id})}"
-                                       th:text="#{ship.library}">Library</a>
+                                    <a class="dropdown-item" th:href="@{/office/ships/{id}/edit(id=${s.id})}"
+                                       data-bs-toggle="modal" data-bs-target="#editShipModal"
+                                       th:data-action="@{/office/ships/{id}/edit(id=${s.id})}"
+                                       th:data-imo="#{ship.codeValue(${s.imoNumber})}"
+                                       th:data-name="${s.name}" th:data-type="${s.type}"
+                                       th:data-flag="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : ''"
+                                       th:text="#{ship.edit}">Edit</a>
                                     <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
                                         <button type="submit" class="dropdown-item"
                                                 th:text="#{ship.activate}">Activate</button>
@@ -142,74 +138,12 @@
     </div>
 
     <!-- Edit ship: one modal for all rows. editShip is set only when a save failed. -->
-    <div class="modal fade" id="editShipModal" tabindex="-1" aria-labelledby="editShipModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <form class="modal-content" th:object="${editForm}" method="post" novalidate
-                  th:action="${editShip != null} ? @{/office/ships/{id}/edit(id=${editShip.id})} : @{/office/ships}">
-                <div class="modal-header">
-                    <h2 class="modal-title h5 fw-bold" id="editShipModalTitle" th:text="#{ship.edit.heading}">Edit ship</h2>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            th:attr="aria-label=#{common.close}"></button>
-                </div>
-                <div class="modal-body">
-                    <div th:replace="~{layout/parts :: errorSummary(${editForm}, 'edit')}"></div>
-                    <div class="form-grid">
-                        <!-- The IMO number cannot be changed: plain text, not an input. -->
-                        <dl class="static-fields">
-                            <dt th:text="#{ship.imoNumber}">IMO number</dt>
-                            <dd>
-                                <span id="editImo" class="num"
-                                      th:text="${editShip != null} ? #{ship.codeValue(${editShip.imoNumber})} : ''">IMO 9074729</span>
-                                <span class="form-text d-block" th:text="#{ship.imoNumberReadOnly}">The IMO number cannot be changed.</span>
-                            </dd>
-                        </dl>
-                        <div>
-                            <label for="editName" class="form-label" th:text="#{ship.name}">Name</label>
-                            <input type="text" id="editName" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
-                                   autocomplete="off" aria-describedby="editNameCounter" required>
-                            <div class="invalid-feedback" th:errors="*{name}"></div>
-                            <div class="form-meta">
-                                <div th:replace="~{layout/parts :: counter(${editForm}, 'name', 'editName')}"></div>
-                            </div>
-                        </div>
-                        <div class="field-half">
-                            <label for="editType" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                            <select id="editType" th:field="*{type}" class="form-select" th:errorclass="is-invalid">
-                                <option value="" th:text="#{ship.type.none}">Not set</option>
-                                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
-                            </select>
-                            <div class="invalid-feedback" th:errors="*{type}"></div>
-                        </div>
-                        <div class="field-half">
-                            <label for="editFlag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                            <input type="text" id="editFlag" th:field="*{flag}" class="form-control" list="countryOptions"
-                                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
-                                   autocomplete="off" aria-describedby="editFlagHint">
-                            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
-                            <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
-                            th:text="#{form.cancel}">Cancel</button>
-                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
-                </div>
+    <div th:replace="~{ship/parts :: editModal(${editShip}, null)}"></div>
 
-                <script th:if="${#fields.hasAnyErrors()}">
-                    document.addEventListener('DOMContentLoaded',
-                        () => bootstrap.Modal.getOrCreateInstance('#editShipModal').show());
-                </script>
-            </form>
-        </div>
-    </div>
+    <!-- Countries for the flag fields of both modals. -->
+    <datalist th:replace="~{ship/parts :: countryOptions}"></datalist>
 
-    <!-- Countries for the flag fields of both modals. The browser filters them as you type. -->
-    <datalist id="countryOptions">
-        <option th:each="label : ${countries.values()}" th:value="${label}"></option>
-    </datalist>
-
-    <!-- Fills the edit modal from the Edit button that opened it. -->
+    <!-- Fills the edit modal from the Edit entry that opened it. -->
     <script>
         document.getElementById('editShipModal').addEventListener('show.bs.modal', event => {
             const button = event.relatedTarget;

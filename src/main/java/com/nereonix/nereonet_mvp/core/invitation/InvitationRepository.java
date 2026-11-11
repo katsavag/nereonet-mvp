@@ -21,6 +21,8 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
 
     List<Invitation> findAllByStatusAndShipOrderByFullNameAsc(Invitation.Status status, Ship ship);
 
+    long countByStatusAndShip(Invitation.Status status, Ship ship);
+
     Optional<Invitation> findByTokenId(UUID tokenId);
 
     void deleteByEmailAndStatus(String email, Invitation.Status status);

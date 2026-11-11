@@ -61,6 +61,12 @@ public class CertificateService {
         return certificateRepository.findExpiringUntil(today().plusDays(Certificate.REMINDER_DAYS.getLast()), shipId);
     }
 
+    /** The enabled crew members of a ship, by name: who can get a certificate from the ship page. */
+    @Transactional(readOnly = true)
+    public List<User> findShipCrew(Ship ship) {
+        return userRepository.findAllByShipAndRoleNotAndEnabledTrueOrderByFullNameAsc(ship, Role.OFFICE_USER);
+    }
+
     @Transactional(readOnly = true)
     public List<Ship> findAllShips() {
         return shipRepository.findAllByOrderByNameAsc();

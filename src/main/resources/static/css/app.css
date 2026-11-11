@@ -1129,3 +1129,163 @@ fieldset:disabled button.btn {
 
 /* Plain text with its line breaks, e.g. an announcement body */
 .text-pre-line { white-space: pre-line; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Ship page (P08): /office/ships/{id} and its tabs, ship/parts.html.
+     - .ship-header: the page header of every tab. The ship's name is the h1; IMO number, type, flag and the status
+       badge are the line under it (.ship-facts); Edit and the "more" menu stay side by side on phones too.
+     - .ship-tabs: the tab bar, server-rendered links. The active tab (aria-current="page") has a 3px navy bar under
+       it and semibold text, so it is not shown by colour alone. Each tab is a touch target (40px, 44px on phones).
+       Below the content width the bar scrolls sideways (never the page); js/ship-tabs.js scrolls the active tab
+       into view. .ship-tab-count: the tab's number, neutral pair; .ship-tab-count-alert: open items, danger pair.
+     - .ship-inactive-banner: what an inactive ship cannot do, under the tab bar on every tab.
+     - .tab-heading: the h2 of a tab's content with the tab's own actions on the right.
+     - Overview tab: .open-item rows, .department lists of the crew on board, .particulars-excerpt (the first lines
+       of the particulars; the whole text is on the Library tab).
+   Text pairs: tab text 15:1 on the page, counts 7:1 (neutral) and 6.9:1 (danger).
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-tab-bar: 3px;
+    --nn-particulars-lines: 6;
+}
+
+.eyebrow a { color: inherit; }
+
+.ship-facts {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+}
+.ship-header .row-menu > summary.btn { min-width: var(--nn-btn-height); }
+@media (max-width: 575.98px) {
+    .ship-header .page-actions {
+        display: flex;
+        width: auto;
+    }
+}
+
+.ship-tabs {
+    margin-bottom: var(--nn-section-gap);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.ship-tabs-list {
+    position: relative;               /* offsetParent of the tabs, for js/ship-tabs.js */
+    display: flex;
+    gap: var(--nn-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+.ship-tabs-list > li { flex-shrink: 0; }
+.ship-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-2) var(--nn-space-3);
+    border-radius: var(--nn-radius-control) var(--nn-radius-control) 0 0;
+    color: var(--nn-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.ship-tab:hover { color: var(--nn-blue-dark); background-color: var(--nn-hover); }
+/* Inside the scrolling bar: the ring goes inside the tab, where the bar cannot cut it off. */
+.ship-tab:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
+.ship-tab.active {
+    color: var(--nn-blue);
+    font-weight: 600;
+}
+.ship-tab.active::after {
+    content: "";
+    position: absolute;
+    left: var(--nn-space-2);
+    right: var(--nn-space-2);
+    bottom: 0;
+    height: var(--nn-tab-bar);
+    border-radius: var(--nn-tab-bar) var(--nn-tab-bar) 0 0;
+    background-color: var(--nn-blue);
+}
+.ship-tab-count {
+    min-width: 1.5rem;
+    padding: 0 var(--nn-space-2);
+    border-radius: var(--nn-radius-badge);
+    background-color: var(--nn-neutral-bg);
+    color: var(--nn-neutral-text);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-align: center;
+}
+.ship-tab-count-alert {
+    background-color: var(--nn-danger-bg);
+    color: var(--nn-danger-text);
+}
+
+.ship-inactive-banner { margin-bottom: var(--nn-section-gap); }
+
+.tab-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3) var(--nn-space-4);
+    margin-bottom: var(--nn-space-4);
+}
+.tab-title {
+    margin: 0;
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+.tab-hint {
+    margin: calc(-1 * var(--nn-space-2)) 0 var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.open-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    min-height: var(--nn-row-height);
+}
+.open-item-text { min-width: 0; overflow-wrap: anywhere; }
+
+.department { margin-top: var(--nn-space-4); }
+.department-title {
+    margin: 0 0 var(--nn-space-1);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.department-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--nn-font-sm);
+}
+.department-list > li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 var(--nn-space-3);
+    padding: var(--nn-space-2) 0;
+    border-bottom: 1px solid var(--nn-divider);
+    overflow-wrap: anywhere;
+}
+.department-list > li:last-child { border-bottom: 0; }
+
+.particulars-excerpt {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--nn-particulars-lines);
+    line-clamp: var(--nn-particulars-lines);
+    overflow: hidden;
+}

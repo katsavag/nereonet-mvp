@@ -2,10 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{library.edit.heading}, ~{::main})}">
 <body>
 <main th:with="libraryUrl=${'/office/ships/' + item.ship.id + '/library'}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.edit.heading}, crumbs=~{::pageCrumbs}, eyebrow=${item.ship.name} + ' · ' + #{ship.codeValue(${item.ship.imoNumber})})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${item.ship})}">
         <th:block th:fragment="pageCrumbs">
-            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
-            <li th:replace="~{layout/parts :: crumb(${item.ship.name}, ${libraryUrl})}"></li>
+            <th:block th:replace="~{ship/parts :: crumbs(${item.ship}, 'library')}"></th:block>
         </th:block>
     </header>
 

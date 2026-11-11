@@ -122,7 +122,9 @@ class TablesFlowTest {
             // The audit log keeps its columns and scrolls sideways on phones; the other lists stack.
             assertThat(html.contains("data-table-stack")).as("stacked on phones" + on)
                     .isEqualTo(!page.getKey().equals("/office/audit"));
-            assertThat(html).as("count next to the card title" + on).contains("class=\"title-count\"")
+            // A tab of the ship page has its count on the tab (P08), the other lists after the page title.
+            assertThat(html).as("count next to the title" + on)
+                    .contains(page.getKey().startsWith("/office/ships/") ? "class=\"ship-tab-count" : "class=\"title-count\"")
                     .doesNotContain("font-monospace small text-body-secondary");
 
             Matcher body = TBODY.matcher(html);
@@ -152,7 +154,8 @@ class TablesFlowTest {
         }
 
         // The primary column links to the record's page.
-        assertThat(html("/office/ships")).contains("href=\"/office/ships/" + ship.getId() + "/library\">MV Demo</a>",
+        // A ship's name opens the ship page (P08).
+        assertThat(html("/office/ships")).contains("href=\"/office/ships/" + ship.getId() + "\">MV Demo</a>",
                 "status-badge status-ok", "data-label=\"Ship code\"");
         String crewList = html("/office/crew");
         assertThat(crewList).contains("href=\"/office/crew/" + crew.getId() + "/edit\">Crew Member</a>",

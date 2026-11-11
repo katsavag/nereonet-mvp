@@ -75,8 +75,11 @@ class PageHeaderFlowTest {
     private static final Pattern CRUMB = Pattern.compile("(?s)<li class=\"breadcrumb-item[^\"]*\"[^>]*>(.*?)</li>");
     private static final Pattern CRUMB_LINK = Pattern.compile("<a href=\"[^\"]+\">(.*?)</a>");
     private static final Pattern H1 = Pattern.compile("(?s)<h1\\b.*?</h1>");
-    private static final Pattern EYEBROW = Pattern.compile("<p class=\"eyebrow\">(.*?)</p>");
-    private static final Pattern MAIN_STARTS_WITH_HEADER = Pattern.compile("<main\\b[^>]*>\\s*<header class=\"page-header\">");
+    private static final Pattern EYEBROW = Pattern.compile("(?s)<p class=\"eyebrow\">(.*?)</p>");
+    private static final Pattern EYEBROW_SHIP_LINK = Pattern.compile("<a href=\"/office/ships/\\d+\">(.*?)</a>");
+    // The ship page's header adds a class of its own (ship-header).
+    private static final Pattern MAIN_STARTS_WITH_HEADER = Pattern.compile("<main\\b[^>]*>\\s*<header class=\"page-header[^\"]*\">");
+    private static final Pattern PAGE_HEADER = Pattern.compile("<header class=\"page-header[^\"]*\">");
     private static final Pattern CARD_HEADER = Pattern.compile("(?s)<div class=\"card-header.*?</div>");
 
     @Autowired
@@ -168,24 +171,34 @@ class PageHeaderFlowTest {
         add(pages, "/office/crew/" + crew.getId() + "/certificates/" + certificate.getId() + "/edit", null,
                 "Edit certificate", List.of("Crew", "Crew Member", "Edit certificate"), null);
         add(pages, "/office/crew/import", null, "Import crew", List.of("Crew", "Import crew from a file"), null);
+        // The ship page (P08): every tab has the ship's name as its heading, under Ships; the tab title and the phone
+        // top bar name the ship and the tab. No eyebrow: the ship is the heading.
+        for (String[] tab : new String[][] {{"", "Overview"}, {"/crew", "Crew"}, {"/certificates", "Certificates"},
+                {"/library", "Library"}, {"/items", "Items"}, {"/announcements", "Announcements"},
+                {"/requests", "Requests"}}) {
+            add(pages, "/office/ships/" + id + tab[0], null, "MV Demo · " + tab[1], List.of("Ships", "MV Demo"), null);
+        }
+        // Below the ship page: Ships > the ship > its tab > the page, with the ship as the eyebrow.
+        add(pages, "/office/ships/" + id + "/edit", null, "Edit ship", List.of("Ships", "MV Demo", "Edit ship"),
+                SHIP_CONTEXT);
+        add(pages, "/office/ships/" + id + "/certificates/new", null, "Add certificate",
+                List.of("Ships", "MV Demo", "Certificates", "Add certificate"), SHIP_CONTEXT);
+        add(pages, "/office/announcements/new?shipId=" + id, null, "New announcement",
+                List.of("Ships", "MV Demo", "Announcements", "New announcement"), null);
         add(pages, "/office/ships/" + id + "/invitations/new", null, "Invite crew member",
-                List.of("Ships", "MV Demo", "Invite crew member"), SHIP_CONTEXT);
-        add(pages, "/office/ships/" + id + "/items", null, "Galley items",
-                List.of("Ships", "MV Demo", "Galley items"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Crew", "Invite crew member"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/items/new", null, "Add item",
-                List.of("Ships", "MV Demo", "Galley items", "Add item"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Items", "Add item"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/items/import", null, "Import items",
-                List.of("Ships", "MV Demo", "Galley items", "Import items from a file"), SHIP_CONTEXT);
-        // A ship's name opens its library page, so that page has no crumb for the ship (it would link to itself).
-        add(pages, "/office/ships/" + id + "/library", null, "Library", List.of("Ships", "Library"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Items", "Import items from a file"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/new", null, "Add an item",
-                List.of("Ships", "MV Demo", "Add an item"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Add an item"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/particulars", null, "Edit ship particulars",
-                List.of("Ships", "MV Demo", "Edit ship particulars"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Edit ship particulars"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/edit", null, "Publish new version",
-                List.of("Ships", "MV Demo", "Publish new version"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Publish new version"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/acknowledgements", null, "Acknowledgements",
-                List.of("Ships", "MV Demo", "Acknowledgements"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Acknowledgements"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId(), crew, "Drug and alcohol policy",
                 List.of("Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/ship/library/new", master, "Add an item", List.of("Library", "Add an item"), SHIP_CONTEXT);
@@ -215,7 +228,7 @@ class PageHeaderFlowTest {
         mockMvc.perform(multipart("/office/ships/{id}/items/import", id).file(csv("Name,Unit,Category\nOlive oil,lt,Oils\n"))
                 .session(itemImport).with(csrf()));
         assertPageHeader(new Page("/office/ships/" + id + "/items/import/review", null, "Review item import",
-                List.of("Ships", "MV Demo", "Galley items", "Import items", "Review item import"), SHIP_CONTEXT),
+                List.of("Ships", "MV Demo", "Items", "Import items", "Review item import"), SHIP_CONTEXT),
                 html(get("/office/ships/{id}/items/import/review", id).session(itemImport)), true);
 
         // Signed out: the same header, without breadcrumbs or the app frame.
@@ -241,9 +254,9 @@ class PageHeaderFlowTest {
         request.setCreatedAt(Instant.now());
         requestRepository.save(request);
 
+        // The tabs of the ship page show their count on the tab instead (ShipPageFlowTest).
         for (String url : List.of("/office/ships", "/office/crew", "/office/users",
-                "/office/audit", "/office/certificates", "/office/announcements", "/office/requests",
-                "/office/ships/" + ship.getId() + "/items")) {
+                "/office/audit", "/office/certificates", "/office/announcements", "/office/requests")) {
             String html = html(get(url));
             Matcher h1 = H1.matcher(html);
             assertThat(h1.find()).as("h1 on " + url).isTrue();
@@ -302,10 +315,12 @@ class PageHeaderFlowTest {
         }
 
         assertThat(H1.matcher(html).results().count()).as("one h1" + on).isEqualTo(1);
-        assertThat(html).as("one page header" + on).containsOnlyOnce("<header class=\"page-header\">");
+        assertThat(PAGE_HEADER.matcher(html).results().count()).as("one page header" + on).isEqualTo(1);
         assertThat(html).as("old back links" + on).doesNotContain("←", "Back to ships");
 
-        List<String> eyebrows = EYEBROW.matcher(html).results().map(m -> m.group(1)).toList();
+        // On office pages the ship eyebrow links to the ship page (P08); compare its text.
+        List<String> eyebrows = EYEBROW.matcher(html).results()
+                .map(m -> EYEBROW_SHIP_LINK.matcher(m.group(1)).replaceAll("$1")).toList();
         if (page.eyebrow() == null) {
             assertThat(eyebrows).as("eyebrow" + on).isEmpty();
         } else {

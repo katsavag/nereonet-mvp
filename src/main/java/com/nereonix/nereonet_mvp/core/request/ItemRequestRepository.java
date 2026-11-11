@@ -24,6 +24,11 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     List<ItemRequest> findAllByIdInAndStatusOrderByDecidedAtDescIdDesc(Collection<Long> ids, RequestStatus status);
 
+    // One ship's requests with this status: the ship page's Requests tab; and those never exported, its Overview tab.
+    long countByStatusAndShipId(RequestStatus status, Long shipId);
+
+    long countByStatusAndShipIdAndExportedAtIsNull(RequestStatus status, Long shipId);
+
     // Requests with this status never exported, every ship: the sidebar counter of Requests.
     long countByStatusAndExportedAtIsNull(RequestStatus status);
 

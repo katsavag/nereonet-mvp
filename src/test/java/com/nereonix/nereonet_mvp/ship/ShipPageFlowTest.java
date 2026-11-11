@@ -1,0 +1,433 @@
+package com.nereonix.nereonet_mvp.ship;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.nereonix.nereonet_mvp.core.certificate.Certificate;
+import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
+import com.nereonix.nereonet_mvp.core.mail.MailService;
+import com.nereonix.nereonet_mvp.core.request.ItemRequest;
+import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
+import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.user.Rank;
+import com.nereonix.nereonet_mvp.core.user.Role;
+import com.nereonix.nereonet_mvp.core.user.User;
+import com.nereonix.nereonet_mvp.core.user.UserService;
+import com.nereonix.nereonet_mvp.dashboard.DashboardService;
+
+/**
+ * P08 ship page: /office/ships/{id} and its tabs. Every tab, for an active and an inactive ship, shows the same ship
+ * header (name, IMO number, type, flag, status, Edit, the "more" menu) and tab bar, with the ship fixed; actions started
+ * on a tab keep the ship and return to the tab; unknown ids give 404; every ship name in the office links to the page.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Transactional
+@WithUserDetails("office@example.com") // seeded by BootstrapData
+class ShipPageFlowTest {
+
+    private static final List<String> TABS = List.of("", "/crew", "/certificates", "/library", "/items",
+            "/announcements", "/requests");
+    private static final Pattern H1 = Pattern.compile("(?s)<h1 class=\"page-title\">\\s*<span>(.*?)</span>");
+    private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"ship-tabs\"[^>]*>(.*?)</nav>");
+    private static final Pattern TAB = Pattern.compile(
+            "(?s)<a class=\"ship-tab( active)?\" href=\"([^\"]+)\"[^>]*>\\s*<span>([^<]+)</span>\\s*"
+                    + "<span class=\"ship-tab-count num[^\"]*\" aria-hidden=\"true\">(\\d+)</span>");
+
+    @Autowired
+    MockMvc mockMvc;
+
+    @Autowired
+    ShipRepository shipRepository;
+
+    @Autowired
+    UserService userService;
+
+    @Autowired
+    CertificateRepository certificateRepository;
+
+    @Autowired
+    ItemRequestRepository requestRepository;
+
+    @Autowired
+    InvitationRepository invitationRepository;
+
+    @Autowired
+    DashboardService dashboardService;
+
+    @MockitoBean
+    MailService mailService;
+
+    Ship demo;
+    Ship other;
+    User cadet;
+    User cook;
+    User elsewhere;
+
+    @BeforeEach
+    void ships() {
+        demo = ship("9074729", "MV Demo", true);
+        demo.setType(ShipType.BULK_CARRIER);
+        demo.setFlag("GR");
+        other = ship("9176187", "MV Other", true);
+        cadet = userService.createUser("cadet@example.com", "Anna Cadet", "secret123", Role.CREW_MEMBER, demo,
+                Rank.DECK_CADET);
+        cook = userService.createUser("cook@example.com", "Chris Cook", "secret123", Role.CHIEF_COOK, demo,
+                Rank.CHIEF_COOK);
+        userService.createUser("norank@example.com", "Nico Norank", "secret123", Role.CREW_MEMBER, demo, null);
+        elsewhere = userService.createUser("elsewhere@example.com", "Elsa Where", "secret123", Role.CREW_MEMBER, other,
+                null);
+    }
+
+    @Test
+    void everyTabShowsTheShipHeaderAndTabBarForAnActiveShip() throws Exception {
+        for (String tab : TABS) {
+            String url = "/office/ships/" + demo.getId() + tab;
+            String html = html(get(url));
+            assertFrame(html, url);
+            assertThat(html).as("status on " + url).contains(">Active</span>")
+                    .doesNotContain("ship-inactive-banner", "This ship is inactive.");
+            // The "more" menu: Deactivate, sending the tab back.
+            assertThat(html).as("more menu on " + url)
+                    .contains("action=\"/office/ships/" + demo.getId() + "/deactivate\"")
+                    .doesNotContain("action=\"/office/ships/" + demo.getId() + "/activate\"")
+                    .contains("<input type=\"hidden\" name=\"tab\" value=\"" + key(tab) + "\">");
+        }
+        assertThat(html(get("/office/ships/{id}/crew", demo.getId())))
+                .contains("href=\"/office/ships/" + demo.getId() + "/invitations/new\"");
+        assertThat(html(get("/office/ships/{id}/announcements", demo.getId())))
+                .contains("href=\"/office/announcements/new?shipId=" + demo.getId() + "\"");
+    }
+
+    @Test
+    void everyTabExplainsWhatIsBlockedOnAnInactiveShip() throws Exception {
+        mockMvc.perform(post("/office/ships/{id}/deactivate", demo.getId()).param("tab", "items").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/items"));
+
+        for (String tab : TABS) {
+            String url = "/office/ships/" + demo.getId() + tab;
+            String html = html(get(url));
+            assertFrame(html, url);
+            assertThat(html).as("inactive banner on " + url)
+                    .contains("class=\"alert alert-warning ship-inactive-banner\" role=\"note\"", "This ship is inactive.",
+                            "You cannot invite crew to it, move crew to it or send it announcements", ">Inactive</span>")
+                    .contains("action=\"/office/ships/" + demo.getId() + "/activate\"")
+                    .doesNotContain("action=\"/office/ships/" + demo.getId() + "/deactivate\"");
+        }
+        // Inviting crew and announcing are blocked, so the tabs do not offer them.
+        assertThat(html(get("/office/ships/{id}/crew", demo.getId())))
+                .doesNotContain("/office/ships/" + demo.getId() + "/invitations/new");
+        assertThat(html(get("/office/ships/{id}/announcements", demo.getId())))
+                .doesNotContain("/office/announcements/new?shipId=");
+
+        mockMvc.perform(post("/office/ships/{id}/activate", demo.getId()).param("tab", "crew").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
+        assertThat(shipRepository.findById(demo.getId()).orElseThrow().isActive()).isTrue();
+    }
+
+    @Test
+    void unknownShipGives404OnEveryTab() throws Exception {
+        for (String tab : TABS) {
+            mockMvc.perform(get("/office/ships/{id}" + tab, 999_999)).andExpect(status().isNotFound());
+        }
+        mockMvc.perform(get("/office/ships/{id}/edit", 999_999)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/office/ships/{id}/certificates/new", 999_999)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/office/announcements/new").param("shipId", "999999")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void tabsShowTheirCountsAndOverviewListsTheOpenItems() throws Exception {
+        certificate(cadet, "STCW Basic Safety", 20);   // open item: within 30 days
+        certificate(cook, "Food hygiene", 80);         // on the Certificates tab only
+        certificate(cook, "Medical fitness", -3);      // open item: expired
+        request(demo, null);                           // open item: approved, not exported
+        request(demo, Instant.now());                  // exported: Requests tab only
+        mockMvc.perform(post("/office/ships/{id}/invitations/new", demo.getId())
+                .param("fullName", "New Member").param("email", "new.member@example.com")
+                .param("role", "CREW_MEMBER").with(csrf()));
+        mockMvc.perform(post("/office/ships/{id}/items/new", demo.getId())
+                .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
+        mockMvc.perform(post("/office/announcements/new")
+                .param("target", "fleet").param("title", "Fleet notice").param("body", "Hello").with(csrf()));
+
+        String html = html(get("/office/ships/{id}", demo.getId()));
+        assertThat(tabs(html)).containsExactly(
+                "Overview 3 active", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1", "Requests 2");
+        assertThat(html).contains("ship-tab-count num ship-tab-count-alert", "(3 open items)");
+
+        // The same rule as the fleet Overview.
+        long fleetOpenItems = dashboardService.load().ships().stream()
+                .filter(card -> card.ship().getId().equals(demo.getId())).findFirst().orElseThrow().openItems();
+        assertThat(fleetOpenItems).isEqualTo(3);
+        assertThat(html).contains("Medical fitness", "STCW Basic Safety", "Not exported").doesNotContain("Food hygiene");
+
+        // Crew on board by department; the pending invitation is not on board.
+        assertThat(html).containsSubsequence(">Deck<", "Anna Cadet", ">Galley<", "Chris Cook", ">Rank not set<",
+                "Nico Norank").doesNotContain("New Member", "Elsa Where");
+        // Particulars summary.
+        assertThat(html).contains("Bulk carrier", "Greece (GR)", "9074729");
+    }
+
+    @Test
+    void tabsListOnlyThisShipWithoutShipFilterOrColumn() throws Exception {
+        certificate(cadet, "STCW Basic Safety", 20);
+        certificate(elsewhere, "Elsewhere cert", 20);
+        request(demo, null);
+        request(other, null);
+
+        for (String tab : List.of("/crew", "/certificates", "/announcements", "/requests")) {
+            String url = "/office/ships/" + demo.getId() + tab;
+            String html = html(get(url));
+            assertThat(html).as("no ship filter on " + url).doesNotContain("id=\"filterShipId\"", "name=\"shipId\"");
+            assertThat(html).as("no ship column on " + url).doesNotContain("<th scope=\"col\">Ship</th>");
+            assertThat(html).as("only this ship on " + url).doesNotContain("Elsa Where", "Elsewhere cert", "MV Other");
+        }
+        // The fleet-wide pages keep their ship filter and column.
+        for (String url : List.of("/office/crew", "/office/certificates", "/office/announcements", "/office/requests")) {
+            assertThat(html(get(url))).as("ship filter on " + url).contains("id=\"filterShipId\"");
+        }
+        assertThat(html(get("/office/crew"))).contains("<th scope=\"col\">Ship</th>", "Elsa Where");
+    }
+
+    @Test
+    void addingCrewFromTheCrewTabNeverAsksForTheShip() throws Exception {
+        String form = html(get("/office/ships/{id}/invitations/new", demo.getId()));
+        assertThat(form).doesNotContain("name=\"shipId\"", "Choose a ship")
+                .contains("<p class=\"eyebrow\"><a href=\"/office/ships/" + demo.getId() + "\">MV Demo · IMO 9074729</a></p>")
+                .contains("href=\"/office/ships/" + demo.getId() + "/crew\">Cancel</a>");
+
+        mockMvc.perform(post("/office/ships/{id}/invitations/new", demo.getId())
+                        .param("fullName", "New Member").param("email", "new.member@example.com")
+                        .param("role", "CREW_MEMBER").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
+        assertThat(invitationRepository.findAll()).singleElement()
+                .satisfies(i -> assertThat(i.getShip().getId()).isEqualTo(demo.getId()));
+        assertThat(html(get("/office/ships/{id}/crew", demo.getId()))).contains("New Member", "Invited");
+
+        // A user's "more" menu on the tab returns to the tab.
+        mockMvc.perform(post("/office/users/{id}/deactivate", cadet.getId()).param("tab", "crew").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
+        mockMvc.perform(post("/office/users/{id}/activate", cadet.getId()).with(csrf()))
+                .andExpect(redirectedUrl("/office/crew"));
+    }
+
+    @Test
+    void addingACertificateFromTheTabPicksFromThisShipsCrew() throws Exception {
+        String form = html(get("/office/ships/{id}/certificates/new", demo.getId()));
+        assertThat(form).contains("name=\"userId\"", "Anna Cadet · Deck Cadet", "Chris Cook")
+                .doesNotContain("Elsa Where")
+                .contains("action=\"/office/ships/" + demo.getId() + "/certificates/new\"");
+
+        mockMvc.perform(post("/office/ships/{id}/certificates/new", demo.getId())
+                        .param("userId", elsewhere.getId().toString()).param("type", "STCW")
+                        .param("expiresOn", "2030-01-01").with(csrf()))
+                .andExpect(status().isOk());
+        assertThat(certificateRepository.findAll()).isEmpty();
+
+        mockMvc.perform(post("/office/ships/{id}/certificates/new", demo.getId())
+                        .param("userId", cadet.getId().toString()).param("type", "STCW Basic Safety")
+                        .param("expiresOn", LocalDate.now(ZoneOffset.UTC).plusDays(10).toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/certificates"));
+        assertThat(certificateRepository.findAll()).singleElement()
+                .satisfies(c -> assertThat(c.getUser().getId()).isEqualTo(cadet.getId()));
+        assertThat(html(get("/office/ships/{id}/certificates", demo.getId()))).contains("STCW Basic Safety");
+    }
+
+    @Test
+    void newAnnouncementFromTheTabHasTheShipPreselectedAndReturnsThere() throws Exception {
+        String form = html(get("/office/announcements/new").param("shipId", demo.getId().toString()));
+        assertThat(form).contains("<option value=\"" + demo.getId() + "\" selected=\"selected\">MV Demo · IMO 9074729</option>")
+                .contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">");
+        // Opened elsewhere, nothing is preselected.
+        assertThat(html(get("/office/announcements/new"))).doesNotContain("selected=\"selected\"", "returnShipId");
+
+        mockMvc.perform(post("/office/announcements/new").param("target", demo.getId().toString())
+                        .param("title", "Drill").param("body", "Friday").param("returnShipId", demo.getId().toString())
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/announcements"));
+        assertThat(html(get("/office/ships/{id}/announcements", demo.getId()))).contains("Drill");
+    }
+
+    @Test
+    void editFromTheShipHeaderReturnsToTheTab() throws Exception {
+        String crewTab = html(get("/office/ships/{id}/crew", demo.getId()));
+        // The pop-up is filled by the server; without JavaScript Edit is a link to the same form as a page.
+        assertThat(crewTab).contains("href=\"/office/ships/" + demo.getId() + "/edit?tab=crew\"",
+                "id=\"editShipModal\"", "action=\"/office/ships/" + demo.getId() + "/edit\"",
+                "value=\"MV Demo\"", "value=\"Greece (GR)\"");
+
+        mockMvc.perform(post("/office/ships/{id}/edit", demo.getId()).param("name", "MV Demo II")
+                        .param("type", "TANKER").param("flag", "GR").param("tab", "crew").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
+        assertThat(shipRepository.findById(demo.getId()).orElseThrow().getName()).isEqualTo("MV Demo II");
+
+        // A failed save from the ship page shows its errors on the Edit page, which still returns to the tab.
+        String errors = mockMvc.perform(post("/office/ships/{id}/edit", demo.getId()).param("name", " ")
+                        .param("tab", "crew").with(csrf()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(errors).contains("Enter the ship name.", "<input type=\"hidden\" name=\"tab\" value=\"crew\">",
+                "href=\"/office/ships/" + demo.getId() + "/crew\">Cancel</a>");
+
+        // An unknown tab value never becomes a redirect target.
+        mockMvc.perform(post("/office/ships/{id}/edit", demo.getId()).param("name", "MV Demo")
+                        .param("tab", "//evil.example.com").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships"));
+        assertThat(html(get("/office/ships/{id}/edit", demo.getId()))).contains("name=\"page\" value=\"true\"");
+    }
+
+    @Test
+    void shipsListLinksTheNameAndKeepsOnlyTheMoreMenu() throws Exception {
+        String html = html(get("/office/ships"));
+        assertThat(html).contains("<a class=\"ship-link\" href=\"/office/ships/" + demo.getId() + "\">MV Demo</a>")
+                .doesNotContain("/office/ships/" + demo.getId() + "/library\"", "/office/ships/" + demo.getId() + "/items\"");
+        Matcher row = Pattern.compile("(?s)<tr[^>]*>\\s*<td class=\"cell-primary\">\\s*<a class=\"ship-link\" href=\"/office/ships/"
+                + demo.getId() + "\">.*?</tr>").matcher(html);
+        assertThat(row.find()).isTrue();
+        String outsideMenu = row.group().replaceAll("(?s)<details class=\"row-menu dropdown\">.*?</details>", "");
+        assertThat(outsideMenu).doesNotContain("<button", "btn-ghost");
+        assertThat(row.group()).contains("class=\"dropdown-item\" href=\"/office/ships/" + demo.getId() + "/edit\"",
+                "data-bs-target=\"#editShipModal\"", "/office/ships/" + demo.getId() + "/deactivate");
+    }
+
+    @Test
+    void everyShipNameInTheOfficeLinksToTheShipPage() throws Exception {
+        certificate(cadet, "STCW Basic Safety", 20);
+        request(demo, null);
+        mockMvc.perform(post("/office/announcements/new").param("target", demo.getId().toString())
+                .param("title", "Drill").param("body", "Friday").with(csrf()));
+        String link = "<a class=\"ship-link\" href=\"/office/ships/" + demo.getId() + "\">MV Demo</a>";
+        for (String url : List.of("/office", "/office/ships", "/office/crew", "/office/certificates",
+                "/office/announcements", "/office/requests", "/office/audit",
+                "/office/ships/" + demo.getId() + "/library")) {
+            assertThat(html(get(url))).as("ship link on " + url).contains(link);
+        }
+        // Ship-scoped pages below a tab: the eyebrow links to the ship page, the crumbs go back through the tab.
+        String addItem = html(get("/office/ships/{id}/items/new", demo.getId()));
+        assertThat(addItem).contains("<p class=\"eyebrow\"><a href=\"/office/ships/" + demo.getId() + "\">MV Demo · IMO 9074729</a></p>",
+                "<a href=\"/office/ships/" + demo.getId() + "/items\">Items</a>");
+    }
+
+    @Test
+    void requestsTabExportWithNothingCheckedReturnsToTheTab() throws Exception {
+        request(demo, null);
+        String html = html(get("/office/ships/{id}/requests", demo.getId()));
+        assertThat(html).contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">",
+                "id=\"filterNotExported\"", "action=\"/office/ships/" + demo.getId() + "/requests\"");
+        mockMvc.perform(post("/office/requests/export").param("returnShipId", demo.getId().toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/requests"));
+    }
+
+    @Test
+    void greekTabs() throws Exception {
+        String html = html(get("/office/ships/{id}", demo.getId()).param("lang", "el"));
+        assertThat(tabs(html)).extracting(t -> t.substring(0, t.indexOf(' ')))
+                .containsExactly("Επισκόπηση", "Πλήρωμα", "Πιστοποιητικά", "Βιβλιοθήκη", "Είδη", "Ανακοινώσεις", "Αιτήματα");
+    }
+
+    @Test
+    void tabBarScrollsOnPhonesWithTheActiveTabInView() throws Exception {
+        String css = Files.readString(Path.of("src/main/resources/static/css/app.css"));
+        assertThat(css).contains(".ship-tabs-list {", "overflow-x: auto;", ".ship-tab.active::after {",
+                "min-height: var(--nn-touch-target);");
+        String js = Files.readString(Path.of("src/main/resources/static/js/ship-tabs.js"));
+        assertThat(js).contains("[aria-current=\"page\"]", "scrollLeft");
+        assertThat(html(get("/office/ships/{id}/requests", demo.getId()))).containsPattern("/js/ship-tabs(-[0-9a-f]+)?\\.js");
+    }
+
+    /** The ship header and the tab bar, with exactly the tab of url active. */
+    private void assertFrame(String html, String url) {
+        String on = " on " + url;
+        Ship ship = shipRepository.findById(demo.getId()).orElseThrow();
+        Matcher h1 = H1.matcher(html);
+        assertThat(h1.find()).as("h1" + on).isTrue();
+        assertThat(h1.group(1)).as("ship name as the heading" + on).isEqualTo(ship.getName());
+        assertThat(html).as("ship facts" + on).contains("<span class=\"num\">IMO 9074729</span>", "Bulk carrier",
+                "Flag Greece (GR)", "class=\"page-header ship-header\"");
+        assertThat(html).as("Edit" + on).contains("href=\"/office/ships/" + ship.getId() + "/edit?tab=");
+        assertThat(html).as("more menu" + on).contains("More actions: " + ship.getName());
+        List<String> tabs = tabs(html);
+        assertThat(tabs).as("tabs" + on).hasSize(7);
+        assertThat(tabs.stream().filter(t -> t.endsWith(" active")).toList()).as("one active tab" + on).hasSize(1);
+        Matcher active = Pattern.compile("<a class=\"ship-tab active\" href=\"([^\"]+)\" aria-current=\"page\">").matcher(html);
+        assertThat(active.find()).as("active tab" + on).isTrue();
+        assertThat(active.group(1)).as("active tab" + on).isEqualTo(url);
+    }
+
+    /** "Label count", plus " active" on the active tab. */
+    private static List<String> tabs(String html) {
+        Matcher bar = TAB_BAR.matcher(html);
+        assertThat(bar.find()).as("tab bar").isTrue();
+        return TAB.matcher(bar.group(1)).results()
+                .map(m -> m.group(3).trim() + " " + m.group(4) + (m.group(1) != null ? " active" : "")).toList();
+    }
+
+    private static String key(String tab) {
+        return tab.isEmpty() ? "overview" : tab.substring(1);
+    }
+
+    private Ship ship(String imo, String name, boolean active) {
+        Ship ship = new Ship();
+        ship.setImoNumber(imo);
+        ship.setName(name);
+        ship.setActive(active);
+        ship.setCreatedAt(Instant.now());
+        return shipRepository.save(ship);
+    }
+
+    private void certificate(User user, String type, int daysFromNow) {
+        Certificate certificate = new Certificate();
+        certificate.setUser(user);
+        certificate.setType(type);
+        certificate.setExpiresOn(LocalDate.now(ZoneOffset.UTC).plusDays(daysFromNow));
+        certificate.setCreatedAt(Instant.now());
+        certificateRepository.save(certificate);
+    }
+
+    private void request(Ship ship, Instant exportedAt) {
+        ItemRequest request = new ItemRequest();
+        request.setShip(ship);
+        request.setRequestedBy(cadet);
+        request.setDecidedBy(cadet);
+        request.setStatus(RequestStatus.APPROVED);
+        request.setDecidedAt(Instant.now());
+        request.setCreatedAt(Instant.now());
+        request.setExportedAt(exportedAt);
+        requestRepository.save(request);
+    }
+
+    private String html(MockHttpServletRequestBuilder request) throws Exception {
+        return mockMvc.perform(request).andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+    }
+}

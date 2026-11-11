@@ -1,6 +1,8 @@
 package com.nereonix.nereonet_mvp.ship;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -8,21 +10,52 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRepository;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.certificate.Certificate;
+import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.invitation.Invitation;
+import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
+import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
+import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
+import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.ImoNumber;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.user.UserRepository;
+import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 
 @Service
 public class ShipService {
 
     private final ShipRepository shipRepository;
     private final AuditService auditService;
+    private final DashboardService dashboardService;
+    private final UserRepository userRepository;
+    private final InvitationRepository invitationRepository;
+    private final CertificateRepository certificateRepository;
+    private final LibraryItemRepository libraryItemRepository;
+    private final ItemRepository itemRepository;
+    private final AnnouncementRepository announcementRepository;
+    private final ItemRequestRepository requestRepository;
 
-    public ShipService(ShipRepository shipRepository, AuditService auditService) {
+    public ShipService(ShipRepository shipRepository, AuditService auditService, DashboardService dashboardService,
+                       UserRepository userRepository, InvitationRepository invitationRepository,
+                       CertificateRepository certificateRepository, LibraryItemRepository libraryItemRepository,
+                       ItemRepository itemRepository, AnnouncementRepository announcementRepository,
+                       ItemRequestRepository requestRepository) {
         this.shipRepository = shipRepository;
         this.auditService = auditService;
+        this.dashboardService = dashboardService;
+        this.userRepository = userRepository;
+        this.invitationRepository = invitationRepository;
+        this.certificateRepository = certificateRepository;
+        this.libraryItemRepository = libraryItemRepository;
+        this.itemRepository = itemRepository;
+        this.announcementRepository = announcementRepository;
+        this.requestRepository = requestRepository;
     }
 
     @Transactional(readOnly = true)
@@ -34,6 +67,27 @@ public class ShipService {
     @Transactional(readOnly = true)
     public Ship get(Long id) {
         return shipRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * The numbers on the ship page's tabs, one count query each: what each tab lists (see ShipTabCounts). Crew: every
+     * user on the ship and its pending invitations; Certificates: expired or expiring within 90 days, as on
+     * /office/certificates; Library: items not retired; Announcements: sent to this ship or to all ships;
+     * Requests: approved.
+     */
+    @Transactional(readOnly = true)
+    public ShipTabCounts tabCounts(Ship ship) {
+        Long id = ship.getId();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        return new ShipTabCounts(
+                dashboardService.openItemCount(ship),
+                userRepository.countByShip(ship)
+                        + invitationRepository.countByStatusAndShip(Invitation.Status.PENDING, ship),
+                certificateRepository.countExpiringUntil(today.plusDays(Certificate.REMINDER_DAYS.getLast()), id),
+                libraryItemRepository.countByShipAndRetiredFalseAndCurrentVersionIsNotNull(ship),
+                itemRepository.countByShipId(id),
+                announcementRepository.countForShip(id),
+                requestRepository.countByStatusAndShipId(RequestStatus.APPROVED, id));
     }
 
     /**

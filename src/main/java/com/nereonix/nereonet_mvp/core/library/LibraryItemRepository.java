@@ -20,6 +20,9 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, Long> 
 
     long countByShipAndRetiredFalse(Ship ship);
 
+    // The items itemsByCategory lists: the ship page's Library tab.
+    long countByShipAndRetiredFalseAndCurrentVersionIsNotNull(Ship ship);
+
     // Per ship: Required items (not retired) whose CURRENT version not every enabled ship user on board now acknowledged.
     @Query("""
             select new com.nereonix.nereonet_mvp.core.ship.ShipCount(i.ship.id, count(i))

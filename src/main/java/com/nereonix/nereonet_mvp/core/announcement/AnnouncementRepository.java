@@ -15,4 +15,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
             where a.ship is null or a.ship.id = :shipId
             order by a.createdAt desc, a.id desc""")
     List<Announcement> findAllForShip(Long shipId);
+
+    @Query("select count(a) from Announcement a where a.ship is null or a.ship.id = :shipId")
+    long countForShip(Long shipId);
 }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{ship.edit.heading}, ~{::main})}">
+<body>
+<!-- Edit ship as a page: where Edit leads without JavaScript (the ship page and the ships list open a pop-up), and
+     where a failed save from the ship page shows its errors. returnTab: the ship page tab to go back to, or null
+     (the ships list). -->
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${ship})}">
+        <th:block th:fragment="pageCrumbs" th:replace="~{ship/parts :: crumbs(${ship}, null)}"></th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:action="@{/office/ships/{id}/edit(id=${ship.id})}" th:object="${editForm}" method="post" novalidate>
+                <input type="hidden" name="page" value="true">
+                <input th:if="${returnTab != null}" type="hidden" name="tab" th:value="${returnTab.key()}">
+                <th:block th:replace="~{ship/parts :: editFields(${ship})}"></th:block>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+                    <a class="btn btn-ghost" th:href="@{${returnTab != null} ? ${returnTab.url(ship.id)} : '/office/ships'}"
+                       th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <datalist th:replace="~{ship/parts :: countryOptions}"></datalist>
+</main>
+</body>
+</html>

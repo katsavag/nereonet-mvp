@@ -18,7 +18,9 @@
                 <a th:if="${particularsUrl}" class="btn btn-outline-secondary btn-sm" th:href="@{${particularsUrl}}"
                    th:text="#{library.particulars.edit}">Edit ship particulars</a>
             </div>
-            <p class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
+            <!-- The office links the name to the ship page; the crew have no such page. -->
+            <p th:if="${linked}" class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
+            <p th:unless="${linked}" class="fw-semibold mb-0 text-break"><a th:replace="~{layout/parts :: shipLink(${ship})}">MV Demo</a></p>
             <p class="text-body-secondary small mb-0">
                 <span th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
                 <th:block th:if="${ship.flag}">
@@ -95,7 +97,7 @@
      office's library pages differ). -->
 <header th:fragment="acknowledgementsHeader(crumbs)"
         th:replace="~{layout/parts :: pageHeader(heading=#{library.acknowledgements.heading}, crumbs=${crumbs},
-                    eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})},
+                    eyebrowShip=${ship},
                     subtitle=${overview.item.title} + ' · ' + #{library.version(${overview.item.currentVersion.versionLabel})} + ' · ' + #{library.acknowledgements.hint})}">
 </header>
 

@@ -1,7 +1,24 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{certificate.list.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.certificates} : #{certificate.list.title}, ~{::main})}">
 <body>
-<main>
+<!-- Also the Certificates tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
+     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+<main th:with="onShip=${shipTab != null}">
+    <th:block th:if="${onShip}">
+        <th:block th:replace="~{ship/parts :: header}"></th:block>
+        <!-- Add certificate: the crew member is picked from this ship's crew; back to this tab. -->
+        <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ~{::tabActions})}">
+            <th:block th:fragment="tabActions">
+                <a class="btn btn-primary" th:href="@{/office/ships/{id}/certificates/new(id=${ship.id})}">
+                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                    <span th:text="#{certificate.new.heading}">Add certificate</span>
+                </a>
+            </th:block>
+        </div>
+        <p class="tab-hint" th:text="#{certificate.list.hint}">Certificates that expire within 90 days ...</p>
+    </th:block>
+    <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.size()}, subtitle=#{certificate.list.hint})}"></header>
 
     <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
@@ -19,6 +36,7 @@
             <a class="btn btn-ghost" th:href="@{/office/certificates}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
+    </th:block>
 
     <div class="card">
         <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
@@ -32,7 +50,7 @@
                 <tr>
                     <th scope="col" th:text="#{certificate.type}">Type</th>
                     <th scope="col" th:text="#{certificate.crewMember}">Crew member</th>
-                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                    <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
                     <th scope="col" th:text="#{certificate.number}">Number</th>
                     <th scope="col" th:text="#{certificate.expiresOn}">Expires on</th>
                     <th scope="col" th:text="#{certificate.status}">Status</th>
@@ -49,7 +67,10 @@
                         <th:block th:unless="${c.user.enabled}"><span
                                 th:replace="~{layout/parts :: status('neutral', #{user.status.inactive})}">Inactive</span></th:block>
                     </td>
-                    <td th:attr="data-label=#{user.ship}" th:text="${c.user.ship} ? ${c.user.ship.name} : '—'">MV Demo</td>
+                    <td th:unless="${onShip}" th:attr="data-label=#{user.ship}">
+                        <th:block th:if="${c.user.ship}"><a th:replace="~{layout/parts :: shipLink(${c.user.ship})}">MV Demo</a></th:block>
+                        <th:block th:unless="${c.user.ship}">—</th:block>
+                    </td>
                     <td class="stack-hide" th:text="${c.number} ?: '—'">12345</td>
                     <td class="text-nowrap" th:attr="data-label=#{certificate.expiresOn}"
                         th:text="${#temporals.format(c.expiresOn, 'd MMM yyyy')}">10 Jan 2027</td>

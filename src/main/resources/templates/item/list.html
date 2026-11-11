@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{item.list.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.items}, ~{::main})}">
 <body>
+<!-- The Items tab of the ship page (see ship/ShipFrame). -->
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{item.list.heading}, count=${items.size()}, crumbs=~{::pageCrumbs}, actions=~{::pageActions}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
-        <th:block th:fragment="pageCrumbs">
-            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
-            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
-        </th:block>
-        <th:block th:fragment="pageActions">
+    <th:block th:replace="~{ship/parts :: header}"></th:block>
+    <div th:replace="~{ship/parts :: tabHeading(#{item.list.heading}, ~{::tabActions})}">
+        <th:block th:fragment="tabActions">
             <a class="btn btn-primary" th:href="@{/office/ships/{id}/items/new(id=${ship.id})}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{item.list.add}">Add item</span>
@@ -17,7 +16,7 @@
                 <span th:text="#{item.list.import}">Import</span>
             </a>
         </th:block>
-    </header>
+    </div>
 
     <!-- After an import (flash attributes from ItemImportController). -->
     <div th:if="${importedCount != null}" class="alert alert-success" role="status">

@@ -1,7 +1,23 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crew.list.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.crew} : #{crew.list.title}, ~{::main})}">
 <body>
-<main>
+<!-- Also the Crew tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
+     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+<main th:with="onShip=${shipTab != null}">
+    <th:block th:if="${onShip}">
+        <th:block th:replace="~{ship/parts :: header}"></th:block>
+        <!-- Add crew member: the ship's own invitation form, which never asks for the ship. Not for an inactive ship. -->
+        <div th:replace="~{ship/parts :: tabHeading(#{crew.list.heading}, ${ship.active} ? ~{::tabActions} : null)}">
+            <th:block th:fragment="tabActions">
+                <a class="btn btn-primary" th:href="@{/office/ships/{id}/invitations/new(id=${ship.id})}">
+                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                    <span th:text="#{crew.list.add}">Add crew member</span>
+                </a>
+            </th:block>
+        </div>
+    </th:block>
+    <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{crew.list.heading}, count=${crew.size() + invited.size()}, actions=~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
@@ -30,6 +46,7 @@
             <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
+    </th:block>
 
     <div class="card">
         <p th:if="${crew.isEmpty() and invited.isEmpty()}" class="card-body text-body-secondary mb-0"
@@ -45,7 +62,7 @@
                     <th scope="col" th:text="#{user.email}">Email</th>
                     <th scope="col" th:text="#{user.rank}">Rank</th>
                     <th scope="col" th:text="#{user.role}">Role</th>
-                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                    <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
                     <th scope="col" th:text="#{user.status}">Status</th>
                     <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
                 </tr>
@@ -59,7 +76,7 @@
                     </td>
                     <td th:attr="data-label=#{user.rank}" th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</td>
                     <td class="text-nowrap stack-hide" th:text="#{${'role.' + inv.role}}">Crew member</td>
-                    <td th:attr="data-label=#{user.ship}" th:text="${inv.ship.name}">MV Demo</td>
+                    <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status('primary', #{crew.status.invited})}">Invited</span>
                     </td>
@@ -74,7 +91,7 @@
                     </td>
                     <td th:attr="data-label=#{user.rank}" th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</td>
                     <td class="text-nowrap stack-hide" th:text="#{${'role.' + u.role}}">Crew member</td>
-                    <td th:attr="data-label=#{user.ship}" th:text="${u.ship.name}">MV Demo</td>
+                    <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${u.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>
                     </td>
@@ -89,9 +106,9 @@
         </div>
     </div>
 
-    <!-- Add crew member: sends an invitation. Full screen on phones. A modal although it has five fields: P18 makes
+    <!-- Add crew member (Crew page only): sends an invitation. Full screen on phones. A modal although it has five fields: P18 makes
          it shorter. The ship keeps the full width, so its name and IMO number are never cut off. -->
-    <div class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
+    <div th:unless="${onShip}" class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <form class="modal-content" th:action="@{/office/crew/new}" th:object="${addForm}" method="post" novalidate>
                 <div class="modal-header">

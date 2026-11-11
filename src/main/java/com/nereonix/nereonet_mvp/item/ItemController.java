@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.ship.ShipFrame;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
@@ -18,14 +20,17 @@ import jakarta.validation.Valid;
 public class ItemController {
 
     private final ItemService itemService;
+    private final ShipFrame shipFrame;
 
-    public ItemController(ItemService itemService) {
+    public ItemController(ItemService itemService, ShipFrame shipFrame) {
         this.itemService = itemService;
+        this.shipFrame = shipFrame;
     }
 
+    // The ship page's Items tab.
     @GetMapping("/office/ships/{id}/items")
     public String list(@PathVariable Long id, Model model) {
-        model.addAttribute("ship", itemService.getShip(id));
+        shipFrame.show(model, itemService.getShip(id), ShipTab.ITEMS);
         model.addAttribute("items", itemService.findItems(id));
         return "item/list";
     }

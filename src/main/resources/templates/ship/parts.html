@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<!-- Fragments of the ship page (P08) and of the pages below it. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The frame of every tab of the ship page, first in the tab's <main>. Needs the model of ship/ShipFrame (ship, shipTab,
+     shipTabs, shipTabCounts, editForm, types, countries). In this order:
+       page header   breadcrumbs (Ships › MV Demo); the ship's name as the h1; IMO number, type, flag and the
+                     Active / Inactive badge under it; Edit and the "more" menu (Activate, or Deactivate) on the right.
+                     The name and IMO number are in this same place on every tab.
+       tab bar       ship/parts :: tabs
+       banner        an inactive ship says what is blocked, on every tab
+     plus the Edit ship pop-up (ship/parts :: editModal). Each tab follows with ship/parts :: tabHeading, then its list.
+     Use: <th:block th:replace="~{ship/parts :: header}"></th:block> -->
+<th:block th:fragment="header">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${ship.name}, headerClass='ship-header',
+                         crumbs=~{ship/parts :: shipsCrumb}, subtitleParts=~{ship/parts :: facts},
+                         actions=~{ship/parts :: headerActions})}"></header>
+    <nav th:replace="~{ship/parts :: tabs}"></nav>
+    <div th:replace="~{ship/parts :: inactiveBanner}"></div>
+    <div th:replace="~{ship/parts :: editModal(${ship}, ${shipTab})}"></div>
+    <datalist th:replace="~{ship/parts :: countryOptions}"></datalist>
+</th:block>
+
+<th:block th:fragment="shipsCrumb">
+    <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+</th:block>
+
+<!-- IMO number, type and flag (those set), then the status badge. -->
+<th:block th:fragment="facts">
+    <span class="ship-facts">
+        <span class="num" th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
+        <th:block th:if="${ship.type}"><span aria-hidden="true">·</span>
+            <span th:text="#{${'ship.type.' + ship.type}}">Bulk carrier</span></th:block>
+        <th:block th:if="${ship.flag}"><span aria-hidden="true">·</span>
+            <span th:text="#{ship.flagValue(${countries[ship.flag] ?: ship.flag})}">Flag Greece (GR)</span></th:block>
+        <span th:replace="~{layout/parts :: status(${ship.active} ? 'ok' : 'neutral', ${ship.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
+    </span>
+</th:block>
+
+<!-- Edit opens the pop-up; without JavaScript the link opens the same form as a page. The forms send the tab, so
+     ShipController comes back to it. -->
+<th:block th:fragment="headerActions">
+    <a class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editShipModal"
+       th:href="@{/office/ships/{id}/edit(id=${ship.id},tab=${shipTab})}" th:text="#{ship.edit}">Edit</a>
+    <details th:replace="~{layout/parts :: moreMenu(#{common.moreActions(${ship.name})}, ~{ship/parts :: headerMenuItems}, 'btn btn-outline-secondary')}"></details>
+</th:block>
+
+<th:block th:fragment="headerMenuItems">
+    <form th:unless="${ship.active}" th:action="@{/office/ships/{id}/activate(id=${ship.id})}" method="post">
+        <input type="hidden" name="tab" th:value="${shipTab}">
+        <button type="submit" class="dropdown-item" th:text="#{ship.activate}">Activate</button>
+    </form>
+    <th:block th:if="${ship.active}">
+        <hr class="dropdown-divider">
+        <form th:action="@{/office/ships/{id}/deactivate(id=${ship.id})}" method="post">
+            <input type="hidden" name="tab" th:value="${shipTab}">
+            <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{ship.deactivate}">Deactivate</button>
+        </form>
+    </th:block>
+</th:block>
+
+<!-- The tabs: ordinary links, one URL each (ShipTab), so every tab can be bookmarked and works without JavaScript.
+     The active one has aria-current="page", a 3px bar under it and semibold text (not colour alone). Each shows its
+     count (ShipTabCounts), with the number in words for screen readers. Overview's count is the open items; above zero
+     it gets the danger colours, and the words still say what it counts.
+     Phones: the bar scrolls sideways; js/ship-tabs.js scrolls the active tab into view. -->
+<nav th:fragment="tabs" class="ship-tabs" th:attr="aria-label=#{ship.tabs.label(${ship.name})}">
+    <ul class="ship-tabs-list">
+        <li th:each="t : ${shipTabs}" th:with="active=${t.key() == shipTab}, count=${shipTabCounts.of(t)}">
+            <a class="ship-tab" th:classappend="${active} ? 'active'" th:href="@{${t.url(ship.id)}}" th:aria-current="${active} ? 'page'">
+                <span th:text="#{${'ship.tab.' + t.key()}}">Crew</span>
+                <span class="ship-tab-count num" aria-hidden="true"
+                      th:classappend="${t.key() == 'overview' and count > 0} ? 'ship-tab-count-alert'"
+                      th:text="${count > 999} ? '999+' : ${count}">12</span>
+                <span class="visually-hidden" th:text="#{${'ship.tab.count.' + t.key()}(${count})}">(12)</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<!-- An inactive ship: what is blocked, and how to undo it. On every tab. -->
+<div th:fragment="inactiveBanner" th:unless="${ship.active}" class="alert alert-warning ship-inactive-banner" role="note">
+    <p class="fw-semibold mb-1" th:text="#{ship.inactive.title}">This ship is inactive.</p>
+    <p class="mb-0" th:text="#{ship.inactive.text}">You cannot invite crew to it ...</p>
+</div>
+
+<!-- The heading of a tab's content (h2) and the tab's own actions on the right (Add crew member, Add item, ...).
+     actions: a fragment, ~{::tabActions}, or null. -->
+<div th:fragment="tabHeading(heading, actions)" class="tab-heading">
+    <h2 class="tab-title" th:text="${heading}">Galley items</h2>
+    <th:block th:if="${actions != null}">
+        <div class="page-actions" th:insert="${actions}"></div>
+    </th:block>
+</div>
+
+<!-- Breadcrumbs of a page below the ship page: Ships › MV Demo › the tab (when tab is not null), then the page
+     itself (added by pageHeader). tab: a ShipTab key, e.g. 'items'.
+     Use: crumbs=~{::pageCrumbs} with <th:block th:fragment="pageCrumbs" th:replace="~{ship/parts :: crumbs(${ship}, 'items')}"></th:block> -->
+<th:block th:fragment="crumbs(ship, tab)">
+    <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+    <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id})}"></li>
+    <th:block th:if="${tab != null}">
+        <li th:replace="~{layout/parts :: crumb(#{${'ship.tab.' + tab}}, ${'/office/ships/' + ship.id + (tab == 'overview' ? '' : '/' + tab)})}"></li>
+    </th:block>
+</th:block>
+
+<!-- Edit ship: the fields, shared by the pop-up (ships list, ship page) and the full page (ship/edit.html).
+     Field ids start with "edit". Needs editForm (th:object), types and countries; the countries list is
+     ship/parts :: countryOptions, once per page. editShip: the ship (its IMO number), or null when the ships list's
+     script fills the pop-up. -->
+<th:block th:fragment="editFields(editShip)">
+    <div th:replace="~{layout/parts :: errorSummary(${editForm}, 'edit')}"></div>
+    <div class="form-grid">
+        <!-- The IMO number cannot be changed: plain text, not an input. -->
+        <dl class="static-fields">
+            <dt th:text="#{ship.imoNumber}">IMO number</dt>
+            <dd>
+                <span id="editImo" class="num"
+                      th:text="${editShip != null} ? #{ship.codeValue(${editShip.imoNumber})} : ''">IMO 9074729</span>
+                <span class="form-text d-block" th:text="#{ship.imoNumberReadOnly}">The IMO number cannot be changed.</span>
+            </dd>
+        </dl>
+        <div>
+            <label for="editName" class="form-label" th:text="#{ship.name}">Name</label>
+            <input type="text" id="editName" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
+                   autocomplete="off" aria-describedby="editNameCounter" required>
+            <div class="invalid-feedback" th:errors="*{name}"></div>
+            <div class="form-meta">
+                <div th:replace="~{layout/parts :: counter(${editForm}, 'name', 'editName')}"></div>
+            </div>
+        </div>
+        <div class="field-half">
+            <label for="editType" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+            <select id="editType" th:field="*{type}" class="form-select" th:errorclass="is-invalid">
+                <option value="" th:text="#{ship.type.none}">Not set</option>
+                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+            </select>
+            <div class="invalid-feedback" th:errors="*{type}"></div>
+        </div>
+        <div class="field-half">
+            <label for="editFlag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+            <input type="text" id="editFlag" th:field="*{flag}" class="form-control" list="countryOptions"
+                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
+                   autocomplete="off" aria-describedby="editFlagHint">
+            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
+            <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+        </div>
+    </div>
+</th:block>
+
+<!-- Edit ship pop-up. Full screen on phones. editShip: the ship it edits (the ship page, or a failed save on the
+     ships list), or null when the list's script sets it from the Edit entry that opened it. tab: the ship page tab to
+     return to, or null for the ships list. -->
+<div th:fragment="editModal(editShip, tab)" class="modal fade" id="editShipModal" tabindex="-1"
+     aria-labelledby="editShipModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content" th:object="${editForm}" method="post" novalidate
+              th:action="${editShip != null} ? @{/office/ships/{id}/edit(id=${editShip.id})} : @{/office/ships}">
+            <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
+            <div class="modal-header">
+                <h2 class="modal-title h5 fw-bold" id="editShipModalTitle" th:text="#{ship.edit.heading}">Edit ship</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        th:attr="aria-label=#{common.close}"></button>
+            </div>
+            <div class="modal-body">
+                <th:block th:replace="~{ship/parts :: editFields(${editShip})}"></th:block>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
+                        th:text="#{form.cancel}">Cancel</button>
+                <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+            </div>
+
+            <!-- The form was posted with errors (ships list only; the ship page shows them on the Edit page). -->
+            <script th:if="${#fields.hasAnyErrors()}">
+                document.addEventListener('DOMContentLoaded',
+                    () => bootstrap.Modal.getOrCreateInstance('#editShipModal').show());
+            </script>
+        </form>
+    </div>
+</div>
+
+<!-- Countries for the flag fields. The browser filters them as you type. -->
+<datalist th:fragment="countryOptions" id="countryOptions">
+    <option th:each="label : ${countries.values()}" th:value="${label}"></option>
+</datalist>
+
+</body>
+</html>

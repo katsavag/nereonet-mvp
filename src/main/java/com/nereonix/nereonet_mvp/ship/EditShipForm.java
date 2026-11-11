@@ -1,5 +1,8 @@
 package com.nereonix.nereonet_mvp.ship;
 
+import java.util.Map;
+
+import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 
 import jakarta.validation.constraints.AssertTrue;
@@ -17,6 +20,15 @@ public class EditShipForm {
 
     // "Greece (GR)" as picked from the list; only the code is stored.
     private String flag;
+
+    /** Filled from the ship. countries: code -> "Greece (GR)", as Countries.labels gives them. */
+    static EditShipForm of(Ship ship, Map<String, String> countries) {
+        EditShipForm form = new EditShipForm();
+        form.setName(ship.getName());
+        form.setType(ship.getType());
+        form.setFlag(ship.getFlag() == null ? null : countries.getOrDefault(ship.getFlag(), ship.getFlag()));
+        return form;
+    }
 
     @AssertTrue(message = "{ship.error.flagInvalid}")
     public boolean isFlagValid() {

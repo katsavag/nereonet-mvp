@@ -4,8 +4,7 @@
 <main th:with="ship=${overview.item.ship}">
     <header th:replace="~{core/library/parts :: acknowledgementsHeader(~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">
-            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
-            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
+            <th:block th:replace="~{ship/parts :: crumbs(${ship}, 'library')}"></th:block>
         </th:block>
     </header>
     <th:block th:replace="~{core/library/parts :: acknowledgements}"></th:block>

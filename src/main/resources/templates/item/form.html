@@ -3,11 +3,9 @@
 <body>
 <!-- Add and edit. item is null when adding. -->
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=${item == null} ? #{item.new.heading} : #{item.edit.heading}, crumbs=~{::pageCrumbs}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${item == null} ? #{item.new.heading} : #{item.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${ship})}">
         <th:block th:fragment="pageCrumbs">
-            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
-            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
-            <li th:replace="~{layout/parts :: crumb(#{item.list.heading}, ${'/office/ships/' + ship.id + '/items'})}"></li>
+            <th:block th:replace="~{ship/parts :: crumbs(${ship}, 'items')}"></th:block>
         </th:block>
     </header>
 

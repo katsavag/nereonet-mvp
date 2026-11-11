@@ -22,10 +22,11 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.ShipRoleTakenException;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
-// Crew invitations for one ship. Office invitations are on the Office users page (crew/OfficeUserController).
+// Crew invitations for one ship: Add crew member on the ship page's Crew tab. Office invitations are on the Office users page (crew/OfficeUserController).
 // /office/** is limited to OFFICE_USER in SecurityConfig.
 @Controller
 public class InvitationController {
@@ -67,8 +68,8 @@ public class InvitationController {
             return showCrewForm(ship, model);
         }
         sent(invitation, redirectAttributes);
-        // Back to an empty form until the ship page exists.
-        return "redirect:/office/ships/" + ship.getId() + "/invitations/new";
+        // Back to the ship page's Crew tab, where the new member is listed as "Invited".
+        return "redirect:" + ShipTab.CREW.url(ship.getId());
     }
 
     // "Invitation sent to <address>.": there is no "Repeat email" field, so the office sees where it went.

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.overview}, ~{::main})}">
+<body>
+<!-- The ship page's Overview tab (ShipController): the ship's open items (the fleet Overview's rule, DashboardService),
+     the crew on board by department and the particulars. -->
+<main>
+    <th:block th:replace="~{ship/parts :: header}"></th:block>
+
+    <div class="row g-4">
+        <!-- Open items: each listed, so nothing has to be looked up on another page. -->
+        <div class="col-12">
+            <section class="card" aria-labelledby="openItemsTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-1" id="openItemsTitle">
+                        <span th:text="#{ship.overview.openItems}">Open items</span>
+                        <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${overview.openItems()}">3</span></span>
+                    </h2>
+                    <p class="small text-body-secondary mb-0" th:text="#{dashboard.fleet.openItemsHint}">Expired certificates, ...</p>
+                    <p th:if="${overview.openItems() == 0}" class="mt-3 mb-0" th:text="#{ship.overview.noOpenItems}">Nothing needs attention.</p>
+                </div>
+                <ul th:if="${overview.openItems() > 0}" class="list-group list-group-flush open-items">
+                    <li th:each="c : ${overview.certificates}" class="list-group-item open-item">
+                        <div class="open-item-text">
+                            <a class="fw-semibold" th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
+                               th:text="${c.type}">STCW Basic Safety</a>
+                            <div class="small text-body-secondary">
+                                <span th:text="${c.user.fullName}">Jane Doe</span>
+                                <span aria-hidden="true">·</span>
+                                <span th:text="#{ship.overview.expiresOn(${#temporals.format(c.expiresOn, 'd MMM yyyy')})}">Expires on 10 Jan 2027</span>
+                            </div>
+                        </div>
+                        <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
+                    </li>
+                    <li th:each="r : ${overview.requests}" class="list-group-item open-item">
+                        <div class="open-item-text">
+                            <a class="fw-semibold" th:href="@{/office/requests/{id}(id=${r.id})}"
+                               th:text="#{request.number(${r.id})}">Request #12</a>
+                            <div class="small text-body-secondary">
+                                <span th:text="#{request.approvedAt}">Approved at</span>
+                                <time th:replace="~{layout/parts :: localTime(${r.decidedAt})}"></time>
+                            </div>
+                        </div>
+                        <span th:replace="~{layout/parts :: status('warning', #{ship.overview.notExported})}">Not exported</span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <!-- Crew on board: enabled users with a ship role, by the department of their rank. -->
+        <div class="col-12 col-lg-6">
+            <section class="card h-100" aria-labelledby="crewTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-1" id="crewTitle">
+                        <span th:text="#{ship.overview.crew}">Crew on board</span>
+                        <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${overview.crewOnBoard()}">12</span></span>
+                    </h2>
+                    <p class="small text-body-secondary mb-0" th:text="#{ship.overview.crewHint}">Active crew members, by department.</p>
+                    <p th:if="${overview.departments.isEmpty()}" class="mt-3 mb-0" th:text="#{ship.overview.noCrew}">No active crew on board.</p>
+                    <div th:each="d : ${overview.departments}" class="department">
+                        <h3 class="department-title">
+                            <span th:text="${d.department} ? #{${'department.' + d.department}} : #{department.none}">Deck</span>
+                            <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${d.crew.size()}">5</span></span>
+                        </h3>
+                        <ul class="department-list">
+                            <li th:each="u : ${d.crew}">
+                                <a th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
+                                <span class="text-body-secondary"
+                                      th:text="${u.rank} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}">Second Officer</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Particulars: the ship record and the start of the particulars text; the full text is on the Library tab. -->
+        <div class="col-12 col-lg-6">
+            <section class="card h-100" aria-labelledby="particularsTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-3" id="particularsTitle" th:text="#{library.particulars}">Ship particulars</h2>
+                    <dl class="static-fields particulars-summary">
+                        <dt th:text="#{ship.name}">Name</dt>
+                        <dd class="text-break" th:text="${ship.name}">MV Demo</dd>
+                        <dt th:text="#{ship.imoNumber}">IMO number</dt>
+                        <dd class="num" th:text="${ship.imoNumber}">9074729</dd>
+                        <dt th:text="#{ship.type}">Type</dt>
+                        <dd th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</dd>
+                        <dt th:text="#{ship.flag}">Flag</dt>
+                        <dd th:text="${ship.flag} ? (${countries[ship.flag]} ?: ${ship.flag}) : '—'">Greece (GR)</dd>
+                    </dl>
+                    <div th:if="${ship.particularsText}" class="particulars-excerpt text-break text-pre-line mt-3"
+                         th:text="${ship.particularsText}">Particulars</div>
+                    <p th:unless="${ship.particularsText}" class="text-body-secondary mt-3 mb-0"
+                       th:text="#{ship.overview.noParticulars}">No particulars yet.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/ships/{id}/library/particulars(id=${ship.id})}"
+                           th:text="#{library.particulars.edit}">Edit ship particulars</a>
+                        <a class="btn btn-ghost btn-sm" th:href="@{/office/ships/{id}/library(id=${ship.id})}"
+                           th:text="#{ship.overview.openLibrary}">Open the library</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

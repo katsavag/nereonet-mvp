@@ -1,7 +1,24 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.list.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.announcements} : #{announcement.list.title}, ~{::main})}">
 <body>
-<main>
+<!-- Also the Announcements tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
+     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+<!-- The ship's tab lists the announcements to this ship and to all ships, so the Target column stays. -->
+<main th:with="onShip=${shipTab != null}">
+    <th:block th:if="${onShip}">
+        <th:block th:replace="~{ship/parts :: header}"></th:block>
+        <!-- New announcement: this ship preselected; back to this tab once sent. Not for an inactive ship. -->
+        <div th:replace="~{ship/parts :: tabHeading(#{announcement.list.heading}, ${ship.active} ? ~{::tabActions} : null)}">
+            <th:block th:fragment="tabActions">
+                <a class="btn btn-primary" th:href="@{/office/announcements/new(shipId=${ship.id})}">
+                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                    <span th:text="#{announcement.new}">New announcement</span>
+                </a>
+            </th:block>
+        </div>
+    </th:block>
+    <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.size()}, subtitle=#{announcement.list.hint}, actions=~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/announcements/new}">
@@ -26,6 +43,7 @@
             <a class="btn btn-ghost" th:href="@{/office/announcements}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
+    </th:block>
 
     <div class="card">
         <p th:if="${rows.isEmpty()}" class="card-body text-body-secondary mb-0"
@@ -47,8 +65,10 @@
                     <td class="cell-primary">
                         <a th:href="@{/office/announcements/{id}(id=${a.id})}" th:text="${a.title}">Safety drill</a>
                     </td>
-                    <td th:attr="data-label=#{announcement.target}"
-                        th:text="${a.fleet} ? #{announcement.target.fleet} : ${a.ship.name}">MV Demo</td>
+                    <td th:attr="data-label=#{announcement.target}">
+                        <th:block th:if="${a.fleet}" th:text="#{announcement.target.fleet}">All ships</th:block>
+                        <th:block th:unless="${a.fleet}"><a th:replace="~{layout/parts :: shipLink(${a.ship})}">MV Demo</a></th:block>
+                    </td>
                     <td th:attr="data-label=#{announcement.sentAt}">
                         <time th:replace="~{layout/parts :: localTime(${a.createdAt})}"></time>
                     </td>

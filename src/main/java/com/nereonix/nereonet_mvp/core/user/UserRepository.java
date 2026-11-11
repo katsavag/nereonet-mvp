@@ -23,6 +23,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByShipOrderByFullNameAsc(Ship ship);
 
+    // Every user on the ship, enabled or not: the Crew tab of the ship page.
+    long countByShip(Ship ship);
+
     List<User> findAllByShipAndRoleAndEnabledTrue(Ship ship, Role role);
 
     List<User> findAllByShipAndRoleNotAndEnabledTrue(Ship ship, Role role);

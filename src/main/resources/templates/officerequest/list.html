@@ -1,7 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.list.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.requests} : #{request.list.title}, ~{::main})}">
 <body>
-<main>
+<!-- Also the Requests tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
+     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+<!-- On the tab the "Not exported yet" filter stays (it is not a ship filter), and Export CSV comes back to the tab
+     when nothing was checked. -->
+<main th:with="onShip=${shipTab != null}, listUrl=${shipTab != null} ? ${'/office/ships/' + ship.id + '/requests'} : '/office/requests'">
+    <th:block th:if="${onShip}">
+        <th:block th:replace="~{ship/parts :: header}"></th:block>
+        <div th:replace="~{ship/parts :: tabHeading(#{request.list.heading}, ~{::pageActions})}"></div>
+    </th:block>
+    <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.size()}, subtitle=#{request.list.hint}, actions=~{::pageActions})}">
         <!-- Submits the export form around the list below (form attribute), with the checked requests. -->
         <th:block th:fragment="pageActions">
@@ -11,10 +21,11 @@
             </button>
         </th:block>
     </header>
+    </th:block>
 
     <!-- Filters. A GET form, so the filtered page can be bookmarked. -->
-    <form class="row g-2 align-items-end mb-4" th:action="@{/office/requests}" method="get">
-        <div class="col-12 col-md-5">
+    <form class="row g-2 align-items-end mb-4" th:action="@{${listUrl}}" method="get">
+        <div th:unless="${onShip}" class="col-12 col-md-5">
             <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
             <select id="filterShipId" name="shipId" class="form-select">
                 <option value="" th:text="#{crew.filter.allShips}">All ships</option>
@@ -31,12 +42,13 @@
         </div>
         <div class="col-12 col-md-auto d-flex gap-2">
             <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-ghost" th:href="@{/office/requests}" th:text="#{crew.filter.clear}">Clear</a>
+            <a class="btn btn-ghost" th:href="@{${listUrl}}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
 
     <!-- Check requests and export them. The download does not reload this page. -->
     <form id="exportForm" th:action="@{/office/requests/export}" method="post">
+        <input th:if="${onShip}" type="hidden" name="returnShipId" th:value="${ship.id}">
         <div class="card">
             <p th:if="${requests.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{request.list.empty}">No approved requests.</p>
@@ -49,7 +61,7 @@
                     <tr>
                         <th scope="col"><span class="visually-hidden" th:text="#{request.select}">Select</span></th>
                         <th scope="col" th:text="#{request.id}">Request</th>
-                        <th scope="col" th:text="#{user.ship}">Ship</th>
+                        <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
                         <th scope="col" th:text="#{request.requestedBy}">Requested by</th>
                         <th scope="col" th:text="#{request.approvedBy}">Approved by</th>
                         <th scope="col" th:text="#{request.approvedAt}">Approved at</th>
@@ -66,7 +78,7 @@
                         <td class="cell-primary text-nowrap">
                             <a th:href="@{/office/requests/{id}(id=${r.id})}" th:text="#{request.number(${r.id})}">#12</a>
                         </td>
-                        <td th:attr="data-label=#{user.ship}" th:text="${r.ship.name}">MV Demo</td>
+                        <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${r.ship})}">MV Demo</a></td>
                         <td class="stack-hide" th:text="${r.requestedBy} ? ${r.requestedBy.fullName} : #{audit.deletedUser}">Jane Doe</td>
                         <td class="stack-hide" th:text="${r.decidedBy} ? ${r.decidedBy.fullName} : #{audit.deletedUser}">John Smith</td>
                         <td th:attr="data-label=#{request.approvedAt}">

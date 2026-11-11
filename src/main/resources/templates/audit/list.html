@@ -65,7 +65,7 @@
                         th:text="${#messages.msgOrNull('audit.action.' + e.action)} ?: ${e.action}">Ship added</td>
                     <td class="text-nowrap">
                         <th:block th:if="${e.ship}">
-                            <span th:text="${e.ship.name}">MV Demo</span>
+                            <a th:replace="~{layout/parts :: shipLink(${e.ship})}">MV Demo</a>
                             <span class="text-body-secondary ms-1"
                                   th:text="#{ship.codeValue(${e.ship.imoNumber})}">IMO 9074729</span>
                         </th:block>

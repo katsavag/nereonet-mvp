@@ -9,6 +9,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findAllByShipIdOrderByNameAsc(Long shipId);
 
+    long countByShipId(Long shipId);
+
     Optional<Item> findByIdAndShipId(Long id, Long shipId);
 
     boolean existsByShipIdAndNameIgnoreCase(Long shipId, String name);
