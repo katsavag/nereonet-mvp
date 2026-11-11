@@ -1825,3 +1825,30 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Required notices (P16): layout/parts :: infoNote, e.g. "Nereonix is not an emergency or safety channel..." above
+   the announcement's Review and Send buttons, "Do not upload security-sensitive material..." under a library file
+   input. Quiet: help-text size in the info pair (7.5:1), no border, a 16px "i" icon before the text. The words carry
+   the meaning; the colour and the icon only repeat it.
+   --------------------------------------------------------------------------------------------------------------- */
+.info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-2);
+    margin: var(--nn-space-3) 0 0;
+    padding: var(--nn-space-2) var(--nn-space-3);
+    background: var(--nn-info-bg);
+    color: var(--nn-info-text);
+    border-radius: var(--nn-radius-control);
+    font-size: var(--nn-font-help);
+    line-height: 1.45;
+}
+.info-note > svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+}
+/* In a stack with its own gap (the announcement review page). */
+.review-stack > .info-note { margin-top: 0; }

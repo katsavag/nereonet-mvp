@@ -15,17 +15,32 @@
     </div>
 </div>
 
-<!-- English / Greek links. linkClass sets the link colour. token: the invitation token of the registration page, kept
-     in the links so switching language stays on the same invitation (P13); null everywhere else. -->
-<div th:fragment="langSwitch(linkClass, token)" class="lang-switch small">
+<!-- English / Greek links. linkClass sets the link colour. Each link changes only the language (P16): it is the
+     current page with its query string kept (ship and status filters, page number, token) and lang set, from
+     @languageLinks (core/config/LanguageLinks). token: the invitation or reset token of the page, added when the URL
+     does not carry it (the form shown again after a POST with errors, P13); null everywhere else. -->
+<!-- th:with: Thymeleaf evaluates th:href in restricted mode, which does not call beans. -->
+<div th:fragment="langSwitch(linkClass, token)" class="lang-switch small"
+     th:with="englishUrl=${@languageLinks.to('en', token)}, greekUrl=${@languageLinks.to('el', token)}">
     <a th:class="${linkClass}" th:classappend="${#locale.language == 'en'} ? 'fw-bold'"
-       th:href="${token != null} ? @{''(lang='en', token=${token})} : @{''(lang='en')}"
-       th:text="#{nav.lang.en}">English</a>
+       th:href="${englishUrl}" th:text="#{nav.lang.en}">English</a>
     <span class="mx-1 opacity-50" aria-hidden="true">·</span>
     <a th:class="${linkClass}" th:classappend="${#locale.language == 'el'} ? 'fw-bold'"
-       th:href="${token != null} ? @{''(lang='el', token=${token})} : @{''(lang='el')}"
-       th:text="#{nav.lang.el}">Ελληνικά</a>
+       th:href="${greekUrl}" th:text="#{nav.lang.el}">Ελληνικά</a>
 </div>
+
+<!-- A quiet info note (P16): a notice the user must see where it applies, but that asks nothing of them ("Nereonix is
+     not an emergency or safety channel...", "Do not upload security-sensitive material..."). Small text in the info
+     pair with an "i" icon; the words carry the meaning, the colour and icon only repeat it. id: so a field can name it
+     in its aria-describedby, or null. text: the notice.
+     Use: <p th:replace="~{layout/parts :: infoNote('fileSecurityNote', #{library.form.fileSecurityNote})}"></p> -->
+<p th:fragment="infoNote(id, text)" class="info-note" th:id="${id}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/>
+    </svg>
+    <span th:text="${text}">Nereonix is not an emergency or safety channel.</span>
+</p>
 
 <!-- The signed-out frame (sign-in, registration, invalid link, signed-out error pages): the navy brand panel and the
      form column. From 768px the panel is a column on the left; on phones it collapses to a 64px header bar, so the

@@ -249,7 +249,8 @@
 
 <!-- Text or file, not both: the content of an item (itemForm) or of a new version (versionForm). Inside the form
      (th:object set). The file input shows the accepted types and the size limit before a file is chosen, and the
-     chosen file's name and size after (js/forms.js). -->
+     chosen file's name and size after (js/forms.js). Under it, as an info note it also names in aria-describedby:
+     "Do not upload security-sensitive material such as the Ship Security Plan." (FR-SIN-002, P16). -->
 <th:block th:fragment="contentFields(textLabel, fileLabel)">
     <p class="form-text mt-0 mb-3" id="contentHint" th:text="#{library.form.contentHint}">Write text or attach a file, not both.</p>
     <div th:if="${#fields.hasErrors('contentValid')}" class="invalid-feedback d-block mb-3"
@@ -263,7 +264,7 @@
         <div>
             <label for="file" class="form-label" th:text="${fileLabel}">Attach a file</label>
             <input type="file" id="file" name="file" class="form-control" accept=".pdf,.docx,.xlsx"
-                   aria-describedby="fileHint fileInfo" data-file-info="fileInfo"
+                   aria-describedby="fileHint fileSecurityNote fileInfo" data-file-info="fileInfo"
                    th:data-max-size="${form.maxFileSize}"
                    th:data-too-large="#{library.error.fileTooLarge}"
                    th:classappend="${param.fileTooLarge != null or #fields.hasErrors('contentValid') or #fields.hasErrors('fileTypeAllowed') or #fields.hasErrors('fileSizeAllowed')} ? 'is-invalid'">
@@ -273,6 +274,7 @@
                 The file is larger than 10 MB.</div>
             <div id="fileHint" class="form-text" th:text="#{library.form.fileHint}">PDF, DOCX or XLSX, at most 10 MB.</div>
             <p id="fileInfo" class="form-file-info" aria-live="polite" hidden></p>
+            <p th:replace="~{layout/parts :: infoNote('fileSecurityNote', #{library.form.fileSecurityNote})}"></p>
         </div>
     </div>
 </th:block>

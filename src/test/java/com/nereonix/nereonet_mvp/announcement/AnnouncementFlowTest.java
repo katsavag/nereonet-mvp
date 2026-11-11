@@ -187,6 +187,25 @@ class AnnouncementFlowTest {
                 .with(csrf()))).contains("Nobody would receive it", "Send to 0 people");
     }
 
+    // P16, FR-GEN-008: the form and the review page say it is no emergency channel, right above their buttons.
+    @Test
+    void formAndReviewSayItIsNotAnEmergencyChannel() throws Exception {
+        String notice = "Nereonix is not an emergency or safety channel. In an emergency, follow the ship&#39;s "
+                + "safety procedures.";
+        assertThat(html(get("/office/announcements/new")))
+                .containsPattern("(?s)<p class=\"info-note\">\\s*<svg.*?</svg>\\s*<span>" + notice + "</span>\\s*</p>"
+                        + "\\s*<div class=\"form-actions\">\\s*<button type=\"submit\" class=\"btn btn-primary\">Review");
+        assertThat(html(get("/office/announcements/new").param("lang", "el")))
+                .contains("Το Nereonix δεν είναι κανάλι έκτακτης ανάγκης ή ασφάλειας.");
+
+        Ship demo = ship("9074729", "MV Demo");
+        String review = html(post("/office/announcements/review")
+                .param("target", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
+                .with(csrf()));
+        assertThat(review).containsPattern("(?s)<span>" + notice + "</span>\\s*</p>\\s*<form method=\"post\" "
+                + "action=\"/office/announcements/send\"");
+    }
+
     // An invalid form never reaches the review page.
     @Test
     void reviewOfAnInvalidFormShowsTheFormWithItsErrors() throws Exception {

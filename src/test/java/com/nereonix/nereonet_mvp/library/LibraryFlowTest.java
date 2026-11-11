@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -317,6 +319,51 @@ class LibraryFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.stringContainsInOrder(
                         "Acknowledged (1)", "reader@example.com", "Not yet acknowledged (1)", "late@example.com")));
+    }
+
+    // P16, FR-SIN-002: next to the file input of the add and new version forms (crew and office), named by the input.
+    @Test
+    @WithUserDetails("office@example.com") // seeded by BootstrapData
+    void fileInputsWarnAgainstSecuritySensitiveMaterial() throws Exception {
+        Ship ship = new Ship();
+        ship.setImoNumber("9074729");
+        ship.setName("MV Demo");
+        ship.setCreatedAt(Instant.now());
+        shipRepository.save(ship);
+        User master = shipUser(ship, "master@example.com", Role.MASTER);
+        LibraryItem item = new LibraryItem();
+        item.setShip(ship);
+        item.setTitle("Garbage plan");
+        item.setCategory(LibraryCategory.SHIP_PLANS_AND_MAPS);
+        item.setCreatedAt(Instant.now());
+        itemRepository.save(item);
+        LibraryItemVersion version = new LibraryItemVersion();
+        version.setItem(item);
+        version.setVersionLabel("1");
+        version.setText("Sort it.");
+        version.setPublishedAt(Instant.now());
+        item.setCurrentVersion(versionRepository.save(version));
+        itemRepository.flush();
+
+        String notice = "Do not upload security-sensitive material such as the Ship Security Plan.";
+        List<String> pages = List.of("/ship/library/new", "/ship/library/" + item.getId() + "/edit",
+                "/office/ships/" + ship.getId() + "/library/new",
+                "/office/ships/" + ship.getId() + "/library/" + item.getId() + "/edit");
+        for (String page : pages) {
+            var request = get(page);
+            if (page.startsWith("/ship/")) {
+                request = request.with(user(new CurrentUser(master)));
+            }
+            String html = mockMvc.perform(request).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertThat(html).as(page)
+                    .contains("aria-describedby=\"fileHint fileSecurityNote fileInfo\"")
+                    .containsPattern("(?s)<p class=\"info-note\" id=\"fileSecurityNote\">\\s*<svg.*?</svg>\\s*<span>"
+                            + notice + "</span>");
+        }
+        assertThat(mockMvc.perform(get("/office/ships/{id}/library/new", ship.getId()).param("lang", "el"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
+                .contains("Μην ανεβάζετε υλικό ευαίσθητο για την ασφάλεια του πλοίου");
     }
 
     private User shipUser(Ship ship, String email, Role role) {

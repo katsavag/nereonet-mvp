@@ -75,6 +75,9 @@
             </article>
         </section>
 
+        <!-- FR-GEN-008 (P16): said right above Send, as on the form. -->
+        <p th:replace="~{layout/parts :: infoNote(null, #{announcement.notEmergency})}"></p>
+
         <form method="post" th:action="@{/office/announcements/send}" th:data-draft-for="@{/office/announcements/new}">
             <input type="hidden" name="target" th:value="${form.target}">
             <input type="hidden" name="title" th:value="${form.title}">

@@ -23,7 +23,8 @@ Requirements: Java 25, Docker.
 
 3. Open http://localhost:8080. Signed out, it goes to the sign-in page; signed in, it goes to
    your dashboard (office users `/office`, ship crew `/ship`). Office users can switch language
-   (English / Ελληνικά) on the sign-in page and in the sidebar.
+   (English / Ελληνικά) on the sign-in page and in the sidebar. Switching changes only the language: the page, its
+   filters, page number and token stay (see "language switch and required notices (P16)" below).
 
    On first start the dev profile creates an office user (`office@example.com` / `office123`)
    and a demo ship (`MV Demo`, IMO 9074729). While there are no item requests it also creates two approved
@@ -233,7 +234,9 @@ Requirements: Java 25, Docker.
    announcement, newest first, with its target (All ships or a ship), date and e.g. "1 of 2 acknowledged".
    Filter by ship to see the announcements sent to that ship or to all ships.
    **New announcement** asks for the target (All ships or one active ship; nothing is preselected), a title and a
-   plain-text message. Announcements cannot be edited or deleted, so sending takes two steps (P10):
+   plain-text message. Announcements cannot be edited or deleted, so sending takes two steps (P10). Above the
+   **Review** and **Send** buttons both steps say, as a quiet info note, "Nereonix is not an emergency or safety
+   channel. In an emergency, follow the ship's safety procedures." (FR-GEN-008, P16):
    - the form's button is **Review** (`POST /office/announcements/review`): an invalid form shows its errors; a valid
      one shows the review page, which saves nothing: the target (as the eyebrow and as "Send to"), the number of people
      per ship (every active ship for All ships, with a Total, and a warning when nobody would receive it) and the
@@ -275,6 +278,8 @@ Requirements: Java 25, Docker.
    page, see 5) and add items there
    (`/office/ships/{id}/library/new`). The form asks for title, category, version label (e.g. `1` or `2026-10`),
    Required / Not required, and the content: text **or** one file (PDF, DOCX or XLSX, at most 10 MB), not both.
+   Under the file input (here and on **Publish a new version**) an info note says "Do not upload security-sensitive
+   material such as the Ship Security Plan." (FR-SIN-002, P16).
    A ship can have at most 50 items that are not retired. The item is visible to the crew at once. A Required item
    gives every other enabled user of that ship the notification "Library · New document to read", which opens
    the item. To try it: sign in as `master.demo@example.com`, add a Required text item, then sign in as
@@ -592,6 +597,24 @@ The app makes no request to any other host: everything a page needs is served fr
       connection is back." appears under its buttons. The banner and the message go when the connection returns.
       Storage may be full, blocked or missing (private windows): every access is wrapped, and the page then works
       without drafts.
+
+  - language switch and required notices (P16):
+    - the English / Ελληνικά links (`layout/parts :: langSwitch`, sidebar and signed-out pages) change only the
+      language. Each is the current page's query string with `lang` set, as a relative link (`?lang=el&shipId=1`),
+      from the `@languageLinks` bean (`core/config/LanguageLinks`): the browser keeps the path, and the ship and
+      status filters, page number and invitation or reset token stay, in their order and encoding. `lang` is never
+      repeated. Only the URL's query string is used, never what a form posted (a page shown in answer to a POST, such
+      as the announcement review, gets `?lang=el` only); an error page keeps the query of the request that failed.
+      The registration and reset forms shown again after a POST still pass their token, which is added when the URL
+      lacks it;
+    - notices the user must see where they apply are `layout/parts :: infoNote(id, text)`: a quiet note in the info
+      pair (13 px, 7.5:1) with an "i" icon; the words carry the meaning. Today: "not an emergency or safety channel"
+      on the new announcement form and its review page, and "do not upload security-sensitive material" under the
+      library file input (add an item, publish a new version; crew and office), which the input names in its
+      `aria-describedby`;
+    - every office key of `messages.properties` is also in `messages_el.properties`: `core/config/MessageKeysTest`
+      fails and lists the missing keys otherwise. Crew-only and email keys, English only today, are in its explicit
+      `ENGLISH_ONLY` list; the test also fails when a listed key is removed or gets a Greek text.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

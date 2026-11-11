@@ -56,6 +56,8 @@
                         </div>
                     </div>
                 </div>
+                <!-- FR-GEN-008 (P16): said before the button, here and on the review page. -->
+                <p th:replace="~{layout/parts :: infoNote(null, #{announcement.notEmergency})}"></p>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" th:text="#{announcement.review}">Review</button>
                     <a class="btn btn-ghost" th:href="@{${backUrl}}" th:text="#{form.cancel}">Cancel</a>
