@@ -232,6 +232,25 @@ Run the tests (H2 in memory, no Docker needed):
 ./mvnw test
 ```
 
+### Frontend assets
+
+The app makes no request to any other host: everything a page needs is served from
+`src/main/resources/static/`.
+
+- `vendor/bootstrap/`: Bootstrap 5.3.8 (`bootstrap.min.css`, `bootstrap.bundle.min.js`), unchanged from the
+  npm package, with its `LICENSE`. To upgrade, replace both files with the ones from the new release's `dist/`.
+- `fonts/`: the Inter variable font (weights 100–900, upright), Latin and Greek subsets as WOFF2, declared with
+  `@font-face` in `css/app.css` (`font-display: swap`, system fonts as fallback). Source: the npm package
+  `@fontsource-variable/inter` 5.3.0, files `inter-latin-wght-normal.woff2` and `inter-greek-wght-normal.woff2`.
+  Licence: `fonts/LICENSE-Inter.txt` (SIL OFL 1.1).
+- `favicon.svg`: the wave mark of `layout/parts :: brand`; change both together.
+
+Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
+(`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
+(`spring.web.resources` in `application.yml`). A changed file gets a new URL, so browsers on board load each
+version once. Always link static files with `@{...}` so they get the hash; a plain `/css/...` link would be cached
+for a year without one. All of these paths are public in `SecurityConfig`, so the sign-in page is styled too.
+
 ### Configuration outside dev
 
 Set these environment variables:

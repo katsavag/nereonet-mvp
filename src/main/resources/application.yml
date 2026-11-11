@@ -24,6 +24,19 @@ spring:
   messages:
     basename: messages
     fallback-to-system-locale: false
+  web:
+    resources:
+      # Static files are linked with a content hash in the URL (/css/app-<md5>.css, added by @{...} in templates
+      # and by url(...) rewriting in CSS), so they can be cached for a year: a changed file gets a new URL.
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /css/**,/js/**,/vendor/**,/fonts/**,/favicon*.svg
+      cache:
+        cachecontrol:
+          max-age: 365d
+          cache-public: true
   servlet:
     multipart:
       # Library files: at most 10 MB (LibraryItemForm.MAX_FILE_SIZE); the rest of the form fits in the extra 1 MB.
