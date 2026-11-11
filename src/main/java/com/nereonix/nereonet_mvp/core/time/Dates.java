@@ -88,6 +88,12 @@ public class Dates {
         return message("time.hint.expiredDaysAgo", -days);
     }
 
+    /** After "Invitation expired" (P17), how long ago it expired: "today", "1 day ago", "5 days ago". */
+    public String invitationExpiredHint(Instant expiresAt) {
+        long days = -daysUntil(LocalDate.ofInstant(expiresAt, ZoneOffset.UTC));
+        return days <= 0 ? message("time.hint.today") : message("time.hint.daysAgo", days);
+    }
+
     private String message(String key, Object... args) {
         return messageSource.getMessage(key, args, locale());
     }

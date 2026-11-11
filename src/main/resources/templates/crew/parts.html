@@ -7,6 +7,42 @@
 <span th:fragment="status(enabled)"
       th:replace="~{layout/parts :: status(${enabled} ? 'ok' : 'neutral', ${enabled} ? #{user.status.active} : #{user.status.inactive})}">Active</span>
 
+<!-- A pending invitation's status (P17), on Office users and Crew: "Invited · expires in 3 days", or past its expiry
+     date "Invitation expired · 2 days ago" in the warning tone. The words carry the meaning, not the colour. -->
+<th:block th:fragment="invitationStatus(inv)">
+    <th:block th:if="${inv.displayStatus.name() == 'EXPIRED'}">
+        <span th:replace="~{layout/parts :: status('warning', #{users.status.invitationExpired})}">Invitation expired</span>
+        <span th:replace="~{layout/parts :: invitationExpiredHint(${inv.expiresAt})}">· 2 days ago</span>
+    </th:block>
+    <th:block th:unless="${inv.displayStatus.name() == 'EXPIRED'}">
+        <span th:replace="~{layout/parts :: status('primary', #{crew.status.invited})}">Invited</span>
+        <span th:replace="~{layout/parts :: invitationHint(${inv.expiresAt})}">· expires in 3 days</span>
+    </th:block>
+</th:block>
+
+<!-- A pending invitation's row actions (P17): Resend, one click, also when expired (new link and expiry date); Cancel
+     invitation in the "more" menu, asking first. Both send the fields of the list they are on (listParams, see
+     crew/CrewListReturn; none on Office users), so they return to it with its filters. -->
+<div th:fragment="invitationActions(inv)" class="row-actions">
+    <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
+        <input th:each="p : ${listParams}" type="hidden" th:name="${p.key}" th:value="${p.value}">
+        <button type="submit" class="btn btn-ghost btn-sm"
+                th:text="#{invitation.resend}">Resend</button>
+    </form>
+    <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.fullName})}, ~{::invitationMenuItems})}">
+        <th:block th:fragment="invitationMenuItems">
+            <hr class="dropdown-divider">
+            <form th:replace="~{layout/parts :: confirmForm(action=${'/office/invitations/' + inv.id + '/cancel'},
+                    fields=${listParams}, label=#{invitation.cancel.confirm.submit},
+                    linkClass='dropdown-item dropdown-item-danger',
+                    title=#{invitation.cancel.confirm.title(${inv.fullName})},
+                    body=#{invitation.cancel.confirm.body(${inv.email})},
+                    confirm=#{invitation.cancel.confirm.submit},
+                    dismiss=#{invitation.cancel.confirm.keep}, tone='danger')}"></form>
+        </th:block>
+    </details>
+</div>
+
 <!-- Row "more" menu of a user: Edit (when editUrl is not null), Activate for an inactive user; then, after the
      divider, Deactivate an active user or Delete an inactive one. -->
 <details th:fragment="userMenu(u, editUrl)"

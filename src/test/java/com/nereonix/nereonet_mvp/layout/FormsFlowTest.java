@@ -157,7 +157,7 @@ class FormsFlowTest {
         User crew = crewMember(ship);
         for (String page : List.of("/office/crew/" + crew.getId() + "/edit", "/office/ships",
                 "/office/crew/" + crew.getId() + "/certificates/new", "/office/ships/" + ship.getId() + "/items/new",
-                "/office/ships/" + ship.getId() + "/invitations/new")) {
+                "/office/ships/" + ship.getId() + "/crew")) {
             String html = page(page);
             assertThat(html).as(page).contains("<span class=\"form-label-optional\">(optional)</span>");
             assertThat(html).as(page).doesNotContainPattern("<label[^>]*>[^<]*\\*");
@@ -211,7 +211,6 @@ class FormsFlowTest {
                 Map.entry("/office/crew/" + crew.getId() + "/certificates/new", "Save"),
                 Map.entry("/office/ships/" + ship.getId() + "/items/new", "Save"),
                 Map.entry("/office/announcements/new", "Review"),
-                Map.entry("/office/ships/" + ship.getId() + "/invitations/new", "Send invitation"),
                 Map.entry(library + "/new", "Add item"),
                 Map.entry(library + "/" + itemId + "/edit", "Publish"),
                 Map.entry(library + "/particulars", "Save"),
@@ -245,7 +244,7 @@ class FormsFlowTest {
     void invitationsHaveNoRepeatEmailAndTheSuccessMessageNamesTheAddress() throws Exception {
         assertThat(page("/office/users")).doesNotContain("confirmEmail", "Repeat email");
         Ship ship = ship();
-        assertThat(page("/office/ships/" + ship.getId() + "/invitations/new")).doesNotContain("confirmEmail");
+        assertThat(page("/office/ships/" + ship.getId() + "/crew")).doesNotContain("confirmEmail");
 
         MvcResult sent = mockMvc.perform(post("/office/invitations")
                         .param("fullName", "New Office").param("email", "New.Office@Example.com").with(csrf()))

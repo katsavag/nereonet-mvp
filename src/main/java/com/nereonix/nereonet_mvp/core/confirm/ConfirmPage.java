@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.core.confirm;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * What a confirmation asks (P10), for the plain confirmation page (confirm/confirm.html). The same texts are on the
@@ -14,12 +15,13 @@ import java.util.List;
  *                     confirm label itself says "Cancel"
  * @param tone         DANGER for what cannot be undone, NEUTRAL for what Activate undoes
  * @param action       the POST URL of the action
- * @param tab          the ship page tab the action returns to, or null
+ * @param fields       hidden fields the form posts with the action, in order: the ship page tab it returns to
+ *                     ("tab"), or the list and filters it returns to (e.g. an invitation's Resend and Cancel, P17)
  * @param cancelUrl    where the dismiss button goes: the page the action was started from
  * @param crumbs       the breadcrumbs above the heading (the heading itself is added by the page header)
  */
 public record ConfirmPage(String title, String body, String confirmLabel, String dismissLabel, Tone tone,
-                          String action, String tab, String cancelUrl, List<Crumb> crumbs) {
+                          String action, Map<String, String> fields, String cancelUrl, List<Crumb> crumbs) {
 
     public enum Tone {
         DANGER, NEUTRAL;

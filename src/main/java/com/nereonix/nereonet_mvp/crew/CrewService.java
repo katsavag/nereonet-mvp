@@ -77,6 +77,35 @@ public class CrewService {
                 .orElse(List.of());
     }
 
+    /** findCrew with the Crew list's Status filter (P17): enabled users for ACTIVE, the others for INACTIVE, none for
+     *  the invitation statuses; every user when status is null. */
+    @Transactional(readOnly = true)
+    public List<User> findCrew(Long shipId, CrewStatus status) {
+        if (status == null) {
+            return findCrew(shipId);
+        }
+        if (!status.users()) {
+            return List.of();
+        }
+        boolean enabled = status == CrewStatus.ACTIVE;
+        return findCrew(shipId).stream().filter(user -> user.isEnabled() == enabled).toList();
+    }
+
+    /** findInvited with the Status filter: not yet expired for INVITED, past expiry for EXPIRED, none for the user
+     *  statuses; every pending invitation when status is null. */
+    @Transactional(readOnly = true)
+    public List<Invitation> findInvited(Long shipId, CrewStatus status) {
+        if (status == null) {
+            return findInvited(shipId);
+        }
+        if (status.users()) {
+            return List.of();
+        }
+        Invitation.DisplayStatus wanted = status == CrewStatus.EXPIRED
+                ? Invitation.DisplayStatus.EXPIRED : Invitation.DisplayStatus.PENDING;
+        return findInvited(shipId).stream().filter(invitation -> invitation.getDisplayStatus() == wanted).toList();
+    }
+
     /**
      * Adds a crew member by inviting them: they get an email and set their own password.
      * Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).

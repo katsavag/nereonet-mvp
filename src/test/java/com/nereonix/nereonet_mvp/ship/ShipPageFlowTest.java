@@ -125,7 +125,8 @@ class ShipPageFlowTest {
                     .contains("<input type=\"hidden\" name=\"tab\" value=\"" + key(tab) + "\">");
         }
         assertThat(html(get("/office/ships/{id}/crew", demo.getId())))
-                .contains("href=\"/office/ships/" + demo.getId() + "/invitations/new\"");
+                .contains("data-bs-target=\"#addCrewModal\"",
+                        "action=\"/office/ships/" + demo.getId() + "/crew/new\"");
         assertThat(html(get("/office/ships/{id}/announcements", demo.getId())))
                 .contains("href=\"/office/announcements/new?shipId=" + demo.getId() + "\"");
     }
@@ -147,7 +148,7 @@ class ShipPageFlowTest {
         }
         // Inviting crew and announcing are blocked, so the tabs do not offer them.
         assertThat(html(get("/office/ships/{id}/crew", demo.getId())))
-                .doesNotContain("/office/ships/" + demo.getId() + "/invitations/new");
+                .doesNotContain("addCrewModal", "/office/ships/" + demo.getId() + "/crew/new");
         assertThat(html(get("/office/ships/{id}/announcements", demo.getId())))
                 .doesNotContain("/office/announcements/new?shipId=");
 
@@ -173,9 +174,9 @@ class ShipPageFlowTest {
         certificate(cook, "Medical fitness", -3);      // open item: expired
         request(demo, null);                           // open item: approved, not exported
         request(demo, Instant.now());                  // exported: Requests tab only
-        mockMvc.perform(post("/office/ships/{id}/invitations/new", demo.getId())
+        mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                 .param("fullName", "New Member").param("email", "new.member@example.com")
-                .param("role", "CREW_MEMBER").with(csrf()));
+                .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()));
         mockMvc.perform(post("/office/ships/{id}/items/new", demo.getId())
                 .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
         mockMvc.perform(post("/office/announcements/send")
@@ -209,9 +210,16 @@ class ShipPageFlowTest {
         for (String tab : List.of("/crew", "/certificates", "/announcements", "/requests")) {
             String url = "/office/ships/" + demo.getId() + tab;
             String html = html(get(url));
-            assertThat(html).as("no ship filter on " + url).doesNotContain("id=\"filterShipId\"", "name=\"shipId\"");
+            assertThat(html).as("no ship filter on " + url).doesNotContain("id=\"filterShipId\"");
+            if (!tab.equals("/crew")) {
+                // The Crew tab's Add crew member modal has the ship field, preselected (P17).
+                assertThat(html).as("no ship field on " + url).doesNotContain("name=\"shipId\"");
+            }
             assertThat(html).as("no ship column on " + url).doesNotContain("<th scope=\"col\">Ship</th>");
-            assertThat(html).as("only this ship on " + url).doesNotContain("Elsa Where", "Elsewhere cert", "MV Other");
+            assertThat(html).as("only this ship on " + url).doesNotContain("Elsa Where", "Elsewhere cert");
+            // Other ships only as choices of the Crew tab's Add crew member modal (P17).
+            assertThat(html.replaceAll("<option [^>]*>[^<]*</option>", "")).as("only this ship on " + url)
+                    .doesNotContain("MV Other");
         }
         // The fleet-wide pages keep their ship filter and column.
         for (String url : List.of("/office/crew", "/office/certificates", "/office/announcements", "/office/requests")) {
@@ -220,20 +228,42 @@ class ShipPageFlowTest {
         assertThat(html(get("/office/crew"))).contains("<th scope=\"col\">Ship</th>", "Elsa Where");
     }
 
+    // P17: the Crew tab has the Crew page's Add crew member modal with the ship preselected; the former invitation
+    // page redirects to the tab with the modal open.
     @Test
-    void addingCrewFromTheCrewTabNeverAsksForTheShip() throws Exception {
-        String form = html(get("/office/ships/{id}/invitations/new", demo.getId()));
-        assertThat(form).doesNotContain("name=\"shipId\"", "Choose a ship")
-                .contains("<p class=\"eyebrow\"><a href=\"/office/ships/" + demo.getId() + "\">MV Demo · IMO 9074729</a></p>")
-                .contains("href=\"/office/ships/" + demo.getId() + "/crew\">Cancel</a>");
+    void addingCrewFromTheCrewTabPreselectsTheShip() throws Exception {
+        mockMvc.perform(get("/office/ships/{id}/invitations/new", demo.getId()))
+                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew?add=true"));
+        String tab = html(get("/office/ships/{id}/crew", demo.getId()).param("add", "true"));
+        assertThat(tab).contains("id=\"addCrewModal\"",
+                        "action=\"/office/ships/" + demo.getId() + "/crew/new\"",
+                        "<option value=\"" + demo.getId() + "\" selected=\"selected\">MV Demo · IMO 9074729</option>",
+                        "bootstrap.Modal.getOrCreateInstance('#addCrewModal').show()");
+        // Opened only when asked for.
+        assertThat(html(get("/office/ships/{id}/crew", demo.getId())))
+                .doesNotContain("bootstrap.Modal.getOrCreateInstance('#addCrewModal').show()");
 
-        mockMvc.perform(post("/office/ships/{id}/invitations/new", demo.getId())
+        // Errors: the tab again, with the modal open and the errors.
+        String errors = html(post("/office/ships/{id}/crew/new", demo.getId())
+                .param("fullName", "").param("email", "new.member@example.com")
+                .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()));
+        assertThat(errors).contains("MV Demo · Crew", "bootstrap.Modal.getOrCreateInstance('#addCrewModal').show()",
+                "is-invalid");
+        assertThat(invitationRepository.findAll()).isEmpty();
+
+        mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                         .param("fullName", "New Member").param("email", "new.member@example.com")
-                        .param("role", "CREW_MEMBER").with(csrf()))
+                        .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
         assertThat(invitationRepository.findAll()).singleElement()
                 .satisfies(i -> assertThat(i.getShip().getId()).isEqualTo(demo.getId()));
         assertThat(html(get("/office/ships/{id}/crew", demo.getId()))).contains("New Member", "Invited");
+
+        // Another ship picked in the modal: the invitation is for that ship, and the user lands on its Crew tab.
+        mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
+                        .param("fullName", "Other Member").param("email", "other.member@example.com")
+                        .param("role", "CREW_MEMBER").param("shipId", other.getId().toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + other.getId() + "/crew"));
 
         // A user's "more" menu on the tab returns to the tab.
         mockMvc.perform(post("/office/users/{id}/deactivate", cadet.getId()).param("tab", "crew").with(csrf()))

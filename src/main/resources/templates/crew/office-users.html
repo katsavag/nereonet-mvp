@@ -25,34 +25,17 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Pending invitations, expired or not: no account yet. Resend, and Cancel in the menu. -->
-                <tr th:each="inv : ${invited}" th:with="expired=${inv.displayStatus.name() == 'EXPIRED'}">
+                <!-- Pending invitations, expired or not: no account yet. Resend, and Cancel invitation in the menu (crew/parts). -->
+                <tr th:each="inv : ${invited}">
                     <td class="cell-primary" th:text="${inv.fullName}">Jane Doe</td>
                     <td th:attr="data-label=#{user.email}">
                         <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
                     </td>
                     <td class="cell-status">
-                        <span th:replace="~{layout/parts :: status(${expired} ? 'warning' : 'primary', ${expired} ? #{users.status.invitationExpired} : #{crew.status.invited})}">Invited</span>
-                        <span th:replace="~{layout/parts :: invitationHint(${inv.expiresAt})}">· expires in 2 days</span>
+                        <th:block th:replace="~{crew/parts :: invitationStatus(${inv})}"></th:block>
                     </td>
                     <td class="cell-actions">
-                        <div class="row-actions">
-                            <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
-                                <button type="submit" class="btn btn-ghost btn-sm"
-                                        th:text="#{invitation.resend}">Resend</button>
-                            </form>
-                            <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.fullName})}, ~{::invitationMenuItems})}">
-                                <th:block th:fragment="invitationMenuItems">
-                                    <hr class="dropdown-divider">
-                                    <form th:replace="~{layout/parts :: confirmForm(action=${'/office/invitations/' + inv.id + '/cancel'},
-                                            label=#{invitation.cancel}, linkClass='dropdown-item dropdown-item-danger',
-                                            title=#{invitation.cancel.confirm.title(${inv.fullName})},
-                                            body=#{invitation.cancel.confirm.body(${inv.email})},
-                                            confirm=#{invitation.cancel.confirm.submit},
-                                            dismiss=#{invitation.cancel.confirm.keep}, tone='danger')}"></form>
-                                </th:block>
-                            </details>
-                        </div>
+                        <div th:replace="~{crew/parts :: invitationActions(${inv})}"></div>
                     </td>
                 </tr>
                 <!-- Office users have no page of their own, so the name is not a link. -->

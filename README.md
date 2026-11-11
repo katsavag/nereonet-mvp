@@ -105,8 +105,10 @@ Requirements: Java 25, Docker.
      (`/requests`): the fleet-wide lists of 8, 12, 14 and 15 for this ship only, without the ship filter and the Ship
      column (Requests keeps "Not exported yet" and **Export CSV**). The fleet-wide pages keep their ship filter.
    - **Library** (`/library`, see 16) and **Items** (`/items`, see 11): the existing pages, now inside the frame.
-   Actions started on a tab keep the ship and return to the tab: **Add crew member** opens
-   `/office/ships/{id}/invitations/new`, which never asks which ship; **Add certificate** (`/certificates/new`) picks the
+   Actions started on a tab keep the ship and return to the tab: **Add crew member** opens the same pop-up form as
+   on the Crew page with this ship preselected (it can still be changed; once sent, the user is on the Crew tab of the
+   ship the invitation is for; the former page `/office/ships/{id}/invitations/new` now redirects to the tab with the
+   form open, `?add=true`); an invitation's **Resend** and **Cancel invitation** return to the tab; **Add certificate** (`/certificates/new`) picks the
    crew member from this ship's active crew only; **New announcement** opens the form with this ship preselected (the
    target can still be changed) and returns to the tab once sent; a crew member's **⋯** menu returns to the Crew tab.
    The counts: Crew, every user on the ship and its pending invitations; Certificates, expired or expiring within 90
@@ -127,11 +129,16 @@ Requirements: Java 25, Docker.
      `/office/invitations` redirects to `/office/users`. Pending invitations are listed there with the users, as
      "Invited", or "Invitation expired" when past their expiry date; accepted and cancelled invitations are not listed
      (an accepted one is a user). Each has **Resend** (new link and expiry date, new email; the old link stops
-     working) and, in the row's **⋯** menu, **Cancel** (the link then shows the "invalid or expired" page). Cancel asks
+     working) and, in the row's **⋯** menu, **Cancel invitation** (the link then shows the "invalid or expired" page). Cancel asks
      first: "Cancel the invitation to Jane Doe? The link sent to jane@example.com stops working.", with **Keep
      invitation** and **Cancel invitation**.
-   - Crew members: **Add crew member** on the **Crew** page (see 8), or on a ship page's **Crew** tab, which opens
-     `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`) and returns to the tab. The form asks for
+   - Crew members: **Add crew member** on the **Crew** page (see 8), or on a ship page's **Crew** tab (see 5), the same
+     pop-up form with the ship preselected; `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`)
+     redirects to that tab with the form open. Crew invitations have the same **Resend** and **Cancel invitation** on
+     the Crew list and the Crew tab (P17), with the same endpoints, `POST /office/invitations/{id}/resend` and
+     `/cancel`; each returns to the list it was started from (the forms send `tab=crew&shipId=…`, or `returnTo=crew` with
+     the Crew list's `shipId` and `status` filters, or `returnTo=overview`; anything else goes to Office users, never
+     to a URL from the request). Both are in the audit log with the ship. The form asks for
      full name, email (once; the success message names the address) and role, and an optional rank (from a fixed list),
      which is copied to the user on registration. A ship can have only one active Master and one
      active Chief cook; inviting a second one shows an error on the role field.
@@ -153,7 +160,12 @@ Requirements: Java 25, Docker.
    default), so the message never tells a stranger that an email has an account.
 
 8. Crew (signed in as an office user): **Crew** in the sidebar (`/office/crew`) lists every user with a ship role
-   and every pending crew invitation (status "Invited"), filterable by ship. **Add crew member** opens a pop-up form
+   and every pending crew invitation, filterable by ship and by **Status**: Active, Invited, Invitation expired,
+   Inactive (query parameters, so other pages can link to a filtered list: `/office/crew?status=expired`,
+   `?shipId=1&status=invited`; an unknown value shows every status). An invitation shows its status with its date,
+   "Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has **Resend** (one
+   click, also when expired: new link, new expiry date, new email) and, in the row's **⋯** menu, **Cancel invitation**
+   (asks first, see 6); both come back to the list with its filters (P17). **Add crew member** opens a pop-up form
    (full name, email, optional rank, role, active ship) that sends an invitation email (see Mailpit) and names the address in
    its success message;
    the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank, role
@@ -432,7 +444,7 @@ The app makes no request to any other host: everything a page needs is served fr
       "123 / 5,000" while typing, and "5,012 / 5,000 · 12 too many" in red and bold over the limit. Announcement
       messages and ship particulars count a line break as one character, as the server does;
     - pop-up or page: a pop-up only for short forms (add and edit ship, invite office user, add crew member; the
-      last one has five fields until P18 shortens it), everything else is a full page;
+      last one has five fields until P18 shortens it; also on a ship's Crew tab, P17), everything else is a full page;
     - file inputs show the accepted types and the size limit before a file is chosen ("PDF, DOCX or XLSX, at most
       10 MB", "XLSX or CSV, at most 10 MB") and, with `js/forms.js`, the chosen file's name and size after it, with a
       warning when a library file is over 10 MB.
@@ -446,7 +458,7 @@ The app makes no request to any other host: everything a page needs is served fr
       Ships › MV Demo. Links are underlined and each is a 40 px (44 px on phones) touch target. They replace the
       "← Library" style links and the "Back to ships" link;
     - the eyebrow, only for real context: the ship's name and IMO number on every ship-scoped page below the ship page
-      ("MV Demo · IMO 9074729": item and library forms, crew invitation, request detail, announcement to one ship;
+      ("MV Demo · IMO 9074729": item and library forms, request detail, announcement to one ship;
       `pageHeader(eyebrowShip=${ship})`, a link to the ship page for office users) and on the crew library pages;
       "All ships" for a fleet announcement; the status code on the error page. The tabs of the ship page have the
       ship's name as their heading instead. There is no "Office portal" eyebrow;
@@ -515,7 +527,8 @@ The app makes no request to any other host: everything a page needs is served fr
       (`layout/parts :: certificateHint`, or `expiryDate` for the date and its hint: certificates list, crew edit
       page, ship Overview, office Overview) and invitation expiry "expires in 2 days", "expired today"
       (`layout/parts :: invitationHint`: Office users, Crew, office Overview, where a crew invitation now reads
-      "sent 4 Nov 2026 · 09:12 UTC · expires in 3 days"). The hint is secondary text (`.date-hint`) that never breaks;
+      "sent 4 Nov 2026 · 09:12 UTC · expires in 3 days"); after "Invitation expired" on Office users and Crew it
+      says when, "2 days ago", "today" (`invitationExpiredHint`, P17; both in `crew/parts :: invitationStatus`). The hint is secondary text (`.date-hint`) that never breaks;
     - the audit log's date filter is labelled **From (UTC)** and **To (UTC)**: it filters on UTC days;
     - certificate reminder emails and notifications (English) use the same date format (`Dates.DATE_PATTERN`).
 

@@ -1,7 +1,10 @@
 package com.nereonix.nereonet_mvp.core.confirm;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -59,7 +62,7 @@ public class ConfirmPages {
         private String confirmLabel;
         private String dismissLabel;
         private String action;
-        private String tab;
+        private final Map<String, String> fields = new LinkedHashMap<>();
         private String cancelUrl;
 
         private Builder(Tone tone) {
@@ -90,7 +93,15 @@ public class ConfirmPages {
         /** The POST URL, and the ship page tab it returns to (null for none). */
         public Builder action(String url, String tab) {
             this.action = url;
-            this.tab = tab;
+            if (tab != null) {
+                fields.put("tab", tab);
+            }
+            return this;
+        }
+
+        /** More hidden fields the action is posted with, e.g. the list an invitation's Cancel returns to. */
+        public Builder fields(Map<String, String> more) {
+            fields.putAll(more);
             return this;
         }
 
@@ -114,7 +125,7 @@ public class ConfirmPages {
         /** Adds the page to the model and returns its view name. */
         public String show(Model model) {
             model.addAttribute("confirm", new ConfirmPage(title, body, confirmLabel,
-                    dismissLabel == null ? text("form.cancel") : dismissLabel, tone, action, tab, cancelUrl,
+                    dismissLabel == null ? text("form.cancel") : dismissLabel, tone, action, Collections.unmodifiableMap(new LinkedHashMap<>(fields)), cancelUrl,
                     List.copyOf(crumbs)));
             return VIEW;
         }

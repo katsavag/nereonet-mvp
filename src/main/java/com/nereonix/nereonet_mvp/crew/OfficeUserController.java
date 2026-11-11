@@ -17,6 +17,7 @@ import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationService;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.Role;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
@@ -77,43 +78,61 @@ public class OfficeUserController {
         return LIST;
     }
 
-    // Office and crew invitations. returnTo=overview: started from the Overview's "Needs attention" list (P09), which
-    // it returns to; any other value is ignored (never a redirect to a URL taken from the request).
+    // Office and crew invitations. Each returns to the list it was started from (CrewListReturn): Office users, the
+    // Overview's "Needs attention" list (returnTo=overview, P09), the Crew list with its filters (returnTo=crew, P17) or
+    // a ship page's Crew tab (tab=crew). Never a redirect to a URL taken from the request.
     @PostMapping("/office/invitations/{id}/resend")
     public String resend(@PathVariable Long id, @RequestParam(required = false) String returnTo,
-                         RedirectAttributes redirectAttributes) {
+                         @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
+                         @RequestParam(required = false) String status, RedirectAttributes redirectAttributes) {
         boolean done = invitationService.resend(id);
         redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
                 done ? "invitation.resent" : "invitation.error.notPending");
-        return "overview".equals(returnTo) ? "redirect:/office" : LIST;
+        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status).url();
     }
 
-    // The confirmation page: where Cancel leads when js/confirm.js did not load (P10). An invitation that is no longer
-    // pending goes back to the list with the same message as cancelling it.
+    // The confirmation page: where Cancel leads when js/confirm.js did not load (P10). It keeps where to return to, as
+    // fields of its form and in its breadcrumbs. An invitation that is no longer pending goes back to the list with the
+    // same message as cancelling it.
     @GetMapping("/office/invitations/{id}/cancel")
-    public String confirmCancel(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String confirmCancel(@PathVariable Long id, @RequestParam(required = false) String returnTo,
+                                @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
+                                @RequestParam(required = false) String status, Model model,
+                                RedirectAttributes redirectAttributes) {
+        CrewListReturn back = CrewListReturn.of(returnTo, tab, shipId, status);
         Invitation invitation = invitationService.findPending(id).orElse(null);
         if (invitation == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "invitation.error.notPending");
-            return LIST;
+            return "redirect:" + back.url();
         }
-        return confirmPages.danger()
+        ConfirmPages.Builder page = confirmPages.danger()
                 .title("invitation.cancel.confirm.title", invitation.getFullName())
                 .body("invitation.cancel.confirm.body", invitation.getEmail())
                 .confirmLabel("invitation.cancel.confirm.submit")
                 .dismissLabel("invitation.cancel.confirm.keep")
                 .action("/office/invitations/" + id + "/cancel", null)
-                .cancelUrl("/office/users")
-                .crumb("nav.officeUsers", "/office/users")
-                .show(model);
+                .fields(back.params())
+                .cancelUrl(back.url());
+        switch (back.kind()) {
+            case SHIP_TAB -> page.crumb("nav.ships", "/office/ships")
+                    .crumbText(invitation.getShip() == null ? "" : invitation.getShip().getName(),
+                            ShipTab.OVERVIEW.url(back.shipId()))
+                    .crumb("ship.tab.crew", back.url());
+            case CREW -> page.crumb("nav.crew", back.url());
+            case OVERVIEW -> page.crumb("nav.overview", back.url());
+            case OFFICE_USERS -> page.crumb("nav.officeUsers", back.url());
+        }
+        return page.show(model);
     }
 
     @PostMapping("/office/invitations/{id}/cancel")
-    public String cancel(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String cancel(@PathVariable Long id, @RequestParam(required = false) String returnTo,
+                         @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
+                         @RequestParam(required = false) String status, RedirectAttributes redirectAttributes) {
         boolean done = invitationService.cancel(id);
         redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
                 done ? "invitation.cancelled" : "invitation.error.notPending");
-        return LIST;
+        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status).url();
     }
 
     private String showList(Model model) {

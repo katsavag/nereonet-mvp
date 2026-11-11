@@ -78,6 +78,18 @@ class DatesTest {
         assertThat(dates.invitationHint(NOW.plus(Duration.ofDays(2)))).isEqualTo("λήγει σε 2 ημέρες");
     }
 
+    // P17: after "Invitation expired".
+    @Test
+    void invitationExpiredHintSaysHowLongAgo() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        assertThat(dates.invitationExpiredHint(NOW.minus(Duration.ofHours(2)))).isEqualTo("today");
+        assertThat(dates.invitationExpiredHint(NOW.minus(Duration.ofDays(1)))).isEqualTo("1 day ago");
+        assertThat(dates.invitationExpiredHint(NOW.minus(Duration.ofDays(5)))).isEqualTo("5 days ago");
+
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("el"));
+        assertThat(dates.invitationExpiredHint(NOW.minus(Duration.ofDays(5)))).isEqualTo("πριν από 5 ημέρες");
+    }
+
     private static ResourceBundleMessageSource messages() {
         ResourceBundleMessageSource source = new ResourceBundleMessageSource();
         source.setBasename("messages");

@@ -38,21 +38,25 @@ public class CrewController {
         this.confirmPages = confirmPages;
     }
 
-    // The "Add crew member" form is a modal on the list page.
+    // The "Add crew member" form is a modal on the list page. status: the Status filter (CrewStatus key); an unknown
+    // value shows every status.
     @GetMapping("/office/crew")
-    public String list(@RequestParam(required = false) Long shipId, Model model) {
+    public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
+                       Model model) {
         model.addAttribute("addForm", new AddCrewForm());
-        return showList(shipId, model);
+        return showList(shipId, CrewStatus.of(status).orElse(null), model);
     }
 
-    // The Crew tab of the ship page: the same list for one ship, without the ship filter and column. Add crew member
-    // opens the ship's invitation form (/office/ships/{id}/invitations/new), which never asks for the ship.
+    // The Crew tab of the ship page: the same list for one ship, without the ship filters and column. Add crew member
+    // opens the same modal as on the Crew page with this ship preselected; ?add=true opens it on load (where the
+    // former invitation page, /office/ships/{id}/invitations/new, now leads).
     @GetMapping("/office/ships/{id}/crew")
-    public String shipCrew(@PathVariable Long id, Model model) {
-        shipFrame.show(model, shipFrame.ship(id), ShipTab.CREW);
-        model.addAttribute("crew", crewService.findCrew(id));
-        model.addAttribute("invited", crewService.findInvited(id));
-        return "crew/list";
+    public String shipCrew(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean add, Model model) {
+        AddCrewForm form = new AddCrewForm();
+        form.setShipId(id);
+        model.addAttribute("addForm", form);
+        model.addAttribute("openAdd", add);
+        return showShipCrew(id, model);
     }
 
     // On errors the list page is shown again and the modal reopens with the errors.
@@ -60,23 +64,49 @@ public class CrewController {
     public String add(@Valid @ModelAttribute("addForm") AddCrewForm form, BindingResult result,
                       @AuthenticationPrincipal CurrentUser currentUser, Model model,
                       RedirectAttributes redirectAttributes) {
-        if (result.hasErrors()) {
-            return showList(null, model);
+        Invitation invitation = invite(form, result, currentUser);
+        if (invitation == null) {
+            return showList(null, null, model);
         }
-        Invitation invitation;
+        sent(invitation, redirectAttributes);
+        return "redirect:/office/crew";
+    }
+
+    // Add crew member from the ship page's Crew tab. On errors the tab is shown again with the modal open; once sent,
+    // the Crew tab of the ship the invitation is for, where the new member is listed as "Invited".
+    @PostMapping("/office/ships/{id}/crew/new")
+    public String addFromShip(@PathVariable Long id, @Valid @ModelAttribute("addForm") AddCrewForm form,
+                              BindingResult result, @AuthenticationPrincipal CurrentUser currentUser, Model model,
+                              RedirectAttributes redirectAttributes) {
+        shipFrame.ship(id);
+        Invitation invitation = invite(form, result, currentUser);
+        if (invitation == null) {
+            return showShipCrew(id, model);
+        }
+        sent(invitation, redirectAttributes);
+        return "redirect:" + ShipTab.CREW.url(invitation.getShip().getId());
+    }
+
+    // Sends the invitation, or rejects the field at fault and returns null.
+    private Invitation invite(AddCrewForm form, BindingResult result, CurrentUser currentUser) {
+        if (result.hasErrors()) {
+            return null;
+        }
         try {
-            invitation = crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getRole(),
+            return crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getRole(),
                     form.getShipId(), currentUser.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
-            return showList(null, model);
         } catch (ShipRoleTakenException e) {
             result.rejectValue("role", "user.error.shipRoleTaken");
-            return showList(null, model);
         }
+        return null;
+    }
+
+    // "Invitation sent to <address>.": there is no "Repeat email" field, so the office sees where it went.
+    private static void sent(Invitation invitation, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
         redirectAttributes.addFlashAttribute("successArgs", new Object[] {invitation.getEmail()});
-        return "redirect:/office/crew";
     }
 
     @GetMapping("/office/crew/{id}/edit")
@@ -190,14 +220,31 @@ public class CrewController {
         return page.crumbText(user.getFullName(), "/office/crew/" + user.getId() + "/edit");
     }
 
-    private String showList(Long shipId, Model model) {
+    private String showList(Long shipId, CrewStatus status, Model model) {
+        model.addAttribute("crew", crewService.findCrew(shipId, status));
+        model.addAttribute("invited", crewService.findInvited(shipId, status));
+        model.addAttribute("ships", crewService.findAllShips());
+        model.addAttribute("shipId", shipId);
+        model.addAttribute("status", status == null ? null : status.key());
+        model.addAttribute("statuses", CrewStatus.values());
+        // Resend and Cancel on an invitation come back here, filters kept.
+        model.addAttribute("listParams", CrewListReturn.fleet(shipId, status).params());
+        return showAddForm(model);
+    }
+
+    private String showShipCrew(Long shipId, Model model) {
+        shipFrame.show(model, shipFrame.ship(shipId), ShipTab.CREW);
         model.addAttribute("crew", crewService.findCrew(shipId));
         model.addAttribute("invited", crewService.findInvited(shipId));
-        model.addAttribute("ships", crewService.findAllShips());
+        model.addAttribute("listParams", CrewListReturn.shipTab(shipId).params());
+        return showAddForm(model);
+    }
+
+    // What the Add crew member modal lists.
+    private String showAddForm(Model model) {
         model.addAttribute("activeShips", crewService.findActiveShips());
         model.addAttribute("roles", CrewService.SHIP_ROLES);
         model.addAttribute("ranks", Rank.values());
-        model.addAttribute("shipId", shipId);
         return "crew/list";
     }
 

@@ -104,7 +104,7 @@ class NavigationFlowTest {
                 "/office/crew/" + crew.getId() + "/edit", "/office/crew/" + crew.getId() + "/certificates/new",
                 "/office/certificates", "/office/announcements", "/office/announcements/new", "/office/requests",
                 "/office/users", "/office/audit", "/office/ships/" + id + "/items", "/office/ships/" + id + "/library",
-                "/office/ships/" + id + "/invitations/new", "/notifications");
+                "/office/ships/" + id + "/crew", "/notifications");
         for (String page : pages) {
             String nav = sidebar(get(page));
             assertThat(count(nav, "aria-current=\"page\"")).as("active entries on " + page).isEqualTo(1);

@@ -3,17 +3,19 @@
       th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.crew} : #{crew.list.title}, ~{::main})}">
 <body>
 <!-- Also the Crew tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
-     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+     header, the ship fixed (no filters, no ship column), and actions for this ship that come back to the tab.
+     Invitation rows (P17) show their status with its date and have Resend and, in the menu, Cancel invitation; both
+     come back to this list with its filters (listParams, crew/CrewListReturn). -->
 <main th:with="onShip=${shipTab != null}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{ship/parts :: header}"></th:block>
-        <!-- Add crew member: the ship's own invitation form, which never asks for the ship. Not for an inactive ship. -->
+        <!-- Add crew member: the same modal as on the Crew page, with this ship preselected. Not for an inactive ship. -->
         <div th:replace="~{ship/parts :: tabHeading(#{crew.list.heading}, ${ship.active} ? ~{::tabActions} : null)}">
             <th:block th:fragment="tabActions">
-                <a class="btn btn-primary" th:href="@{/office/ships/{id}/invitations/new(id=${ship.id})}">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
                     <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                     <span th:text="#{crew.list.add}">Add crew member</span>
-                </a>
+                </button>
             </th:block>
         </div>
     </th:block>
@@ -31,7 +33,8 @@
         </th:block>
     </header>
 
-    <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
+    <!-- Filter by ship and status. A GET form, so the filtered page can be bookmarked and linked to
+         (/office/crew?status=expired). -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/crew}" method="get">
         <div class="col-12 col-md-5">
             <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
@@ -39,6 +42,14 @@
                 <option value="" th:text="#{crew.filter.allShips}">All ships</option>
                 <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
                         th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <label for="filterStatus" class="form-label fw-semibold small" th:text="#{user.status}">Status</label>
+            <select id="filterStatus" name="status" class="form-select">
+                <option value="" th:text="#{crew.filter.allStatuses}">All statuses</option>
+                <option th:each="st : ${statuses}" th:value="${st.key()}" th:selected="${st.key() == status}"
+                        th:text="#{${'crew.filter.status.' + st.key()}}">Invitation expired</option>
             </select>
         </div>
         <div class="col-12 col-md-auto d-flex gap-2">
@@ -68,7 +79,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Pending invitations: no account yet, so no page, nothing to edit or deactivate. -->
+                <!-- Pending invitations: no account yet, so no page, nothing to edit or deactivate; Resend and Cancel. -->
                 <tr th:each="inv : ${invited}">
                     <td class="cell-primary" th:text="${inv.fullName}">Jane Doe</td>
                     <td th:attr="data-label=#{user.email}">
@@ -78,10 +89,11 @@
                     <td class="text-nowrap stack-hide" th:text="#{${'role.' + inv.role}}">Crew member</td>
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
-                        <span th:replace="~{layout/parts :: status('primary', #{crew.status.invited})}">Invited</span>
-                        <span th:replace="~{layout/parts :: invitationHint(${inv.expiresAt})}">· expires in 2 days</span>
+                        <th:block th:replace="~{crew/parts :: invitationStatus(${inv})}"></th:block>
                     </td>
-                    <td class="cell-actions"></td>
+                    <td class="cell-actions">
+                        <div th:replace="~{crew/parts :: invitationActions(${inv})}"></div>
+                    </td>
                 </tr>
                 <tr th:each="u : ${crew}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
                     <td class="cell-primary">
@@ -107,11 +119,13 @@
         </div>
     </div>
 
-    <!-- Add crew member (Crew page only): sends an invitation. Full screen on phones. A modal although it has five fields: P18 makes
-         it shorter. The ship keeps the full width, so its name and IMO number are never cut off. -->
-    <div th:unless="${onShip}" class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
+    <!-- Add crew member: sends an invitation. Full screen on phones. A modal although it has five fields: P18 makes
+         it shorter. The ship keeps the full width, so its name and IMO number are never cut off. On a ship's Crew tab
+         (active ships only) the ship is preselected and can still be changed; it posts to the tab's own URL, so errors
+         show on the tab and, once sent, the user is on the Crew tab of the ship the invitation is for. -->
+    <div th:if="${!onShip or ship.active}" class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <form class="modal-content" th:action="@{/office/crew/new}" th:object="${addForm}" method="post" novalidate>
+            <form class="modal-content" th:action="${onShip} ? @{/office/ships/{id}/crew/new(id=${ship.id})} : @{/office/crew/new}" th:object="${addForm}" method="post" novalidate>
                 <div class="modal-header">
                     <h2 class="modal-title h5 fw-bold" id="addCrewModalTitle"
                         th:text="#{crew.add.heading}">Add crew member</h2>
@@ -172,8 +186,9 @@
                     <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
                 </div>
 
-                <!-- The form was posted with errors: open the modal again so they are visible. -->
-                <script th:if="${#fields.hasAnyErrors()}">
+                <!-- The form was posted with errors: open the modal again so they are visible. Also on ?add=true
+                     (openAdd), where the former invitation page of a ship leads. -->
+                <script th:if="${#fields.hasAnyErrors() or openAdd == true}">
                     document.addEventListener('DOMContentLoaded',
                         () => bootstrap.Modal.getOrCreateInstance('#addCrewModal').show());
                 </script>

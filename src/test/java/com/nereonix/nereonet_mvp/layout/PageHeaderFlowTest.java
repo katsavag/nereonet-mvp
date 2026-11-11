@@ -185,8 +185,6 @@ class PageHeaderFlowTest {
                 List.of("Ships", "MV Demo", "Certificates", "Add certificate"), SHIP_CONTEXT);
         add(pages, "/office/announcements/new?shipId=" + id, null, "New announcement",
                 List.of("Ships", "MV Demo", "Announcements", "New announcement"), null);
-        add(pages, "/office/ships/" + id + "/invitations/new", null, "Invite crew member",
-                List.of("Ships", "MV Demo", "Crew", "Invite crew member"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/items/new", null, "Add item",
                 List.of("Ships", "MV Demo", "Items", "Add item"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/items/import", null, "Import items",

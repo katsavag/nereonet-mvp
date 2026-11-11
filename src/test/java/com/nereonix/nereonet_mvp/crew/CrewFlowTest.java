@@ -148,6 +148,110 @@ class CrewFlowTest {
         assertThat(registered.isActorDeleted()).isTrue();
     }
 
+    // P17: the Status filter, a query parameter (/office/crew?status=expired), with the ship filter.
+    @Test
+    void crewListFiltersByStatus() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        Ship other = ship("9176187", "MV Other");
+        userService.createUser("anna@example.com", "Anna Active", "secret123", Role.CREW_MEMBER, demo, null);
+        User inactive = userService.createUser("ivan@example.com", "Ivan Inactive", "secret123", Role.CREW_MEMBER,
+                demo, null);
+        inactive.setEnabled(false);
+        invitation("ingrid@example.com", "Ingrid Invited", demo, 3);
+        invitation("erik@example.com", "Erik Expired", demo, -2);
+        invitation("olaf@example.com", "Olaf Elsewhere", other, -2);
+
+        assertThat(html(get("/office/crew").param("status", "active"))).contains("Anna Active")
+                .doesNotContain("Ivan Inactive", "Ingrid Invited", "Erik Expired");
+        assertThat(html(get("/office/crew").param("status", "inactive"))).contains("Ivan Inactive")
+                .doesNotContain("Anna Active", "Ingrid Invited", "Erik Expired");
+        assertThat(html(get("/office/crew").param("status", "invited")))
+                .contains("Ingrid Invited", ">Invited</span>", "expires in 3 days")
+                .doesNotContain("Anna Active", "Ivan Inactive", "Erik Expired");
+        assertThat(html(get("/office/crew").param("status", "expired")))
+                .contains("Erik Expired", "Olaf Elsewhere", ">Invitation expired</span>", "2 days ago",
+                        "<option value=\"expired\" selected=\"selected\">Invitation expired</option>")
+                .doesNotContain("Anna Active", "Ivan Inactive", "Ingrid Invited");
+        // With the ship filter.
+        assertThat(html(get("/office/crew").param("status", "expired").param("shipId", demo.getId().toString())))
+                .contains("Erik Expired").doesNotContain("Olaf Elsewhere");
+        // No or an unknown status: everyone.
+        for (String status : new String[] {"", "unknown"}) {
+            assertThat(html(get("/office/crew").param("status", status)))
+                    .contains("Anna Active", "Ivan Inactive", "Ingrid Invited", "Erik Expired", "Olaf Elsewhere",
+                            "<option value=\"\">All statuses</option>")
+                    .doesNotContainPattern("<option value=\"(active|invited|expired|inactive)\" selected");
+        }
+        // The filter is labelled and offers the four statuses.
+        assertThat(html(get("/office/crew"))).contains("<label for=\"filterStatus\"", "name=\"status\"",
+                ">Active</option>", ">Invited</option>", ">Invitation expired</option>", ">Inactive</option>");
+        assertThat(html(get("/office/crew").param("lang", "el"))).contains(">Όλες οι καταστάσεις</option>",
+                ">Η πρόσκληση έληξε</option>");
+    }
+
+    // P17: Resend and Cancel invitation on the Crew list; both return to it with its filters.
+    @Test
+    void crewInvitationIsResentAndCancelledFromTheCrewList() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        Invitation expired = invitation("erik@example.com", "Erik Expired", demo, -2);
+        String shipId = demo.getId().toString();
+        String back = "/office/crew?shipId=" + shipId + "&status=expired";
+
+        String list = html(get("/office/crew").param("shipId", shipId).param("status", "expired"));
+        assertThat(list).contains("action=\"/office/invitations/" + expired.getId() + "/resend\"",
+                "<input type=\"hidden\" name=\"returnTo\" value=\"crew\">",
+                "<input type=\"hidden\" name=\"shipId\" value=\"" + shipId + "\">",
+                "<input type=\"hidden\" name=\"status\" value=\"expired\">",
+                ">Resend</button>", ">Cancel invitation</a>",
+                "href=\"/office/invitations/" + expired.getId() + "/cancel?returnTo=crew&amp;shipId=" + shipId
+                        + "&amp;status=expired\"",
+                "data-confirm-tone=\"danger\" data-confirm-dismiss=\"Keep invitation\"");
+
+        // One click resends an expired invitation; back to the filtered list.
+        mockMvc.perform(post("/office/invitations/{id}/resend", expired.getId()).param("returnTo", "crew")
+                        .param("shipId", shipId).param("status", "expired").with(csrf()))
+                .andExpect(redirectedUrl(back));
+        assertThat(invitationRepository.findById(expired.getId()).orElseThrow().getDisplayStatus())
+                .isEqualTo(Invitation.DisplayStatus.PENDING);
+        verify(mailService, times(1)).send(eq("erik@example.com"), anyString(), contains("/register?token="));
+
+        // Cancel: the confirmation page (no script) keeps the filters; confirming returns to the list.
+        assertThat(html(get("/office/invitations/{id}/cancel", expired.getId()).param("returnTo", "crew")
+                .param("shipId", shipId).param("status", "expired")))
+                .contains("<input type=\"hidden\" name=\"status\" value=\"expired\">",
+                        "href=\"/office/crew?shipId=" + shipId + "&amp;status=expired\">Keep invitation</a>");
+        mockMvc.perform(post("/office/invitations/{id}/cancel", expired.getId()).param("returnTo", "crew")
+                        .param("shipId", shipId).param("status", "expired").with(csrf()))
+                .andExpect(redirectedUrl(back));
+        assertThat(invitationRepository.findById(expired.getId()).orElseThrow().getStatus())
+                .isEqualTo(Invitation.Status.CANCELLED);
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().startsWith("INVITATION_"))
+                .extracting(AuditEntry::getAction).containsExactlyInAnyOrder("INVITATION_RESENT", "INVITATION_CANCELLED");
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().startsWith("INVITATION_"))
+                .allSatisfy(e -> assertThat(e.getShip().getId()).isEqualTo(demo.getId()));
+    }
+
+    // A PENDING crew invitation that expires in this many days (negative: expired that many days ago).
+    private Invitation invitation(String email, String fullName, Ship ship, int days) {
+        Invitation invitation = new Invitation();
+        invitation.setEmail(email);
+        invitation.setFullName(fullName);
+        invitation.setRole(Role.CREW_MEMBER);
+        invitation.setShip(ship);
+        invitation.setTokenId(java.util.UUID.randomUUID());
+        invitation.setStatus(Invitation.Status.PENDING);
+        // Midday, so the hint's whole UTC days do not depend on the time the test runs.
+        invitation.setExpiresAt(java.time.LocalDate.now(java.time.ZoneOffset.UTC).plusDays(days)
+                .atTime(12, 0).toInstant(java.time.ZoneOffset.UTC));
+        invitation.setCreatedAt(Instant.now());
+        return invitationRepository.save(invitation);
+    }
+
+    private String html(org.springframework.test.web.servlet.RequestBuilder request) throws Exception {
+        return mockMvc.perform(request).andReturn().getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
     private Ship ship(String imoNumber, String name) {
         Ship ship = new Ship();
         ship.setImoNumber(imoNumber);

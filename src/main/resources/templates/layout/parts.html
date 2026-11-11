@@ -200,11 +200,14 @@
      certificateHint(date): a certificate's expiry date (LocalDate): " · in 23 days", " · expires today",
        " · expired 5 days ago".
      invitationHint(expiresAt): an invitation's expiry (Instant): " · expires in 2 days", " · expired today".
+     invitationExpiredHint(expiresAt): after "Invitation expired" (P17), when: " · 2 days ago", " · today".
      Use: <span th:replace="~{layout/parts :: certificateHint(${c.expiresOn})}"></span> -->
 <span th:fragment="certificateHint(date)" class="date-hint"><span aria-hidden="true">·</span> <th:block
         th:text="${@dates.certificateHint(date)}">in 23 days</th:block></span>
 <span th:fragment="invitationHint(expiresAt)" class="date-hint"><span aria-hidden="true">·</span> <th:block
         th:text="${@dates.invitationHint(expiresAt)}">expires in 2 days</th:block></span>
+<span th:fragment="invitationExpiredHint(expiresAt)" class="date-hint"><span aria-hidden="true">·</span> <th:block
+        th:text="${@dates.invitationExpiredHint(expiresAt)}">2 days ago</th:block></span>
 
 <!-- A certificate's expiry date and its hint: "10 Jan 2027 · in 60 days", "3 Nov 2026 · expired 8 days ago". -->
 <span th:fragment="expiryDate(date)"><time th:replace="~{layout/parts :: localDate(${date})}"></time>
@@ -261,9 +264,11 @@
      form; without the script (or a browser without <dialog>) it opens the plain confirmation page (GET on the same
      URL, confirm/confirm.html, built from the same message keys by core/confirm/ConfirmPages). So the form never
      submits without a confirmation, and it has no submit button that could.
-     Named parameters; tab and dismiss are optional:
+     Named parameters; tab, fields and dismiss are optional:
        action     the POST URL, e.g. '/office/ships/' + ${s.id} + '/deactivate'
        tab        the ship page tab to return to (sent as "tab", also on the confirmation page's URL), or null
+       fields     more fields to send the same way, a map of names to values, or null: the list and filters an
+                  invitation's Cancel returns to (crew/CrewListReturn, P17)
        label      the trigger's text: "Deactivate"
        linkClass  the trigger's classes: 'dropdown-item dropdown-item-danger' in a "more" menu, a btn class on a page
        title      the dialog's heading, naming the record: "Deactivate MV Demo?"
@@ -277,7 +282,10 @@
       th:data-confirm-title="${title}" th:data-confirm-body="${body}" th:data-confirm-label="${confirm}"
       th:data-confirm-tone="${tone}" th:data-confirm-dismiss="${dismiss}">
     <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
-    <a th:class="${linkClass}" th:href="${tab != null} ? @{${action}(tab=${tab})} : @{${action}}"
+    <input th:each="f : ${fields}" type="hidden" th:name="${f.key}" th:value="${f.value}">
+    <a th:class="${linkClass}"
+       th:with="query=${fields == null or fields.isEmpty()} ? null : ${#strings.listJoin(fields.entrySet().![#uris.escapeQueryParam(key) + '=' + #uris.escapeQueryParam(value)], '&')}"
+       th:href="${tab != null} ? @{${action}(tab=${tab})} : (${query != null} ? @{${action}} + '?' + ${query} : @{${action}})"
        data-confirm-open aria-haspopup="dialog" th:text="${label}">Deactivate</a>
 </form>
 
