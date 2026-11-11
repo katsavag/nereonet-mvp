@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${item.title}">Library item</title>
+</head>
+<body>
+<main th:with="version=${item.currentVersion}">
+    <p class="mb-2"><a th:href="@{/ship/library}" th:text="#{library.back}">← Library</a></p>
+    <p class="eyebrow mb-1" th:text="#{${'library.category.' + item.category}}">Ship rules</p>
+    <h1 class="fw-bold mb-1 text-break" th:text="${item.title}">Garbage management plan</h1>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+        <p class="text-body-secondary small mb-0">
+            <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
+            ·
+            <time th:replace="~{layout/parts :: localTime(${version.publishedAt})}"></time>
+        </p>
+        <!-- Only the Master (the item is always of the user's own ship). -->
+        <div sec:authorize="hasRole('MASTER')" class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary"
+               th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">Edit this item</a>
+            <th:block th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'})}"></th:block>
+        </div>
+    </div>
+
+    <!-- Text version: plain text, escaped by th:text. -->
+    <div th:unless="${version.file}" class="card">
+        <div class="card-body text-break text-pre-line" th:text="${version.text}">Text</div>
+    </div>
+
+    <!-- File version -->
+    <div th:if="${version.file}" class="card">
+        <div class="card-body d-flex flex-column flex-sm-row align-items-sm-center gap-3">
+            <div class="flex-grow-1 text-break">
+                <div class="fw-semibold" th:text="${version.fileName}">plan.pdf</div>
+                <div class="small text-body-secondary" th:with="size=${version.fileSize}"
+                     th:text="${size < 1024} ? #{library.file.bytes(${size})}
+                            : (${size < 1048576} ? #{library.file.kb(${#numbers.formatDecimal(size / 1024.0, 1, 1)})}
+                            : #{library.file.mb(${#numbers.formatDecimal(size / 1048576.0, 1, 1)})})">1.2 MB</div>
+            </div>
+            <a class="btn btn-primary" th:href="@{/ship/library/{id}/file(id=${item.id})}"
+               th:text="#{library.download}">Download</a>
+        </div>
+    </div>
+
+    <!-- Required item: acknowledge the current version. Never a condition for anything else. -->
+    <div th:if="${item.required}" class="mt-4">
+        <form th:unless="${acknowledgement}" method="post"
+              th:action="@{/ship/library/{id}/acknowledge(id=${item.id})}">
+            <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.acknowledge}">I have read this</button>
+        </form>
+        <p th:if="${acknowledgement}" class="alert alert-success mb-0">
+            <span th:text="#{library.acknowledged(${version.versionLabel})}">Acknowledged · Version 1 ·</span>
+            <time th:replace="~{layout/parts :: localTime(${acknowledgement.acknowledgedAt})}"></time>
+        </p>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{item.list.title}">Galley items</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
+            <h1 class="fw-bold mb-0" th:text="#{item.list.heading}">Galley items</h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary btn-lg" th:href="@{/office/ships/{id}/items/new(id=${ship.id})}"
+               th:text="#{item.list.add}">Add item</a>
+            <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}"
+               th:text="#{item.list.import}">Import</a>
+        </div>
+    </div>
+
+    <!-- After an import (flash attributes from ItemImportController). -->
+    <div th:if="${importedCount != null}" class="alert alert-success" role="status">
+        <p class="mb-0" th:text="#{itemImport.added(${importedCount})}">12 items added.</p>
+        <p th:unless="${skippedNames.isEmpty()}" class="mt-1 mb-0">
+            <span th:text="#{itemImport.skipped(${skippedNames.size()})}">2 skipped because the ship already has them:</span>
+            <span th:text="${#strings.listJoin(skippedNames, ', ')}">Rice, Flour</span>
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{item.list.heading}">Galley items</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${items.size()}">0</span>
+        </div>
+
+        <p th:if="${items.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{item.list.empty}">No items yet.</p>
+
+        <div th:unless="${items.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" th:text="#{item.unit}">Unit</th>
+                    <th scope="col" th:text="#{item.category}">Category</th>
+                    <th scope="col" th:text="#{item.status}">Status</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{item.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="i : ${items}" th:classappend="${!i.active} ? 'text-body-secondary'">
+                    <td class="fw-semibold" th:text="${i.name}">Rice</td>
+                    <td th:text="${i.unit}">kg</td>
+                    <td th:text="${i.category} ?: '—'">Dry goods</td>
+                    <td>
+                        <span th:if="${i.active}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
+                              th:text="#{item.status.active}">Active</span>
+                        <span th:unless="${i.active}" class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis"
+                              th:text="#{item.status.inactive}">Inactive</span>
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a class="btn btn-outline-secondary btn-sm"
+                               th:href="@{/office/ships/{id}/items/{itemId}/edit(id=${ship.id},itemId=${i.id})}"
+                               th:text="#{item.edit}">Edit</a>
+                            <form th:if="${i.active}" method="post"
+                                  th:action="@{/office/ships/{id}/items/{itemId}/deactivate(id=${ship.id},itemId=${i.id})}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm"
+                                        th:text="#{item.deactivate}">Deactivate</button>
+                            </form>
+                            <form th:unless="${i.active}" method="post"
+                                  th:action="@{/office/ships/{id}/items/{itemId}/activate(id=${ship.id},itemId=${i.id})}">
+                                <button type="submit" class="btn btn-outline-primary btn-sm"
+                                        th:text="#{item.activate}">Activate</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <a class="d-inline-block mt-3" th:href="@{/office/ships}" th:text="#{item.backToShips}">Back to ships</a>
+</main>
+</body>
+</html>

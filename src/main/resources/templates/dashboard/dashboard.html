@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{office.title}">Overview</title>
+</head>
+<body>
+<main>
+    <div class="mb-4">
+        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+        <h1 class="fw-bold mb-0" th:text="#{office.heading}">Overview</h1>
+    </div>
+
+    <!-- Fleet totals -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.activeShips}">Active ships</p>
+                    <p class="fs-2 fw-bold mb-0" th:text="${dashboard.ships.size()}">5</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.enabledCrew}">Active crew</p>
+                    <p class="fs-2 fw-bold mb-0" th:text="${dashboard.enabledCrew()}">84</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.openItems}">Open items needing attention</p>
+                    <p class="fs-2 fw-bold mb-0" th:classappend="${dashboard.openItems() > 0} ? 'text-danger'"
+                       th:text="${dashboard.openItems()}">3</p>
+                    <p class="small text-body-secondary mb-0" th:text="#{dashboard.fleet.openItemsHint}">Expired certificates, ...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 fw-bold mb-1" th:text="#{dashboard.ships.heading}">Ships</h2>
+    <p class="text-body-secondary small mb-3" th:text="#{dashboard.ships.hint}">Ships that need attention are listed first.</p>
+
+    <p th:if="${dashboard.ships.isEmpty()}" class="text-body-secondary" th:text="#{dashboard.ships.empty}">No active ships.</p>
+
+    <!-- One card per active ship: 1 column on phones, 2 on tablets, 3 on wide screens (the sidebar takes 16rem). -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        <div class="col" th:each="card : ${dashboard.ships}" th:with="id=${card.ship.id}">
+            <div class="card h-100" th:classappend="${card.needsAttention()} ? 'border-warning'">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-start gap-2 py-3">
+                    <div class="text-break">
+                        <h3 class="h6 fw-bold mb-0" th:text="${card.ship.name}">MV Demo</h3>
+                        <span class="small text-body-secondary font-monospace"
+                              th:text="#{ship.codeValue(${card.ship.imoNumber})}">IMO 9074729</span>
+                    </div>
+                    <span th:if="${card.needsAttention()}" class="badge rounded-pill text-bg-warning text-nowrap"
+                          th:text="#{dashboard.needsAttention}">Needs attention</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span th:text="#{dashboard.crew}">Crew on board</span>
+                        <a class="fw-semibold" th:href="@{/office/crew(shipId=${id})}" th:text="${card.crew}">12</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span th:text="#{dashboard.invitations}">Pending invitations</span>
+                        <a class="fw-semibold" th:href="@{/office/crew(shipId=${id})}"
+                           th:text="${card.pendingInvitations}">2</a>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="mb-1" th:text="#{dashboard.certificates}">Certificates</div>
+                        <div class="d-flex flex-wrap gap-3 small">
+                            <a th:href="@{/office/certificates(shipId=${id})}"
+                               th:classappend="${card.certificatesExpired > 0} ? 'link-danger'">
+                                <span th:text="#{certificate.badge.expired}">Expired</span>
+                                <span class="fw-semibold" th:text="${card.certificatesExpired}">0</span>
+                            </a>
+                            <a th:href="@{/office/certificates(shipId=${id})}"
+                               th:classappend="${card.certificates30 > 0} ? 'link-danger'">
+                                <span th:text="#{certificate.badge.days(30)}">30 days</span>
+                                <span class="fw-semibold" th:text="${card.certificates30}">0</span>
+                            </a>
+                            <a th:href="@{/office/certificates(shipId=${id})}">
+                                <span th:text="#{certificate.badge.days(60)}">60 days</span>
+                                <span class="fw-semibold" th:text="${card.certificates60}">0</span>
+                            </a>
+                            <a th:href="@{/office/certificates(shipId=${id})}">
+                                <span th:text="#{certificate.badge.days(90)}">90 days</span>
+                                <span class="fw-semibold" th:text="${card.certificates90}">0</span>
+                            </a>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span th:text="#{dashboard.announcements}">Announcements not acknowledged by everyone</span>
+                        <a class="fw-semibold" th:href="@{/office/announcements(shipId=${id})}"
+                           th:text="${card.announcementsNotAcknowledged}">1</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span th:text="#{dashboard.requests}">Approved requests not exported</span>
+                        <a class="fw-semibold" th:href="@{/office/requests(shipId=${id},notExported=true)}"
+                           th:classappend="${card.requestsNotExported > 0} ? 'link-danger'"
+                           th:text="${card.requestsNotExported}">1</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span th:text="#{dashboard.library}">Required library items not acknowledged by everyone</span>
+                        <a class="fw-semibold" th:href="@{/office/ships/{id}/library(id=${id})}"
+                           th:text="${card.libraryNotAcknowledged}">1</a>
+                    </li>
+                    <!-- Stock alerts: add a list-group-item here when the inventory exists. -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- Small fragments shared by the layout and pages. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Logo, app name and a tagline. For dark backgrounds. -->
+<div th:fragment="brand(tagline)" class="d-flex align-items-center gap-2">
+    <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M4 22c6-12 14-12 20 0s14 12 20 0v8c-6 12-14 12-20 0S10 18 4 30z" fill="#5aa9ec"/>
+        <path d="M4 32c6-12 14-12 20 0s14 12 20 0v8H4z" fill="#2f7fd0"/>
+    </svg>
+    <div class="lh-1">
+        <div class="fs-4 fw-bold text-white" th:text="#{app.name}">Nereonet</div>
+        <div class="brand-tagline mt-1" th:text="${tagline}">Portal</div>
+    </div>
+</div>
+
+<!-- English / Greek links. linkClass sets the link colour. -->
+<div th:fragment="langSwitch(linkClass)" class="small">
+    <a th:class="${linkClass}" th:classappend="${#locale.language == 'en'} ? 'fw-bold'"
+       th:href="@{''(lang='en')}" th:text="#{nav.lang.en}">English</a>
+    <span class="mx-1 opacity-50">·</span>
+    <a th:class="${linkClass}" th:classappend="${#locale.language == 'el'} ? 'fw-bold'"
+       th:href="@{''(lang='el')}" th:text="#{nav.lang.el}">Ελληνικά</a>
+</div>
+
+<!-- A date and time. instant is stored as UTC; js/local-time.js shows it in the browser's time zone.
+     Use: <time th:replace="~{layout/parts :: localTime(${entity.createdAt})}"></time> -->
+<time th:fragment="localTime(instant)" class="local-time text-nowrap" th:datetime="${#temporals.format(instant, 'yyyy-MM-dd''T''HH:mm:ss''Z''', 'UTC')}"
+      th:text="${#temporals.format(instant, 'd MMM yyyy · HH:mm', 'UTC')} + ' UTC'">21 Oct 2026 · 12:40 UTC</time>
+
+<!-- Bell icon for the notifications link. -->
+<svg th:fragment="bellIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/>
+    <path d="M10 21h4"/>
+</svg>
+
+<!-- Expiry badge of a certificate: Expired, 30 / 60 / 90 days (the smallest reminder threshold reached), or Valid.
+     today is the UTC date. Used on the crew edit page and the expiring certificates list. -->
+<th:block th:fragment="certificateBadge(c, today)">
+    <th:block th:with="threshold=${c.reminderThreshold(today)}">
+        <span th:if="${c.isExpired(today)}" class="badge rounded-pill text-bg-danger"
+              th:text="#{certificate.badge.expired}">Expired</span>
+        <span th:if="${!c.isExpired(today) and threshold != null}" class="badge rounded-pill text-nowrap"
+              th:classappend="${threshold == 30} ? 'bg-danger-subtle text-danger-emphasis' : (${threshold == 60} ? 'bg-warning-subtle text-warning-emphasis' : 'bg-info-subtle text-info-emphasis')"
+              th:text="#{certificate.badge.days(${threshold})}">60 days</span>
+        <span th:if="${threshold == null}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
+              th:text="#{certificate.badge.valid}">Valid</span>
+    </th:block>
+</th:block>
+
+<!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key. -->
+<th:block th:fragment="flash">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="#{${successMessage}}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="#{${errorMessage}}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
+    </div>
+</th:block>
+
+</body>
+</html>

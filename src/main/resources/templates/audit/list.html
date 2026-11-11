@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{audit.title}">Audit log</title>
+</head>
+<body>
+<main>
+    <div class="mb-4">
+        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+        <h1 class="fw-bold mb-0" th:text="#{audit.heading}">Audit log</h1>
+    </div>
+
+    <!-- Filters. A GET form, so the filtered page can be bookmarked. Submitting starts again at page 1. -->
+    <form class="row g-2 align-items-end mb-4" th:action="@{/office/audit}" th:object="${filter}" method="get">
+        <div class="col-12 col-md-4">
+            <label for="shipId" class="form-label fw-semibold small" th:text="#{audit.ship}">Ship</label>
+            <select th:field="*{shipId}" class="form-select">
+                <option value="" th:text="#{audit.filter.allShips}">All ships</option>
+                <option th:each="s : ${ships}" th:value="${s.id}"
+                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <label for="from" class="form-label fw-semibold small" th:text="#{audit.filter.from}">From</label>
+            <input type="date" th:field="*{from}" class="form-control">
+        </div>
+        <div class="col-6 col-md-3">
+            <label for="to" class="form-label fw-semibold small" th:text="#{audit.filter.to}">To</label>
+            <input type="date" th:field="*{to}" class="form-control">
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{audit.filter.apply}">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/audit}" th:text="#{audit.filter.clear}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{audit.heading}">Audit log</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${entries.totalElements}">0</span>
+        </div>
+
+        <p th:if="${entries.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{audit.empty}">No entries.</p>
+
+        <div th:unless="${entries.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{audit.when}">When</th>
+                    <th scope="col" th:text="#{audit.who}">Who</th>
+                    <th scope="col" th:text="#{audit.action}">Action</th>
+                    <th scope="col" th:text="#{audit.ship}">Ship</th>
+                    <th scope="col" th:text="#{audit.details}">Details</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${entries}">
+                    <td class="small">
+                        <time th:replace="~{layout/parts :: localTime(${e.occurredAt})}"></time>
+                    </td>
+                    <td>
+                        <th:block th:if="${e.actor}">
+                            <div class="fw-semibold" th:text="${e.actor.fullName}">John Doe</div>
+                            <div class="small text-body-secondary text-break" th:text="${e.actor.email}">john@example.com</div>
+                        </th:block>
+                        <span th:unless="${e.actor}" class="text-body-secondary"
+                              th:text="${e.actorDeleted} ? #{audit.deletedUser} : #{audit.system}">System</span>
+                    </td>
+                    <!-- Action codes without a label are shown as they are. -->
+                    <td class="text-nowrap"
+                        th:text="${#messages.msgOrNull('audit.action.' + e.action)} ?: ${e.action}">Ship added</td>
+                    <td>
+                        <th:block th:if="${e.ship}">
+                            <div th:text="${e.ship.name}">MV Demo</div>
+                            <div class="font-monospace small text-body-secondary"
+                                 th:text="#{ship.codeValue(${e.ship.imoNumber})}">IMO 9074729</div>
+                        </th:block>
+                        <span th:unless="${e.ship}">—</span>
+                    </td>
+                    <td class="small text-break" th:text="${e.details} ?: '—'">IMO 9074729, MV Demo</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 50 rows per page. The links keep the filters. -->
+        <div th:if="${entries.totalPages > 1}"
+             class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3">
+            <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.first} ? 'disabled'"
+               th:href="@{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number - 1})}"
+               th:text="#{audit.previous}">Previous</a>
+            <span class="small text-body-secondary"
+                  th:text="#{audit.pageOf(${entries.number + 1}, ${entries.totalPages})}">Page 1 of 2</span>
+            <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.last} ? 'disabled'"
+               th:href="@{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number + 1})}"
+               th:text="#{audit.next}">Next</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

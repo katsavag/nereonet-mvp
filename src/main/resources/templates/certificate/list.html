@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{certificate.list.title}">Expiring certificates</title>
+</head>
+<body>
+<main>
+    <div class="mb-4">
+        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+        <h1 class="fw-bold mb-1" th:text="#{certificate.list.heading}">Expiring certificates</h1>
+        <p class="text-body-secondary mb-0" th:text="#{certificate.list.hint}">Expiring within 90 days or expired, soonest first.</p>
+    </div>
+
+    <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
+    <form class="row g-2 align-items-end mb-4" th:action="@{/office/certificates}" method="get">
+        <div class="col-12 col-md-5">
+            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
+            <select id="filterShipId" name="shipId" class="form-select">
+                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
+                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
+                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/certificates}" th:text="#{crew.filter.clear}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{certificate.heading}">Certificates</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${certificates.size()}">0</span>
+        </div>
+
+        <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{certificate.list.empty}">No certificates expire within 90 days.</p>
+
+        <div th:unless="${certificates.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{certificate.expiresOn}">Expires on</th>
+                    <th scope="col" th:text="#{certificate.status}">Status</th>
+                    <th scope="col" th:text="#{certificate.type}">Type</th>
+                    <th scope="col" th:text="#{certificate.number}">Number</th>
+                    <th scope="col" th:text="#{certificate.crewMember}">Crew member</th>
+                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${certificates}">
+                    <td class="text-nowrap" th:text="${#temporals.format(c.expiresOn, 'd MMM yyyy')}">10 Jan 2027</td>
+                    <td><th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block></td>
+                    <td class="fw-semibold" th:text="${c.type}">STCW Basic Safety</td>
+                    <td class="small text-break" th:text="${c.number} ?: '—'">12345</td>
+                    <td>
+                        <span th:text="${c.user.fullName}">Jane Doe</span>
+                        <span th:unless="${c.user.enabled}"
+                              class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis"
+                              th:text="#{user.status.inactive}">Inactive</span>
+                    </td>
+                    <td th:text="${c.user.ship} ? ${c.user.ship.name} : '—'">MV Demo</td>
+                    <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm"
+                           th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
+                           th:text="#{certificate.edit}">Edit</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

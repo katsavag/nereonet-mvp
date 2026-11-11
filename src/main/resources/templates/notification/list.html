@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{notification.title}">Notifications</title>
+</head>
+<body>
+<main>
+    <h1 class="fw-bold mb-4" th:text="#{notification.heading}">Notifications</h1>
+
+    <!-- Newest first. Opening this page marks them as read; readAt is still null for the ones that were new. -->
+    <div class="card form-box">
+        <p th:if="${notifications.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{notification.empty}">No notifications yet.</p>
+
+        <ul th:unless="${notifications.isEmpty()}" class="list-group list-group-flush">
+            <li th:each="n : ${notifications}" class="list-group-item py-3"
+                th:classappend="${n.readAt == null} ? 'list-group-item-primary'">
+                <div class="d-flex align-items-start gap-2">
+                    <div class="flex-grow-1 text-break">
+                        <a th:if="${n.link}" th:href="@{${n.link}}" class="stretched-link link-body-emphasis"
+                           th:text="${n.text}">Your certificate STCW expires in 60 days.</a>
+                        <span th:unless="${n.link}" th:text="${n.text}">Your certificate STCW expires in 60 days.</span>
+                        <div class="small text-body-secondary mt-1">
+                            <time th:replace="~{layout/parts :: localTime(${n.createdAt})}"></time>
+                        </div>
+                    </div>
+                    <span th:if="${n.readAt == null}" class="badge rounded-pill text-bg-primary"
+                          th:text="#{notification.new}">New</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+</main>
+</body>
+</html>

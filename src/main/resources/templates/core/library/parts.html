@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<!-- Library fragments shared by the crew pages (library) and the office pages (officelibrary). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Ship particulars and the items by category. linked: items open /ship/library/{id} (crew only);
+     otherwise (office) each item has an "Edit this item" link.
+     acknowledgedItemIds: for the crew, the ids of the items whose current version they acknowledged
+     (Required items get a badge); null for the office (no badge).
+     acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" next to each Required item,
+     linking to its acknowledgement overview; null for the other crew.
+     particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them. -->
+<th:block th:fragment="content(ship, itemsByCategory, linked, acknowledgedItemIds, acknowledgementCounts, particularsUrl)">
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                <h2 class="h5 fw-bold mb-0" th:text="#{library.particulars}">Ship particulars</h2>
+                <a th:if="${particularsUrl}" class="btn btn-outline-primary btn-sm" th:href="@{${particularsUrl}}"
+                   th:text="#{library.particulars.edit}">Edit ship particulars</a>
+            </div>
+            <p class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
+            <p class="text-body-secondary small mb-0">
+                <span th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
+                <th:block th:if="${ship.flag}">
+                    · <span th:text="#{library.flag(${ship.flag})}">Flag GR</span>
+                </th:block>
+            </p>
+            <div th:if="${ship.particularsText}" class="mt-3 text-break text-pre-line"
+                 th:text="${ship.particularsText}">Particulars</div>
+            <p th:if="${ship.particularsUpdatedAt}" class="text-body-secondary small mt-3 mb-0">
+                <span th:if="${ship.particularsUpdatedBy}"
+                      th:text="#{library.particulars.editedBy(${ship.particularsUpdatedBy.fullName})}">Edited by Jane Doe on</span>
+                <span th:unless="${ship.particularsUpdatedBy}" th:text="#{library.particulars.edited}">Edited on</span>
+                <time th:replace="~{layout/parts :: localTime(${ship.particularsUpdatedAt})}"></time>
+            </p>
+        </div>
+    </div>
+
+    <p th:if="${itemsByCategory.isEmpty()}" class="text-body-secondary" th:text="#{library.empty}">
+        The library is empty.</p>
+
+    <section th:each="entry : ${itemsByCategory}" class="mb-4">
+        <h2 class="h6 fw-bold text-uppercase text-body-secondary mb-2"
+            th:text="#{${'library.category.' + entry.key}}">Ship rules</h2>
+        <div class="list-group">
+            <th:block th:each="item : ${entry.value}"
+                      th:with="counted=${acknowledgementCounts != null and item.required}">
+                <a th:if="${linked and !counted}" th:href="@{/ship/library/{id}(id=${item.id})}"
+                   class="list-group-item list-group-item-action py-3">
+                    <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
+                </a>
+                <!-- The Master's Required items: the item link and the count link side by side (links cannot nest). -->
+                <div th:if="${linked and counted}"
+                     class="list-group-item py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <a class="text-reset text-decoration-none flex-grow-1" th:href="@{/ship/library/{id}(id=${item.id})}">
+                        <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
+                    </a>
+                    <a class="small fw-semibold" th:href="@{/ship/library/{id}/acknowledgements(id=${item.id})}"
+                       th:text="#{library.acknowledgements.count(${acknowledgementCounts.of(item.id)}, ${acknowledgementCounts.crew})}">12 of 20 acknowledged</a>
+                </div>
+                <div th:unless="${linked}"
+                     class="list-group-item py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
+                        <a th:if="${counted}" class="d-inline-block small fw-semibold mt-1"
+                           th:href="@{/office/ships/{shipId}/library/{id}/acknowledgements(shipId=${ship.id}, id=${item.id})}"
+                           th:text="#{library.acknowledgements.count(${acknowledgementCounts.of(item.id)}, ${acknowledgementCounts.crew})}">12 of 20 acknowledged</a>
+                    </div>
+                    <a class="btn btn-outline-primary btn-sm"
+                       th:href="@{/office/ships/{shipId}/library/{id}/edit(shipId=${ship.id}, id=${item.id})}"
+                       th:text="#{library.edit}">Edit this item</a>
+                </div>
+            </th:block>
+        </div>
+    </section>
+</th:block>
+
+<!-- Title, version and, for the crew, the acknowledgement badge of a Required item. -->
+<th:block th:fragment="itemSummary(item, acknowledgedItemIds)">
+    <div class="fw-semibold text-break" th:text="${item.title}">Garbage management plan</div>
+    <div class="small text-body-secondary"
+         th:text="#{library.version(${item.currentVersion.versionLabel})}">Version 1</div>
+    <th:block th:if="${acknowledgedItemIds != null and item.required}">
+        <span th:if="${acknowledgedItemIds.contains(item.id)}"
+              class="badge rounded-pill bg-success-subtle text-success-emphasis mt-2"
+              th:text="#{library.required.acknowledged}">Required · acknowledged</span>
+        <span th:unless="${acknowledgedItemIds.contains(item.id)}"
+              class="badge rounded-pill text-bg-warning mt-2"
+              th:text="#{library.required.toAcknowledge}">Required · to acknowledge</span>
+    </th:block>
+</th:block>
+
+<!-- Acknowledgement overview of a Required item. Needs ${overview} (AcknowledgementOverview). -->
+<th:block th:fragment="acknowledgements(backUrl)" th:with="item=${overview.item}">
+    <p class="mb-2"><a th:href="@{${backUrl}}" th:text="#{library.back}">← Library</a></p>
+    <p class="eyebrow mb-1" th:text="#{library.acknowledgements.heading}">Acknowledgements</p>
+    <h1 class="fw-bold mb-1 text-break" th:text="${item.title}">Garbage management plan</h1>
+    <p class="text-body-secondary small mb-4">
+        <span th:text="#{library.version(${item.currentVersion.versionLabel})}">Version 1</span>
+        · <span th:text="#{library.acknowledgements.hint}">Enabled crew on board now, for the current version.</span>
+    </p>
+
+    <section class="mb-4">
+        <h2 class="h6 fw-bold mb-2"
+            th:text="#{library.acknowledgements.acknowledged(${overview.acknowledged.size()})}">Acknowledged (1)</h2>
+        <p th:if="${overview.acknowledged.isEmpty()}" class="text-body-secondary"
+           th:text="#{library.acknowledgements.noneAcknowledged}">Nobody has acknowledged this version yet.</p>
+        <ul th:unless="${overview.acknowledged.isEmpty()}" class="list-group">
+            <li th:each="a : ${overview.acknowledged}"
+                class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <div class="fw-semibold text-break" th:text="${a.user.fullName}">Jane Doe</div>
+                    <div class="small text-body-secondary" th:text="#{${'role.' + a.user.role}}">Crew member</div>
+                </div>
+                <span class="small"><time th:replace="~{layout/parts :: localTime(${a.acknowledgedAt})}"></time></span>
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="h6 fw-bold mb-2"
+            th:text="#{library.acknowledgements.notYet(${overview.notAcknowledged.size()})}">Not yet acknowledged (1)</h2>
+        <p th:if="${overview.notAcknowledged.isEmpty()}" class="text-body-secondary"
+           th:text="#{library.acknowledgements.allAcknowledged}">Everyone on board has acknowledged this version.</p>
+        <ul th:unless="${overview.notAcknowledged.isEmpty()}" class="list-group">
+            <li th:each="u : ${overview.notAcknowledged}" class="list-group-item">
+                <div class="fw-semibold text-break" th:text="${u.fullName}">John Doe</div>
+                <div class="small text-body-secondary" th:text="#{${'role.' + u.role}}">Crew member</div>
+            </li>
+        </ul>
+    </section>
+</th:block>
+
+<!-- "Retire this item" button and its confirmation modal, which posts to action. -->
+<th:block th:fragment="retire(action)">
+    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#retireModal"
+            th:text="#{library.retire}">Retire this item</button>
+    <div class="modal fade" id="retireModal" tabindex="-1" aria-labelledby="retireModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" method="post" th:action="@{${action}}">
+                <div class="modal-header">
+                    <h2 class="modal-title h5 fw-bold" id="retireModalTitle"
+                        th:text="#{library.retire.heading}">Retire this item?</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            th:attr="aria-label=#{common.close}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" th:text="#{library.retire.text}">Crew will no longer see it. This is final.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                            th:text="#{library.form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-danger" th:text="#{library.retire.submit}">Retire</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</th:block>
+
+<!-- The "Add an item" form. Needs ${form} and ${categories}. ?fileTooLarge comes from UploadTooLargeFilter. -->
+<form th:fragment="itemForm(action, cancelUrl)" th:object="${form}" method="post" enctype="multipart/form-data"
+      th:action="@{${action}}" novalidate>
+    <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+        <p th:each="error : ${#fields.globalErrors()}" class="mb-0" th:text="${error}">The library is full.</p>
+    </div>
+    <div class="mb-3">
+        <label for="title" class="form-label fw-semibold" th:text="#{library.form.title}">Title</label>
+        <input type="text" th:field="*{title}" class="form-control" th:errorclass="is-invalid"
+               autocomplete="off" required>
+        <div class="invalid-feedback" th:errors="*{title}"></div>
+    </div>
+    <div class="mb-3">
+        <label for="category" class="form-label fw-semibold" th:text="#{library.form.category}">Category</label>
+        <select th:field="*{category}" class="form-select" th:errorclass="is-invalid" required>
+            <option value="" th:text="#{library.form.categoryChoose}">Choose a category</option>
+            <option th:each="c : ${categories}" th:value="${c}" th:text="#{${'library.category.' + c}}">Ship rules</option>
+        </select>
+        <div class="invalid-feedback" th:errors="*{category}"></div>
+    </div>
+    <div class="mb-3">
+        <label for="versionLabel" class="form-label fw-semibold" th:text="#{library.form.versionLabel}">Version label</label>
+        <input type="text" th:field="*{versionLabel}" class="form-control" th:errorclass="is-invalid"
+               autocomplete="off" aria-describedby="versionLabelHint" required>
+        <div class="invalid-feedback" th:errors="*{versionLabel}"></div>
+        <div id="versionLabelHint" class="form-text" th:text="#{library.form.versionLabelHint}">For example 1 or 2026-10.</div>
+    </div>
+    <fieldset class="mb-3">
+        <legend class="form-label fs-6 fw-semibold" th:text="#{library.form.required}">Must the crew read it?</legend>
+        <div class="form-check">
+            <input type="radio" th:field="*{required}" value="true" class="form-check-input">
+            <label class="form-check-label" th:for="${#ids.prev('required')}" th:text="#{library.form.requiredYes}">Required</label>
+        </div>
+        <div class="form-check">
+            <input type="radio" th:field="*{required}" value="false" class="form-check-input">
+            <label class="form-check-label" th:for="${#ids.prev('required')}" th:text="#{library.form.requiredNo}">Not required</label>
+        </div>
+    </fieldset>
+    <fieldset class="mb-4">
+        <legend class="form-label fs-6 fw-semibold mb-1" th:text="#{library.form.content}">Content</legend>
+        <p class="form-text mt-0" th:text="#{library.form.contentHint}">Write text or attach a file, not both.</p>
+        <div th:if="${#fields.hasErrors('contentValid')}" class="invalid-feedback d-block mb-2"
+             th:errors="*{contentValid}"></div>
+        <div class="mb-3">
+            <label for="text" class="form-label" th:text="#{library.form.text}">Write text</label>
+            <textarea th:field="*{text}" class="form-control" rows="8"
+                      th:classappend="${#fields.hasErrors('contentValid')} ? 'is-invalid'"></textarea>
+        </div>
+        <div>
+            <label for="file" class="form-label" th:text="#{library.form.file}">Attach a file</label>
+            <input type="file" id="file" name="file" class="form-control" accept=".pdf,.docx,.xlsx"
+                   aria-describedby="fileHint"
+                   th:classappend="${param.fileTooLarge != null or #fields.hasErrors('contentValid') or #fields.hasErrors('fileTypeAllowed') or #fields.hasErrors('fileSizeAllowed')} ? 'is-invalid'">
+            <div class="invalid-feedback" th:errors="*{fileTypeAllowed}"></div>
+            <div class="invalid-feedback" th:errors="*{fileSizeAllowed}"></div>
+            <div th:if="${param.fileTooLarge != null}" class="invalid-feedback" th:text="#{library.error.fileTooLarge}">
+                The file is larger than 10 MB.</div>
+            <div id="fileHint" class="form-text" th:text="#{library.form.fileHint}">PDF, DOCX or XLSX, at most 10 MB.</div>
+        </div>
+    </fieldset>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.form.save}">Add item</button>
+        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+    </div>
+</form>
+
+<!-- The "Publish new version" form. Needs ${item} and ${form} (text pre-filled with the current text).
+     ?fileTooLarge comes from UploadTooLargeFilter. -->
+<form th:fragment="versionForm(action, cancelUrl)" th:object="${form}" method="post" enctype="multipart/form-data"
+      th:action="@{${action}}" novalidate th:with="current=${item.currentVersion}">
+    <dl class="mb-3">
+        <dt class="fw-semibold" th:text="#{library.form.title}">Title</dt>
+        <dd class="text-break" th:text="${item.title}">Garbage management plan</dd>
+        <dt class="fw-semibold" th:text="#{library.form.category}">Category</dt>
+        <dd th:text="#{${'library.category.' + item.category}}">Ship rules</dd>
+        <dt class="fw-semibold" th:text="#{library.form.currentVersion}">Current version</dt>
+        <dd class="mb-0" th:text="${current.versionLabel}">1</dd>
+    </dl>
+    <div class="mb-3">
+        <label for="versionLabel" class="form-label fw-semibold" th:text="#{library.form.newVersionLabel}">New version label</label>
+        <input type="text" th:field="*{versionLabel}" class="form-control" th:errorclass="is-invalid"
+               autocomplete="off" aria-describedby="versionLabelHint" required>
+        <div class="invalid-feedback" th:errors="*{versionLabel}"></div>
+        <div id="versionLabelHint" class="form-text" th:text="#{library.form.newVersionLabelHint}">Must be different from the current one.</div>
+    </div>
+    <fieldset class="mb-4">
+        <legend class="form-label fs-6 fw-semibold mb-1" th:text="#{library.form.content}">Content</legend>
+        <p class="form-text mt-0" th:text="#{library.form.contentHint}">Write text or attach a file, not both.</p>
+        <p th:if="${current.file}" class="mb-3 text-break">
+            <span th:text="#{library.form.currentFile}">Current file:</span>
+            <span class="fw-semibold" th:text="${current.fileName}">plan.pdf</span>
+        </p>
+        <div th:if="${#fields.hasErrors('contentValid')}" class="invalid-feedback d-block mb-2"
+             th:errors="*{contentValid}"></div>
+        <div class="mb-3">
+            <label for="text" class="form-label" th:text="#{library.form.newText}">New text</label>
+            <textarea th:field="*{text}" class="form-control" rows="8"
+                      th:classappend="${#fields.hasErrors('contentValid')} ? 'is-invalid'"></textarea>
+        </div>
+        <div>
+            <label for="file" class="form-label" th:text="#{library.form.newFile}">New file to attach</label>
+            <input type="file" id="file" name="file" class="form-control" accept=".pdf,.docx,.xlsx"
+                   aria-describedby="fileHint"
+                   th:classappend="${param.fileTooLarge != null or #fields.hasErrors('contentValid') or #fields.hasErrors('fileTypeAllowed') or #fields.hasErrors('fileSizeAllowed')} ? 'is-invalid'">
+            <div class="invalid-feedback" th:errors="*{fileTypeAllowed}"></div>
+            <div class="invalid-feedback" th:errors="*{fileSizeAllowed}"></div>
+            <div th:if="${param.fileTooLarge != null}" class="invalid-feedback" th:text="#{library.error.fileTooLarge}">
+                The file is larger than 10 MB.</div>
+            <div id="fileHint" class="form-text" th:text="#{library.form.fileHint}">PDF, DOCX or XLSX, at most 10 MB.</div>
+        </div>
+    </fieldset>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.form.publish}">Publish new version</button>
+        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+    </div>
+</form>
+
+<!-- The "Edit ship particulars" form. Needs ${ship} and ${form}. -->
+<form th:fragment="particularsForm(action, cancelUrl)" th:object="${form}" method="post"
+      th:action="@{${action}}" novalidate>
+    <dl class="mb-3">
+        <dt class="fw-semibold" th:text="#{ship.code}">IMO number</dt>
+        <dd th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</dd>
+        <dt class="fw-semibold" th:text="#{ship.flag}">Flag</dt>
+        <dd class="mb-0" th:text="${ship.flag} ?: '—'">GR</dd>
+    </dl>
+    <div class="mb-4">
+        <label for="text" class="form-label fw-semibold" th:text="#{library.particulars}">Ship particulars</label>
+        <textarea th:field="*{text}" class="form-control" rows="12" th:errorclass="is-invalid"
+                  aria-describedby="particularsHint"></textarea>
+        <div class="invalid-feedback" th:errors="*{text}"></div>
+        <div id="particularsHint" class="form-text" th:text="#{library.particulars.hint}">
+            Dimensions, tonnages, engine and other details. The IMO number and flag come from the ship record.</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.particulars.save}">Save</button>
+        <a class="btn btn-outline-secondary btn-lg" th:href="@{${cancelUrl}}" th:text="#{library.form.cancel}">Cancel</a>
+    </div>
+</form>
+
+</body>
+</html>

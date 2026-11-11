@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{request.number(${request.id})}">Request #12</title>
+</head>
+<body>
+<main>
+    <p class="mb-2"><a th:href="@{/office/requests}" th:text="#{request.back}">← Approved requests</a></p>
+    <p class="eyebrow mb-1" th:text="${request.ship.name} + ' · ' + #{ship.codeValue(${request.ship.imoNumber})}">MV Demo · IMO 9074729</p>
+    <h1 class="fw-bold mb-4" th:text="#{request.number(${request.id})}">#12</h1>
+
+    <div class="card mb-4">
+        <dl class="card-body row mb-0">
+            <dt class="col-sm-4 col-lg-3" th:text="#{request.requestedBy}">Requested by</dt>
+            <dd class="col-sm-8 col-lg-9">
+                <span th:text="${request.requestedBy} ? ${request.requestedBy.fullName} : #{audit.deletedUser}">Jane Doe</span>
+                · <time th:replace="~{layout/parts :: localTime(${request.createdAt})}"></time>
+            </dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{request.approvedBy}">Approved by</dt>
+            <dd class="col-sm-8 col-lg-9">
+                <span th:text="${request.decidedBy} ? ${request.decidedBy.fullName} : #{audit.deletedUser}">John Smith</span>
+                · <time th:replace="~{layout/parts :: localTime(${request.decidedAt})}"></time>
+            </dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{request.exported}">Exported</dt>
+            <dd class="col-sm-8 col-lg-9 mb-0">
+                <th:block th:if="${request.exportedAt}">
+                    <time th:replace="~{layout/parts :: localTime(${request.exportedAt})}"></time>
+                </th:block>
+                <span th:unless="${request.exportedAt}" th:text="#{request.notExported}">Not yet</span>
+            </dd>
+        </dl>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{request.lines}">Items</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${request.lines.size()}">0</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" th:text="#{item.category}">Category</th>
+                    <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                    <th scope="col" th:text="#{item.unit}">Unit</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="line : ${request.lines}">
+                    <td class="fw-semibold" th:text="${line.item.name}">Basmati rice</td>
+                    <td th:text="${line.item.category} ?: '—'">Dry goods</td>
+                    <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
+                    <td th:text="${line.item.unit}">kg</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

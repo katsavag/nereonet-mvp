@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{itemImport.review.title}">Review item import</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
+            <h1 class="fw-bold mb-0" th:text="#{itemImport.review.heading}">Review item import</h1>
+        </div>
+        <a class="btn btn-outline-secondary" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}"
+           th:text="#{itemImport.review.uploadAnother}">Upload another file</a>
+    </div>
+
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-auto">
+            <div class="card h-100"><div class="card-body py-2 px-3">
+                <div class="small text-body-secondary" th:text="#{itemImport.review.found}">Rows found</div>
+                <div class="fs-4 fw-bold" th:text="${itemImport.rows.size()}">10</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-auto">
+            <div class="card h-100"><div class="card-body py-2 px-3">
+                <div class="small text-body-secondary" th:text="#{itemImport.review.withErrors}">Rows with errors</div>
+                <div class="fs-4 fw-bold" th:classappend="${itemImport.errorCount > 0} ? 'text-danger'"
+                     th:text="${itemImport.errorCount}">0</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-auto">
+            <div class="card h-100"><div class="card-body py-2 px-3">
+                <div class="small text-body-secondary" th:text="#{itemImport.review.existing}">Already on the ship</div>
+                <div class="fs-4 fw-bold" th:text="${itemImport.skippedRows.size()}">0</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-auto">
+            <div class="card h-100"><div class="card-body py-2 px-3">
+                <div class="small text-body-secondary" th:text="#{itemImport.review.excluded}">Rows excluded</div>
+                <div class="fs-4 fw-bold" th:text="${itemImport.excludedCount}">0</div>
+            </div></div>
+        </div>
+    </div>
+
+    <p th:if="${itemImport.rows.isEmpty()}" class="alert alert-warning" th:text="#{itemImport.review.empty}">
+        The file has no items.</p>
+
+    <form th:action="@{/office/ships/{id}/items/import/check(id=${ship.id})}" th:object="${itemImport}" method="post" novalidate>
+        <div class="card mb-3">
+            <p class="card-header bg-transparent small text-body-secondary py-3 mb-0" th:text="#{itemImport.review.hint}">
+                Correct the highlighted cells or exclude those rows, then check again.</p>
+            <!-- Scrolls horizontally inside the card on narrow screens. -->
+            <div class="table-responsive">
+                <table class="table align-top mb-0 import-table">
+                    <thead>
+                    <tr class="small text-body-secondary">
+                        <th scope="col" th:text="#{itemImport.review.row}">Row</th>
+                        <th scope="col" th:text="#{itemImport.review.exclude}">Exclude</th>
+                        <th scope="col" th:text="#{item.name}">Name</th>
+                        <th scope="col" th:text="#{item.unit}">Unit</th>
+                        <th scope="col" th:text="#{item.category}">Category</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row, stat : *{rows}" th:classappend="${row.excluded} ? 'opacity-50'">
+                        <td class="font-monospace small pt-3" th:text="${row.rowNumber}">2</td>
+                        <td class="pt-3">
+                            <input type="checkbox" class="form-check-input" th:field="*{rows[__${stat.index}__].excluded}"
+                                   th:attr="aria-label=#{itemImport.review.excludeRow(${row.rowNumber})}">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].name}"
+                                   th:classappend="${row.errors['name']} ? 'is-invalid'" autocomplete="off">
+                            <div class="invalid-feedback" th:if="${row.errors['name']}"
+                                 th:text="#{${row.errors['name']}}"></div>
+                            <div class="form-text text-warning-emphasis" th:if="${row.existing and !row.excluded}"
+                                 th:text="#{itemImport.review.willSkip}">The ship already has this item. This row is skipped.</div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].unit}"
+                                   th:classappend="${row.errors['unit']} ? 'is-invalid'" autocomplete="off">
+                            <div class="invalid-feedback" th:if="${row.errors['unit']}"
+                                 th:text="#{${row.errors['unit']}}"></div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].category}"
+                                   th:classappend="${row.errors['category']} ? 'is-invalid'" autocomplete="off">
+                            <div class="invalid-feedback" th:if="${row.errors['category']}"
+                                 th:text="#{${row.errors['category']}}"></div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-outline-secondary" th:text="#{itemImport.review.check}">Check again</button>
+            <button type="submit" class="btn btn-primary" th:formaction="@{/office/ships/{id}/items/import/submit(id=${ship.id})}"
+                    th:disabled="${!itemImport.ready}" th:text="#{itemImport.review.submit}">Import items</button>
+        </div>
+        <p th:unless="${itemImport.ready}" class="small text-body-secondary mt-2 mb-0"
+           th:text="#{itemImport.review.submitHint}">Import items is available when no included row has errors.</p>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{registration.title}">Create your account</title>
+</head>
+<body>
+<!-- Same split screen as the sign-in page. No language switch: its links would drop the token. -->
+<main class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
+    <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
+        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
+    </div>
+
+    <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
+        <div class="login-box w-100 py-4">
+            <p class="eyebrow mb-1" th:text="#{registration.eyebrow}">Create account</p>
+            <h1 class="fw-bold mb-4" th:text="#{registration.heading}">Set your password</h1>
+
+            <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+                <input type="hidden" th:field="*{token}">
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold" th:text="#{registration.email}">Email</label>
+                    <input type="email" id="email" class="form-control form-control-lg"
+                           th:value="${invitation.email}" autocomplete="username" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="fullName" class="form-label fw-semibold" th:text="#{registration.fullName}">Full name</label>
+                    <input type="text" id="fullName" class="form-control form-control-lg"
+                           th:value="${invitation.fullName}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-semibold" th:text="#{registration.password}">Password</label>
+                    <input type="password" th:field="*{password}" class="form-control form-control-lg"
+                           th:errorclass="is-invalid" autocomplete="new-password" required autofocus>
+                    <div class="invalid-feedback" th:errors="*{password}"></div>
+                    <div class="form-text" th:text="#{registration.passwordHint}">At least 8 characters.</div>
+                </div>
+                <div class="mb-4">
+                    <label for="confirmPassword" class="form-label fw-semibold"
+                           th:text="#{registration.confirmPassword}">Repeat password</label>
+                    <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
+                           th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
+                           autocomplete="new-password" required>
+                    <div class="invalid-feedback" th:errors="*{passwordConfirmed}"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

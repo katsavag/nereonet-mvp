@@ -1,0 +1,27 @@
+# Development defaults. Matches docker-compose.yml.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nereonet_mvp
+    username:
+    password:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    password:
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      # Never fall back to plain text.
+      mail.smtp.starttls.required: true
+app:
+  base-url: http://localhost:8080
+  mail:
+    from: noreply@nereonet.local
+  invitation:
+    jwt-secret: dev-only-invitation-secret-change-me-0123456789
+  bootstrap:
+    office-email: office@example.com
+    office-password: office123
+  library:
+    storage-dir: ./data/library

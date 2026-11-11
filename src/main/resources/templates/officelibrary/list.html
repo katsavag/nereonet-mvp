@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{library.title}">Library</title>
+</head>
+<body>
+<main>
+    <p class="mb-2"><a th:href="@{/office/ships}" th:text="#{library.backToShips}">← Ships</a></p>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
+            <h1 class="fw-bold mb-0" th:text="#{library.heading}">Library</h1>
+        </div>
+        <a class="btn btn-primary btn-lg" th:href="@{/office/ships/{id}/library/new(id=${ship.id})}"
+           th:text="#{library.add}">Add an item</a>
+    </div>
+
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false, null, ${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'})}"></th:block>
+</main>
+</body>
+</html>

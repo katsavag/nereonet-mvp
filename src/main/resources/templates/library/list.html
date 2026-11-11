@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{library.title}">Library</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
+            <h1 class="fw-bold mb-0" th:text="#{library.heading}">Library</h1>
+        </div>
+        <a sec:authorize="hasRole('MASTER')" class="btn btn-primary btn-lg" th:href="@{/ship/library/new}"
+           th:text="#{library.add}">Add an item</a>
+    </div>
+
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, ${acknowledgedItemIds}, ${acknowledgementCounts}, ${#authorization.expression('hasRole(''MASTER'')')} ? '/ship/library/particulars' : null)}"></th:block>
+</main>
+</body>
+</html>

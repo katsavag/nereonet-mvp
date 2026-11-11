@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{login.title}">Sign in</title>
+</head>
+<body>
+<main class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
+    <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
+        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
+    </div>
+
+    <div class="col-md-7 col-lg-8 d-flex flex-column p-3 p-md-4">
+        <div class="text-end">
+            <div th:replace="~{layout/parts :: langSwitch('link-secondary link-underline-opacity-0')}"></div>
+        </div>
+
+        <div class="flex-grow-1 d-flex align-items-md-center justify-content-center">
+            <div class="login-box w-100 py-4">
+                <p class="eyebrow mb-1" th:text="#{login.eyebrow}">Sign in</p>
+                <h1 class="fw-bold mb-4" th:text="#{login.heading}">Sign in</h1>
+
+                <div th:if="${param.error}" class="alert alert-danger" role="alert" th:text="#{login.error}">
+                    Wrong email or password.
+                </div>
+
+                <form th:action="@{/login}" method="post">
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold" th:text="#{login.email}">Email</label>
+                        <input type="email" id="email" name="email" class="form-control form-control-lg"
+                               autocomplete="username" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold" th:text="#{login.password}">Password</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg"
+                               autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{login.submit}">Continue</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

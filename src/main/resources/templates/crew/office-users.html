@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{users.list.title}">Office users</title>
+</head>
+<body>
+<main>
+    <div class="mb-4">
+        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+        <h1 class="fw-bold mb-0" th:text="#{users.list.heading}">Office users</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{users.list.heading}">Office users</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${users.size()}">0</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{user.fullName}">Full name</th>
+                    <th scope="col" th:text="#{user.email}">Email</th>
+                    <th scope="col" th:text="#{user.status}">Status</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${users}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
+                    <td class="fw-semibold" th:text="${u.fullName}">John Doe</td>
+                    <td class="small text-break" th:text="${u.email}">office@example.com</td>
+                    <td th:insert="~{crew/parts :: status(${u.enabled})}"></td>
+                    <td>
+                        <!-- A user cannot deactivate themselves. -->
+                        <div th:unless="${u.email == #authentication.name}" class="d-flex justify-content-end gap-2">
+                            <div th:replace="~{crew/parts :: enableButton(${u})}"></div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

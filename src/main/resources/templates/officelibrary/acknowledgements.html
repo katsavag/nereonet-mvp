@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{library.acknowledgements.heading}">Acknowledgements</title>
+</head>
+<body>
+<main>
+    <th:block th:replace="~{core/library/parts :: acknowledgements(${'/office/ships/' + overview.item.ship.id + '/library'})}"></th:block>
+</main>
+</body>
+</html>

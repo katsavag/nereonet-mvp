@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Fragments for the crew and office user lists. -->
+
+<span th:fragment="status(enabled)" class="badge rounded-pill"
+      th:classappend="${enabled} ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'"
+      th:text="${enabled} ? #{user.status.active} : #{user.status.inactive}">Active</span>
+
+<!-- Deactivate an active user; activate or delete an inactive one. -->
+<th:block th:fragment="enableButton(u)">
+    <form th:if="${u.enabled}" th:action="@{/office/users/{id}/deactivate(id=${u.id})}" method="post">
+        <button type="submit" class="btn btn-outline-danger btn-sm" th:text="#{user.deactivate}">Deactivate</button>
+    </form>
+    <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/activate(id=${u.id})}" method="post">
+        <button type="submit" class="btn btn-outline-primary btn-sm" th:text="#{user.activate}">Activate</button>
+    </form>
+    <!-- Deleting cannot be undone, so the browser asks first. -->
+    <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/delete(id=${u.id})}" method="post"
+          th:data-confirm="#{user.delete.confirm(${u.email})}" onsubmit="return confirm(this.dataset.confirm)">
+        <button type="submit" class="btn btn-danger btn-sm" th:text="#{user.delete}">Delete</button>
+    </form>
+</th:block>
+
+</body>
+</html>

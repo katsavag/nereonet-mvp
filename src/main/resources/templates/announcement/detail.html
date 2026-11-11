@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${announcement.title}">Announcement</title>
+</head>
+<body>
+<main>
+    <p class="mb-2"><a th:href="@{/office/announcements}" th:text="#{announcement.back}">← Announcements</a></p>
+    <p class="eyebrow mb-1" th:text="${announcement.fleet} ? #{announcement.target.fleet} : ${announcement.ship.name}">MV Demo</p>
+    <h1 class="fw-bold mb-1 text-break" th:text="${announcement.title}">Safety drill</h1>
+    <p class="text-body-secondary small mb-4">
+        <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
+        ·
+        <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
+    </p>
+
+    <div class="card mb-4">
+        <div class="card-body text-break text-pre-line" th:text="${announcement.body}">Message text</div>
+    </div>
+
+    <!-- Acknowledged -->
+    <div id="acknowledged" class="card mb-4">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{announcement.acknowledged}">Acknowledged</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${recipients.acknowledged.size()}">0</span>
+        </div>
+        <p th:if="${recipients.acknowledged.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{announcement.acknowledged.empty}">Nobody has acknowledged it yet.</p>
+        <div th:unless="${recipients.acknowledged.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{announcement.recipient.name}">Name</th>
+                    <th scope="col" th:text="#{announcement.recipient.role}">Role</th>
+                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                    <th scope="col" th:text="#{announcement.recipient.acknowledgedAt}">Acknowledged at</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${recipients.acknowledged}">
+                    <td class="fw-semibold" th:text="${r.user.fullName}">Jane Doe</td>
+                    <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
+                    <td th:text="${r.ship.name}">MV Demo</td>
+                    <td><time th:replace="~{layout/parts :: localTime(${r.acknowledgedAt})}"></time></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Not yet acknowledged -->
+    <div id="pending" class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{announcement.pending}">Not yet acknowledged</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${recipients.pending.size()}">0</span>
+        </div>
+        <p th:if="${recipients.pending.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{announcement.pending.empty}">Everyone has acknowledged it.</p>
+        <div th:unless="${recipients.pending.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{announcement.recipient.name}">Name</th>
+                    <th scope="col" th:text="#{announcement.recipient.role}">Role</th>
+                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${recipients.pending}">
+                    <td class="fw-semibold" th:text="${r.user.fullName}">John Doe</td>
+                    <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
+                    <td th:text="${r.ship.name}">MV Demo</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

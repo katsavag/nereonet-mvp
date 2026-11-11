@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{announcement.list.title}">Announcements</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+            <h1 class="fw-bold mb-1" th:text="#{announcement.list.heading}">Announcements</h1>
+            <p class="text-body-secondary mb-0" th:text="#{announcement.list.hint}">Newest first.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/office/announcements/new}" th:text="#{announcement.new}">New announcement</a>
+    </div>
+
+    <!-- Filter by ship: that ship's announcements and the ones to all ships. -->
+    <form class="row g-2 align-items-end mb-4" th:action="@{/office/announcements}" method="get">
+        <div class="col-12 col-md-5">
+            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
+            <select id="filterShipId" name="shipId" class="form-select">
+                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
+                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
+                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/announcements}" th:text="#{crew.filter.clear}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card">
+        <p th:if="${rows.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{announcement.list.empty}">No announcements yet.</p>
+
+        <div th:unless="${rows.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{announcement.title}">Title</th>
+                    <th scope="col" th:text="#{announcement.target}">Target</th>
+                    <th scope="col" th:text="#{announcement.sentAt}">Sent</th>
+                    <th scope="col" th:text="#{announcement.acknowledgements}">Acknowledged</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}" th:with="a=${row.announcement}">
+                    <td class="fw-semibold text-break">
+                        <a th:href="@{/office/announcements/{id}(id=${a.id})}" th:text="${a.title}">Safety drill</a>
+                    </td>
+                    <td th:text="${a.fleet} ? #{announcement.target.fleet} : ${a.ship.name}">MV Demo</td>
+                    <td><time th:replace="~{layout/parts :: localTime(${a.createdAt})}"></time></td>
+                    <td class="text-nowrap"
+                        th:text="#{announcement.count(${row.acknowledged}, ${row.recipients})}">12 of 20 acknowledged</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

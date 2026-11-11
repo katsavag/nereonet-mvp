@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{crew.list.title}">Crew</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+            <h1 class="fw-bold mb-0" th:text="#{crew.list.heading}">Crew</h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addCrewModal"
+                    th:text="#{crew.list.add}">Add crew member</button>
+            <a class="btn btn-outline-secondary btn-lg" th:href="@{/office/crew/import}"
+               th:text="#{crew.list.import}">Import from file</a>
+        </div>
+    </div>
+
+    <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
+    <form class="row g-2 align-items-end mb-4" th:action="@{/office/crew}" method="get">
+        <div class="col-12 col-md-5">
+            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
+            <select id="filterShipId" name="shipId" class="form-select">
+                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
+                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
+                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{crew.list.heading}">Crew</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${crew.size() + invited.size()}">0</span>
+        </div>
+
+        <p th:if="${crew.isEmpty() and invited.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{crew.list.empty}">No crew members found.</p>
+
+        <div th:unless="${crew.isEmpty() and invited.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{user.fullName}">Full name</th>
+                    <th scope="col" th:text="#{user.email}">Email</th>
+                    <th scope="col" th:text="#{user.rank}">Rank</th>
+                    <th scope="col" th:text="#{user.role}">Role</th>
+                    <th scope="col" th:text="#{user.ship}">Ship</th>
+                    <th scope="col" th:text="#{user.status}">Status</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- Pending invitations: no account yet, so nothing to edit or deactivate. -->
+                <tr th:each="inv : ${invited}">
+                    <td class="fw-semibold" th:text="${inv.fullName}">Jane Doe</td>
+                    <td class="small text-break" th:text="${inv.email}">jane@example.com</td>
+                    <td th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</td>
+                    <td class="text-nowrap" th:text="#{${'role.' + inv.role}}">Crew member</td>
+                    <td th:text="${inv.ship.name}">MV Demo</td>
+                    <td>
+                        <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis"
+                              th:text="#{crew.status.invited}">Invited</span>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr th:each="u : ${crew}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
+                    <td class="fw-semibold" th:text="${u.fullName}">Jane Doe</td>
+                    <td class="small text-break" th:text="${u.email}">jane@example.com</td>
+                    <td th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</td>
+                    <td class="text-nowrap" th:text="#{${'role.' + u.role}}">Crew member</td>
+                    <td th:text="${u.ship.name}">MV Demo</td>
+                    <td th:insert="~{crew/parts :: status(${u.enabled})}"></td>
+                    <td>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/crew/{id}/edit(id=${u.id})}"
+                               th:text="#{user.edit}">Edit</a>
+                            <div th:replace="~{crew/parts :: enableButton(${u})}"></div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add crew member: sends an invitation. Full screen on phones. -->
+    <div class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <form class="modal-content" th:action="@{/office/crew/new}" th:object="${addForm}" method="post" novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5 fw-bold" id="addCrewModalTitle"
+                        th:text="#{crew.add.heading}">Add crew member</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            th:attr="aria-label=#{common.close}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label fw-semibold" th:text="#{user.fullName}">Full name</label>
+                        <input type="text" th:field="*{fullName}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" required>
+                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold" th:text="#{user.email}">Email</label>
+                        <input type="email" th:field="*{email}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" required>
+                        <div class="invalid-feedback" th:errors="*{email}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rank" class="form-label fw-semibold" th:text="#{user.rank}">Rank</label>
+                        <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
+                            <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
+                            <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{rank}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label fw-semibold" th:text="#{user.role}">Role</label>
+                        <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
+                            <option value="" th:text="#{invitation.form.chooseRole}">Choose a role</option>
+                            <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{role}"></div>
+                    </div>
+                    <div>
+                        <label for="shipId" class="form-label fw-semibold" th:text="#{user.ship}">Ship</label>
+                        <select th:field="*{shipId}" class="form-select" th:errorclass="is-invalid" required>
+                            <option value="" th:text="#{crew.edit.chooseShip}">Choose a ship</option>
+                            <option th:each="s : ${activeShips}" th:value="${s.id}"
+                                    th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{shipId}"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                            th:text="#{crew.form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
+                </div>
+
+                <!-- The form was posted with errors: open the modal again so they are visible. -->
+                <script th:if="${#fields.hasAnyErrors()}">
+                    document.addEventListener('DOMContentLoaded',
+                        () => bootstrap.Modal.getOrCreateInstance('#addCrewModal').show());
+                </script>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

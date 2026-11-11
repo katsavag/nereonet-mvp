@@ -1,0 +1,93 @@
+/* The only custom CSS file. Prefer Bootstrap utilities. Colours follow the mocks. */
+:root {
+    --nn-navy: #10223a;
+    --nn-blue: #0d4a7a;
+    --nn-blue-dark: #0a3a60;
+    --nn-cream: #f4f1ea;
+    --nn-accent: #a3247f;
+    --bs-body-bg: var(--nn-cream);
+    --bs-body-color: #13202f;
+    --bs-primary: #0d4a7a;
+    --bs-primary-rgb: 13, 74, 122;
+    --bs-link-color-rgb: 13, 74, 122;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--nn-blue);
+    --bs-btn-border-color: var(--nn-blue);
+    --bs-btn-hover-bg: var(--nn-blue-dark);
+    --bs-btn-hover-border-color: var(--nn-blue-dark);
+    --bs-btn-active-bg: var(--nn-blue-dark);
+    --bs-btn-active-border-color: var(--nn-blue-dark);
+    font-weight: 600;
+}
+
+.form-control { background-color: #fffdf8; }
+.card { --bs-card-bg: #fffdf8; }
+
+.bg-navy { background-color: var(--nn-navy); }
+
+/* Faint grid on the login side panel */
+.bg-grid {
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .05) 1px, transparent 1px);
+    background-size: 37px 37px;
+}
+
+/* Small spaced-out uppercase label above headings */
+.eyebrow {
+    font-family: var(--bs-font-monospace);
+    font-size: .8rem;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    color: var(--nn-accent);
+}
+
+.brand-tagline {
+    font-family: var(--bs-font-monospace);
+    font-size: .75rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #e98bd0;
+}
+
+.login-box { max-width: 32rem; }
+.form-box { max-width: 40rem; }
+
+/* Sidebar navigation links, as in the mocks */
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, .85);
+    border-radius: .375rem;
+}
+.sidebar .nav-link:hover,
+.sidebar .nav-link:focus { color: #fff; background-color: rgba(255, 255, 255, .08); }
+
+.avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .5rem;
+    background-color: rgba(255, 255, 255, .12);
+    font-weight: 600;
+}
+
+/* Sidebar: fixed column from md up; below md it is an offcanvas opened from the header. */
+@media (min-width: 768px) {
+    .sidebar {
+        width: 16rem;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+    }
+}
+
+/* Crew import review: give the inputs room, so the table scrolls sideways on phones instead of squashing them. */
+.import-table .form-control,
+.import-table .form-select { min-width: 12rem; }
+
+/* Plain text with its line breaks, e.g. an announcement body */
+.text-pre-line { white-space: pre-line; }

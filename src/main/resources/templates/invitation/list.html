@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="#{invitation.list.title}">Invitations</title>
+</head>
+<body>
+<main>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
+            <h1 class="fw-bold mb-0" th:text="#{invitation.list.heading}">Invitations</h1>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#inviteModal"
+                th:text="#{invitation.list.invite}">Invite office user</button>
+    </div>
+
+    <!-- Filter. A GET form, so the filtered page can be bookmarked. -->
+    <form class="row g-2 align-items-end mb-4" th:action="@{/office/invitations}" th:object="${filter}" method="get">
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label for="status" class="form-label fw-semibold small" th:text="#{invitation.status}">Status</label>
+            <select th:field="*{status}" class="form-select">
+                <option value="" th:text="#{invitation.filter.allStatuses}">All statuses</option>
+                <option th:each="st : ${statuses}" th:value="${st}"
+                        th:text="#{${'invitation.status.' + st}}">Pending</option>
+            </select>
+        </div>
+        <div class="col-12 col-sm-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" th:text="#{invitation.filter.apply}">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/office/invitations}" th:text="#{invitation.filter.clear}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:text="#{invitation.list.heading}">Invitations</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${invitations.size()}">0</span>
+        </div>
+
+        <p th:if="${invitations.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{invitation.list.empty}">No invitations yet.</p>
+
+        <div th:unless="${invitations.isEmpty()}" class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{invitation.email}">Email</th>
+                    <th scope="col" th:text="#{invitation.status}">Status</th>
+                    <th scope="col" th:text="#{invitation.expires}">Expires</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{invitation.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="inv : ${invitations}">
+                    <td>
+                        <div class="fw-semibold" th:text="${inv.fullName}">Jane Doe</div>
+                        <div class="small text-body-secondary text-break" th:text="${inv.email}">jane@example.com</div>
+                    </td>
+                    <td th:with="st=${inv.displayStatus.name()}">
+                        <span class="badge rounded-pill"
+                              th:classappend="${st == 'PENDING'} ? 'bg-primary-subtle text-primary-emphasis'
+                                            : (${st == 'EXPIRED'} ? 'bg-warning-subtle text-warning-emphasis'
+                                            : (${st == 'ACCEPTED'} ? 'bg-success-subtle text-success-emphasis'
+                                            : 'bg-secondary-subtle text-secondary-emphasis'))"
+                              th:text="#{${'invitation.status.' + st}}">Pending</span>
+                    </td>
+                    <td class="small">
+                        <time th:replace="~{layout/parts :: localTime(${inv.expiresAt})}"></time>
+                    </td>
+                    <td class="text-end">
+                        <!-- PENDING, expired or not. -->
+                        <div th:if="${inv.status.name() == 'PENDING'}" class="d-flex gap-2 justify-content-end">
+                            <form th:action="@{/office/invitations/{id}/cancel(id=${inv.id})}" method="post">
+                                <button type="submit" class="btn btn-outline-danger btn-sm"
+                                        th:text="#{invitation.cancel}">Cancel</button>
+                            </form>
+                            <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
+                                <button type="submit" class="btn btn-primary btn-sm"
+                                        th:text="#{invitation.resend}">Resend</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Invite office user. Full screen on phones. -->
+    <div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <form class="modal-content" th:action="@{/office/invitations}" th:object="${form}" method="post" novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5 fw-bold" id="inviteModalTitle"
+                        th:text="#{invitation.office.heading}">Invite office user</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            th:attr="aria-label=#{common.close}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label fw-semibold" th:text="#{invitation.fullName}">Full name</label>
+                        <input type="text" th:field="*{fullName}" class="form-control"
+                               th:errorclass="is-invalid" autocomplete="off" required>
+                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold" th:text="#{invitation.email}">Email</label>
+                        <input type="email" th:field="*{email}" class="form-control"
+                               th:errorclass="is-invalid" autocomplete="off" required>
+                        <div class="invalid-feedback" th:errors="*{email}"></div>
+                    </div>
+                    <div>
+                        <label for="confirmEmail" class="form-label fw-semibold"
+                               th:text="#{invitation.confirmEmail}">Repeat email</label>
+                        <input type="email" th:field="*{confirmEmail}" class="form-control"
+                               th:classappend="${#fields.hasErrors('emailConfirmed')} ? 'is-invalid'"
+                               autocomplete="off" required>
+                        <div class="invalid-feedback" th:errors="*{emailConfirmed}"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                            th:text="#{invitation.form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
+                </div>
+
+                <!-- The form was posted with errors: open the modal again so they are visible. -->
+                <script th:if="${#fields.hasAnyErrors()}">
+                    document.addEventListener('DOMContentLoaded',
+                        () => bootstrap.Modal.getOrCreateInstance('#inviteModal').show());
+                </script>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>
