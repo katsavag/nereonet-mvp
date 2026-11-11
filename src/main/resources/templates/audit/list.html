@@ -35,18 +35,20 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{audit.heading}">Audit log</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${entries.totalElements}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{audit.heading}, ${entries.totalElements})}">Audit log · 120</h2>
         </div>
 
         <p th:if="${entries.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{audit.empty}">No entries.</p>
 
+        <!-- data-table: the shared list style. The audit log keeps its columns on phones and scrolls sideways.
+             Every row is one line, so all rows have the same height; long values are cut with an ellipsis and
+             shown in full in the title attribute. -->
         <div th:unless="${entries.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
                     <th scope="col" th:text="#{audit.when}">When</th>
                     <th scope="col" th:text="#{audit.who}">Who</th>
                     <th scope="col" th:text="#{audit.action}">Action</th>
@@ -56,13 +58,14 @@
                 </thead>
                 <tbody>
                 <tr th:each="e : ${entries}">
-                    <td class="small">
+                    <td>
                         <time th:replace="~{layout/parts :: localTime(${e.occurredAt})}"></time>
                     </td>
-                    <td>
+                    <td class="text-nowrap">
                         <th:block th:if="${e.actor}">
-                            <div class="fw-semibold" th:text="${e.actor.fullName}">John Doe</div>
-                            <div class="small text-body-secondary text-break" th:text="${e.actor.email}">john@example.com</div>
+                            <span th:text="${e.actor.fullName}">John Doe</span>
+                            <span class="truncate text-body-secondary ms-1" th:title="${e.actor.email}"
+                                  th:text="${e.actor.email}">john@example.com</span>
                         </th:block>
                         <span th:unless="${e.actor}" class="text-body-secondary"
                               th:text="${e.actorDeleted} ? #{audit.deletedUser} : #{audit.system}">System</span>
@@ -70,15 +73,18 @@
                     <!-- Action codes without a label are shown as they are. -->
                     <td class="text-nowrap"
                         th:text="${#messages.msgOrNull('audit.action.' + e.action)} ?: ${e.action}">Ship added</td>
-                    <td>
+                    <td class="text-nowrap">
                         <th:block th:if="${e.ship}">
-                            <div th:text="${e.ship.name}">MV Demo</div>
-                            <div class="font-monospace small text-body-secondary"
-                                 th:text="#{ship.codeValue(${e.ship.imoNumber})}">IMO 9074729</div>
+                            <span th:text="${e.ship.name}">MV Demo</span>
+                            <span class="text-body-secondary ms-1"
+                                  th:text="#{ship.codeValue(${e.ship.imoNumber})}">IMO 9074729</span>
                         </th:block>
                         <span th:unless="${e.ship}">—</span>
                     </td>
-                    <td class="small text-break" th:text="${e.details} ?: '—'">IMO 9074729, MV Demo</td>
+                    <td>
+                        <span class="truncate truncate-wide" th:title="${e.details}"
+                              th:text="${e.details} ?: '—'">IMO 9074729, MV Demo</span>
+                    </td>
                 </tr>
                 </tbody>
             </table>

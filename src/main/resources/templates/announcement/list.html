@@ -36,13 +36,18 @@
     </form>
 
     <div class="card">
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{announcement.list.heading}, ${rows.size()})}">Announcements · 3</h2>
+        </div>
+
         <p th:if="${rows.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{announcement.list.empty}">No announcements yet.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div th:unless="${rows.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
                     <th scope="col" th:text="#{announcement.title}">Title</th>
                     <th scope="col" th:text="#{announcement.target}">Target</th>
                     <th scope="col" th:text="#{announcement.sentAt}">Sent</th>
@@ -51,12 +56,15 @@
                 </thead>
                 <tbody>
                 <tr th:each="row : ${rows}" th:with="a=${row.announcement}">
-                    <td class="fw-semibold text-break">
+                    <td class="cell-primary">
                         <a th:href="@{/office/announcements/{id}(id=${a.id})}" th:text="${a.title}">Safety drill</a>
                     </td>
-                    <td th:text="${a.fleet} ? #{announcement.target.fleet} : ${a.ship.name}">MV Demo</td>
-                    <td><time th:replace="~{layout/parts :: localTime(${a.createdAt})}"></time></td>
-                    <td class="text-nowrap"
+                    <td th:attr="data-label=#{announcement.target}"
+                        th:text="${a.fleet} ? #{announcement.target.fleet} : ${a.ship.name}">MV Demo</td>
+                    <td th:attr="data-label=#{announcement.sentAt}">
+                        <time th:replace="~{layout/parts :: localTime(${a.createdAt})}"></time>
+                    </td>
+                    <td class="text-nowrap" th:attr="data-label=#{announcement.acknowledgements}"
                         th:text="#{announcement.count(${row.acknowledged}, ${row.recipients})}">12 of 20 acknowledged</td>
                 </tr>
                 </tbody>

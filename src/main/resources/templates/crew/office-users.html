@@ -11,15 +11,15 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{users.list.heading}">Office users</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${users.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{users.list.heading}, ${users.size()})}">Office users · 3</h2>
         </div>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
                     <th scope="col" th:text="#{user.fullName}">Full name</th>
                     <th scope="col" th:text="#{user.email}">Email</th>
                     <th scope="col" th:text="#{user.status}">Status</th>
@@ -27,14 +27,19 @@
                 </tr>
                 </thead>
                 <tbody>
+                <!-- Office users have no page of their own, so the name is not a link. -->
                 <tr th:each="u : ${users}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
-                    <td class="fw-semibold" th:text="${u.fullName}">John Doe</td>
-                    <td class="small text-break" th:text="${u.email}">office@example.com</td>
-                    <td th:insert="~{crew/parts :: status(${u.enabled})}"></td>
-                    <td>
+                    <td class="cell-primary" th:text="${u.fullName}">John Doe</td>
+                    <td th:attr="data-label=#{user.email}">
+                        <span th:replace="~{layout/parts :: email(${u.email})}">office@example.com</span>
+                    </td>
+                    <td class="cell-status">
+                        <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>
+                    </td>
+                    <td class="cell-actions">
                         <!-- A user cannot deactivate themselves. -->
-                        <div th:unless="${u.email == #authentication.name}" class="d-flex justify-content-end gap-2">
-                            <details th:replace="~{crew/parts :: enableMenu(${u})}"></details>
+                        <div th:unless="${u.email == #authentication.name}" class="row-actions">
+                            <details th:replace="~{crew/parts :: userMenu(${u}, null)}"></details>
                         </div>
                     </td>
                 </tr>

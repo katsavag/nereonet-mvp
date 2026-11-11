@@ -4,25 +4,27 @@
 
 <!-- Fragments for the crew and office user lists. -->
 
-<span th:fragment="status(enabled)" class="badge rounded-pill"
-      th:classappend="${enabled} ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'"
-      th:text="${enabled} ? #{user.status.active} : #{user.status.inactive}">Active</span>
+<span th:fragment="status(enabled)"
+      th:replace="~{layout/parts :: status(${enabled} ? 'ok' : 'neutral', ${enabled} ? #{user.status.active} : #{user.status.inactive})}">Active</span>
 
-<!-- Row overflow menu of a user: deactivate an active user; activate or delete an inactive one. -->
-<details th:fragment="enableMenu(u)"
-         th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${u.fullName})}, ~{crew/parts :: enableButtons(${u})})}"></details>
+<!-- Row "more" menu of a user: Edit (when editUrl is not null), Activate for an inactive user; then, after the
+     divider, Deactivate an active user or Delete an inactive one. -->
+<details th:fragment="userMenu(u, editUrl)"
+         th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${u.fullName})}, ~{crew/parts :: userMenuItems(${u}, ${editUrl})})}"></details>
 
-<th:block th:fragment="enableButtons(u)">
-    <form th:if="${u.enabled}" th:action="@{/office/users/{id}/deactivate(id=${u.id})}" method="post">
-        <button type="submit" class="btn btn-outline-danger btn-sm" th:text="#{user.deactivate}">Deactivate</button>
-    </form>
+<th:block th:fragment="userMenuItems(u, editUrl)">
+    <a th:if="${editUrl != null}" class="dropdown-item" th:href="${editUrl}" th:text="#{user.edit}">Edit</a>
     <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/activate(id=${u.id})}" method="post">
-        <button type="submit" class="btn btn-ghost btn-sm" th:text="#{user.activate}">Activate</button>
+        <button type="submit" class="dropdown-item" th:text="#{user.activate}">Activate</button>
+    </form>
+    <hr class="dropdown-divider">
+    <form th:if="${u.enabled}" th:action="@{/office/users/{id}/deactivate(id=${u.id})}" method="post">
+        <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.deactivate}">Deactivate</button>
     </form>
     <!-- Deleting cannot be undone, so the browser asks first. -->
     <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/delete(id=${u.id})}" method="post"
           th:data-confirm="#{user.delete.confirm(${u.email})}" onsubmit="return confirm(this.dataset.confirm)">
-        <button type="submit" class="btn btn-outline-danger btn-sm" th:text="#{user.delete}">Delete</button>
+        <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.delete}">Delete</button>
     </form>
 </th:block>
 

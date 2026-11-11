@@ -32,18 +32,18 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{item.list.heading}">Galley items</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${items.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{item.list.heading}, ${items.size()})}">Galley items · 3</h2>
         </div>
 
         <p th:if="${items.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{item.list.empty}">No items yet.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div th:unless="${items.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
                     <th scope="col" th:text="#{item.name}">Name</th>
                     <th scope="col" th:text="#{item.unit}">Unit</th>
                     <th scope="col" th:text="#{item.category}">Category</th>
@@ -53,32 +53,35 @@
                 </thead>
                 <tbody>
                 <tr th:each="i : ${items}" th:classappend="${!i.active} ? 'text-body-secondary'">
-                    <td class="fw-semibold" th:text="${i.name}">Rice</td>
-                    <td th:text="${i.unit}">kg</td>
-                    <td th:text="${i.category} ?: '—'">Dry goods</td>
-                    <td>
-                        <span th:if="${i.active}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
-                              th:text="#{item.status.active}">Active</span>
-                        <span th:unless="${i.active}" class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis"
-                              th:text="#{item.status.inactive}">Inactive</span>
+                    <td class="cell-primary">
+                        <a th:href="@{/office/ships/{id}/items/{itemId}/edit(id=${ship.id},itemId=${i.id})}"
+                           th:text="${i.name}">Rice</a>
                     </td>
-                    <td>
-                        <div class="d-flex justify-content-end align-items-start gap-2">
-                            <a class="btn btn-ghost btn-sm"
-                               th:href="@{/office/ships/{id}/items/{itemId}/edit(id=${ship.id},itemId=${i.id})}"
-                               th:text="#{item.edit}">Edit</a>
+                    <td th:attr="data-label=#{item.unit}" th:text="${i.unit}">kg</td>
+                    <td th:attr="data-label=#{item.category}" th:text="${i.category} ?: '—'">Dry goods</td>
+                    <td class="cell-status">
+                        <span th:replace="~{layout/parts :: status(${i.active} ? 'ok' : 'neutral', ${i.active} ? #{item.status.active} : #{item.status.inactive})}">Active</span>
+                    </td>
+                    <td class="cell-actions">
+                        <div class="row-actions">
                             <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${i.name})}, ~{::itemMenuItems})}">
                                 <th:block th:fragment="itemMenuItems">
-                                    <form th:if="${i.active}" method="post"
-                                          th:action="@{/office/ships/{id}/items/{itemId}/deactivate(id=${ship.id},itemId=${i.id})}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm"
-                                                th:text="#{item.deactivate}">Deactivate</button>
-                                    </form>
+                                    <a class="dropdown-item"
+                                       th:href="@{/office/ships/{id}/items/{itemId}/edit(id=${ship.id},itemId=${i.id})}"
+                                       th:text="#{item.edit}">Edit</a>
                                     <form th:unless="${i.active}" method="post"
                                           th:action="@{/office/ships/{id}/items/{itemId}/activate(id=${ship.id},itemId=${i.id})}">
-                                        <button type="submit" class="btn btn-ghost btn-sm"
+                                        <button type="submit" class="dropdown-item"
                                                 th:text="#{item.activate}">Activate</button>
                                     </form>
+                                    <th:block th:if="${i.active}">
+                                        <hr class="dropdown-divider">
+                                        <form method="post"
+                                              th:action="@{/office/ships/{id}/items/{itemId}/deactivate(id=${ship.id},itemId=${i.id})}">
+                                            <button type="submit" class="dropdown-item dropdown-item-danger"
+                                                    th:text="#{item.deactivate}">Deactivate</button>
+                                        </form>
+                                    </th:block>
                                 </th:block>
                             </details>
                         </div>

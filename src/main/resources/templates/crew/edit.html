@@ -88,7 +88,7 @@
                               th:action="@{/office/crew/{id}/certificates/{cid}/delete(id=${member.id},cid=${c.id})}"
                               method="post" th:data-confirm="#{certificate.delete.confirm(${c.type})}"
                               onsubmit="return confirm(this.dataset.confirm)">
-                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                            <button type="submit" class="dropdown-item dropdown-item-danger"
                                     th:text="#{certificate.delete}">Delete</button>
                         </form>
                     </details>

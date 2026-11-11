@@ -63,7 +63,7 @@ Requirements: Java 25, Docker.
 
 5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,
-   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be edited in a pop-up (except the IMO number) and deactivated or activated (the row's **⋯** menu), never deleted.
+   type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be edited in a pop-up (**Edit** on the row, except the IMO number) and deactivated or activated (the row's **⋯** menu, which also links to the ship's **Items** and **Library**), never deleted. The ship's name opens its library page, which shows its particulars.
    Inactive ships stay in the list but cannot get new crew invitations.
 
 6. Invitations (signed in as an office user). The email with the `/register?token=...` link
@@ -85,7 +85,7 @@ Requirements: Java 25, Docker.
 8. Crew (signed in as an office user): **Crew** in the sidebar (`/office/crew`) lists every user with a ship role
    and every pending crew invitation (status "Invited"), filterable by ship. **Add crew member** opens a pop-up form
    (full name, email, optional rank, role, active ship) that sends an invitation email (see Mailpit);
-   the member appears at once as "Invited" and becomes a user when they register. **Edit** changes full name, rank, role
+   the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank, role
    and ship (active ships only; the email cannot be changed). Picking another ship moves the crew member. The one active
    Master / Chief cook per ship rule is checked here too.
 
@@ -119,9 +119,9 @@ Requirements: Java 25, Docker.
    certificate reminder sent (by "System"); announcement sent; requests exported (count and ids).
    Entries are read-only.
 
-11. Galley items (signed in as an office user): **Items** on a ship's row in **Ships** (`/office/ships/{id}/items`).
+11. Galley items (signed in as an office user): **Items** in the **⋯** menu of a ship's row in **Ships** (`/office/ships/{id}/items`).
    Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`) and an optional category.
-   **Add item** and **Edit** open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted.
+   **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted.
    **Import** (`/office/ships/{id}/items/import`) adds many items at once:
    - **Download template** gives `items-template.xlsx` with the header row `Name | Unit | Category`. Only this header is accepted.
    - Upload it as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). The review screen shows every row, editable, with
@@ -184,7 +184,7 @@ Requirements: Java 25, Docker.
    `app.library.storage-dir` (dev: `./data/library`).
 
    **Add an item**: the Master has the button on **Library** (`/ship/library/new`; Chief cook and crew members get
-   403). Office users open a ship's library from the **Library** button on its row in **Ships**
+   403). Office users open a ship's library from its name, or **Library** in the **⋯** menu of its row, in **Ships**
    (`/office/ships/{id}/library`, same content as the crew page) and add items there
    (`/office/ships/{id}/library/new`). The form asks for title, category, version label (e.g. `1` or `2026-10`),
    Required / Not required, and the content: text **or** one file (PDF, DOCX or XLSX, at most 10 MB), not both.
@@ -269,8 +269,28 @@ The app makes no request to any other host: everything a page needs is served fr
     **Clear**. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
   - page header actions sit in `.page-actions` with a 16 px icon before the label (`layout/parts :: icon`: plus,
     upload, download); on phones they stack full width;
-  - row state changes (activate, deactivate, delete, cancel) live in the row's **⋯** overflow menu
-    (`layout/parts :: rowMenu`), a native `<details>` element, so it opens and submits without JavaScript.
+  - lists (P04): one table style, `.data-table`, on every office list (ships, crew, office users, invitations,
+    certificates, announcements, requests, galley items, audit log). Cells have 12 px top and bottom padding and
+    the first and last cell start and end on the card padding, so the card title, the column headers and the
+    first column share one left edge. Every row is at least 52 px high, with or without actions, and every cell
+    stays on one line so all rows have the same height. Header cells are 12 px, 600, secondary colour, uppercase,
+    letter-spacing 0.04em. Rows get a hover background; counts (`.num`) are right-aligned. The record's name
+    (`.cell-primary`) links to its page and is the only bold cell; ships have no page of their own, so a ship's
+    name opens its library page (particulars). The record count sits after the card title, muted
+    (`layout/parts :: cardTitle`: "Crew · 84"). Email addresses never break: they are cut with an ellipsis and the
+    full address is in the title attribute (`layout/parts :: email`). Status badges are a dot plus text in the
+    status colours (`layout/parts :: status`, tones ok, warning, danger, info, primary, neutral);
+  - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
+    **⋯** "more" menu (`layout/parts :: rowMenu`) named after the record for screen readers ("More actions: MV
+    Demo"), holding the rest; destructive entries (deactivate, delete, cancel) come last, after a divider, in red.
+    The menu is a Bootstrap dropdown on a native `<details>` element: with JavaScript Bootstrap opens it (arrow
+    keys, Escape, positioned over the page so a scrolling table never cuts it off; `js/row-menu.js` keeps the
+    details element open meanwhile); without JavaScript the details element opens and every entry is still an
+    ordinary link or form;
+  - phones (below 768 px): `.data-table-stack` turns each row into a stacked card: the name as its title (with
+    the checkbox before it and the actions after it), two or three key fields as label and value (`data-label`),
+    the status badge; less important columns (`.stack-hide`) are left out, so there is no sideways scrolling.
+    The audit log and the import review tables keep their columns and scroll sideways.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

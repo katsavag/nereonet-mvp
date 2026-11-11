@@ -45,8 +45,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 @WithUserDetails("office@example.com") // seeded by BootstrapData
 class ButtonHierarchyFlowTest {
 
-    private static final Pattern ROW_MENU = Pattern.compile("(?s)<details class=\"row-menu\">.*?</details>");
-    private static final Pattern DANGER = Pattern.compile("btn-(outline-)?danger");
+    private static final Pattern ROW_MENU = Pattern.compile("(?s)<details class=\"row-menu dropdown\">.*?</details>");
+    private static final Pattern DANGER = Pattern.compile("btn-(outline-)?danger|dropdown-item-danger");
 
     @Autowired
     MockMvc mockMvc;
@@ -101,7 +101,7 @@ class ButtonHierarchyFlowTest {
         String ships = mockMvc.perform(get("/office/ships")).andReturn().getResponse().getContentAsString();
         assertThat(ROW_MENU.matcher(ships).results().map(r -> r.group()).toList())
                 .anySatisfy(menu -> assertThat(menu).contains("More actions: MV Demo",
-                        "/office/ships/" + ship.getId() + "/deactivate", "btn-outline-danger"));
+                        "/office/ships/" + ship.getId() + "/deactivate", "dropdown-item-danger"));
         String crewList = mockMvc.perform(get("/office/crew")).andReturn().getResponse().getContentAsString();
         assertThat(ROW_MENU.matcher(crewList).results().map(r -> r.group()).toList())
                 .anySatisfy(menu -> assertThat(menu).contains("More actions: Crew Member",

@@ -39,18 +39,19 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{crew.list.heading}">Crew</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${crew.size() + invited.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{crew.list.heading}, ${crew.size() + invited.size()})}">Crew · 84</h2>
         </div>
 
         <p th:if="${crew.isEmpty() and invited.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{crew.list.empty}">No crew members found.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
+             stack-hide: not shown there. -->
         <div th:unless="${crew.isEmpty() and invited.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
                     <th scope="col" th:text="#{user.fullName}">Full name</th>
                     <th scope="col" th:text="#{user.email}">Email</th>
                     <th scope="col" th:text="#{user.rank}">Rank</th>
@@ -61,31 +62,36 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Pending invitations: no account yet, so nothing to edit or deactivate. -->
+                <!-- Pending invitations: no account yet, so no page, nothing to edit or deactivate. -->
                 <tr th:each="inv : ${invited}">
-                    <td class="fw-semibold" th:text="${inv.fullName}">Jane Doe</td>
-                    <td class="small text-break" th:text="${inv.email}">jane@example.com</td>
-                    <td th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</td>
-                    <td class="text-nowrap" th:text="#{${'role.' + inv.role}}">Crew member</td>
-                    <td th:text="${inv.ship.name}">MV Demo</td>
-                    <td>
-                        <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis"
-                              th:text="#{crew.status.invited}">Invited</span>
+                    <td class="cell-primary" th:text="${inv.fullName}">Jane Doe</td>
+                    <td th:attr="data-label=#{user.email}">
+                        <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
                     </td>
-                    <td></td>
+                    <td th:attr="data-label=#{user.rank}" th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</td>
+                    <td class="text-nowrap stack-hide" th:text="#{${'role.' + inv.role}}">Crew member</td>
+                    <td th:attr="data-label=#{user.ship}" th:text="${inv.ship.name}">MV Demo</td>
+                    <td class="cell-status">
+                        <span th:replace="~{layout/parts :: status('primary', #{crew.status.invited})}">Invited</span>
+                    </td>
+                    <td class="cell-actions"></td>
                 </tr>
                 <tr th:each="u : ${crew}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
-                    <td class="fw-semibold" th:text="${u.fullName}">Jane Doe</td>
-                    <td class="small text-break" th:text="${u.email}">jane@example.com</td>
-                    <td th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</td>
-                    <td class="text-nowrap" th:text="#{${'role.' + u.role}}">Crew member</td>
-                    <td th:text="${u.ship.name}">MV Demo</td>
-                    <td th:insert="~{crew/parts :: status(${u.enabled})}"></td>
-                    <td>
-                        <div class="d-flex justify-content-end align-items-start gap-2">
-                            <a class="btn btn-ghost btn-sm" th:href="@{/office/crew/{id}/edit(id=${u.id})}"
-                               th:text="#{user.edit}">Edit</a>
-                            <details th:replace="~{crew/parts :: enableMenu(${u})}"></details>
+                    <td class="cell-primary">
+                        <a th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
+                    </td>
+                    <td th:attr="data-label=#{user.email}">
+                        <span th:replace="~{layout/parts :: email(${u.email})}">jane@example.com</span>
+                    </td>
+                    <td th:attr="data-label=#{user.rank}" th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</td>
+                    <td class="text-nowrap stack-hide" th:text="#{${'role.' + u.role}}">Crew member</td>
+                    <td th:attr="data-label=#{user.ship}" th:text="${u.ship.name}">MV Demo</td>
+                    <td class="cell-status">
+                        <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>
+                    </td>
+                    <td class="cell-actions">
+                        <div class="row-actions">
+                            <details th:replace="~{crew/parts :: userMenu(${u}, @{/office/crew/{id}/edit(id=${u.id})})}"></details>
                         </div>
                     </td>
                 </tr>

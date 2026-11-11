@@ -273,7 +273,7 @@ h1, .h1 {
      .btn-primary            filled navy; at most one per view (and one per modal)
      .btn-outline-secondary  secondary: surface background, visible border, navy text
      .btn-ghost              tertiary: navy text only, a background on hover; low-priority and row actions
-     .btn-outline-danger     danger: only inside a confirmation dialog or a row's overflow menu (rowMenu)
+     .btn-outline-danger     danger: only inside a confirmation dialog (in a row's "more" menu: .dropdown-item-danger)
    Disabled: 50% opacity and a not-allowed cursor; say why in the text next to it (aria-describedby).
    --------------------------------------------------------------------------------------------------------------- */
 :root {
@@ -417,26 +417,45 @@ fieldset:disabled button.btn {
     }
 }
 
-/* Row overflow menu (layout/parts :: rowMenu): a native details element, so it opens without JavaScript.
-   The list opens in place below the button, so a table's scroll container never cuts it off. */
+/* Row "more" menu (layout/parts :: rowMenu): a Bootstrap dropdown on a native details element.
+   With JavaScript, Bootstrap shows the menu (.show) at a fixed position, so a table's scroll container never cuts
+   it off; js/row-menu.js keeps the details element open meanwhile, because a browser does not render the content
+   of a closed one. Without JavaScript the details element opens and the menu shows in place below the button. Entries are .dropdown-item links or submit buttons, each a full touch target;
+   destructive ones (.dropdown-item-danger) come last, after a divider. */
+.row-menu { text-align: right; }
 .row-menu > summary { list-style: none; }
 .row-menu > summary::-webkit-details-marker { display: none; }
 .row-menu > summary.btn { min-width: var(--nn-btn-height-sm); padding-inline: var(--nn-space-2); }
+.row-menu > summary.show,
 .row-menu[open] > summary { background-color: var(--nn-primary-bg); }
-.row-menu-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--nn-space-2);
+.row-menu[open] > .dropdown-menu:not(.show) {
+    display: block;
+    position: static;
     margin-top: var(--nn-space-2);
-    padding: var(--nn-space-2);
-    background-color: var(--nn-surface);
-    border: 1px solid var(--nn-divider);
-    border-radius: var(--nn-radius-control);
-    box-shadow: var(--nn-shadow);
 }
-.row-menu-list form,
-.row-menu-list .btn { width: 100%; }
-.row-menu-list .btn { justify-content: flex-start; white-space: nowrap; }
+.row-menu > .dropdown-menu {
+    --bs-dropdown-font-size: var(--nn-font-sm);
+    --bs-dropdown-padding-y: var(--nn-space-1);
+    --bs-dropdown-item-padding-x: var(--nn-space-4);
+    --bs-dropdown-divider-bg: var(--nn-divider);
+    --bs-dropdown-link-color: var(--nn-text);
+    --bs-dropdown-link-hover-color: var(--nn-text);
+    text-align: left;
+    box-shadow: 0 4px 16px rgba(var(--nn-navy-rgb), .12);
+}
+.row-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+    font-weight: 500;
+    white-space: nowrap;
+}
+.row-menu .dropdown-item-danger { color: var(--nn-danger); }
+.row-menu .dropdown-item-danger:hover,
+.row-menu .dropdown-item-danger:focus { color: var(--nn-danger-text); background-color: var(--nn-danger-bg); }
+.row-menu .dropdown-item-danger:active { color: #fff; background-color: var(--nn-danger); }
+/* A divider with no entry above it (e.g. only "Deactivate" in the menu) is not shown. */
+.row-menu .dropdown-divider:first-child { display: none; }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Surfaces: cards, tables, list groups, modals, dropdown menus
@@ -470,6 +489,141 @@ fieldset:disabled button.btn {
 /* Table text is 14px throughout; "small" in a cell must not shrink it further. */
 .table .small,
 .table small { font-size: inherit; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Lists: one table style for every office list (.data-table on the table).
+     - cells 12px top and bottom; the first and last cell start and end on the card's padding (see .card above),
+       so card title, column headers and first-column text share one left edge;
+     - every body row is at least 52px high, with or without actions (a 32px row button fits without growing it);
+       keep each cell on one line so all rows of a table have the same height;
+     - header cells 12px, 600, secondary text colour, uppercase, letter-spacing .04em;
+     - hover background on rows; .num cells (counts, quantities) right-aligned with tabular figures;
+     - .cell-primary: the record's name, linking to its page; the only bold cell in the row;
+     - .cell-status: the status badge (layout/parts :: status);
+     - .cell-actions: at most one visible row action (.btn-ghost .btn-sm) and the "more" menu, in .row-actions;
+     - .truncate: one line, cut with an ellipsis (put the full value in title), e.g. email addresses.
+   .data-table-stack: below 768px every row becomes a stacked card: the primary cell as its title (with the
+   checkbox before it and the actions after it), each other cell as label (data-label) and value, the status
+   badge; .stack-hide cells are left out. The audit log does not stack; it scrolls sideways.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-row-height: 52px;
+    --nn-cell-padding-y: var(--nn-space-3);
+    --nn-cell-padding-x: var(--nn-space-3);
+    --nn-truncate-width: 16rem;
+    --nn-text-secondary: var(--bs-secondary-color);   /* 6.6:1 on the surface */
+}
+
+.data-table > :not(caption) > * > * {
+    padding: var(--nn-cell-padding-y) var(--nn-cell-padding-x);
+}
+.data-table > tbody > tr > * { height: var(--nn-row-height); }
+/* Bootstrap gives every cell the table colour, which overrode text-body-secondary on the row. */
+.data-table > thead > tr > th {
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--nn-text-secondary);
+}
+.data-table > tbody > tr.text-body-secondary > * { --bs-table-color-type: var(--nn-text-secondary); }
+.data-table > tbody > tr:hover > * { --bs-table-bg-state: var(--nn-hover); }
+.data-table .num { text-align: right; }
+
+.data-table .cell-primary { font-weight: 600; }
+.data-table .cell-primary > a { text-decoration: none; }
+.data-table .cell-primary > a:hover { text-decoration: underline; }
+
+/* The row button and the menu button are 32px: no vertical padding, the 52px row height centres them. */
+.data-table .cell-actions {
+    width: 1%;
+    padding-block: 0;
+    white-space: nowrap;
+}
+.row-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: var(--nn-space-2);
+}
+.data-table .cell-select { width: 1%; }
+.data-table .cell-select .form-check-input { margin-top: 0; vertical-align: middle; }
+
+.truncate {
+    display: inline-block;
+    max-width: var(--nn-truncate-width);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+.truncate-wide { --nn-truncate-width: 28rem; }
+
+@media (max-width: 767.98px) {
+    .data-table-stack,
+    .data-table-stack > tbody { display: block; }
+    .data-table-stack > thead { display: none; }
+    .data-table-stack > tbody > tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        row-gap: var(--nn-space-1);
+        padding: var(--nn-space-3) var(--nn-card-padding);
+        border-bottom: 1px solid var(--nn-divider);
+    }
+    .data-table-stack > tbody > tr:last-child { border-bottom: 0; }
+    .data-table-stack > tbody > tr:hover > * { --bs-table-bg-state: transparent; }
+    /* Selector as specific as the card padding rule above, so it wins over it. */
+    .card > .table-responsive > .data-table-stack > tbody > tr > :nth-child(n) {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--nn-space-3);
+        grid-column: 1 / -1;
+        height: auto;
+        padding: 0;
+        border: 0;
+        background: none;
+        box-shadow: none;
+        text-align: right;
+    }
+    .data-table-stack td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        color: var(--nn-text-secondary);
+        text-align: left;
+    }
+    .data-table-stack td > * { min-width: 0; }
+    .data-table-stack .truncate { max-width: 100%; }
+    .card > .table-responsive > .data-table-stack > tbody > tr > .cell-select {
+        grid-column: 1;
+        grid-row: 1;
+        width: auto;
+        padding-right: var(--nn-space-3);
+    }
+    .card > .table-responsive > .data-table-stack > tbody > tr > .cell-primary {
+        display: block;
+        grid-column: 2;
+        grid-row: 1;
+        min-height: var(--nn-touch-target);
+        align-content: center;
+        font-size: var(--nn-font-body);
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+    .card > .table-responsive > .data-table-stack > tbody > tr > .cell-actions {
+        grid-column: 3;
+        grid-row: 1;
+        width: auto;
+        padding-left: var(--nn-space-2);
+    }
+    .card > .table-responsive > .data-table-stack > tbody > tr > .cell-status {
+        justify-content: flex-start;
+        margin-top: var(--nn-space-1);
+    }
+    .card > .table-responsive > .data-table-stack > tbody > tr > .cell-status:empty { display: none; }
+    .data-table-stack .stack-hide { display: none !important; }
+}
 
 .list-group {
     --bs-list-group-bg: var(--nn-surface);
@@ -510,6 +664,38 @@ fieldset:disabled button.btn {
 }
 /* Badges are not pills, even where a template still says rounded-pill. */
 .badge.rounded-pill { border-radius: var(--nn-radius-badge) !important; }
+
+/* Status badge (layout/parts :: status): a dot and the text in one of the status pairs. The text says the status;
+   the colour only repeats it. */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--nn-status-text);
+    background-color: var(--nn-status-bg);
+    box-shadow: inset 0 0 0 1px var(--nn-status-border);
+}
+.status-badge::before {
+    content: "";
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--nn-status-dot);
+}
+.status-ok      { --nn-status-bg: var(--nn-ok-bg); --nn-status-text: var(--nn-ok-text); --nn-status-border: var(--nn-ok-border); --nn-status-dot: var(--nn-ok); }
+.status-warning { --nn-status-bg: var(--nn-warning-bg); --nn-status-text: var(--nn-warning-text); --nn-status-border: var(--nn-warning-border); --nn-status-dot: var(--nn-warning); }
+.status-danger  { --nn-status-bg: var(--nn-danger-bg); --nn-status-text: var(--nn-danger-text); --nn-status-border: var(--nn-danger-border); --nn-status-dot: var(--nn-danger); }
+.status-info    { --nn-status-bg: var(--nn-info-bg); --nn-status-text: var(--nn-info-text); --nn-status-border: var(--nn-info-border); --nn-status-dot: var(--nn-info); }
+.status-primary { --nn-status-bg: var(--nn-primary-bg); --nn-status-text: var(--nn-primary-text); --nn-status-border: var(--nn-primary-border); --nn-status-dot: var(--nn-blue); }
+.status-neutral { --nn-status-bg: var(--nn-neutral-bg); --nn-status-text: var(--nn-neutral-text); --nn-status-border: var(--nn-neutral-border); --nn-status-dot: var(--nn-neutral-text); }
+
+/* Record count after a card title (layout/parts :: cardTitle): "Crew · 84". */
+.title-count {
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
 
 /* Bootstrap's solid yellow badge with black text; use the warning pair with a border instead. */
 .text-bg-warning {

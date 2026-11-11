@@ -46,34 +46,57 @@
     <th:block th:if="${name == 'download'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
 </svg>
 
-<!-- Overflow menu at the end of a table or list row, for the row's state changes (activate, deactivate, delete,
-     cancel). Danger buttons (btn-outline-danger) go only in here or in a confirmation dialog, never directly in a
-     row. A native details element: it opens without JavaScript and every item is an ordinary form.
+<!-- The "more" menu at the end of a table or list row: every row action except the one visible next to it.
+     A Bootstrap dropdown built on a native details element. With JavaScript, Bootstrap opens it (arrow keys,
+     Escape, and a fixed position so a scrolling table never cuts it off) and the details element stays closed.
+     Without JavaScript the summary opens the details element and the menu shows in place, so every entry is still
+     an ordinary link or form.
+     Entries: <a class="dropdown-item">, or a form whose submit button is class="dropdown-item". Destructive
+     entries (deactivate, delete, cancel) sit last, after <hr class="dropdown-divider">, and are
+     class="dropdown-item dropdown-item-danger"; they go only in here or in a confirmation dialog, never directly
+     in a row. A divider with nothing above it is not shown.
      label: accessible name naming the row, e.g. #{common.moreActions(${s.name})}
      items: the menu's content, e.g. ~{::shipMenuItems} with th:fragment="shipMenuItems" inside the host element. -->
-<details th:fragment="rowMenu(label, items)" class="row-menu">
-    <summary class="btn btn-ghost btn-sm" th:title="${label}">
+<details th:fragment="rowMenu(label, items)" class="row-menu dropdown">
+    <summary class="btn btn-ghost btn-sm" th:title="${label}" data-bs-toggle="dropdown" aria-expanded="false"
+             data-bs-popper-config='{"strategy":"fixed"}'>
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
             <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
         </svg>
         <span class="visually-hidden" th:text="${label}">More actions: MV Demo</span>
     </summary>
-    <div class="row-menu-list">
+    <div class="dropdown-menu dropdown-menu-end">
         <th:block th:replace="${items}"></th:block>
     </div>
 </details>
+
+<!-- Title of a list card with the number of records after it, muted: "Crew · 84".
+     Use: <h2 th:replace="~{layout/parts :: cardTitle(#{crew.list.heading}, ${crew.size()})}"></h2> -->
+<h2 th:fragment="cardTitle(title, count)" class="h5 fw-bold mb-0">
+    <span th:text="${title}">Crew</span>
+    <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${count}">84</span></span>
+</h2>
+
+<!-- Status badge: a dot and the text, in a status colour. The text carries the meaning, the colour only repeats it.
+     tone: 'ok', 'warning', 'danger', 'info', 'primary' or 'neutral'.
+     Use: <span th:replace="~{layout/parts :: status('ok', #{ship.status.active})}"></span> -->
+<span th:fragment="status(tone, label)" class="badge status-badge" th:classappend="'status-' + ${tone}"
+      th:text="${label}">Active</span>
+
+<!-- An email address on one line: never broken mid-word, cut with an ellipsis when too long, full value in the
+     title attribute. -->
+<span th:fragment="email(value)" class="truncate" th:title="${value}" th:text="${value}">jane@example.com</span>
 
 <!-- Expiry badge of a certificate: Expired, 30 / 60 / 90 days (the smallest reminder threshold reached), or Valid.
      today is the UTC date. Used on the crew edit page and the expiring certificates list. -->
 <th:block th:fragment="certificateBadge(c, today)">
     <th:block th:with="threshold=${c.reminderThreshold(today)}">
-        <span th:if="${c.isExpired(today)}" class="badge rounded-pill text-bg-danger"
-              th:text="#{certificate.badge.expired}">Expired</span>
-        <span th:if="${!c.isExpired(today) and threshold != null}" class="badge rounded-pill text-nowrap"
-              th:classappend="${threshold == 30} ? 'bg-danger-subtle text-danger-emphasis' : (${threshold == 60} ? 'bg-warning-subtle text-warning-emphasis' : 'bg-info-subtle text-info-emphasis')"
-              th:text="#{certificate.badge.days(${threshold})}">60 days</span>
-        <span th:if="${threshold == null}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
-              th:text="#{certificate.badge.valid}">Valid</span>
+        <th:block th:if="${c.isExpired(today)}"><span
+                th:replace="~{layout/parts :: status('danger', #{certificate.badge.expired})}"></span></th:block>
+        <th:block th:if="${!c.isExpired(today) and threshold != null}"><span
+                th:replace="~{layout/parts :: status(${threshold == 30} ? 'danger' : (${threshold == 60} ? 'warning' : 'info'), #{certificate.badge.days(${threshold})})}"></span></th:block>
+        <th:block th:if="${threshold == null}"><span
+                th:replace="~{layout/parts :: status('ok', #{certificate.badge.valid})}"></span></th:block>
     </th:block>
 </th:block>
 

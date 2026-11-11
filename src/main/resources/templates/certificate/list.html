@@ -28,44 +28,44 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{certificate.heading}">Certificates</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${certificates.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{certificate.heading}, ${certificates.size()})}">Certificates · 3</h2>
         </div>
 
         <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{certificate.list.empty}">No certificates expire within 90 days.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
+             stack-hide: not shown there. Soonest expiry first. -->
         <div th:unless="${certificates.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
-                    <th scope="col" th:text="#{certificate.expiresOn}">Expires on</th>
-                    <th scope="col" th:text="#{certificate.status}">Status</th>
+                <tr>
                     <th scope="col" th:text="#{certificate.type}">Type</th>
-                    <th scope="col" th:text="#{certificate.number}">Number</th>
                     <th scope="col" th:text="#{certificate.crewMember}">Crew member</th>
                     <th scope="col" th:text="#{user.ship}">Ship</th>
-                    <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
+                    <th scope="col" th:text="#{certificate.number}">Number</th>
+                    <th scope="col" th:text="#{certificate.expiresOn}">Expires on</th>
+                    <th scope="col" th:text="#{certificate.status}">Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="c : ${certificates}">
-                    <td class="text-nowrap" th:text="${#temporals.format(c.expiresOn, 'd MMM yyyy')}">10 Jan 2027</td>
-                    <td><th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block></td>
-                    <td class="fw-semibold" th:text="${c.type}">STCW Basic Safety</td>
-                    <td class="small text-break" th:text="${c.number} ?: '—'">12345</td>
-                    <td>
-                        <span th:text="${c.user.fullName}">Jane Doe</span>
-                        <span th:unless="${c.user.enabled}"
-                              class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis"
-                              th:text="#{user.status.inactive}">Inactive</span>
+                    <td class="cell-primary">
+                        <a th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
+                           th:text="${c.type}">STCW Basic Safety</a>
                     </td>
-                    <td th:text="${c.user.ship} ? ${c.user.ship.name} : '—'">MV Demo</td>
-                    <td class="text-end">
-                        <a class="btn btn-ghost btn-sm"
-                           th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
-                           th:text="#{certificate.edit}">Edit</a>
+                    <td class="text-nowrap" th:attr="data-label=#{certificate.crewMember}">
+                        <span th:text="${c.user.fullName}">Jane Doe</span>
+                        <th:block th:unless="${c.user.enabled}"><span
+                                th:replace="~{layout/parts :: status('neutral', #{user.status.inactive})}">Inactive</span></th:block>
+                    </td>
+                    <td th:attr="data-label=#{user.ship}" th:text="${c.user.ship} ? ${c.user.ship.name} : '—'">MV Demo</td>
+                    <td class="stack-hide" th:text="${c.number} ?: '—'">12345</td>
+                    <td class="text-nowrap" th:attr="data-label=#{certificate.expiresOn}"
+                        th:text="${#temporals.format(c.expiresOn, 'd MMM yyyy')}">10 Jan 2027</td>
+                    <td class="cell-status">
+                        <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                     </td>
                 </tr>
                 </tbody>

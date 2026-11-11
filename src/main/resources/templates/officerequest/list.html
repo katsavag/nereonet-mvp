@@ -38,10 +38,7 @@
     <form th:action="@{/office/requests/export}" method="post">
         <div class="card">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center gap-2 py-3">
-                <h2 class="h5 fw-bold mb-0">
-                    <span th:text="#{request.heading}">Requests</span>
-                    <span class="font-monospace small fw-normal text-body-secondary ms-1" th:text="${requests.size()}">0</span>
-                </h2>
+                <h2 th:replace="~{layout/parts :: cardTitle(#{request.heading}, ${requests.size()})}">Requests · 3</h2>
                 <button th:unless="${requests.isEmpty()}" type="submit" class="btn btn-primary btn-sm"
                         th:text="#{request.export}">Export CSV</button>
             </div>
@@ -49,38 +46,41 @@
             <p th:if="${requests.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{request.list.empty}">No approved requests.</p>
 
+            <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
+                 stack-hide: not shown there. -->
             <div th:unless="${requests.isEmpty()}" class="table-responsive">
-                <table class="table align-middle mb-0">
+                <table class="table data-table data-table-stack align-middle mb-0">
                     <thead>
-                    <tr class="small text-body-secondary">
+                    <tr>
                         <th scope="col"><span class="visually-hidden" th:text="#{request.select}">Select</span></th>
                         <th scope="col" th:text="#{request.id}">Request</th>
                         <th scope="col" th:text="#{user.ship}">Ship</th>
                         <th scope="col" th:text="#{request.requestedBy}">Requested by</th>
                         <th scope="col" th:text="#{request.approvedBy}">Approved by</th>
                         <th scope="col" th:text="#{request.approvedAt}">Approved at</th>
-                        <th scope="col" class="text-end" th:text="#{request.lineCount}">Lines</th>
+                        <th scope="col" class="num" th:text="#{request.lineCount}">Lines</th>
                         <th scope="col" th:text="#{request.exported}">Exported</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="r : ${requests}">
-                        <td>
+                        <td class="cell-select">
                             <input class="form-check-input" type="checkbox" name="ids" th:value="${r.id}"
                                    th:id="'select' + ${r.id}" th:attr="aria-label=#{request.number(${r.id})}">
                         </td>
-                        <td class="text-nowrap">
-                            <a class="fw-semibold" th:href="@{/office/requests/{id}(id=${r.id})}"
-                               th:text="#{request.number(${r.id})}">#12</a>
+                        <td class="cell-primary text-nowrap">
+                            <a th:href="@{/office/requests/{id}(id=${r.id})}" th:text="#{request.number(${r.id})}">#12</a>
                         </td>
-                        <td th:text="${r.ship.name}">MV Demo</td>
-                        <td th:text="${r.requestedBy} ? ${r.requestedBy.fullName} : #{audit.deletedUser}">Jane Doe</td>
-                        <td th:text="${r.decidedBy} ? ${r.decidedBy.fullName} : #{audit.deletedUser}">John Smith</td>
-                        <td><time th:replace="~{layout/parts :: localTime(${r.decidedAt})}"></time></td>
-                        <td class="text-end font-monospace" th:text="${r.lines.size()}">2</td>
-                        <td>
-                            <span th:if="${r.exportedAt}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
-                                  th:text="#{request.exported}">Exported</span>
+                        <td th:attr="data-label=#{user.ship}" th:text="${r.ship.name}">MV Demo</td>
+                        <td class="stack-hide" th:text="${r.requestedBy} ? ${r.requestedBy.fullName} : #{audit.deletedUser}">Jane Doe</td>
+                        <td class="stack-hide" th:text="${r.decidedBy} ? ${r.decidedBy.fullName} : #{audit.deletedUser}">John Smith</td>
+                        <td th:attr="data-label=#{request.approvedAt}">
+                            <time th:replace="~{layout/parts :: localTime(${r.decidedAt})}"></time>
+                        </td>
+                        <td class="num" th:attr="data-label=#{request.lineCount}" th:text="${r.lines.size()}">2</td>
+                        <td class="cell-status">
+                            <th:block th:if="${r.exportedAt}"><span
+                                    th:replace="~{layout/parts :: status('ok', #{request.exported})}">Exported</span></th:block>
                         </td>
                     </tr>
                     </tbody>

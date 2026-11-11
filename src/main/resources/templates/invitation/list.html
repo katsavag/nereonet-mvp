@@ -35,54 +35,53 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{invitation.list.heading}">Invitations</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${invitations.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{invitation.list.heading}, ${invitations.size()})}">Invitations · 3</h2>
         </div>
 
         <p th:if="${invitations.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{invitation.list.empty}">No invitations yet.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div th:unless="${invitations.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
+                <tr>
+                    <th scope="col" th:text="#{invitation.fullName}">Full name</th>
                     <th scope="col" th:text="#{invitation.email}">Email</th>
-                    <th scope="col" th:text="#{invitation.status}">Status</th>
                     <th scope="col" th:text="#{invitation.expires}">Expires</th>
+                    <th scope="col" th:text="#{invitation.status}">Status</th>
                     <th scope="col"><span class="visually-hidden" th:text="#{invitation.actions}">Actions</span></th>
                 </tr>
                 </thead>
                 <tbody>
+                <!-- Invitations have no page of their own, so the name is not a link. -->
                 <tr th:each="inv : ${invitations}">
-                    <td>
-                        <div class="fw-semibold" th:text="${inv.fullName}">Jane Doe</div>
-                        <div class="small text-body-secondary text-break" th:text="${inv.email}">jane@example.com</div>
+                    <td class="cell-primary" th:text="${inv.fullName}">Jane Doe</td>
+                    <td th:attr="data-label=#{invitation.email}">
+                        <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
                     </td>
-                    <td th:with="st=${inv.displayStatus.name()}">
-                        <span class="badge rounded-pill"
-                              th:classappend="${st == 'PENDING'} ? 'bg-primary-subtle text-primary-emphasis'
-                                            : (${st == 'EXPIRED'} ? 'bg-warning-subtle text-warning-emphasis'
-                                            : (${st == 'ACCEPTED'} ? 'bg-success-subtle text-success-emphasis'
-                                            : 'bg-secondary-subtle text-secondary-emphasis'))"
-                              th:text="#{${'invitation.status.' + st}}">Pending</span>
-                    </td>
-                    <td class="small">
+                    <td th:attr="data-label=#{invitation.expires}">
                         <time th:replace="~{layout/parts :: localTime(${inv.expiresAt})}"></time>
                     </td>
-                    <td class="text-end">
+                    <td class="cell-status" th:with="st=${inv.displayStatus.name()}">
+                        <span th:replace="~{layout/parts :: status(${st == 'PENDING'} ? 'primary' : (${st == 'EXPIRED'} ? 'warning' : (${st == 'ACCEPTED'} ? 'ok' : 'neutral')), #{${'invitation.status.' + st}})}">Pending</span>
+                    </td>
+                    <td class="cell-actions">
                         <!-- PENDING, expired or not. -->
-                        <div th:if="${inv.status.name() == 'PENDING'}" class="d-flex align-items-start gap-2 justify-content-end">
+                        <div th:if="${inv.status.name() == 'PENDING'}" class="row-actions">
                             <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
                                 <button type="submit" class="btn btn-ghost btn-sm"
                                         th:text="#{invitation.resend}">Resend</button>
                             </form>
-                            <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.email})}, ~{::invitationMenuItems})}">
-                                <form th:fragment="invitationMenuItems"
-                                      th:action="@{/office/invitations/{id}/cancel(id=${inv.id})}" method="post">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm"
-                                            th:text="#{invitation.cancel}">Cancel</button>
-                                </form>
+                            <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.fullName})}, ~{::invitationMenuItems})}">
+                                <th:block th:fragment="invitationMenuItems">
+                                    <hr class="dropdown-divider">
+                                    <form th:action="@{/office/invitations/{id}/cancel(id=${inv.id})}" method="post">
+                                        <button type="submit" class="dropdown-item dropdown-item-danger"
+                                                th:text="#{invitation.cancel}">Cancel</button>
+                                    </form>
+                                </th:block>
                             </details>
                         </div>
                     </td>

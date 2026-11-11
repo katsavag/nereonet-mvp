@@ -19,20 +19,20 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:text="#{ship.list.heading}">Ships</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${ships.size()}">0</span>
+        <div class="card-header bg-transparent py-3">
+            <h2 th:replace="~{layout/parts :: cardTitle(#{ship.list.heading}, ${ships.size()})}">Ships · 3</h2>
         </div>
 
         <p th:if="${ships.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{ship.list.empty}">No ships yet.</p>
 
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div th:unless="${ships.isEmpty()}" class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
-                <tr class="small text-body-secondary">
-                    <th scope="col" th:text="#{ship.code}">Ship code</th>
+                <tr>
                     <th scope="col" th:text="#{ship.name}">Name</th>
+                    <th scope="col" th:text="#{ship.code}">Ship code</th>
                     <th scope="col" th:text="#{ship.type}">Type</th>
                     <th scope="col" th:text="#{ship.flag}">Flag</th>
                     <th scope="col" th:text="#{ship.status}">Status</th>
@@ -41,22 +41,19 @@
                 </thead>
                 <tbody>
                 <tr th:each="s : ${ships}" th:classappend="${!s.active} ? 'text-body-secondary'">
-                    <td class="font-monospace small text-nowrap" th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
-                    <td class="fw-semibold" th:text="${s.name}">MV Demo</td>
-                    <td th:text="${s.type} ? #{${'ship.type.' + s.type}} : '—'">Bulk carrier</td>
-                    <td th:text="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : '—'">Greece (GR)</td>
-                    <td>
-                        <span th:if="${s.active}" class="badge rounded-pill bg-success-subtle text-success-emphasis"
-                              th:text="#{ship.status.active}">Active</span>
-                        <span th:unless="${s.active}" class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis"
-                              th:text="#{ship.status.inactive}">Inactive</span>
+                    <!-- Ships have no page of their own; the library page shows the ship's particulars. -->
+                    <td class="cell-primary">
+                        <a th:href="@{/office/ships/{id}/library(id=${s.id})}" th:text="${s.name}">MV Demo</a>
                     </td>
-                    <td>
-                        <div class="d-flex justify-content-end align-items-start gap-2">
-                            <a class="btn btn-ghost btn-sm" th:href="@{/office/ships/{id}/items(id=${s.id})}"
-                               th:text="#{ship.items}">Items</a>
-                            <a class="btn btn-ghost btn-sm" th:href="@{/office/ships/{id}/library(id=${s.id})}"
-                               th:text="#{ship.library}">Library</a>
+                    <td class="text-nowrap" th:attr="data-label=#{ship.code}"
+                        th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
+                    <td th:attr="data-label=#{ship.type}" th:text="${s.type} ? #{${'ship.type.' + s.type}} : '—'">Bulk carrier</td>
+                    <td th:attr="data-label=#{ship.flag}" th:text="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : '—'">Greece (GR)</td>
+                    <td class="cell-status">
+                        <span th:replace="~{layout/parts :: status(${s.active} ? 'ok' : 'neutral', ${s.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
+                    </td>
+                    <td class="cell-actions">
+                        <div class="row-actions">
                             <!-- The data-* values fill the edit modal (see the script below). -->
                             <button type="button" class="btn btn-ghost btn-sm"
                                     data-bs-toggle="modal" data-bs-target="#editShipModal"
@@ -67,14 +64,21 @@
                                     th:text="#{ship.edit}">Edit</button>
                             <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${s.name})}, ~{::shipMenuItems})}">
                                 <th:block th:fragment="shipMenuItems">
-                                    <form th:if="${s.active}" th:action="@{/office/ships/{id}/deactivate(id=${s.id})}" method="post">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm"
-                                                th:text="#{ship.deactivate}">Deactivate</button>
-                                    </form>
+                                    <a class="dropdown-item" th:href="@{/office/ships/{id}/items(id=${s.id})}"
+                                       th:text="#{ship.items}">Items</a>
+                                    <a class="dropdown-item" th:href="@{/office/ships/{id}/library(id=${s.id})}"
+                                       th:text="#{ship.library}">Library</a>
                                     <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
-                                        <button type="submit" class="btn btn-ghost btn-sm"
+                                        <button type="submit" class="dropdown-item"
                                                 th:text="#{ship.activate}">Activate</button>
                                     </form>
+                                    <th:block th:if="${s.active}">
+                                        <hr class="dropdown-divider">
+                                        <form th:action="@{/office/ships/{id}/deactivate(id=${s.id})}" method="post">
+                                            <button type="submit" class="dropdown-item dropdown-item-danger"
+                                                    th:text="#{ship.deactivate}">Deactivate</button>
+                                        </form>
+                                    </th:block>
                                 </th:block>
                             </details>
                         </div>
