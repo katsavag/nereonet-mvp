@@ -1,4 +1,15 @@
-/* The only custom CSS file. Prefer Bootstrap utilities. Colours follow the mocks. */
+/* The only custom CSS file. Prefer Bootstrap utilities. Colours follow the mocks.
+
+   Design tokens (--nn-*) are defined once in :root below; the Bootstrap variables and components are mapped onto
+   them. Change a design decision here, never with inline styles in a template.
+
+   Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 px  (--nn-space-1 ... --nn-space-6)
+     Bootstrap utilities on the same scale: 1 = 4px, 2 = 8px, 3 = 16px, 4 = 24px, 5 = 48px (12px has no utility).
+     - between page sections: 24px (mb-4, g-4)
+     - inside cards, between fields and blocks: 16px (mb-3, g-3); card padding 20px (--nn-card-padding)
+   Surfaces, three levels only: page (cream) > surface (cards, modals, tables, list groups, menus) > field (inputs).
+   Radius: 6px badges, 8px buttons and fields, 12px cards, 16px modals.
+   Type: h1 28px/700, card title 18px/600, body 16px, table and helper text 14px, eyebrow 12px. */
 
 /* Brand font: Inter (variable, weights 100-900), served from /fonts, Latin and Greek subsets only.
    The browser downloads a subset only when the page has characters in its unicode-range.
@@ -21,20 +32,241 @@
     unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
 }
 
+/* ---------------------------------------------------------------------------------------------------------------
+   Tokens
+   --------------------------------------------------------------------------------------------------------------- */
 :root {
-    /* Inter first, then Bootstrap's system stack. The monospace stack stays Bootstrap's. */
-    --bs-body-font-family: "Inter", var(--bs-font-sans-serif);
+    /* Brand */
     --nn-navy: #10223a;
-    --nn-blue: #0d4a7a;
+    --nn-navy-rgb: 16, 34, 58;
+    --nn-blue: #0d4a7a;              /* the one blue: primary, links, checked, focus */
+    --nn-blue-rgb: 13, 74, 122;
     --nn-blue-dark: #0a3a60;
+    --nn-blue-dark-rgb: 10, 58, 96;
     --nn-cream: #f4f1ea;
     --nn-accent: #a3247f;
-    --bs-body-bg: var(--nn-cream);
-    --bs-body-color: #13202f;
-    --bs-primary: #0d4a7a;
-    --bs-primary-rgb: 13, 74, 122;
-    --bs-link-color-rgb: 13, 74, 122;
+    --nn-text: #13202f;
+
+    /* Surfaces */
+    --nn-page: var(--nn-cream);
+    --nn-surface: #fffdf8;
+    --nn-field: #ffffff;
+    --nn-field-border: #7d8794;      /* 3.6:1 on surface and field, 3.2:1 on page */
+    --nn-border: rgba(var(--nn-navy-rgb), .08);   /* card outline */
+    --nn-divider: rgba(var(--nn-navy-rgb), .12);  /* rows and lines inside a surface */
+    --nn-shadow: 0 1px 2px rgba(var(--nn-navy-rgb), .06);
+    --nn-hover: #f7f4ee;             /* hovered row of an action list */
+
+    /* Status pairs: subtle background + text (text contrast 6.7:1 or more), a solid colour for borders,
+       solid badges and red text, and a subtle border. */
+    --nn-ok-bg: #e4eee6;
+    --nn-ok-text: #24573a;
+    --nn-ok: #2f6b47;
+    --nn-ok-rgb: 47, 107, 71;
+    --nn-ok-border: #b9d1bf;
+    --nn-warning-bg: #f5ebd3;
+    --nn-warning-text: #6a4b10;
+    --nn-warning: #a87a22;
+    --nn-warning-rgb: 168, 122, 34;
+    --nn-warning-border: #e2cd9b;
+    --nn-danger-bg: #f5e2de;
+    --nn-danger-text: #82291f;
+    --nn-danger: #a2382c;            /* white text on it 6.7:1; as text on page 5.9:1 */
+    --nn-danger-rgb: 162, 56, 44;
+    --nn-danger-border: #e3b9b1;
+    --nn-info-bg: #e2ecf2;
+    --nn-info-text: #1f4d68;
+    --nn-info: #3a6f8f;
+    --nn-info-rgb: 58, 111, 143;
+    --nn-info-border: #b5cbd9;
+    --nn-primary-bg: #e3eaf2;
+    --nn-primary-text: var(--nn-blue);
+    --nn-primary-border: #b9c9da;
+    --nn-neutral-bg: #ebe8e2;
+    --nn-neutral-text: #474c55;
+    --nn-neutral-border: #d3cec4;
+
+    /* Radius */
+    --nn-radius-badge: 6px;
+    --nn-radius-control: 8px;
+    --nn-radius-card: 12px;
+    --nn-radius-modal: 16px;
+
+    /* Spacing */
+    --nn-space-1: 4px;
+    --nn-space-2: 8px;
+    --nn-space-3: 12px;
+    --nn-space-4: 16px;
+    --nn-space-5: 24px;
+    --nn-space-6: 32px;
+    --nn-card-padding: 20px;
+
+    /* Type */
+    --nn-font-h1: 1.75rem;           /* 28px */
+    --nn-font-title: 1.125rem;       /* 18px, card and modal titles */
+    --nn-font-body: 1rem;            /* 16px */
+    --nn-font-sm: .875rem;           /* 14px, tables and helper text */
+    --nn-font-xs: .75rem;            /* 12px, eyebrow and badges */
+
+    /* Focus: a ring, never a glow */
+    --nn-focus-color: var(--nn-blue);
+    --nn-focus-width: 2px;
+    --nn-focus-offset: 2px;
+
+    /* Bootstrap, mapped onto the tokens */
+    --bs-body-font-family: "Inter", var(--bs-font-sans-serif);
+    --bs-body-font-size: var(--nn-font-body);
+    --bs-body-bg: var(--nn-page);
+    --bs-body-color: var(--nn-text);
+    --bs-blue: var(--nn-blue);
+    --bs-primary: var(--nn-blue);
+    --bs-primary-rgb: var(--nn-blue-rgb);
+    --bs-primary-bg-subtle: var(--nn-primary-bg);
+    --bs-primary-text-emphasis: var(--nn-primary-text);
+    --bs-primary-border-subtle: var(--nn-primary-border);
+    --bs-secondary-bg-subtle: var(--nn-neutral-bg);
+    --bs-secondary-text-emphasis: var(--nn-neutral-text);
+    --bs-secondary-border-subtle: var(--nn-neutral-border);
+    --bs-success: var(--nn-ok);
+    --bs-success-rgb: var(--nn-ok-rgb);
+    --bs-success-bg-subtle: var(--nn-ok-bg);
+    --bs-success-text-emphasis: var(--nn-ok-text);
+    --bs-success-border-subtle: var(--nn-ok-border);
+    --bs-warning: var(--nn-warning);
+    --bs-warning-rgb: var(--nn-warning-rgb);
+    --bs-warning-bg-subtle: var(--nn-warning-bg);
+    --bs-warning-text-emphasis: var(--nn-warning-text);
+    --bs-warning-border-subtle: var(--nn-warning-border);
+    --bs-danger: var(--nn-danger);
+    --bs-danger-rgb: var(--nn-danger-rgb);
+    --bs-danger-bg-subtle: var(--nn-danger-bg);
+    --bs-danger-text-emphasis: var(--nn-danger-text);
+    --bs-danger-border-subtle: var(--nn-danger-border);
+    --bs-info: var(--nn-info);
+    --bs-info-rgb: var(--nn-info-rgb);
+    --bs-info-bg-subtle: var(--nn-info-bg);
+    --bs-info-text-emphasis: var(--nn-info-text);
+    --bs-info-border-subtle: var(--nn-info-border);
+    --bs-link-color: var(--nn-blue);
+    --bs-link-color-rgb: var(--nn-blue-rgb);
+    --bs-link-hover-color: var(--nn-blue-dark);
+    --bs-link-hover-color-rgb: var(--nn-blue-dark-rgb);
+    --bs-focus-ring-color: var(--nn-focus-color);
+    --bs-form-valid-color: var(--nn-ok);
+    --bs-form-valid-border-color: var(--nn-ok);
+    --bs-form-invalid-color: var(--nn-danger);
+    --bs-form-invalid-border-color: var(--nn-danger);
+    --bs-border-radius-sm: var(--nn-radius-badge);
+    --bs-border-radius: var(--nn-radius-control);
+    --bs-border-radius-lg: var(--nn-radius-card);
+    --bs-border-radius-xl: var(--nn-radius-modal);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Type
+   --------------------------------------------------------------------------------------------------------------- */
+h1, .h1 {
+    font-size: var(--nn-font-h1);
+    font-weight: 700;
+}
+/* Card and modal titles are h2.h5 / h3.h6 with fw-bold in the templates. */
+.card-title,
+.card-header .h5,
+.card-header .h6,
+.modal-title {
+    font-size: var(--nn-font-title);
+    font-weight: 600 !important;
+}
+.form-text { font-size: var(--nn-font-sm); }
+
+/* Tabular figures for IMO numbers, dates, counts and quantities, so columns of numbers line up. */
+.num { font-variant-numeric: tabular-nums; }
+
+/* Small spaced-out uppercase label above headings */
+.eyebrow {
+    font-family: var(--bs-font-monospace);
+    font-size: var(--nn-font-xs);
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    color: var(--nn-accent);
+}
+
+.brand-tagline {
+    font-family: var(--bs-font-monospace);
+    font-size: var(--nn-font-xs);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #e98bd0;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Focus: a 2px navy ring with a 2px gap on everything focusable. Bootstrap's blue glow is switched off.
+   On navy backgrounds the ring is white.
+   --------------------------------------------------------------------------------------------------------------- */
+:focus-visible,
+.btn:focus-visible,
+.btn-close:focus-visible,
+.nav-link:focus-visible,
+.list-group-item-action:focus-visible,
+.dropdown-item:focus-visible {
+    outline: var(--nn-focus-width) solid var(--nn-focus-color);
+    outline-offset: var(--nn-focus-offset);
+    box-shadow: none;
+}
+.btn-close:focus { box-shadow: none; }
+.bg-navy { --nn-focus-color: #fff; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Fields: white, a 3:1 border, navy border and ring on focus.
+   --------------------------------------------------------------------------------------------------------------- */
+.form-control,
+.form-select {
+    background-color: var(--nn-field);
+    border-color: var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+}
+.form-control:focus,
+.form-control:focus-within, /* date inputs: focus on the calendar button inside the field */
+.form-select:focus,
+.form-check-input:focus,
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus,
+.form-check-input.is-invalid:focus {
+    background-color: var(--nn-field);
+    border-color: var(--nn-blue);
+    outline: var(--nn-focus-width) solid var(--nn-focus-color);
+    outline-offset: var(--nn-focus-offset);
+    box-shadow: none;
+}
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus,
+.form-check-input.is-invalid:focus { border-color: var(--bs-form-invalid-border-color); }
+
+/* Checkboxes and radios: 20px, same border as the fields. */
+.form-check {
+    min-height: 1.5rem;
+    padding-left: 2rem;
+}
+.form-check .form-check-input { margin-left: -2rem; }
+.form-check-input {
+    --bs-form-check-bg: var(--nn-field);
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: .125rem;
+    border-color: var(--nn-field-border);
+}
+.form-check-input:checked,
+.form-check-input[type=checkbox]:indeterminate {
+    background-color: var(--nn-blue);
+    border-color: var(--nn-blue);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Buttons (colours and radius only; sizes come in P03)
+   --------------------------------------------------------------------------------------------------------------- */
+.btn,
+.btn-sm,
+.btn-lg { --bs-btn-border-radius: var(--nn-radius-control); }
 
 .btn-primary {
     --bs-btn-bg: var(--nn-blue);
@@ -43,12 +275,106 @@
     --bs-btn-hover-border-color: var(--nn-blue-dark);
     --bs-btn-active-bg: var(--nn-blue-dark);
     --bs-btn-active-border-color: var(--nn-blue-dark);
+    --bs-btn-disabled-bg: var(--nn-blue);
+    --bs-btn-disabled-border-color: var(--nn-blue);
     font-weight: 600;
 }
+.btn-outline-primary {
+    --bs-btn-color: var(--nn-blue);
+    --bs-btn-border-color: var(--nn-blue);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--nn-blue);
+    --bs-btn-hover-border-color: var(--nn-blue);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--nn-blue-dark);
+    --bs-btn-active-border-color: var(--nn-blue-dark);
+    --bs-btn-disabled-color: var(--nn-blue);
+    --bs-btn-disabled-border-color: var(--nn-blue);
+}
 
-.form-control { background-color: #fffdf8; }
-.card { --bs-card-bg: #fffdf8; }
+/* ---------------------------------------------------------------------------------------------------------------
+   Surfaces: cards, tables, list groups, modals, dropdown menus
+   --------------------------------------------------------------------------------------------------------------- */
+.card {
+    --bs-card-bg: var(--nn-surface);
+    --bs-card-cap-bg: transparent;
+    --bs-card-border-color: var(--nn-border);
+    --bs-card-border-radius: var(--nn-radius-card);
+    --bs-card-inner-border-radius: calc(var(--nn-radius-card) - 1px);
+    --bs-card-spacer-x: var(--nn-card-padding);
+    --bs-card-spacer-y: var(--nn-card-padding);
+    --bs-card-cap-padding-x: var(--nn-card-padding);
+    box-shadow: var(--nn-shadow);
+}
+/* Form cards use "p-3 p-md-4" in the templates; keep them on the card padding so header and body line up. */
+.card > .card-body.p-3 { padding: var(--nn-card-padding) !important; }
+/* Rows that sit flush in a card start and end on the same line as the card header. */
+.card > .list-group { --bs-list-group-item-padding-x: var(--nn-card-padding); }
+.card > .table-responsive > .table > :not(caption) > * > :first-child,
+.card > .table > :not(caption) > * > :first-child { padding-left: var(--nn-card-padding); }
+.card > .table-responsive > .table > :not(caption) > * > :last-child,
+.card > .table > :not(caption) > * > :last-child { padding-right: var(--nn-card-padding); }
 
+.table {
+    --bs-table-bg: var(--nn-surface);
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-border-color: var(--nn-divider);
+    font-size: var(--nn-font-sm);
+}
+/* Table text is 14px throughout; "small" in a cell must not shrink it further. */
+.table .small,
+.table small { font-size: inherit; }
+
+.list-group {
+    --bs-list-group-bg: var(--nn-surface);
+    --bs-list-group-border-color: var(--nn-divider);
+    --bs-list-group-border-radius: var(--nn-radius-card);
+    --bs-list-group-action-hover-bg: var(--nn-hover);
+    --bs-list-group-action-active-bg: var(--nn-hover);
+    --bs-list-group-active-bg: var(--nn-blue);
+    --bs-list-group-active-border-color: var(--nn-blue);
+}
+
+.modal {
+    --bs-modal-bg: var(--nn-surface);
+    --bs-modal-border-color: var(--nn-border);
+    --bs-modal-border-radius: var(--nn-radius-modal);
+    --bs-modal-inner-border-radius: calc(var(--nn-radius-modal) - 1px);
+    --bs-modal-padding: var(--nn-card-padding);
+    --bs-modal-header-padding: var(--nn-space-4) var(--nn-card-padding);
+    --bs-modal-header-border-color: var(--nn-divider);
+    --bs-modal-footer-border-color: var(--nn-divider);
+}
+
+.dropdown-menu {
+    --bs-dropdown-bg: var(--nn-surface);
+    --bs-dropdown-border-color: var(--nn-border);
+    --bs-dropdown-border-radius: var(--nn-radius-control);
+    --bs-dropdown-link-hover-bg: var(--nn-hover);
+    --bs-dropdown-link-active-color: #fff;
+    --bs-dropdown-link-active-bg: var(--nn-blue);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Status: badges and alerts use the status pairs through the Bootstrap variables above.
+   --------------------------------------------------------------------------------------------------------------- */
+.badge {
+    --bs-badge-font-size: var(--nn-font-xs);
+    --bs-badge-border-radius: var(--nn-radius-badge);
+}
+/* Badges are not pills, even where a template still says rounded-pill. */
+.badge.rounded-pill { border-radius: var(--nn-radius-badge) !important; }
+
+/* Bootstrap's solid yellow badge with black text; use the warning pair with a border instead. */
+.text-bg-warning {
+    color: var(--nn-warning-text) !important;
+    background-color: var(--nn-warning-bg) !important;
+    box-shadow: inset 0 0 0 1px var(--nn-warning-border);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Layout and page parts
+   --------------------------------------------------------------------------------------------------------------- */
 .bg-navy { background-color: var(--nn-navy); }
 
 /* Faint grid on the login side panel */
@@ -59,30 +385,13 @@
     background-size: 37px 37px;
 }
 
-/* Small spaced-out uppercase label above headings */
-.eyebrow {
-    font-family: var(--bs-font-monospace);
-    font-size: .8rem;
-    letter-spacing: .25em;
-    text-transform: uppercase;
-    color: var(--nn-accent);
-}
-
-.brand-tagline {
-    font-family: var(--bs-font-monospace);
-    font-size: .75rem;
-    letter-spacing: .2em;
-    text-transform: uppercase;
-    color: #e98bd0;
-}
-
 .login-box { max-width: 32rem; }
 .form-box { max-width: 40rem; }
 
 /* Sidebar navigation links, as in the mocks */
 .sidebar .nav-link {
     color: rgba(255, 255, 255, .85);
-    border-radius: .375rem;
+    border-radius: var(--nn-radius-control);
 }
 .sidebar .nav-link:hover,
 .sidebar .nav-link:focus { color: #fff; background-color: rgba(255, 255, 255, .08); }
@@ -94,7 +403,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: .5rem;
+    border-radius: var(--nn-radius-control);
     background-color: rgba(255, 255, 255, .12);
     font-weight: 600;
 }

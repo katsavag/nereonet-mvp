@@ -244,6 +244,19 @@ The app makes no request to any other host: everything a page needs is served fr
   `@fontsource-variable/inter` 5.3.0, files `inter-latin-wght-normal.woff2` and `inter-greek-wght-normal.woff2`.
   Licence: `fonts/LICENSE-Inter.txt` (SIL OFL 1.1).
 - `favicon.svg`: the wave mark of `layout/parts :: brand`; change both together.
+- `css/app.css`: the only custom stylesheet. It defines the design tokens (`--nn-*` CSS variables) once in `:root`
+  and maps Bootstrap's variables and components onto them; templates carry no inline styles. The comment at the
+  top of the file lists the scales:
+  - surfaces, three levels: page `#f4f1ea`, surface `#fffdf8` (cards, modals, tables, list groups, menus),
+    field `#ffffff` (inputs, selects, checkboxes, radios; border at least 3:1 against the surface);
+  - one blue, the brand navy `--nn-blue`, for primary buttons, outline buttons, links, checked boxes and the focus
+    ring (a 2 px ring with a 2 px gap on every focusable element; white on navy backgrounds);
+  - status pairs (subtle background + text, contrast at least 4.5:1) for ok, warning, danger and info, used by
+    `bg-*-subtle`, `text-*-emphasis`, `text-bg-*`, `alert-*` and `list-group-item-*`;
+  - radius 6 px badges (never pills), 8 px buttons and fields, 12 px cards, 16 px modals;
+  - type h1 28 px, card title 18 px, body 16 px, tables and helper text 14 px, eyebrow 12 px; `.num` gives
+    tabular figures for IMO numbers, dates, counts and quantities;
+  - spacing 4 / 8 / 12 / 16 / 24 / 32 px: 24 px between page sections, 16 px inside cards, card padding 20 px.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
