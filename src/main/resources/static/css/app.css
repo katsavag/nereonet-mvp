@@ -1,5 +1,29 @@
 /* The only custom CSS file. Prefer Bootstrap utilities. Colours follow the mocks. */
+
+/* Brand font: Inter (variable, weights 100-900), served from /fonts, Latin and Greek subsets only.
+   The browser downloads a subset only when the page has characters in its unicode-range.
+   Licence: fonts/LICENSE-Inter.txt (SIL OFL 1.1). */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-greek-wght-normal.woff2") format("woff2");
+    unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+
 :root {
+    /* Inter first, then Bootstrap's system stack. The monospace stack stays Bootstrap's. */
+    --bs-body-font-family: "Inter", var(--bs-font-sans-serif);
     --nn-navy: #10223a;
     --nn-blue: #0d4a7a;
     --nn-blue-dark: #0a3a60;
