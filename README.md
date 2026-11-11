@@ -481,6 +481,29 @@ The app makes no request to any other host: everything a page needs is served fr
     - the audit log's date filter is labelled **From (UTC)** and **To (UTC)**: it filters on UTC days;
     - certificate reminder emails and notifications (English) use the same date format (`Dates.DATE_PATTERN`).
 
+  - error pages (P12): an error says what happened and what to do next. Spring Boot picks
+    `templates/error/<status>.html`, then `error/<series>xx.html`, then `error.html`; all of them are one
+    `layout/parts :: errorPage(heading, text)`, with the status code as the eyebrow and **Go to start page** (the
+    user's home, `/office` or `/ship`) as the next step:
+    - 403 `error/403.html` "No access": "You don't have access to this page." (e.g. a crew member opening an
+      `/office` URL);
+    - 404 `error/404.html` "Page not found": "This page doesn't exist or was removed." (an unknown URL or record id,
+      e.g. a library item that does not exist);
+    - 500 and up `error/5xx.html` "Something went wrong": "Something went wrong on our side. Try again." and a
+      reference to quote to the office: the time in UTC and an eight-character code without 0/O and 1/I
+      ("11 Nov 2026 · 14:03 UTC · 7KQ3MX2P"). `error/ErrorReferenceAttributes` makes the code and logs it with the
+      failed URL (`Error reference 7KQ3MX2P: status 500 on /office/ships: ...`), next to the server's stack trace;
+    - any other status (400, 405) keeps the general `error.html`, "Something went wrong";
+    - signed in, the error page sits in the normal frame with the sidebar (crew get the ship sidebar, office the
+      office one, the section of the failed URL stays active); signed out, in the navy frame of the sign-in page;
+    - a form sent after the session expired, or with an invalid CSRF token (e.g. from a tab of an older session),
+      no longer ends on a 403: `core/security/SignedOutHandler` signs the user out if still signed in and sends
+      them to `/login?expired`, "You were signed out. Sign in to continue." After signing in they are back on the
+      page the form was on (from the `Referer` header). A page opened while signed out also opens after signing in.
+      `core/security/ReturnTo` only returns to paths of this app, never to `/login`, `/logout`, `/register` or
+      `/error`, nor to an `/office` page for crew or a `/ship` page for the office (on a shared PC the next person
+      may be someone else); otherwise it is the home page. What was typed into the form is lost.
+
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
 (`spring.web.resources` in `application.yml`). A changed file gets a new URL, so browsers on board load each

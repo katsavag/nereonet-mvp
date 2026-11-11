@@ -335,6 +335,43 @@
     </div>
 </th:block>
 
+<!-- Error pages (P12): templates/error/403.html, 404.html, 5xx.html and, for any other status, error.html. Each is
+       <main th:replace="~{layout/parts :: errorPage(#{error.404.title}, #{error.404.text})}"></main>
+     heading: what happened; text: one sentence saying what it means. The status code (the model's "status") is the
+     eyebrow; the next step is the user's home page (/office or /ship). Signed in, the page sits in the normal frame
+     with the sidebar, so navigation still works; signed out, in the navy frame of the sign-in page. From 500 on, a
+     reference to quote to the office comes first: the time in UTC and errorReference
+     (error/ErrorReferenceAttributes, which logs the same reference with the failed request). -->
+<th:block th:fragment="errorPage(heading, text)"
+          th:with="serverError=${status != null and status >= 500},
+                   home=${#authorization.expression('isAuthenticated()')} ? ${#authentication.principal.homeUrl} : '/'">
+    <main sec:authorize="isAuthenticated()" class="error-page">
+        <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, eyebrow=#{error.eyebrow(${status})}, subtitle=${text})}"></header>
+        <th:block th:replace="~{layout/parts :: errorNext(${serverError}, ${home}, 'btn btn-primary')}"></th:block>
+    </main>
+    <main sec:authorize="!isAuthenticated()" class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
+        <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
+            <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
+        </div>
+        <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
+            <div class="login-box w-100 py-4">
+                <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, eyebrow=#{error.eyebrow(${status})}, subtitle=${text})}"></header>
+                <th:block th:replace="~{layout/parts :: errorNext(${serverError}, ${home}, 'btn btn-primary btn-lg w-100')}"></th:block>
+            </div>
+        </div>
+    </main>
+</th:block>
+
+<!-- The next step of an error page: the reference (5xx only) and the link home. -->
+<th:block th:fragment="errorNext(serverError, home, buttonClass)">
+    <div th:if="${serverError}" class="error-reference">
+        <p class="error-reference-label" th:text="#{error.reference}">If it keeps happening, quote this reference to the office:</p>
+        <p class="error-reference-value"><time th:replace="~{layout/parts :: localTime(${errorTime})}"></time>
+            <span aria-hidden="true">·</span> <span class="num" th:text="${errorReference}">7KQ3MX2P</span></p>
+    </div>
+    <a th:href="@{${home}}" th:class="${buttonClass}" th:text="#{error.home}">Go to start page</a>
+</th:block>
+
 <!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
      "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."). -->
 <th:block th:fragment="flash">

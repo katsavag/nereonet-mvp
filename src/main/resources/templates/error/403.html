@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<!-- Error page (P12), 403: the user is signed in but may not open this page, e.g. a crew member opening an /office URL.
+     Spring Boot picks error/<status>.html, then error/<series>xx.html, then error.html. See layout/parts :: errorPage. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{error.403.title}, ~{::main})}">
+<body>
+<main th:replace="~{layout/parts :: errorPage(#{error.403.title}, #{error.403.text})}"></main>
+</body>
+</html>

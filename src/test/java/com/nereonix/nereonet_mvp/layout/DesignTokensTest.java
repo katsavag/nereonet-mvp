@@ -41,13 +41,17 @@ class DesignTokensTest {
 
     @Test
     void largeButtonsOnlyWhereTheyAreFullWidthOrIHaveReadThis() throws IOException {
-        // Sign-in, registration and error pages (w-100), and the crew "I have read this" button.
-        List<String> allowed = List.of("login.html", "register.html", "invalid.html", "error.html", "item.html");
+        // Sign-in, registration and signed-out error pages (w-100; the error pages' button is in
+        // layout/parts :: errorPage, P12), and the crew "I have read this" button.
+        Path templates = Path.of("src/main/resources/templates");
+        List<String> allowed = List.of("login/login.html", "registration/register.html", "registration/invalid.html",
+                "layout/parts.html", "library/item.html");
         List<String> found = new ArrayList<>();
-        try (Stream<Path> files = Files.walk(Path.of("src/main/resources/templates"))) {
+        try (Stream<Path> files = Files.walk(templates)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".html")).toList()) {
                 String html = Files.readString(file);
-                if (html.contains("btn-lg") && !allowed.contains(file.getFileName().toString())) {
+                String name = templates.relativize(file).toString().replace('\\', '/');
+                if (html.contains("btn-lg") && !allowed.contains(name)) {
                     found.add(file.toString());
                 }
                 if (html.matches("(?s).*\\bbtn-danger\\b.*")) {

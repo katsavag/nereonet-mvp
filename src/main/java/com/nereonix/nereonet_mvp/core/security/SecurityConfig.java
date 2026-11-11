@@ -35,18 +35,21 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .usernameParameter("email")
-                        .successHandler(redirectByRole())
+                        .successHandler(returnAfterSignIn())
                         .failureHandler(logFailure()))
                 .logout(logout -> logout.logoutSuccessUrl("/login"))
+                // A form sent after the session expired: sign in again, then back to the page (P12).
+                .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(new SignedOutHandler()))
                 .addFilterBefore(new UploadTooLargeFilter(), CsrfFilter.class);
         return http.build();
     }
 
-    private static AuthenticationSuccessHandler redirectByRole() {
+    // Back to the page the user was on (see ReturnTo), else /office or /ship by role.
+    private static AuthenticationSuccessHandler returnAfterSignIn() {
         return (request, response, authentication) -> {
             CurrentUser user = (CurrentUser) authentication.getPrincipal();
             log.info("Login: {}", user.getUsername());
-            response.sendRedirect(request.getContextPath() + user.getHomeUrl());
+            response.sendRedirect(request.getContextPath() + ReturnTo.afterSignIn(request, response, user));
         };
     }
 

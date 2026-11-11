@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<!-- Error page (P12), 500 and up: something failed on the server. Shows a reference to quote to the office.
+     Spring Boot picks error/<status>.html, then error/<series>xx.html, then error.html. See layout/parts :: errorPage. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{error.5xx.title}, ~{::main})}">
+<body>
+<main th:replace="~{layout/parts :: errorPage(#{error.5xx.title}, #{error.5xx.text})}"></main>
+</body>
+</html>

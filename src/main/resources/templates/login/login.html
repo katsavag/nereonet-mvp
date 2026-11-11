@@ -18,6 +18,10 @@
                 <div th:if="${param.error}" class="alert alert-danger" role="alert" th:text="#{login.error}">
                     Wrong email or password.
                 </div>
+                <!-- A form sent after the session expired (P12, core/security/SignedOutHandler); after signing in
+                     the user is back on the page the form was on. -->
+                <div th:if="${param.expired != null and param.error == null}" class="alert alert-info" role="status"
+                     th:text="#{login.signedOut}">You were signed out. Sign in to continue.</div>
 
                 <form th:action="@{/login}" method="post">
                     <div class="mb-3">
