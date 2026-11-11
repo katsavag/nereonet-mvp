@@ -1,14 +1,13 @@
 package com.nereonix.nereonet_mvp.crew;
 
 import com.nereonix.nereonet_mvp.core.user.Rank;
-import com.nereonix.nereonet_mvp.core.user.Role;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The "Add crew member" pop-up on the crew page. Sends an invitation.
+// The "Add crew member" pop-up on the crew page. Sends an invitation. There is no role: it follows from the rank (P18).
 public class AddCrewForm {
 
     @NotBlank(message = "{user.error.fullNameRequired}")
@@ -20,10 +19,8 @@ public class AddCrewForm {
     @Size(max = 255)
     private String email;
 
+    @NotNull(message = "{user.error.rankRequired}")
     private Rank rank;
-
-    @NotNull(message = "{user.error.roleRequired}")
-    private Role role;
 
     @NotNull(message = "{user.error.shipRequired}")
     private Long shipId;
@@ -36,9 +33,6 @@ public class AddCrewForm {
 
     public Rank getRank() { return rank; }
     public void setRank(Rank rank) { this.rank = rank; }
-
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
 
     public Long getShipId() { return shipId; }
     public void setShipId(Long shipId) { this.shipId = shipId; }

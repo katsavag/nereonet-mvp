@@ -176,7 +176,7 @@ class ShipPageFlowTest {
         request(demo, Instant.now());                  // exported: Requests tab only
         mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                 .param("fullName", "New Member").param("email", "new.member@example.com")
-                .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()));
+                .param("rank", "ABLE_SEAMAN").param("shipId", demo.getId().toString()).with(csrf()));
         mockMvc.perform(post("/office/ships/{id}/items/new", demo.getId())
                 .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
         mockMvc.perform(post("/office/announcements/send")
@@ -246,14 +246,14 @@ class ShipPageFlowTest {
         // Errors: the tab again, with the modal open and the errors.
         String errors = html(post("/office/ships/{id}/crew/new", demo.getId())
                 .param("fullName", "").param("email", "new.member@example.com")
-                .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()));
+                .param("rank", "ABLE_SEAMAN").param("shipId", demo.getId().toString()).with(csrf()));
         assertThat(errors).contains("MV Demo · Crew", "bootstrap.Modal.getOrCreateInstance('#addCrewModal').show()",
                 "is-invalid");
         assertThat(invitationRepository.findAll()).isEmpty();
 
         mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                         .param("fullName", "New Member").param("email", "new.member@example.com")
-                        .param("role", "CREW_MEMBER").param("shipId", demo.getId().toString()).with(csrf()))
+                        .param("rank", "ABLE_SEAMAN").param("shipId", demo.getId().toString()).with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/crew"));
         assertThat(invitationRepository.findAll()).singleElement()
                 .satisfies(i -> assertThat(i.getShip().getId()).isEqualTo(demo.getId()));
@@ -262,7 +262,7 @@ class ShipPageFlowTest {
         // Another ship picked in the modal: the invitation is for that ship, and the user lands on its Crew tab.
         mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                         .param("fullName", "Other Member").param("email", "other.member@example.com")
-                        .param("role", "CREW_MEMBER").param("shipId", other.getId().toString()).with(csrf()))
+                        .param("rank", "ABLE_SEAMAN").param("shipId", other.getId().toString()).with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + other.getId() + "/crew"));
 
         // A user's "more" menu on the tab returns to the tab.

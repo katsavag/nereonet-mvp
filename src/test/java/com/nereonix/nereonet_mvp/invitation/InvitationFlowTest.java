@@ -92,7 +92,7 @@ class InvitationFlowTest {
         mockMvc.perform(post("/office/ships/{id}/crew/new", ship.getId())
                         .param("fullName", "Crew Member")
                         .param("email", "crew.member@example.com")
-                        .param("role", "CREW_MEMBER")
+                        .param("rank", "ABLE_SEAMAN")
                         .param("shipId", ship.getId().toString())
                         .with(csrf()))
                 // Back to the ship page's Crew tab, where the new member is listed as "Invited".
@@ -163,7 +163,7 @@ class InvitationFlowTest {
         shipRepository.save(ship);
         mockMvc.perform(post("/office/ships/{id}/crew/new", ship.getId())
                 .param("fullName", "Crew Member").param("email", "crew.member@example.com")
-                .param("role", "CREW_MEMBER").param("shipId", ship.getId().toString()).with(csrf()));
+                .param("rank", "ABLE_SEAMAN").param("shipId", ship.getId().toString()).with(csrf()));
         Invitation invitation = onlyInvitation();
         invitation.setExpiresAt(Instant.now().minus(Duration.ofDays(2)));
         UUID oldTokenId = invitation.getTokenId();

@@ -10,6 +10,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
 import java.time.Instant;
@@ -79,7 +80,6 @@ class CrewFlowTest {
                         .param("fullName", "Jane Cook")
                         .param("email", "jane.cook@example.com")
                         .param("rank", "CHIEF_COOK")
-                        .param("role", "CHIEF_COOK")
                         .param("shipId", ship.getId().toString())
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/crew"));
@@ -108,7 +108,6 @@ class CrewFlowTest {
         mockMvc.perform(post("/office/crew/" + crew.getId() + "/edit")
                         .param("fullName", "Crew Member")
                         .param("rank", "THIRD_OFFICER")
-                        .param("role", "CREW_MEMBER")
                         .param("shipId", to.getId().toString())
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/crew"));
@@ -127,7 +126,7 @@ class CrewFlowTest {
         mockMvc.perform(post("/office/crew/new")
                         .param("fullName", "Crew Member")
                         .param("email", "crew@example.com")
-                        .param("role", "CREW_MEMBER")
+                        .param("rank", "ABLE_SEAMAN")
                         .param("shipId", ship.getId().toString())
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/crew"));
@@ -229,6 +228,207 @@ class CrewFlowTest {
                 .extracting(AuditEntry::getAction).containsExactlyInAnyOrder("INVITATION_RESENT", "INVITATION_CANCELLED");
         assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().startsWith("INVITATION_"))
                 .allSatisfy(e -> assertThat(e.getShip().getId()).isEqualTo(demo.getId()));
+    }
+
+    // P18: the office picks a rank; the role is the rank's. A role sent with the form is ignored.
+    @Test
+    void theRankSetsTheRole() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        String[][] cases = {
+                {"MASTER", "master@example.com"}, {"CHIEF_COOK", "cook@example.com"},
+                {"CHIEF_ENGINEER", "chief.engineer@example.com"}, {"BOSUN", "bosun@example.com"},
+                {"SECOND_ENGINEER", "second.engineer@example.com"}, {"STEWARD", "steward@example.com"}};
+        for (String[] c : cases) {
+            mockMvc.perform(post("/office/crew/new")
+                            .param("fullName", "Crew " + c[0]).param("email", c[1]).param("rank", c[0])
+                            // Not a field of the form any more: never bound.
+                            .param("role", "MASTER")
+                            .param("shipId", ship.getId().toString()).with(csrf()))
+                    .andExpect(redirectedUrl("/office/crew"));
+        }
+        assertThat(invitationRepository.findAll()).extracting(Invitation::getEmail, Invitation::getRole)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("master@example.com", Role.MASTER),
+                        org.assertj.core.groups.Tuple.tuple("cook@example.com", Role.CHIEF_COOK),
+                        // Chief Engineer has no role of its own.
+                        org.assertj.core.groups.Tuple.tuple("chief.engineer@example.com", Role.CREW_MEMBER),
+                        org.assertj.core.groups.Tuple.tuple("bosun@example.com", Role.CREW_MEMBER),
+                        org.assertj.core.groups.Tuple.tuple("second.engineer@example.com", Role.CREW_MEMBER),
+                        org.assertj.core.groups.Tuple.tuple("steward@example.com", Role.CREW_MEMBER));
+        assertThat(Rank.values()).allSatisfy(rank -> assertThat(rank.role()).isEqualTo(switch (rank) {
+            case MASTER -> Role.MASTER;
+            case CHIEF_COOK -> Role.CHIEF_COOK;
+            default -> Role.CREW_MEMBER;
+        }));
+
+        // Editing: the new rank's role, also when it takes one away.
+        User crew = userService.createUser("crew@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship,
+                Rank.SECOND_ENGINEER);
+        edit(crew, "CHIEF_ENGINEER", ship).andExpect(redirectedUrl("/office/crew"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.CREW_MEMBER);
+        edit(crew, "CHIEF_COOK", ship).andExpect(redirectedUrl("/office/crew"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.CHIEF_COOK);
+        edit(crew, "FITTER", ship).andExpect(redirectedUrl("/office/crew"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.CREW_MEMBER);
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("USER_UPDATED"))
+                .extracting(AuditEntry::getDetails)
+                .containsExactly("crew@example.com: CREW_MEMBER, CHIEF_ENGINEER",
+                        "crew@example.com: CHIEF_COOK, CHIEF_COOK, role CREW_MEMBER -> CHIEF_COOK",
+                        "crew@example.com: CREW_MEMBER, FITTER, role CHIEF_COOK -> CREW_MEMBER");
+    }
+
+    @Test
+    void theRankIsRequired() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        mockMvc.perform(post("/office/crew/new").param("fullName", "No Rank").param("email", "norank@example.com")
+                        .param("role", "CREW_MEMBER").param("shipId", ship.getId().toString()).with(csrf()))
+                .andExpect(model().attributeHasFieldErrorCode("addForm", "rank", "NotNull"))
+                .andExpect(content().string(Matchers.containsString("Choose a rank.")));
+        assertThat(invitationRepository.findAll()).isEmpty();
+
+        User crew = userService.createUser("crew@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship,
+                Rank.BOSUN);
+        edit(crew, "", ship).andExpect(model().attributeHasFieldErrorCode("form", "rank", "NotNull"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRank()).isEqualTo(Rank.BOSUN);
+    }
+
+    // One active Master and one active Chief Cook per ship; since P18 the error is on the rank field.
+    @Test
+    void oneMasterPerShipIsReportedOnTheRankField() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        userService.createUser("master@example.com", "Mara Master", "secret123", Role.MASTER, ship, Rank.MASTER);
+        userService.createUser("cook@example.com", "Cora Cook", "secret123", Role.CHIEF_COOK, ship, Rank.CHIEF_COOK);
+
+        for (String rank : new String[] {"MASTER", "CHIEF_COOK"}) {
+            String html = mockMvc.perform(post("/office/crew/new").param("fullName", "Second One")
+                            .param("email", "second@example.com").param("rank", rank)
+                            .param("shipId", ship.getId().toString()).with(csrf()))
+                    .andExpect(model().attributeHasFieldErrorCode("addForm", "rank", "user.error.shipRoleTaken"))
+                    .andExpect(model().attributeErrorCount("addForm", 1))
+                    .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+            assertThat(html).as(rank)
+                    .containsPattern("<select class=\"form-select is-invalid\"[^>]*id=\"rank\" name=\"rank\"")
+                    .contains("This ship already has an active crew member with this access.");
+        }
+        assertThat(invitationRepository.findAll()).isEmpty();
+
+        // Editing a crew member to Master: the same error, on the same field.
+        User crew = userService.createUser("crew@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship,
+                Rank.CHIEF_OFFICER);
+        edit(crew, "MASTER", ship)
+                .andExpect(model().attributeHasFieldErrorCode("form", "rank", "user.error.shipRoleTaken"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.CREW_MEMBER);
+        // Another ship has no Master yet.
+        Ship other = ship("9176187", "MV Other");
+        edit(crew, "MASTER", other).andExpect(redirectedUrl("/office/crew"));
+        assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
+    }
+
+    // P18: no role picker; the rank picker is grouped by department and says what access the rank gives.
+    @Test
+    void noFormLetsTheOfficeChooseARole() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        User master = userService.createUser("master@example.com", "Mara Master", "secret123", Role.MASTER, ship,
+                Rank.MASTER);
+        for (String page : List.of("/office/crew", "/office/ships/" + ship.getId() + "/crew",
+                "/office/crew/" + master.getId() + "/edit")) {
+            String html = html(get(page));
+            assertThat(html).as(page).doesNotContain("name=\"role\"", "Choose a role", ">Role<")
+                    // Required, described by the access line, in either attribute order.
+                    .containsPattern("<select class=\"form-select\" required(?=[^>]*aria-describedby=\"rankAccess)"
+                            + "(?=[^>]*data-access-hint=\"rankAccess\")[^>]*id=\"rank\" name=\"rank\">")
+                    .contains("<optgroup label=\"Deck\">", "<optgroup label=\"Engine\">", "<optgroup label=\"Catering\">")
+                    .contains("<option value=\"CHIEF_ENGINEER\" data-role=\"CREW_MEMBER\">Chief Engineer</option>",
+                            "<option value=\"FITTER\" data-role=\"CREW_MEMBER\">Fitter</option>")
+                    .contains("data-access-master=\"Access: Master · can publish library items and see acknowledgements\"",
+                            "data-access-crew_member=\"Access: Crew member · can read the library and acknowledge required items\"")
+                    .doesNotContain("chief_engineer");
+            // In the Rank order: Master first in Deck, Chief Engineer first in Engine, Steward last in Catering.
+            assertThat(html.indexOf("value=\"MASTER\"")).isLessThan(html.indexOf("value=\"CHIEF_OFFICER\""));
+            assertThat(html.indexOf("<optgroup label=\"Engine\">")).isLessThan(html.indexOf("value=\"CHIEF_ENGINEER\""));
+            assertThat(html.indexOf("value=\"COOK\"")).isLessThan(html.indexOf("value=\"STEWARD\""));
+        }
+        // Before a rank is chosen, and for the saved rank.
+        assertThat(html(get("/office/crew")))
+                .containsPattern("aria-live=\"polite\"\\s+data-access-none=\"Access: set by the rank\"")
+                .contains(">Access: set by the rank</p>");
+        assertThat(html(get("/office/crew/" + master.getId() + "/edit")))
+                .contains(">Access: Master · can publish library items and see acknowledgements</p>")
+                .doesNotContain("Access now:");
+        assertThat(html(get("/office/crew").param("lang", "el")))
+                .contains("<optgroup label=\"Κατάστρωμα\">", "<optgroup label=\"Τροφοδοσία\">",
+                        ">Πρόσβαση: ορίζεται από τον βαθμό</p>");
+    }
+
+    // P18: the Role column is gone; Master and Chief Cook have an access badge after the rank.
+    @Test
+    void listsShowTheRankAndAnAccessBadgeForTheRolesWithTheirOwnAccess() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        userService.createUser("master@example.com", "Mara Master", "secret123", Role.MASTER, ship, Rank.MASTER);
+        userService.createUser("chief@example.com", "Chris Chief", "secret123", Role.CREW_MEMBER, ship,
+                Rank.CHIEF_ENGINEER);
+        userService.createUser("bosun@example.com", "Bo Bosun", "secret123", Role.CREW_MEMBER, ship, Rank.BOSUN);
+        mockMvc.perform(post("/office/crew/new").param("fullName", "Cora Cook").param("email", "cook@example.com")
+                .param("rank", "CHIEF_COOK").param("shipId", ship.getId().toString()).with(csrf()));
+
+        for (String page : List.of("/office/crew", "/office/ships/" + ship.getId() + "/crew")) {
+            String html = html(get(page));
+            assertThat(html).as(page).doesNotContain("<th scope=\"col\">Role</th>")
+                    .contains(">Master access</span>", ">Chief cook access</span>", "<span>Bosun</span>",
+                            "<span>Chief Engineer</span>");
+            assertThat(html.split("access</span>", -1)).as(page).hasSize(3);
+        }
+    }
+
+    // P18: users from before whose rank and role disagree, or who have no rank, keep their role and are listed in a
+    // notice on the Crew list; saving the edit form applies the rank's role.
+    @Test
+    void usersWhoseRankDoesNotSetTheirRoleAreListedForReview() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        User noRank = userService.createUser("nora@example.com", "Nora Norank", "secret123", Role.MASTER, ship, null);
+        User mismatch = userService.createUser("milo@example.com", "Milo Mismatch", "secret123", Role.CHIEF_COOK, ship,
+                Rank.BOSUN);
+        User fine = userService.createUser("fiona@example.com", "Fiona Fine", "secret123", Role.CREW_MEMBER, ship,
+                Rank.BOSUN);
+
+        String list = html(get("/office/crew"));
+        String notice = list.substring(list.indexOf("<section class=\"alert alert-warning rank-review\""),
+                list.indexOf("</section>"));
+        assertThat(notice).contains("Rank needs review", ">2</span>",
+                "href=\"/office/crew/" + noRank.getId() + "/edit\">Nora Norank</a>",
+                "Rank: not set · access now: Master",
+                "href=\"/office/crew/" + mismatch.getId() + "/edit\">Milo Mismatch</a>",
+                "Rank: Bosun · access now: Chief cook")
+                .doesNotContain("Fiona Fine");
+        // They keep their role until saved.
+        assertThat(userRepository.findById(noRank.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
+        assertThat(html(get("/office/crew").param("lang", "el"))).contains("Ο βαθμός θέλει έλεγχο");
+        // Filtered to another ship or to invitations: not listed.
+        Ship other = ship("9176187", "MV Other");
+        assertThat(html(get("/office/crew").param("shipId", other.getId().toString()))).doesNotContain("rank-review");
+        assertThat(html(get("/office/crew").param("status", "invited"))).doesNotContain("rank-review");
+
+        // The edit form names the access they have now; no rank is chosen for Nora.
+        assertThat(html(get("/office/crew/" + noRank.getId() + "/edit")))
+                .contains("aria-describedby=\"rankAccess rankCurrentAccess\"",
+                        "<p class=\"info-note\" id=\"rankCurrentAccess\">",
+                        "Access now: Master. Saving applies the access of the rank above.",
+                        ">Access: set by the rank</p>");
+        assertThat(html(get("/office/crew/" + fine.getId() + "/edit"))).doesNotContain("rankCurrentAccess");
+
+        // Saving applies the mapping.
+        edit(noRank, "MASTER", ship).andExpect(redirectedUrl("/office/crew"));
+        edit(mismatch, "BOSUN", ship).andExpect(redirectedUrl("/office/crew"));
+        assertThat(userRepository.findById(noRank.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
+        assertThat(userRepository.findById(mismatch.getId()).orElseThrow().getRole()).isEqualTo(Role.CREW_MEMBER);
+        assertThat(html(get("/office/crew"))).doesNotContain("rank-review");
+    }
+
+    private org.springframework.test.web.servlet.ResultActions edit(User user, String rank, Ship ship)
+            throws Exception {
+        return mockMvc.perform(post("/office/crew/" + user.getId() + "/edit")
+                .param("fullName", user.getFullName()).param("rank", rank)
+                .param("shipId", ship.getId().toString()).with(csrf()));
     }
 
     // A PENDING crew invitation that expires in this many days (negative: expired that many days ago).

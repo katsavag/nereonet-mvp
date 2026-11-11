@@ -53,8 +53,8 @@ public class CrewImportController {
     // Only the editable values; the row number and errors come from the server.
     @InitBinder("crewImport")
     void allowEditableFields(WebDataBinder binder) {
-        binder.setAllowedFields("rows[*].fullName", "rows[*].email", "rows[*].rank", "rows[*].role",
-                "rows[*].shipImo", "rows[*].excluded");
+        binder.setAllowedFields("rows[*].fullName", "rows[*].email", "rows[*].rank", "rows[*].shipImo",
+                "rows[*].excluded");
     }
 
     @GetMapping("/office/crew/import")
@@ -96,9 +96,7 @@ public class CrewImportController {
         crewImportService.validate(form);
         model.addAttribute("ships", crewImportService.findActiveShips());
         model.addAttribute("shipImos", crewImportService.findActiveShips().stream().map(Ship::getImoNumber).toList());
-        model.addAttribute("roles", CrewTemplate.SHIP_ROLES);
-        model.addAttribute("roleNames", CrewTemplate.SHIP_ROLES.stream().map(Enum::name).toList());
-        model.addAttribute("ranks", Rank.values());
+        model.addAttribute("rankGroups", Rank.groups());
         model.addAttribute("rankNames", Arrays.stream(Rank.values()).map(Enum::name).toList());
         return "crewimport/review";
     }

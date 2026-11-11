@@ -44,7 +44,8 @@ public class User {
     @ManyToOne
     private Ship ship;
 
-    // Ship roles only, optional. Null for OFFICE_USER.
+    // Ship roles only. Null for OFFICE_USER. Required in every form since P18 (it sets the role), but users from
+    // before may have none (see rankNeedsReview).
     @Enumerated(EnumType.STRING)
     private Rank rank;
 
@@ -53,4 +54,12 @@ public class User {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    /**
+     * P18: a crew member whose role is not the one their rank sets (Rank.role()), or who has no rank. They keep their
+     * role until the office saves them with a rank. Always false for an office user.
+     */
+    public boolean rankNeedsReview() {
+        return role != Role.OFFICE_USER && (rank == null || rank.role() != role);
+    }
 }

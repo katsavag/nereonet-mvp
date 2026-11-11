@@ -37,6 +37,10 @@
         </div>
     </div>
 
+    <!-- P18: a file from the earlier template, with a Role column: imported, the column ignored. -->
+    <th:block th:if="${crewImport.roleColumnIgnored}"><p th:replace="~{layout/parts :: infoNote('roleColumnIgnored',
+            #{crewImport.review.roleIgnored})}"></p></th:block>
+
     <p th:if="${crewImport.rows.isEmpty()}" class="alert alert-warning" th:text="#{crewImport.review.empty}">
         The file has no crew members.</p>
 
@@ -54,7 +58,6 @@
                         <th scope="col" th:text="#{user.fullName}">Full name</th>
                         <th scope="col" th:text="#{user.email}">Email</th>
                         <th scope="col" th:text="#{user.rank}">Rank</th>
-                        <th scope="col" th:text="#{user.role}">Role</th>
                         <th scope="col" th:text="#{user.ship}">Ship</th>
                     </tr>
                     </thead>
@@ -78,27 +81,19 @@
                                  th:text="#{${row.errors['email']}}"></div>
                         </td>
                         <td>
+                            <!-- The rank sets the role (P18): its access in short under it, "Access: Master". -->
                             <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].rank}"
-                                    th:classappend="${row.errors['rank']} ? 'is-invalid'">
+                                    th:classappend="${row.errors['rank']} ? 'is-invalid'"
+                                    th:attr="aria-describedby=${'rankAccess' + stat.index}, data-access-hint=${'rankAccess' + stat.index}">
                                 <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
                                 <!-- A value from the file that is not a rank: kept so it can be seen and corrected. -->
                                 <option th:if="${!#strings.isEmpty(row.rank) and !rankNames.contains(row.rank)}"
                                         th:value="${row.rank}" th:text="${row.rank}">Captain</option>
-                                <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                                <th:block th:replace="~{crew/parts :: rankOptions}"></th:block>
                             </select>
                             <div class="invalid-feedback" th:if="${row.errors['rank']}"
                                  th:text="#{${row.errors['rank']}}"></div>
-                        </td>
-                        <td>
-                            <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].role}"
-                                    th:classappend="${row.errors['role']} ? 'is-invalid'">
-                                <option value="" th:text="#{invitation.form.chooseRole}">Choose a role</option>
-                                <option th:if="${!#strings.isEmpty(row.role) and !roleNames.contains(row.role)}"
-                                        th:value="${row.role}" th:text="${row.role}">Captain</option>
-                                <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
-                            </select>
-                            <div class="invalid-feedback" th:if="${row.errors['role']}"
-                                 th:text="#{${row.errors['role']}}"></div>
+                            <p th:replace="~{crew/parts :: accessHint(${'rankAccess' + stat.index}, ${row.role}, false)}"></p>
                         </td>
                         <td>
                             <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].shipImo}"

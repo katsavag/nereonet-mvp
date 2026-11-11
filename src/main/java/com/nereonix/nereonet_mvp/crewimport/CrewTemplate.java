@@ -14,17 +14,17 @@ import org.springframework.context.MessageSource;
 
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Rank;
-import com.nereonix.nereonet_mvp.core.user.Role;
 
 // The crew import template (.xlsx): sheet "Crew" with the header row and the given rows,
 // and sheet "Instructions". Used for the download and for samples/crew-sample.xlsx.
 public final class CrewTemplate {
 
     // The file format, so never translated. Uploaded files must have exactly these columns, in this order.
-    public static final List<String> HEADERS = List.of("Full name", "Email", "Rank", "Role", "Ship IMO");
-    private static final int[] COLUMN_WIDTHS = {28, 34, 24, 16, 12};
-
-    static final List<Role> SHIP_ROLES = List.of(Role.MASTER, Role.CHIEF_COOK, Role.CREW_MEMBER);
+    // There is no Role column: the rank sets the role (P18).
+    public static final List<String> HEADERS = List.of("Full name", "Email", "Rank", "Ship IMO");
+    // The template from before P18. Still accepted; its Role column is ignored (CrewImportService.read).
+    static final List<String> HEADERS_WITH_ROLE = List.of("Full name", "Email", "Rank", "Role", "Ship IMO");
+    private static final int[] COLUMN_WIDTHS = {28, 34, 24, 12};
 
     private CrewTemplate() {
     }
@@ -50,27 +50,27 @@ public final class CrewTemplate {
             Sheet help = workbook.createSheet("Instructions");
             help.setColumnWidth(0, 30 * 256);
             help.setColumnWidth(1, 90 * 256);
+            help.setColumnWidth(2, 24 * 256);
             addRow(help, List.of(text(messages, "crewImport.template.title", locale)), bold);
             addRow(help, List.of(text(messages, "crewImport.template.intro", locale)), null);
             addRow(help, List.of(), null);
 
             addRow(help, List.of(text(messages, "crewImport.template.column", locale),
                     text(messages, "crewImport.template.meaning", locale)), bold);
-            String[] keys = {"fullName", "email", "rank", "role", "shipImo"};
+            String[] keys = {"fullName", "email", "rank", "shipImo"};
             for (int i = 0; i < HEADERS.size(); i++) {
                 addRow(help, List.of(HEADERS.get(i), text(messages, "crewImport.template." + keys[i], locale)), null);
             }
             addRow(help, List.of(), null);
 
-            addRow(help, List.of(text(messages, "crewImport.template.roles", locale)), bold);
-            for (Role role : SHIP_ROLES) {
-                addRow(help, List.of(role.name(), text(messages, "role." + role, locale)), null);
-            }
-            addRow(help, List.of(), null);
-
+            // Each rank with the access it sets (P18).
             addRow(help, List.of(text(messages, "crewImport.template.ranks", locale)), bold);
+            addRow(help, List.of(text(messages, "crewImport.template.accessHint", locale)), null);
+            addRow(help, List.of(text(messages, "crewImport.template.value", locale), text(messages, "user.rank", locale),
+                    text(messages, "crewImport.template.access", locale)), bold);
             for (Rank rank : Rank.values()) {
-                addRow(help, List.of(rank.name(), text(messages, "rank." + rank, locale)), null);
+                addRow(help, List.of(rank.name(), text(messages, "rank." + rank, locale),
+                        text(messages, "role." + rank.role(), locale)), null);
             }
             addRow(help, List.of(), null);
 

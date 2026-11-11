@@ -155,12 +155,15 @@ class FormsFlowTest {
     void optionalFieldsAreMarkedAndRequiredFieldsHaveNoAsterisk() throws Exception {
         Ship ship = ship();
         User crew = crewMember(ship);
-        for (String page : List.of("/office/crew/" + crew.getId() + "/edit", "/office/ships",
-                "/office/crew/" + crew.getId() + "/certificates/new", "/office/ships/" + ship.getId() + "/items/new",
-                "/office/ships/" + ship.getId() + "/crew")) {
+        // Not the crew forms: since P18 every field there is required (the rank sets the access).
+        for (String page : List.of("/office/ships",
+                "/office/crew/" + crew.getId() + "/certificates/new", "/office/ships/" + ship.getId() + "/items/new")) {
             String html = page(page);
             assertThat(html).as(page).contains("<span class=\"form-label-optional\">(optional)</span>");
             assertThat(html).as(page).doesNotContainPattern("<label[^>]*>[^<]*\\*");
+        }
+        for (String page : List.of("/office/crew/" + crew.getId() + "/edit", "/office/ships/" + ship.getId() + "/crew")) {
+            assertThat(page(page)).as(page).doesNotContainPattern("<label[^>]*>[^<]*\\*");
         }
         assertThat(page("/office/crew/" + crew.getId() + "/certificates/new")).doesNotContain(">Optional.<");
     }
@@ -257,7 +260,7 @@ class FormsFlowTest {
         assertThat(html).contains("Invitation sent to new.office@example.com.");
 
         MvcResult added = mockMvc.perform(post("/office/crew/new")
-                        .param("fullName", "Jane Doe").param("email", "jane@example.com").param("role", "CREW_MEMBER")
+                        .param("fullName", "Jane Doe").param("email", "jane@example.com").param("rank", "ABLE_SEAMAN")
                         .param("shipId", ship.getId().toString()).with(csrf()))
                 .andExpect(redirectedUrl("/office/crew")).andReturn();
         assertThat(mockMvc.perform(get("/office/crew").flashAttrs(added.getFlashMap()))

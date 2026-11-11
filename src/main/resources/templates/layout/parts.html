@@ -402,7 +402,7 @@
 
 <!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows, P09). Same tones as
      status; the text still carries the meaning. icon: 'alert' (expired), 'clock' (expiring, waiting), 'export'
-     (not exported), 'mail' (invitation), 'eye' (not acknowledged).
+     (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank, P18).
      Use: <span th:replace="~{layout/parts :: statusIcon('danger', #{...}, 'alert')}"></span> -->
 <span th:fragment="statusIcon(tone, label, icon)" class="badge status-badge status-badge-icon"
       th:classappend="'status-' + ${tone}">
@@ -412,6 +412,7 @@
         <th:block th:if="${icon == 'clock'}"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></th:block>
         <th:block th:if="${icon == 'export'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
         <th:block th:if="${icon == 'mail'}"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></th:block>
+        <th:block th:if="${icon == 'key'}"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M16 7l3 3M14 9l2 2"/></th:block>
         <th:block th:if="${icon == 'eye'}"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></th:block>
     </svg>
     <span th:text="${label}">Expired</span>

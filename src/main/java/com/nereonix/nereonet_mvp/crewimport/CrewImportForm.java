@@ -10,6 +10,10 @@ public class CrewImportForm implements Serializable {
 
     private List<CrewImportRow> rows = new ArrayList<>();
 
+    // P18: the file has the Role column of the template from before, which is ignored (the rank sets the role).
+    // Set when the file is read; not editable.
+    private boolean roleColumnIgnored;
+
     public int getErrorCount() {
         return (int) rows.stream().filter(row -> !row.isExcluded() && row.hasErrors()).count();
     }
@@ -26,6 +30,9 @@ public class CrewImportForm implements Serializable {
     public boolean isReady() {
         return getErrorCount() == 0 && !getIncludedRows().isEmpty();
     }
+
+    public boolean isRoleColumnIgnored() { return roleColumnIgnored; }
+    public void setRoleColumnIgnored(boolean roleColumnIgnored) { this.roleColumnIgnored = roleColumnIgnored; }
 
     public List<CrewImportRow> getRows() { return rows; }
     public void setRows(List<CrewImportRow> rows) { this.rows = rows; }

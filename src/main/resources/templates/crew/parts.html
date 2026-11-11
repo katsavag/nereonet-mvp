@@ -4,6 +4,59 @@
 
 <!-- Fragments for the crew and office user lists. -->
 
+<!-- P18: the rank sets the role, the office never picks one. -->
+
+<!-- The options of a rank picker, grouped by department (Deck, Engine, Catering) in the Rank order; ${rankGroups} is
+     Rank.groups(). Each option names the role it sets (data-role) for the access line (accessHint). Goes inside a
+     select with th:field, which marks the chosen option. -->
+<th:block th:fragment="rankOptions">
+    <optgroup th:each="g : ${rankGroups}" th:label="#{${'rank.group.' + g.department()}}">
+        <option th:each="r : ${g.ranks()}" th:value="${r}" th:attr="data-role=${r.role()}"
+                th:text="#{${'rank.' + r}}">Second Officer</option>
+    </optgroup>
+</th:block>
+
+<!-- The access a rank gives, read-only, under the rank picker: "Access: Master · can publish library items and see
+     acknowledgements", or "Access: set by the rank" before one is chosen. role: the role of the chosen rank, or null.
+     full: false for the short "Access: Master" (the import review table). The picker names it in aria-describedby
+     and data-access-hint; js/forms.js changes the text when the rank changes, from the data-access-* texts. Without the
+     script it shows the saved rank's access. -->
+<p th:fragment="accessHint(id, role, full)" class="form-text access-hint" th:id="${id}" aria-live="polite"
+   th:with="key=${full} ? 'crew.access' : 'crew.access.short'"
+   th:text="${role == null} ? #{crew.access.none} : ${#messages.msg(key, #messages.msg('role.' + role), #messages.msg('role.access.' + role))}"
+   th:attr="data-access-none=#{crew.access.none},
+            data-access-master=${#messages.msg(key, #messages.msg('role.MASTER'), #messages.msg('role.access.MASTER'))},
+            data-access-chief_cook=${#messages.msg(key, #messages.msg('role.CHIEF_COOK'), #messages.msg('role.access.CHIEF_COOK'))},
+            data-access-crew_member=${#messages.msg(key, #messages.msg('role.CREW_MEMBER'), #messages.msg('role.access.CREW_MEMBER'))}">Access: set by the rank</p>
+
+<!-- In the lists, after the rank: a small badge for the roles that have their own access (Master and Chief cook:
+     Role.isOnePerShip), "Master access"; nothing for a crew member. role: the user's (or invitation's)
+     actual role, which for a user from before P18 may not be the one their rank sets. -->
+<th:block th:fragment="accessBadge(role)">
+    <th:block th:if="${role != null and role.onePerShip}"><span
+            th:replace="~{layout/parts :: statusIcon('primary', #{crew.access.badge(${#messages.msg('role.' + role)})}, 'key')}">Master access</span></th:block>
+</th:block>
+
+<!-- The Crew list's "Rank needs review" notice (P18): users with no rank, or whose rank does not set the role they
+     have (User.rankNeedsReview). They keep their role; each links to the edit form, where saving applies the rank's.
+     users: those of the list shown, as filtered (CrewController); nothing is shown when there are none. -->
+<section th:fragment="rankReview(users)" th:if="${!users.isEmpty()}" class="alert alert-warning rank-review"
+         aria-labelledby="rankReviewHeading">
+    <h2 id="rankReviewHeading" class="rank-review-heading">
+        <span th:text="#{crew.rankReview.heading}">Rank needs review</span>
+        <span class="badge status-badge status-warning" th:text="${users.size()}">2</span>
+    </h2>
+    <p class="mb-2" th:text="#{crew.rankReview.text}">These crew members have no rank, or a rank that does not match
+        their access.</p>
+    <ul class="rank-review-list">
+        <li th:each="u : ${users}">
+            <a class="alert-link" th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
+            <span class="rank-review-detail"><span aria-hidden="true">·</span> <span th:text="${u.ship.name}">MV Demo</span>
+                <span aria-hidden="true">·</span> <span th:text="#{crew.rankReview.detail(${u.rank} ? ${#messages.msg('rank.' + u.rank)} : ${#messages.msg('crew.rankReview.noRank')}, ${#messages.msg('role.' + u.role)})}">Rank: not set · access now: Master</span></span>
+        </li>
+    </ul>
+</section>
+
 <span th:fragment="status(enabled)"
       th:replace="~{layout/parts :: status(${enabled} ? 'ok' : 'neutral', ${enabled} ? #{user.status.active} : #{user.status.inactive})}">Active</span>
 

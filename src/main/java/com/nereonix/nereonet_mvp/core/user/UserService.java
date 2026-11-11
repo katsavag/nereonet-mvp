@@ -55,8 +55,10 @@ public class UserService {
      * Throws ShipRoleTakenException if giving role on ship to user would break that.
      * user is the crew member being edited, or null for a new crew member (an invitation).
      * A disabled user does not count, so editing one never breaks the rule.
+     * The exception does not mark the caller's transaction rollback-only: the crew import catches it and reports it
+     * on the row (P18).
      */
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, noRollbackFor = ShipRoleTakenException.class)
     public void checkShipRoleFree(Ship ship, Role role, User user) {
         if (role != Role.MASTER && role != Role.CHIEF_COOK) {
             return;

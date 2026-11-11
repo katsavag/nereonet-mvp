@@ -65,22 +65,26 @@ public class CrewImportService {
 
     /**
      * Reads an uploaded .xlsx or .csv file. Empty if its header row is not the template's
-     * (ignoring case and surrounding spaces). Throws IOException if the file cannot be read.
+     * (ignoring case and surrounding spaces). The template from before P18, with a Role column, is accepted too: that
+     * column is ignored, the rank sets the role, and the form says so (roleColumnIgnored).
+     * Throws IOException if the file cannot be read.
      */
     public Optional<CrewImportForm> read(String filename, InputStream in) throws IOException {
         TableFile file = TableFileReader.read(filename, in);
-        if (!file.hasHeader(CrewTemplate.HEADERS)) {
+        boolean withRole = file.hasHeader(CrewTemplate.HEADERS_WITH_ROLE);
+        if (!withRole && !file.hasHeader(CrewTemplate.HEADERS)) {
             return Optional.empty();
         }
+        int shipColumn = withRole ? 4 : 3;
         CrewImportForm form = new CrewImportForm();
+        form.setRoleColumnIgnored(withRole);
         for (TableFile.Row fileRow : file.rows()) {
             CrewImportRow row = new CrewImportRow();
             row.setRowNumber(fileRow.number());
             row.setFullName(fileRow.cell(0));
             row.setEmail(fileRow.cell(1));
             row.setRank(canonical(fileRow.cell(2), Arrays.stream(Rank.values()).map(Rank::name).toList()));
-            row.setRole(canonical(fileRow.cell(3), CrewTemplate.SHIP_ROLES.stream().map(Role::name).toList()));
-            row.setShipImo(ImoNumber.normalize(fileRow.cell(4)));
+            row.setShipImo(ImoNumber.normalize(fileRow.cell(shipColumn)));
             form.getRows().add(row);
         }
         return Optional.of(form);
@@ -94,9 +98,9 @@ public class CrewImportService {
         List<CrewImportRow> included = form.getIncludedRows();
         Map<String, Long> emailCounts = included.stream()
                 .collect(Collectors.groupingBy(row -> normalizeEmail(row.getEmail()), Collectors.counting()));
-        // Only MASTER and CHIEF_COOK: one per ship.
+        // Only the one-per-ship roles (MASTER, CHIEF_COOK), from the rank.
         Map<String, Long> shipRoleCounts = included.stream()
-                .filter(row -> isOnePerShip(row.getRole()))
+                .filter(row -> row.getRole() != null && row.getRole().isOnePerShip())
                 .collect(Collectors.groupingBy(row -> row.getShipImo() + "/" + row.getRole(), Collectors.counting()));
 
         for (CrewImportRow row : form.getRows()) {
@@ -123,15 +127,12 @@ public class CrewImportService {
                 errors.put("email", "crewImport.error.emailRepeated");
             }
 
-            if (!row.getRank().isEmpty() && !isEnumName(Rank.class, row.getRank())) {
+            // The rank sets the role (P18), so it is required.
+            Role role = row.getRole();
+            if (row.getRank().isEmpty()) {
+                errors.put("rank", "user.error.rankRequired");
+            } else if (role == null) {
                 errors.put("rank", "crewImport.error.rankUnknown");
-            }
-
-            boolean roleValid = CrewTemplate.SHIP_ROLES.stream().anyMatch(role -> role.name().equals(row.getRole()));
-            if (row.getRole().isEmpty()) {
-                errors.put("role", "user.error.roleRequired");
-            } else if (!roleValid) {
-                errors.put("role", "crewImport.error.roleUnknown");
             }
 
             Ship ship = ships.get(row.getShipImo());
@@ -141,14 +142,15 @@ public class CrewImportService {
                 errors.put("shipImo", "crewImport.error.shipUnknown");
             }
 
-            if (roleValid && ship != null && isOnePerShip(row.getRole())) {
-                if (shipRoleCounts.get(row.getShipImo() + "/" + row.getRole()) > 1) {
-                    errors.put("role", "crewImport.error.shipRoleRepeated");
+            // On the rank, which sets the role.
+            if (role != null && ship != null && role.isOnePerShip()) {
+                if (shipRoleCounts.get(row.getShipImo() + "/" + role) > 1) {
+                    errors.put("rank", "crewImport.error.shipRoleRepeated");
                 } else {
                     try {
-                        userService.checkShipRoleFree(ship, Role.valueOf(row.getRole()), null);
+                        userService.checkShipRoleFree(ship, role, null);
                     } catch (ShipRoleTakenException e) {
-                        errors.put("role", "user.error.shipRoleTaken");
+                        errors.put("rank", "user.error.shipRoleTaken");
                     }
                 }
             }
@@ -169,9 +171,9 @@ public class CrewImportService {
                 .collect(Collectors.toMap(Ship::getImoNumber, Function.identity()));
         List<CrewImportRow> included = form.getIncludedRows();
         for (CrewImportRow row : included) {
-            Rank rank = row.getRank().isEmpty() ? null : Rank.valueOf(row.getRank());
-            // Records INVITATION_SENT for each row.
-            invitationService.invite(row.getEmail(), row.getFullName(), Role.valueOf(row.getRole()),
+            Rank rank = Rank.valueOf(row.getRank());
+            // Records INVITATION_SENT for each row. The role is the rank's (P18).
+            invitationService.invite(row.getEmail(), row.getFullName(), rank.role(),
                     ships.get(row.getShipImo()).getId(), rank, actorEmail);
         }
         // Counts only, never file contents.
@@ -189,14 +191,6 @@ public class CrewImportService {
     private static String canonical(String value, List<String> names) {
         String key = value.strip().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
         return names.contains(key) ? key : value;
-    }
-
-    private static <E extends Enum<E>> boolean isEnumName(Class<E> type, String name) {
-        return Arrays.stream(type.getEnumConstants()).anyMatch(e -> e.name().equals(name));
-    }
-
-    private static boolean isOnePerShip(String role) {
-        return Role.MASTER.name().equals(role) || Role.CHIEF_COOK.name().equals(role);
     }
 
     private static String normalizeEmail(String email) {

@@ -1852,3 +1852,48 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 /* In a stack with its own gap (the announcement review page). */
 .review-stack > .info-note { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Rank and access (P18): crew/parts :: rankOptions, accessHint, accessBadge, rankReview; js/forms.js.
+     - .access-hint: "Access: Master · can publish library items and see acknowledgements" under a rank picker,
+       read-only help text; in the import review table it is the short "Access: Master" and keeps to one line.
+     - the access badge in the lists (layout/parts :: statusIcon with the 'key' icon, primary pair).
+     - .rank-review: the Crew list's "Rank needs review" notice, in the warning pair. Each name is a link to the edit
+       form with a full touch target (40px, 44px on phones); the ship and rank details follow in body text.
+   --------------------------------------------------------------------------------------------------------------- */
+.import-table .access-hint {
+    margin-top: var(--nn-space-1);
+    white-space: nowrap;
+}
+
+.rank-review { margin-bottom: var(--nn-space-4); }
+.rank-review-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin: 0 0 var(--nn-space-1);
+    font-size: 1rem;
+    font-weight: 700;
+}
+.rank-review-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rank-review-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--nn-space-2);
+}
+.rank-review-list a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+/* Phones: the details on their own line under the name, without the leading dot. */
+@media (max-width: 575.98px) {
+    .rank-review-list li { margin-bottom: var(--nn-space-2); }
+    .rank-review-detail { flex-basis: 100%; }
+    .rank-review-detail > [aria-hidden="true"]:first-child { display: none; }
+}

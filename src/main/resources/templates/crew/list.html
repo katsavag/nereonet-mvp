@@ -57,6 +57,10 @@
             <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
         </div>
     </form>
+
+    <!-- P18: the crew members in the list (as filtered) whose rank does not set the role they have, or who have no
+         rank. -->
+    <section th:replace="~{crew/parts :: rankReview(${rankNeedsReview})}"></section>
     </th:block>
 
     <div class="card">
@@ -71,8 +75,8 @@
                 <tr>
                     <th scope="col" th:text="#{user.fullName}">Full name</th>
                     <th scope="col" th:text="#{user.email}">Email</th>
+                    <!-- The rank, and a badge for the roles with their own access (P18: there is no Role column). -->
                     <th scope="col" th:text="#{user.rank}">Rank</th>
-                    <th scope="col" th:text="#{user.role}">Role</th>
                     <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
                     <th scope="col" th:text="#{user.status}">Status</th>
                     <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
@@ -85,8 +89,10 @@
                     <td th:attr="data-label=#{user.email}">
                         <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
                     </td>
-                    <td th:attr="data-label=#{user.rank}" th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</td>
-                    <td class="text-nowrap stack-hide" th:text="#{${'role.' + inv.role}}">Crew member</td>
+                    <td th:attr="data-label=#{user.rank}">
+                        <span th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</span>
+                        <th:block th:replace="~{crew/parts :: accessBadge(${inv.role})}"></th:block>
+                    </td>
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <th:block th:replace="~{crew/parts :: invitationStatus(${inv})}"></th:block>
@@ -102,8 +108,10 @@
                     <td th:attr="data-label=#{user.email}">
                         <span th:replace="~{layout/parts :: email(${u.email})}">jane@example.com</span>
                     </td>
-                    <td th:attr="data-label=#{user.rank}" th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</td>
-                    <td class="text-nowrap stack-hide" th:text="#{${'role.' + u.role}}">Crew member</td>
+                    <td th:attr="data-label=#{user.rank}">
+                        <span th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</span>
+                        <th:block th:replace="~{crew/parts :: accessBadge(${u.role})}"></th:block>
+                    </td>
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${u.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>
@@ -119,8 +127,8 @@
         </div>
     </div>
 
-    <!-- Add crew member: sends an invitation. Full screen on phones. A modal although it has five fields: P18 makes
-         it shorter. The ship keeps the full width, so its name and IMO number are never cut off. On a ship's Crew tab
+    <!-- Add crew member: sends an invitation. Full screen on phones. Four fields: there is no role, the rank sets it
+         (P18), and the access it gives is shown under the rank. The ship keeps the full width, so its name and IMO number are never cut off. On a ship's Crew tab
          (active ships only) the ship is preselected and can still be changed; it posts to the tab's own URL, so errors
          show on the tab and, once sent, the user is on the Crew tab of the ship the invitation is for. -->
     <div th:if="${!onShip or ship.active}" class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
@@ -153,21 +161,16 @@
                                 <div th:replace="~{layout/parts :: counter(${addForm}, 'email', 'email')}"></div>
                             </div>
                         </div>
-                        <div class="field-half">
-                            <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                            <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
+                        <!-- Full width: the access line under it is a sentence. -->
+                        <div>
+                            <label for="rank" class="form-label" th:text="#{user.rank}">Rank</label>
+                            <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid" required
+                                    aria-describedby="rankAccess" data-access-hint="rankAccess">
                                 <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
-                                <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                                <th:block th:replace="~{crew/parts :: rankOptions}"></th:block>
                             </select>
                             <div class="invalid-feedback" th:errors="*{rank}"></div>
-                        </div>
-                        <div class="field-half">
-                            <label for="role" class="form-label" th:text="#{user.role}">Role</label>
-                            <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
-                                <option value="" th:text="#{invitation.form.chooseRole}">Choose a role</option>
-                                <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
-                            </select>
-                            <div class="invalid-feedback" th:errors="*{role}"></div>
+                            <p th:replace="~{crew/parts :: accessHint('rankAccess', ${addForm.rank?.role()}, true)}"></p>
                         </div>
                         <div>
                             <label for="shipId" class="form-label" th:text="#{user.ship}">Ship</label>

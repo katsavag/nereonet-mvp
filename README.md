@@ -139,9 +139,13 @@ Requirements: Java 25, Docker.
      `/cancel`; each returns to the list it was started from (the forms send `tab=crew&shipId=…`, or `returnTo=crew` with
      the Crew list's `shipId` and `status` filters, or `returnTo=overview`; anything else goes to Office users, never
      to a URL from the request). Both are in the audit log with the ship. The form asks for
-     full name, email (once; the success message names the address) and role, and an optional rank (from a fixed list),
-     which is copied to the user on registration. A ship can have only one active Master and one
-     active Chief cook; inviting a second one shows an error on the role field.
+     full name, email (once; the success message names the address), rank and ship. There is no role to pick
+     (P18): the rank sets it, Master → Master, Chief Cook → Chief cook, every other rank (Chief Engineer included) →
+     crew member. The rank is required and is copied to the user on registration. Under the rank picker (grouped by
+     department: Deck, Engine, Catering) a read-only line says what the rank gives, e.g. "Access: Master · can publish
+     library items and see acknowledgements", and follows the picker as it changes (`js/forms.js`; without the
+     script it shows the saved rank's access). A ship can have only one active Master and one active Chief cook;
+     inviting a second one shows an error on the rank field.
 
 7. Registration: open the `/register?token=...` link from the invitation email (signed out, e.g. in a
    private window) and set a password. The page says what the person is joining: "You are joining MV Demo as Second
@@ -166,21 +170,27 @@ Requirements: Java 25, Docker.
    "Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has **Resend** (one
    click, also when expired: new link, new expiry date, new email) and, in the row's **⋯** menu, **Cancel invitation**
    (asks first, see 6); both come back to the list with its filters (P17). **Add crew member** opens a pop-up form
-   (full name, email, optional rank, role, active ship) that sends an invitation email (see Mailpit) and names the address in
+   (full name, email, rank, active ship; no role, see 6) that sends an invitation email (see Mailpit) and names the address in
    its success message;
-   the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank, role
-   and ship (active ships only; the email cannot be changed). Picking another ship moves the crew member. The one active
-   Master / Chief cook per ship rule is checked here too.
+   the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank
+   and ship (active ships only; the email cannot be changed), and saving sets the rank's role. Picking another ship
+   moves the crew member. The one active Master / Chief cook per ship rule is checked here too, on the rank field.
+   The list shows the rank; there is no Role column, only a small access badge after the rank for a Master and a
+   Chief cook ("Master access"). Users from before P18 whose rank does not set the role they have, or who have no
+   rank, keep their role: they are listed in a **Rank needs review** notice above the list (for the list as
+   filtered), each linking to their page, which names the access they have now ("Access now: Master. Saving applies
+   the access of the rank above."). Saving there applies the mapping.
 
    **Import from file** (`/office/crew/import`) invites many crew members at once:
    - **Download template** gives `crew-template.xlsx`: sheet "Crew" with the header row
-     `Full name | Email | Rank | Role | Ship IMO`, and sheet "Instructions" (column meanings, role and rank values,
-     active ships; in the page's language). Only this template is accepted.
+     `Full name | Email | Rank | Ship IMO`, and sheet "Instructions" (column meanings, the rank values with the access
+     each gives, active ships; in the page's language). Only this template is accepted, and the one from before P18
+     with a `Role` column after `Rank`: that column is ignored and the review page says so.
    - Upload the filled-in file as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). A file whose first row is not
      the template's header shows "This file does not follow the template".
    - The review screen shows every row, editable, with errors highlighted (missing name or email, invalid,
-     existing or repeated email, unknown rank or role, no active ship with that IMO number, more than one Master /
-     Chief cook per ship). Exclude rows with the checkbox; **Check again** re-validates.
+     existing or repeated email, missing or unknown rank, no active ship with that IMO number, more than one Master /
+     Chief cook per ship, shown on the rank). Under each rank its access in short ("Access: Master"). Exclude rows with the checkbox; **Check again** re-validates.
      **Import and invite** (enabled when no included row has errors) sends one invitation email per row.
      Nothing is saved and no email is sent before that.
    - To try it on the dev database: upload [`samples/crew-sample.xlsx`](samples/crew-sample.xlsx), 10 invented crew
@@ -421,7 +431,7 @@ The app makes no request to any other host: everything a page needs is served fr
   - forms (P05): one pattern on every form (ship, crew, invitation, certificate, item, announcement, library new, edit
     and particulars, registration, crew and item import), in the "Forms" section of `app.css`:
     - layout: the form card (`.form-box`) is at most 720 px wide; fields sit in `.form-grid`, one per row, and from
-      768 px short related fields (`.field-half`) two per row (Type + Flag, Rank + Role, Role + Rank, Number + Expires
+      768 px short related fields (`.field-half`) two per row (Type + Flag, Number + Expires
       on, Unit + Category, Category + Version label). Long fields, textareas and the ship pickers span the full width
       (a ship's name and IMO number are never cut off). A form with more than five fields groups them under short
       legends (`.form-section`: "Item details" and "Content" on Add an item);

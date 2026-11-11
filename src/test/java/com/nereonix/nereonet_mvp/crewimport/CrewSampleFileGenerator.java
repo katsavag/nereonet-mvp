@@ -32,16 +32,16 @@ class CrewSampleFileGenerator {
         // Invented people; example.com is reserved for examples.
         String imo = ship.getImoNumber();
         List<List<String>> rows = List.of(
-                List.of("Stavros Pelagidis", "stavros.pelagidis@example.com", "Master", "MASTER", imo),
-                List.of("Ramil Dumaguete", "ramil.dumaguete@example.com", "Chief Cook", "CHIEF_COOK", imo),
-                List.of("Kostas Marinakos", "kostas.marinakos@example.com", "Chief Officer", "CREW_MEMBER", imo),
-                List.of("Jerome Bantayan", "jerome.bantayan@example.com", "Second Officer", "CREW_MEMBER", imo),
-                List.of("Nestor Alcaraz", "nestor.alcaraz@example.com", "Bosun", "CREW_MEMBER", imo),
-                List.of("Ivan Petrenkov", "ivan.petrenkov@example.com", "Able Seaman", "CREW_MEMBER", imo),
-                List.of("Dimitris Arvanitakis", "dimitris.arvanitakis@example.com", "Chief Engineer", "CREW_MEMBER", imo),
-                List.of("Mihai Codreanov", "mihai.codreanov@example.com", "Second Engineer", "CREW_MEMBER", imo),
-                List.of("Arnel Pagbilao", "arnel.pagbilao@example.com", "Oiler", "CREW_MEMBER", imo),
-                List.of("Rodel Tagaytay", "rodel.tagaytay@example.com", "Steward", "CREW_MEMBER", imo));
+                List.of("Stavros Pelagidis", "stavros.pelagidis@example.com", "Master", imo),
+                List.of("Ramil Dumaguete", "ramil.dumaguete@example.com", "Chief Cook", imo),
+                List.of("Kostas Marinakos", "kostas.marinakos@example.com", "Chief Officer", imo),
+                List.of("Jerome Bantayan", "jerome.bantayan@example.com", "Second Officer", imo),
+                List.of("Nestor Alcaraz", "nestor.alcaraz@example.com", "Bosun", imo),
+                List.of("Ivan Petrenkov", "ivan.petrenkov@example.com", "Able Seaman", imo),
+                List.of("Dimitris Arvanitakis", "dimitris.arvanitakis@example.com", "Chief Engineer", imo),
+                List.of("Mihai Codreanov", "mihai.codreanov@example.com", "Second Engineer", imo),
+                List.of("Arnel Pagbilao", "arnel.pagbilao@example.com", "Oiler", imo),
+                List.of("Rodel Tagaytay", "rodel.tagaytay@example.com", "Steward", imo));
 
         Path target = Path.of("samples", "crew-sample.xlsx");
         Files.createDirectories(target.getParent());

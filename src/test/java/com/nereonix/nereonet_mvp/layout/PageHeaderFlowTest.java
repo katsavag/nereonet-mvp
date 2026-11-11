@@ -217,8 +217,8 @@ class PageHeaderFlowTest {
 
         // The import reviews: a file uploaded first, the review kept in the session.
         MockHttpSession crewImport = new MockHttpSession();
-        mockMvc.perform(multipart("/office/crew/import").file(csv("Full name,Email,Rank,Role,Ship IMO\n"
-                + "Anna Testa,anna.testa@example.com,Chief Officer,CREW_MEMBER,9074729\n")).session(crewImport).with(csrf()));
+        mockMvc.perform(multipart("/office/crew/import").file(csv("Full name,Email,Rank,Ship IMO\n"
+                + "Anna Testa,anna.testa@example.com,Chief Officer,9074729\n")).session(crewImport).with(csrf()));
         assertPageHeader(new Page("/office/crew/import/review", null, "Review crew import",
                 List.of("Crew", "Import crew", "Review crew import"), null),
                 html(get("/office/crew/import/review").session(crewImport)), true);

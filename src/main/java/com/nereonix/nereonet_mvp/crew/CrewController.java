@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.crew;
 
+import java.util.List;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -87,18 +89,19 @@ public class CrewController {
         return "redirect:" + ShipTab.CREW.url(invitation.getShip().getId());
     }
 
-    // Sends the invitation, or rejects the field at fault and returns null.
+    // Sends the invitation, or rejects the field at fault and returns null. The one-per-ship rule is about the rank's
+    // role, so it is reported on the rank field (P18).
     private Invitation invite(AddCrewForm form, BindingResult result, CurrentUser currentUser) {
         if (result.hasErrors()) {
             return null;
         }
         try {
-            return crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getRole(),
-                    form.getShipId(), currentUser.getUsername());
+            return crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getShipId(),
+                    currentUser.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
         } catch (ShipRoleTakenException e) {
-            result.rejectValue("role", "user.error.shipRoleTaken");
+            result.rejectValue("rank", "user.error.shipRoleTaken");
         }
         return null;
     }
@@ -124,10 +127,9 @@ public class CrewController {
             return showEditForm(user, model);
         }
         try {
-            crewService.update(id, form.getFullName(), form.getRank(), form.getRole(),
-                    form.getShipId());
+            crewService.update(id, form.getFullName(), form.getRank(), form.getShipId());
         } catch (ShipRoleTakenException e) {
-            result.rejectValue("role", "user.error.shipRoleTaken");
+            result.rejectValue("rank", "user.error.shipRoleTaken");
             return showEditForm(user, model);
         }
         redirectAttributes.addFlashAttribute("successMessage", "crew.updated");
@@ -221,7 +223,10 @@ public class CrewController {
     }
 
     private String showList(Long shipId, CrewStatus status, Model model) {
-        model.addAttribute("crew", crewService.findCrew(shipId, status));
+        List<User> crew = crewService.findCrew(shipId, status);
+        model.addAttribute("crew", crew);
+        // P18: the "Rank needs review" notice, for the crew members in the list as filtered.
+        model.addAttribute("rankNeedsReview", crew.stream().filter(User::rankNeedsReview).toList());
         model.addAttribute("invited", crewService.findInvited(shipId, status));
         model.addAttribute("ships", crewService.findAllShips());
         model.addAttribute("shipId", shipId);
@@ -243,15 +248,13 @@ public class CrewController {
     // What the Add crew member modal lists.
     private String showAddForm(Model model) {
         model.addAttribute("activeShips", crewService.findActiveShips());
-        model.addAttribute("roles", CrewService.SHIP_ROLES);
-        model.addAttribute("ranks", Rank.values());
+        model.addAttribute("rankGroups", Rank.groups());
         return "crew/list";
     }
 
     private String showEditForm(User user, Model model) {
         model.addAttribute("member", user);
-        model.addAttribute("roles", CrewService.SHIP_ROLES);
-        model.addAttribute("ranks", Rank.values());
+        model.addAttribute("rankGroups", Rank.groups());
         model.addAttribute("ships", crewService.findActiveShips());
         model.addAttribute("certificates", crewService.findCertificates(user.getId()));
         model.addAttribute("today", crewService.today());

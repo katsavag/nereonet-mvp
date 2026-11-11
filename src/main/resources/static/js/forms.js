@@ -104,4 +104,25 @@
         input.addEventListener('change', update);
         update(); // a file kept by the browser after going back
     });
+
+    // Rank pickers (P18): the access line under the picker (crew/parts :: accessHint) follows the chosen rank. Each
+    // option names its role (data-role); the line holds the text for each role (data-access-<role>, lower case) and
+    // data-access-none for no rank. Without this script the line shows the saved rank's access.
+    function showAccess(select, hint) {
+        const option = select.selectedOptions[0];
+        const role = option && option.dataset.role;
+        const text = hint.getAttribute(role ? 'data-access-' + role.toLowerCase() : 'data-access-none');
+        if (text !== null && hint.textContent !== text) {
+            hint.textContent = text;
+        }
+    }
+
+    document.querySelectorAll('select[data-access-hint]').forEach(select => {
+        const hint = document.getElementById(select.dataset.accessHint);
+        if (!hint) {
+            return;
+        }
+        select.addEventListener('change', () => showAccess(select, hint));
+        showAccess(select, hint); // a rank kept by the browser after going back
+    });
 })();

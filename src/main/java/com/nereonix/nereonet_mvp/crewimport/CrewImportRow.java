@@ -1,15 +1,19 @@
 package com.nereonix.nereonet_mvp.crewimport;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.nereonix.nereonet_mvp.core.user.Rank;
+import com.nereonix.nereonet_mvp.core.user.Role;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
 // One crew member on the review screen. Values stay strings so a wrong value from the file can be shown.
-// role, rank and shipImo hold the canonical value (e.g. "CHIEF_COOK", "SECOND_OFFICER", "9074729")
-// when the file value was recognised, otherwise the value as it was in the file.
+// rank and shipImo hold the canonical value (e.g. "SECOND_OFFICER", "9074729") when the file value was recognised,
+// otherwise the value as it was in the file. There is no role: it follows from the rank (getRole, P18).
 public class CrewImportRow implements Serializable {
 
     // The row's number in the file. Not editable.
@@ -24,7 +28,6 @@ public class CrewImportRow implements Serializable {
     private String email = "";
 
     private String rank = "";
-    private String role = "";
     private String shipImo = "";
     private boolean excluded;
 
@@ -45,8 +48,11 @@ public class CrewImportRow implements Serializable {
     public String getRank() { return rank; }
     public void setRank(String rank) { this.rank = rank == null ? "" : rank.strip(); }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role == null ? "" : role.strip(); }
+    /** The role the rank sets (Rank.role()); null while the rank is empty or not one of the ranks. Not editable. */
+    public Role getRole() {
+        return Arrays.stream(Rank.values()).filter(r -> r.name().equals(rank)).findFirst().map(Rank::role)
+                .orElse(null);
+    }
 
     public String getShipImo() { return shipImo; }
     public void setShipImo(String shipImo) { this.shipImo = shipImo == null ? "" : shipImo.strip(); }

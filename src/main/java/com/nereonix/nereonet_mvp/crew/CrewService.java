@@ -28,8 +28,6 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 @Service
 public class CrewService {
 
-    static final List<Role> SHIP_ROLES = List.of(Role.MASTER, Role.CHIEF_COOK, Role.CREW_MEMBER);
-
     private final UserRepository userRepository;
     private final ShipRepository shipRepository;
     private final UserService userService;
@@ -107,18 +105,15 @@ public class CrewService {
     }
 
     /**
-     * Adds a crew member by inviting them: they get an email and set their own password.
-     * Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).
+     * Adds a crew member by inviting them: they get an email and set their own password. The role is the rank's
+     * (Rank.role(), P18). Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).
      */
     @Transactional
-    public Invitation addCrewMember(String fullName, String email, Rank rank, Role role, Long shipId,
-                              String actorEmail) {
-        if (!SHIP_ROLES.contains(role)) {
-            throw new IllegalArgumentException("Not a ship role: " + role);
-        }
+    public Invitation addCrewMember(String fullName, String email, Rank rank, Long shipId, String actorEmail) {
         // Records INVITATION_SENT in the audit log.
-        return invitationService.invite(email, fullName, role, shipId, rank, actorEmail);
+        return invitationService.invite(email, fullName, rank.role(), shipId, rank, actorEmail);
     }
+
 
     @Transactional(readOnly = true)
     public List<User> findOfficeUsers() {
@@ -164,28 +159,30 @@ public class CrewService {
     }
 
     /**
-     * Saves a crew member. Changing the ship moves them to that ship (it must be active).
-     * Throws ShipRoleTakenException if the ship already has an enabled MASTER or CHIEF_COOK.
+     * Saves a crew member. Changing the ship moves them to that ship (it must be active). The role becomes the rank's
+     * (Rank.role(), P18), also for a user whose rank and role disagreed until now.
+     * Throws ShipRoleTakenException if the ship already has an enabled MASTER or CHIEF_COOK and that is the role.
      */
     @Transactional
-    public void update(Long id, String fullName, Rank rank, Role role, Long shipId) {
+    public void update(Long id, String fullName, Rank rank, Long shipId) {
         User user = getCrewMember(id);
-        if (!SHIP_ROLES.contains(role)) {
-            throw new IllegalArgumentException("Not a ship role: " + role);
-        }
+        Role role = rank.role();
         Ship ship = shipRepository.findById(shipId).filter(Ship::isActive)
                 .orElseThrow(() -> new IllegalArgumentException("No active ship " + shipId));
         userService.checkShipRoleFree(ship, role, user);
 
         Ship oldShip = user.getShip();
+        Role oldRole = user.getRole();
         user.setFullName(fullName.trim());
         user.setRank(rank);
         user.setRole(role);
         user.setShip(ship);
 
-        // e.g. "jane@example.com: CREW_MEMBER, SECOND_OFFICER, moved from MV Demo"
+        // e.g. "jane@example.com: CREW_MEMBER, SECOND_OFFICER, moved from MV Demo"; "role MASTER -> CREW_MEMBER" when
+        // the rank changed the role.
         String details = user.getEmail() + ": " + role
-                + ", " + (user.getRank() == null ? "-" : user.getRank())
+                + ", " + user.getRank()
+                + (oldRole == role ? "" : ", role " + oldRole + " -> " + role)
                 + (oldShip.getId().equals(ship.getId()) ? "" : ", moved from " + oldShip.getName());
         auditService.record("USER_UPDATED", ship, details);
     }

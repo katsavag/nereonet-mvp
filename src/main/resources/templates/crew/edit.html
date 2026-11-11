@@ -30,20 +30,20 @@
                             <div th:replace="~{layout/parts :: counter(${form}, 'fullName', 'fullName')}"></div>
                         </div>
                     </div>
-                    <div class="field-half">
-                        <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                        <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
+                    <!-- P18: no role; saving sets the rank's. For a user whose rank and role disagree (or who has no
+                         rank), the access they have now is named under it, since saving changes it. -->
+                    <div th:with="review=${member.rankNeedsReview()}">
+                        <label for="rank" class="form-label" th:text="#{user.rank}">Rank</label>
+                        <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid" required
+                                th:attr="aria-describedby=${review} ? 'rankAccess rankCurrentAccess' : 'rankAccess'"
+                                data-access-hint="rankAccess">
                             <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
-                            <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                            <th:block th:replace="~{crew/parts :: rankOptions}"></th:block>
                         </select>
                         <div class="invalid-feedback" th:errors="*{rank}"></div>
-                    </div>
-                    <div class="field-half">
-                        <label for="role" class="form-label" th:text="#{user.role}">Role</label>
-                        <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
-                            <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
-                        </select>
-                        <div class="invalid-feedback" th:errors="*{role}"></div>
+                        <p th:replace="~{crew/parts :: accessHint('rankAccess', ${form.rank?.role()}, true)}"></p>
+                        <th:block th:if="${review}"><p th:replace="~{layout/parts :: infoNote('rankCurrentAccess',
+                                #{crew.access.current(${#messages.msg('role.' + member.role)})})}"></p></th:block>
                     </div>
                     <!-- Full width, so the ship's name and IMO number are never cut off: a wrong ship is costly. -->
                     <div>
