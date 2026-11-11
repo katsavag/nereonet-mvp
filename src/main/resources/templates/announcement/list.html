@@ -1,23 +1,15 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{announcement.list.title}">Announcements</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-            <h1 class="fw-bold mb-1" th:text="#{announcement.list.heading}">Announcements</h1>
-            <p class="text-body-secondary mb-0" th:text="#{announcement.list.hint}">Newest first.</p>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.size()}, subtitle=#{announcement.list.hint}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/announcements/new}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{announcement.new}">New announcement</span>
             </a>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <!-- Filter by ship: that ship's announcements and the ones to all ships. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/announcements}" method="get">
@@ -36,10 +28,6 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{announcement.list.heading}, ${rows.size()})}">Announcements · 3</h2>
-        </div>
-
         <p th:if="${rows.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{announcement.list.empty}">No announcements yet.</p>
 

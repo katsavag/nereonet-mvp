@@ -1,22 +1,15 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{invitation.list.title}">Invitations</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{invitation.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-            <h1 class="fw-bold mb-0" th:text="#{invitation.list.heading}">Invitations</h1>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{invitation.list.heading}, count=${invitations.size()}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#inviteModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{invitation.list.invite}">Invite office user</span>
             </button>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <!-- Filter. A GET form, so the filtered page can be bookmarked. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/invitations}" th:object="${filter}" method="get">
@@ -35,10 +28,6 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{invitation.list.heading}, ${invitations.size()})}">Invitations · 3</h2>
-        </div>
-
         <p th:if="${invitations.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{invitation.list.empty}">No invitations yet.</p>
 

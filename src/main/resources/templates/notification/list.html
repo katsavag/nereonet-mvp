@@ -1,11 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{notification.title}">Notifications</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{notification.title}, ~{::main})}">
 <body>
 <main>
-    <h1 class="fw-bold mb-4" th:text="#{notification.heading}">Notifications</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{notification.heading})}"></header>
 
     <!-- Newest first. Opening this page marks them as read; readAt is still null for the ones that were new. -->
     <div class="card form-box">

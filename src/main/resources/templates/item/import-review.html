@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{itemImport.review.title}">Review item import</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{itemImport.review.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
-            <h1 class="fw-bold mb-0" th:text="#{itemImport.review.heading}">Review item import</h1>
-        </div>
-        <a class="btn btn-outline-secondary" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}"
-           th:text="#{itemImport.review.uploadAnother}">Upload another file</a>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{itemImport.review.heading}, crumbs=~{::pageCrumbs}, actions=~{::pageActions}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{item.list.heading}, ${'/office/ships/' + ship.id + '/items'})}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{itemImport.title}, ${'/office/ships/' + ship.id + '/items/import'})}"></li>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-outline-secondary" th:href="@{/office/ships/{id}/items/import(id=${ship.id})}">
+                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                <span th:text="#{itemImport.review.uploadAnother}">Upload another file</span>
+            </a>
+        </th:block>
+    </header>
 
     <div class="row g-2 mb-4">
         <div class="col-6 col-md-auto">

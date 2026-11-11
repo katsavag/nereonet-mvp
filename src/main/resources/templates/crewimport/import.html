@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{crewImport.title}">Import crew</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crewImport.title}, ~{::main})}">
 <body>
 <main>
-    <p class="eyebrow mb-1" th:text="#{crew.list.heading}">Crew</p>
-    <h1 class="fw-bold mb-4" th:text="#{crewImport.heading}">Import crew from a file</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{crewImport.heading}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>
+        </th:block>
+    </header>
 
     <div th:if="${sentCount != null}" class="alert alert-success" role="status">
         <span th:text="#{crewImport.sent(${sentCount})}">2 invitations sent.</span>

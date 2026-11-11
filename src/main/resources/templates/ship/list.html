@@ -1,28 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{ship.list.title}">Ships</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-            <h1 class="fw-bold mb-0" th:text="#{ship.list.heading}">Ships</h1>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newShipModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{ship.list.add}">Add ship</span>
             </button>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{ship.list.heading}, ${ships.size()})}">Ships · 3</h2>
-        </div>
-
         <p th:if="${ships.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{ship.list.empty}">No ships yet.</p>
 

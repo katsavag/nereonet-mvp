@@ -70,12 +70,58 @@
     </div>
 </details>
 
-<!-- Title of a list card with the number of records after it, muted: "Crew · 84".
-     Use: <h2 th:replace="~{layout/parts :: cardTitle(#{crew.list.heading}, ${crew.size()})}"></h2> -->
-<h2 th:fragment="cardTitle(title, count)" class="h5 fw-bold mb-0">
-    <span th:text="${title}">Crew</span>
-    <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${count}">84</span></span>
-</h2>
+<!-- Page header (P06): the first thing in every page's <main>, so every page starts the same way. In this order:
+       breadcrumbs  every page below the top level (the sidebar entries are the top level): the section, the record,
+                    then this page, each a link except the last; the last is the heading and is added here.
+       eyebrow      real context only: the ship's name and IMO number on ship-scoped pages, the target of an
+                    announcement, the status code of the error page. Never "Office portal".
+       heading      the h1, with the record count after it on list pages ("Crew · 84").
+       subtitle     one line under the heading.
+       actions      the page header buttons, on the right (stacked full width on phones).
+     Every parameter is named and optional except heading:
+       heading      text
+       crumbs       a fragment of crumb(...) items, ~{::pageCrumbs}; none on top-level pages
+       eyebrow      text; for a ship use eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}
+       count        a number shown after the heading, muted
+       subtitle     text; subtitleParts instead when the line has markup (e.g. a localTime), ~{::pageSubtitle}
+       actions      a fragment of buttons, ~{::pageActions}
+     Define the fragments inside the host element (they are replaced with it):
+       <header th:replace="~{layout/parts :: pageHeader(heading=#{item.list.heading}, count=${items.size()},
+                            crumbs=~{::pageCrumbs}, actions=~{::pageActions})}">
+           <th:block th:fragment="pageCrumbs">
+               <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+           </th:block>
+           <th:block th:fragment="pageActions"><a class="btn btn-primary" ...>Add item</a></th:block>
+       </header>
+     The tab title and the phone top bar come from the title given to layout/layout, not from here. -->
+<header th:fragment="pageHeader" class="page-header">
+    <nav th:if="${crumbs != null}" class="page-breadcrumbs" th:attr="aria-label=#{breadcrumbs.label}">
+        <ol class="breadcrumb">
+            <th:block th:replace="${crumbs}"></th:block>
+            <li class="breadcrumb-item active" aria-current="page" th:text="${heading}">Galley items</li>
+        </ol>
+    </nav>
+    <div class="page-header-row">
+        <div class="page-heading">
+            <p th:if="${eyebrow != null}" class="eyebrow" th:text="${eyebrow}">MV Demo · IMO 9074729</p>
+            <h1 class="page-title">
+                <span th:text="${heading}">Galley items</span>
+                <span th:if="${count != null}" class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${count}">84</span></span>
+            </h1>
+            <p th:if="${subtitle != null}" class="page-subtitle" th:text="${subtitle}">Newest first.</p>
+            <!-- th:if on a wrapper: th:insert runs before th:if on the same element. -->
+            <th:block th:if="${subtitle == null and subtitleParts != null}">
+                <p class="page-subtitle" th:insert="${subtitleParts}">Newest first.</p>
+            </th:block>
+        </div>
+        <th:block th:if="${actions != null}">
+            <div class="page-actions" th:insert="${actions}"></div>
+        </th:block>
+    </div>
+</header>
+
+<!-- One link of the page header's breadcrumbs. url: an app path, e.g. '/office/ships' or ${'/office/ships/' + ship.id + '/library'}. -->
+<li th:fragment="crumb(label, url)" class="breadcrumb-item"><a th:href="@{${url}}" th:text="${label}">Ships</a></li>
 
 <!-- Status badge: a dot and the text, in a status colour. The text carries the meaning, the colour only repeats it.
      tone: 'ok', 'warning', 'danger', 'info', 'primary' or 'neutral'.

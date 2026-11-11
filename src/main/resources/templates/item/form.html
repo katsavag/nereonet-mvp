@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <!-- Add and edit. item is null when adding. -->
-    <title th:text="${item == null} ? #{item.new.heading} : #{item.edit.heading}">Add item</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout((${item == null} ? #{item.new.heading} : #{item.edit.heading}), ~{::main})}">
 <body>
+<!-- Add and edit. item is null when adding. -->
 <main>
-    <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
-    <h1 class="fw-bold mb-4" th:text="${item == null} ? #{item.new.heading} : #{item.edit.heading}">Add item</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=${item == null} ? #{item.new.heading} : #{item.edit.heading}, crumbs=~{::pageCrumbs}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{item.list.heading}, ${'/office/ships/' + ship.id + '/items'})}"></li>
+        </th:block>
+    </header>
 
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">

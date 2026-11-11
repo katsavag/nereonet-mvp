@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="${item.title}">Library item</title>
-</head>
+      th:replace="~{layout/layout :: layout(${item.title}, ~{::main})}">
 <body>
 <main th:with="version=${item.currentVersion}">
-    <p class="mb-2"><a th:href="@{/ship/library}" th:text="#{library.back}">← Library</a></p>
-    <p class="eyebrow mb-1" th:text="#{${'library.category.' + item.category}}">Ship rules</p>
-    <h1 class="fw-bold mb-1 text-break" th:text="${item.title}">Garbage management plan</h1>
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-        <p class="text-body-secondary small mb-0">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${item.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrow=${item.ship.name} + ' · ' + #{ship.codeValue(${item.ship.imoNumber})}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.library}, '/ship/library')}"></li>
+        </th:block>
+        <!-- The category, the version and when it was published. -->
+        <th:block th:fragment="pageSubtitle">
+            <span th:text="#{${'library.category.' + item.category}}">Ship rules</span>
+            ·
             <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
             ·
             <time th:replace="~{layout/parts :: localTime(${version.publishedAt})}"></time>
-        </p>
+        </th:block>
         <!-- Only the Master (the item is always of the user's own ship). -->
-        <div sec:authorize="hasRole('MASTER')" class="d-flex flex-wrap gap-2">
+        <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary"
                th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">Edit this item</a>
             <th:block th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'})}"></th:block>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <!-- Text version: plain text, escaped by th:text. -->
     <div th:unless="${version.file}" class="card">

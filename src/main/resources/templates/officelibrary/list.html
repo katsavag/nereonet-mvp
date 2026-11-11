@@ -1,23 +1,19 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{library.title}">Library</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{library.title}, ~{::main})}">
 <body>
 <main>
-    <p class="mb-2"><a th:href="@{/office/ships}" th:text="#{library.backToShips}">← Ships</a></p>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
-            <h1 class="fw-bold mb-0" th:text="#{library.heading}">Library</h1>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, crumbs=~{::pageCrumbs}, actions=~{::pageActions}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+        <!-- No crumb for the ship: its name links to this page; the eyebrow names it. -->
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+        </th:block>
+        <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/ships/{id}/library/new(id=${ship.id})}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{library.add}">Add an item</span>
             </a>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false, null, ${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'})}"></th:block>
 </main>

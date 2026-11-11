@@ -1,20 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{users.list.title}">Office users</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{users.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="mb-4">
-        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-        <h1 class="fw-bold mb-0" th:text="#{users.list.heading}">Office users</h1>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{users.list.heading}, count=${users.size()})}"></header>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{users.list.heading}, ${users.size()})}">Office users · 3</h2>
-        </div>
-
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
         <div class="table-responsive">
             <table class="table data-table data-table-stack align-middle mb-0">

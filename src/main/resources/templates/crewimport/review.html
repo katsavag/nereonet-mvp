@@ -1,22 +1,19 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{crewImport.review.title}">Review crew import</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crewImport.review.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="#{crew.list.heading}">Crew</p>
-            <h1 class="fw-bold mb-0" th:text="#{crewImport.review.heading}">Review crew import</h1>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{crewImport.review.heading}, crumbs=~{::pageCrumbs}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{crewImport.title}, '/office/crew/import')}"></li>
+        </th:block>
+        <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary" th:href="@{/office/crew/import}">
                 <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
                 <span th:text="#{crewImport.review.uploadAnother}">Upload another file</span>
             </a>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <div class="row g-2 mb-4">
         <div class="col-4 col-md-auto">

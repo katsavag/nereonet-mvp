@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="${announcement.title}">Announcement</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
 <body>
 <main>
-    <p class="mb-2"><a th:href="@{/office/announcements}" th:text="#{announcement.back}">← Announcements</a></p>
-    <p class="eyebrow mb-1" th:text="${announcement.fleet} ? #{announcement.target.fleet} : ${announcement.ship.name}">MV Demo</p>
-    <h1 class="fw-bold mb-1 text-break" th:text="${announcement.title}">Safety drill</h1>
-    <p class="text-body-secondary small mb-4">
-        <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
-        ·
-        <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
-    </p>
+    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : (${announcement.ship.name} + ' · ' + #{ship.codeValue(${announcement.ship.imoNumber})}))}">
+        <!-- The target: All ships, or the ship's name and IMO number. -->
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.announcements}, '/office/announcements')}"></li>
+        </th:block>
+        <th:block th:fragment="pageSubtitle">
+            <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
+            ·
+            <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
+        </th:block>
+    </header>
 
     <div class="card mb-4">
         <div class="card-body text-break text-pre-line" th:text="${announcement.body}">Message text</div>

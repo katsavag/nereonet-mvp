@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <!-- Add and edit. certificate is null when adding. -->
-    <title th:text="${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}">Add certificate</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout((${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}), ~{::main})}">
 <body>
+<!-- Add and edit. certificate is null when adding. -->
 <main>
-    <p class="eyebrow mb-1" th:text="${member.fullName}">Jane Doe</p>
-    <h1 class="fw-bold mb-4" th:text="${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}">Add certificate</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${member.fullName}, ${'/office/crew/' + member.id + '/edit'})}"></li>
+        </th:block>
+    </header>
 
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">

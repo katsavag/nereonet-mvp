@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{itemImport.title}">Import items</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{itemImport.title}, ~{::main})}">
 <body>
 <main>
-    <p class="eyebrow mb-1" th:text="${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}">MV Demo · IMO 9074729</p>
-    <h1 class="fw-bold mb-4" th:text="#{itemImport.heading}">Import items from a file</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{itemImport.heading}, crumbs=~{::pageCrumbs}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.ships}, '/office/ships')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/ships/' + ship.id + '/library'})}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{item.list.heading}, ${'/office/ships/' + ship.id + '/items'})}"></li>
+        </th:block>
+    </header>
 
     <div th:if="${notTemplate}" class="alert alert-danger" role="alert">
         <p class="fw-semibold mb-1" th:text="#{itemImport.error.notTemplate}">This file does not follow the template</p>

@@ -271,8 +271,8 @@ The app makes no request to any other host: everything a page needs is served fr
     (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog
     or a row's overflow menu, never directly in a row). Filter forms use secondary **Filter** and tertiary
     **Clear**. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
-  - page header actions sit in `.page-actions` with a 16 px icon before the label (`layout/parts :: icon`: plus,
-    upload, download); on phones they stack full width;
+  - page header actions sit in `.page-actions` (the `actions` slot of `layout/parts :: pageHeader`) with a 16 px icon
+    before the label (`layout/parts :: icon`: plus, upload, download); on phones they stack full width;
   - lists (P04): one table style, `.data-table`, on every office list (ships, crew, office users, invitations,
     certificates, announcements, requests, galley items, audit log). Cells have 12 px top and bottom padding and
     the first and last cell start and end on the card padding, so the card title, the column headers and the
@@ -280,8 +280,8 @@ The app makes no request to any other host: everything a page needs is served fr
     stays on one line so all rows have the same height. Header cells are 12 px, 600, secondary colour, uppercase,
     letter-spacing 0.04em. Rows get a hover background; counts (`.num`) are right-aligned. The record's name
     (`.cell-primary`) links to its page and is the only bold cell; ships have no page of their own, so a ship's
-    name opens its library page (particulars). The record count sits after the card title, muted
-    (`layout/parts :: cardTitle`: "Crew · 84"). Email addresses never break: they are cut with an ellipsis and the
+    name opens its library page (particulars). The record count sits after the page title, muted
+    ("Crew · 84", see the page header below); list cards have no header of their own. Email addresses never break: they are cut with an ellipsis and the
     full address is in the title attribute (`layout/parts :: email`). Status badges are a dot plus text in the
     status colours (`layout/parts :: status`, tones ok, warning, danger, info, primary, neutral);
   - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
@@ -326,6 +326,32 @@ The app makes no request to any other host: everything a page needs is served fr
     - file inputs show the accepted types and the size limit before a file is chosen ("PDF, DOCX or XLSX, at most
       10 MB", "XLSX or CSV, at most 10 MB") and, with `js/forms.js`, the chosen file's name and size after it, with a
       warning when a library file is over 10 MB.
+
+  - page header and layout frame (P06): every page, signed out ones included, starts with
+    `layout/parts :: pageHeader`, in this order:
+    - breadcrumbs on every page below the top level (the sidebar entries are the top level): section › record ›
+      page, each a link except the last, which is the page itself (`aria-current="page"`). The section is the sidebar
+      entry (Ships, Crew, Announcements, Requests; Library for the crew). A ship has no page of its own, so its crumb
+      opens its library page: Ships › MV Demo › Galley items › Add item. On the ship's library page the trail is
+      Ships › Library. Links are underlined and each is a 40 px (44 px on phones) touch target. They replace the
+      "← Library" style links and the "Back to ships" link;
+    - the eyebrow, only for real context: the ship's name and IMO number on every ship-scoped page ("MV Demo · IMO
+      9074729": items, office and crew library pages, crew invitation, request detail, announcement to one ship;
+      "All ships" for a fleet announcement) and the status code on the error page. There is no "Office portal"
+      eyebrow;
+    - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
+      a card header as well. **Export CSV** on **Requests** moved from the card header to the page header and still
+      submits the list's form without JavaScript (`form="exportForm"`);
+    - an optional subtitle (one line, e.g. "Newest first.", or the category, version and date of a library item) and
+      the actions on the right.
+    The parameters are named: `pageHeader(heading=..., crumbs=~{::pageCrumbs}, eyebrow=..., count=..., subtitle=...,
+    actions=~{::pageActions})`; the comment above the fragment shows how to define the crumbs
+    (`layout/parts :: crumb(label, url)`) and actions. Pages pass their name to the layout as text,
+    `layout(#{ship.list.title}, ~{::main})`: the browser tab shows "Page name · Nereonet" and, on phones, the top bar
+    shows the page name instead of the app name. The content column is at most 1280 px wide, left aligned next to
+    the sidebar, with 24 px between the header, the filters and the content; it has `min-width: 0`, so a wide table
+    scrolls inside its card instead of widening the page (no page scrolls sideways at 1440, 1024 or 390 px; the
+    import review and audit log tables scroll inside their card).
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

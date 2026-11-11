@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{request.list.title}">Approved requests</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="mb-4">
-        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-        <h1 class="fw-bold mb-1" th:text="#{request.list.heading}">Approved requests</h1>
-        <p class="text-body-secondary mb-0" th:text="#{request.list.hint}">Item requests approved by the Master, newest first.</p>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.size()}, subtitle=#{request.list.hint}, actions=~{::pageActions})}">
+        <!-- Submits the export form around the list below (form attribute), with the checked requests. -->
+        <th:block th:fragment="pageActions">
+            <button th:unless="${requests.isEmpty()}" type="submit" form="exportForm" class="btn btn-primary">
+                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                <span th:text="#{request.export}">Export CSV</span>
+            </button>
+        </th:block>
+    </header>
 
     <!-- Filters. A GET form, so the filtered page can be bookmarked. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/requests}" method="get">
@@ -35,14 +36,8 @@
     </form>
 
     <!-- Check requests and export them. The download does not reload this page. -->
-    <form th:action="@{/office/requests/export}" method="post">
+    <form id="exportForm" th:action="@{/office/requests/export}" method="post">
         <div class="card">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center gap-2 py-3">
-                <h2 th:replace="~{layout/parts :: cardTitle(#{request.heading}, ${requests.size()})}">Requests · 3</h2>
-                <button th:unless="${requests.isEmpty()}" type="submit" class="btn btn-primary btn-sm"
-                        th:text="#{request.export}">Export CSV</button>
-            </div>
-
             <p th:if="${requests.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{request.list.empty}">No approved requests.</p>
 

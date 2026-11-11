@@ -1,23 +1,17 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{library.title}">Library</title>
-</head>
+      th:replace="~{layout/layout :: layout(#{library.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
-            <h1 class="fw-bold mb-0" th:text="#{library.heading}">Library</h1>
-        </div>
-        <div sec:authorize="hasRole('MASTER')" class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
+        <!-- Only the Master adds items. -->
+        <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/ship/library/new}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{library.add}">Add an item</span>
             </a>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, ${acknowledgedItemIds}, ${acknowledgementCounts}, ${#authorization.expression('hasRole(''MASTER'')')} ? '/ship/library/particulars' : null)}"></th:block>
 </main>

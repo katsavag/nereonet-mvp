@@ -1,14 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{audit.title}">Audit log</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{audit.title}, ~{::main})}">
 <body>
 <main>
-    <div class="mb-4">
-        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-        <h1 class="fw-bold mb-0" th:text="#{audit.heading}">Audit log</h1>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{audit.heading}, count=${entries.totalElements})}"></header>
 
     <!-- Filters. A GET form, so the filtered page can be bookmarked. Submitting starts again at page 1. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/audit}" th:object="${filter}" method="get">
@@ -28,17 +22,13 @@
             <label for="to" class="form-label fw-semibold small" th:text="#{audit.filter.to}">To</label>
             <input type="date" th:field="*{to}" class="form-control">
         </div>
-        <div class="col-12 col-md-2 d-flex gap-2">
+        <div class="col-12 col-md-auto d-flex gap-2">
             <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{audit.filter.apply}">Filter</button>
             <a class="btn btn-ghost" th:href="@{/office/audit}" th:text="#{audit.filter.clear}">Clear</a>
         </div>
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{audit.heading}, ${entries.totalElements})}">Audit log · 120</h2>
-        </div>
-
         <p th:if="${entries.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{audit.empty}">No entries.</p>
 

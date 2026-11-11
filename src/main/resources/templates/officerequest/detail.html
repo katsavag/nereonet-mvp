@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{request.number(${request.id})}">Request #12</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${request.id})}, ~{::main})}">
 <body>
 <main>
-    <p class="mb-2"><a th:href="@{/office/requests}" th:text="#{request.back}">← Approved requests</a></p>
-    <p class="eyebrow mb-1" th:text="${request.ship.name} + ' · ' + #{ship.codeValue(${request.ship.imoNumber})}">MV Demo · IMO 9074729</p>
-    <h1 class="fw-bold mb-4" th:text="#{request.number(${request.id})}">#12</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.number(${request.id})}, crumbs=~{::pageCrumbs}, eyebrow=${request.ship.name} + ' · ' + #{ship.codeValue(${request.ship.imoNumber})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.requests}, '/office/requests')}"></li>
+        </th:block>
+    </header>
 
     <div class="card mb-4">
         <dl class="card-body row mb-0">

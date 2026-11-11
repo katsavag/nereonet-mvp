@@ -1,14 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{office.title}">Overview</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{office.title}, ~{::main})}">
 <body>
 <main>
-    <div class="mb-4">
-        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-        <h1 class="fw-bold mb-0" th:text="#{office.heading}">Overview</h1>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{office.heading})}"></header>
 
     <!-- Fleet totals -->
     <div class="row g-3 mb-4">

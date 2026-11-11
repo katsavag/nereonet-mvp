@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{library.particulars.edit}">Edit ship particulars</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{library.particulars.edit}, ~{::main})}">
 <body>
 <main>
-    <p class="mb-2"><a th:href="@{/ship/library}" th:text="#{library.back}">← Library</a></p>
-    <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
-    <h1 class="fw-bold mb-4" th:text="#{library.particulars.edit}">Edit ship particulars</h1>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.particulars.edit}, crumbs=~{::pageCrumbs}, eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.library}, '/ship/library')}"></li>
+        </th:block>
+    </header>
 
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">

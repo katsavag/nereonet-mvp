@@ -1,15 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{certificate.list.title}">Expiring certificates</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{certificate.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="mb-4">
-        <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-        <h1 class="fw-bold mb-1" th:text="#{certificate.list.heading}">Expiring certificates</h1>
-        <p class="text-body-secondary mb-0" th:text="#{certificate.list.hint}">Expiring within 90 days or expired, soonest first.</p>
-    </div>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.size()}, subtitle=#{certificate.list.hint})}"></header>
 
     <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/certificates}" method="get">
@@ -28,10 +21,6 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{certificate.heading}, ${certificates.size()})}">Certificates · 3</h2>
-        </div>
-
         <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{certificate.list.empty}">No certificates expire within 90 days.</p>
 

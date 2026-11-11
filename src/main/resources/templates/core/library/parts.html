@@ -90,15 +90,17 @@
     </th:block>
 </th:block>
 
-<!-- Acknowledgement overview of a Required item. Needs ${overview} (AcknowledgementOverview). -->
-<th:block th:fragment="acknowledgements(backUrl)" th:with="item=${overview.item}">
-    <p class="mb-2"><a th:href="@{${backUrl}}" th:text="#{library.back}">← Library</a></p>
-    <p class="eyebrow mb-1" th:text="#{library.acknowledgements.heading}">Acknowledgements</p>
-    <h1 class="fw-bold mb-1 text-break" th:text="${item.title}">Garbage management plan</h1>
-    <p class="text-body-secondary small mb-4">
-        <span th:text="#{library.version(${item.currentVersion.versionLabel})}">Version 1</span>
-        · <span th:text="#{library.acknowledgements.hint}">Enabled crew on board now, for the current version.</span>
-    </p>
+<!-- Page header of the acknowledgement overview of a Required item: the item's title, its version and who is counted.
+     Needs ${overview} (AcknowledgementOverview) and ${ship}. crumbs: the trail above this page (the crew's and the
+     office's library pages differ). -->
+<header th:fragment="acknowledgementsHeader(crumbs)"
+        th:replace="~{layout/parts :: pageHeader(heading=#{library.acknowledgements.heading}, crumbs=${crumbs},
+                    eyebrow=${ship.name} + ' · ' + #{ship.codeValue(${ship.imoNumber})},
+                    subtitle=${overview.item.title} + ' · ' + #{library.version(${overview.item.currentVersion.versionLabel})} + ' · ' + #{library.acknowledgements.hint})}">
+</header>
+
+<!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not. Needs ${overview}. -->
+<th:block th:fragment="acknowledgements" th:with="item=${overview.item}">
 
     <section class="mb-4">
         <h2 class="h6 fw-bold mb-2"

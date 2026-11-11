@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <!--
   Shared layout. Pages use it like this:
-    <html th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
+    <html th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
+  title: the page name as text. The browser tab shows "Page name · Nereonet"; on phones the top bar shows the page
+  name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
   Logged in: navy sidebar (an offcanvas below md) with the user's name and a logout button.
   Not logged in: the page's <main> fills the screen and brings its own container.
   Messages: add a flash attribute "successMessage" or "errorMessage"
@@ -13,7 +15,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:replace="${title}">Nereonet</title>
+    <title th:text="${title} + ' · ' + #{app.name}">Ships · Nereonet</title>
     <!-- Every asset is served by the app itself (no external hosts); URLs carry a content hash, see README. -->
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
@@ -164,7 +166,8 @@
         </div>
     </aside>
 
-    <div class="flex-grow-1">
+    <!-- min-width: 0, so a wide table scrolls inside its card instead of widening the page. -->
+    <div class="app-main flex-grow-1">
         <header class="d-md-none bg-navy text-white d-flex align-items-center gap-2 px-2 py-2">
             <button type="button" class="btn text-white p-2" data-bs-toggle="offcanvas" data-bs-target="#sidebar"
                     aria-controls="sidebar" th:attr="aria-label=#{nav.toggle}">
@@ -172,7 +175,8 @@
                     <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </button>
-            <span class="fw-bold" th:text="#{app.name}">Nereonet</span>
+            <!-- The current page's name; the brand is in the sidebar. -->
+            <span class="topbar-title fw-bold" th:text="${title}">Ships</span>
             <!-- Notification bell with the unread count, always visible on phones. -->
             <a class="btn text-white p-2 ms-auto position-relative" th:href="@{/notifications}"
                th:attr="aria-label=#{notification.bell(${unreadNotifications ?: 0})}">
@@ -182,7 +186,8 @@
                       th:text="${unreadNotifications > 99} ? '99+' : ${unreadNotifications}">3</span>
             </a>
         </header>
-        <div class="container-fluid px-3 px-md-4 py-4">
+        <!-- At most 1280px wide, left aligned next to the sidebar. -->
+        <div class="app-content">
             <th:block th:replace="~{layout/parts :: flash}"></th:block>
             <main th:replace="${content}"></main>
         </div>

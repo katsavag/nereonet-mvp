@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{registration.invalid.title}">Link invalid or expired</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{registration.invalid.title}, ~{::main})}">
 <body>
 <main class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
     <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
@@ -11,11 +8,7 @@
 
     <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
         <div class="login-box w-100 py-4">
-            <p class="eyebrow mb-1" th:text="#{registration.eyebrow}">Create account</p>
-            <h1 class="fw-bold mb-3" th:text="#{registration.invalid.heading}">This link is invalid or has expired</h1>
-            <p class="mb-4" th:text="#{registration.invalid.text}">
-                Ask the office to send you a new invitation.
-            </p>
+            <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.invalid.heading}, subtitle=#{registration.invalid.text})}"></header>
             <a th:href="@{/login}" class="btn btn-primary btn-lg w-100" th:text="#{registration.invalid.signIn}">Go to sign in</a>
         </div>
     </div>

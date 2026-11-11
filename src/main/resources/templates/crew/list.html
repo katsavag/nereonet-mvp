@@ -1,16 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(~{::title}, ~{::main})}">
-<head>
-    <title th:text="#{crew.list.title}">Crew</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crew.list.title}, ~{::main})}">
 <body>
 <main>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-        <div>
-            <p class="eyebrow mb-1" th:text="#{portal.office}">Office portal</p>
-            <h1 class="fw-bold mb-0" th:text="#{crew.list.heading}">Crew</h1>
-        </div>
-        <div class="page-actions">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{crew.list.heading}, count=${crew.size() + invited.size()}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{crew.list.add}">Add crew member</span>
@@ -19,8 +12,8 @@
                 <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
                 <span th:text="#{crew.list.import}">Import from file</span>
             </a>
-        </div>
-    </div>
+        </th:block>
+    </header>
 
     <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
     <form class="row g-2 align-items-end mb-4" th:action="@{/office/crew}" method="get">
@@ -39,10 +32,6 @@
     </form>
 
     <div class="card">
-        <div class="card-header bg-transparent py-3">
-            <h2 th:replace="~{layout/parts :: cardTitle(#{crew.list.heading}, ${crew.size() + invited.size()})}">Crew · 84</h2>
-        </div>
-
         <p th:if="${crew.isEmpty() and invited.isEmpty()}" class="card-body text-body-secondary mb-0"
            th:text="#{crew.list.empty}">No crew members found.</p>
 

@@ -629,6 +629,16 @@ fieldset:disabled button.btn {
 .card > .table > :not(caption) > * > :first-child { padding-left: var(--nn-card-padding); }
 .card > .table-responsive > .table > :not(caption) > * > :last-child,
 .card > .table > :not(caption) > * > :last-child { padding-right: var(--nn-card-padding); }
+/* A list card has no header (the page header has the title and count), so its table starts at the card's top edge:
+   keep the table's background inside the rounded corners. */
+.card > .table-responsive:first-child {
+    border-top-left-radius: var(--bs-card-inner-border-radius);
+    border-top-right-radius: var(--bs-card-inner-border-radius);
+}
+.card > .table-responsive:last-child {
+    border-bottom-left-radius: var(--bs-card-inner-border-radius);
+    border-bottom-right-radius: var(--bs-card-inner-border-radius);
+}
 
 .table {
     --bs-table-bg: var(--nn-surface);
@@ -897,6 +907,98 @@ fieldset:disabled button.btn {
         position: sticky;
         top: 0;
     }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Layout frame and page header (P06)
+     - .app-main: the column next to the sidebar. min-width: 0, so a wide table (import review, audit log) scrolls
+       inside its card instead of making the whole page wider than the window.
+     - .app-content: the content, at most 1280px wide, left aligned next to the sidebar.
+     - .page-header (layout/parts :: pageHeader): breadcrumbs, eyebrow (real context only: ship name and IMO
+       number), h1 with the record count, subtitle, actions on the right. 24px (--nn-section-gap) between the
+       header, the filters and the content; filter forms and content cards keep mb-4 (24px).
+     - .topbar-title: the page name in the phone top bar, cut with an ellipsis when too long.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-content-width: 80rem;       /* 1280px */
+    --nn-gutter: var(--nn-space-4);  /* 16px on phones, 24px from 768px */
+    --nn-section-gap: var(--nn-space-5);
+}
+@media (min-width: 768px) {
+    :root { --nn-gutter: var(--nn-space-5); }
+}
+
+.app-main { min-width: 0; }
+.app-content {
+    max-width: calc(var(--nn-content-width) + 2 * var(--nn-gutter));
+    padding: var(--nn-section-gap) var(--nn-gutter);
+}
+
+.topbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.page-header { margin-bottom: var(--nn-section-gap); }
+.page-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--nn-space-4);
+}
+.page-heading {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+.page-header .eyebrow {
+    margin-bottom: var(--nn-space-1);
+    overflow-wrap: anywhere;
+}
+.page-title {
+    margin-bottom: 0;
+    overflow-wrap: anywhere;
+}
+.page-subtitle {
+    margin: var(--nn-space-1) 0 0;
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.page-actions:empty { display: none; }
+
+/* Breadcrumbs: "Ships › MV Demo › Galley items". Links are underlined (not told apart by colour alone) and each
+   is a touch target: as tall as --nn-touch-target, and never narrower (the ::after extends the tap area). The last
+   item is the current page (aria-current), plain text. */
+.page-breadcrumbs { margin-bottom: var(--nn-space-1); }
+.page-breadcrumbs .breadcrumb {
+    --bs-breadcrumb-divider: "›";
+    --bs-breadcrumb-item-padding-x: var(--nn-space-2);
+    --bs-breadcrumb-divider-color: var(--nn-text-secondary);
+    --bs-breadcrumb-item-active-color: var(--nn-text-secondary);
+    margin-bottom: 0;
+    font-size: var(--nn-font-sm);
+}
+.page-breadcrumbs .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+    overflow-wrap: anywhere;
+}
+.page-breadcrumbs .breadcrumb-item::before { align-self: center; }
+.page-breadcrumbs .breadcrumb-item > a {
+    position: relative;
+    font-weight: 500;
+}
+.page-breadcrumbs .breadcrumb-item > a::after {
+    content: "";
+    position: absolute;
+    top: calc((100% - var(--nn-touch-target)) / 2);
+    bottom: calc((100% - var(--nn-touch-target)) / 2);
+    left: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
 }
 
 /* Crew import review: give the inputs room, so the table scrolls sideways on phones instead of squashing them. */
