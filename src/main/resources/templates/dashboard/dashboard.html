@@ -89,10 +89,10 @@
                             </th:block>
                         </p>
                     </div>
-                    <form class="attention-action" th:action="@{/office/requests/export}" method="post">
+                    <form class="attention-action" th:action="@{/office/requests/export}" method="post" data-download>
                         <input type="hidden" name="ids" th:value="${item.id}">
                         <button type="submit" class="btn btn-outline-secondary btn-sm" th:attr="aria-describedby=${titleId}"
-                                th:text="#{dashboard.action.export}">Export</button>
+                                th:data-busy-label="#{save.busy.export}" th:text="#{dashboard.action.export}">Export</button>
                     </form>
                 </th:block>
 

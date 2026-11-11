@@ -1731,3 +1731,97 @@ fieldset:disabled button.btn {
     align-items: center;
     min-height: var(--nn-touch-target);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Saving on a bad connection (P15): js/save.js, layout/parts :: offlineBanner, draftNotice.
+     - .is-busy: the button of a form on its way: a spinner and "Saving…". Disabled, but at full opacity with a
+       progress cursor: it is working, not unavailable. The other buttons of the form are disabled as usual.
+     - .offline-banner: "No connection. Your text is kept on this device." Fixed at the bottom of the window, right of
+       the sidebar from 768px, in the warning pair with a dot before the text (the words say it, not the colour).
+       Empty, and so not shown, while online; the page gets room at the bottom so it never covers a Save button.
+     - .save-blocked: the message under the actions of a form sent while offline ("Not sent: ..."), same look.
+     - .draft-notice: "Draft restored from 12:40 UTC · Discard" at the top of a form, in the info pair.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-status-dot: 10px;
+    --nn-offline-room: 6rem;         /* room under the page while the banner shows (two lines on a phone) */
+}
+
+.btn.is-busy:disabled {
+    opacity: 1;
+    cursor: progress;
+}
+.btn.is-busy .spinner-border-sm {
+    --bs-spinner-width: .875rem;
+    --bs-spinner-height: .875rem;
+    --bs-spinner-border-width: .15em;
+    flex-shrink: 0;
+}
+
+.offline-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1035;                   /* over the page, under Bootstrap's offcanvas and modals */
+    padding: var(--nn-space-3) var(--nn-space-4) var(--nn-space-3) calc(var(--nn-space-4) + var(--nn-status-dot) + var(--nn-space-2));
+    background: var(--nn-warning-bg);
+    color: var(--nn-warning-text);   /* 6.7:1 */
+    border-top: 1px solid var(--nn-warning-border);
+    box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
+    font-weight: 600;
+    line-height: 1.5;
+}
+.offline-banner:empty { display: none; }
+.offline-banner::before,
+.save-blocked::before {
+    content: "";
+    position: absolute;
+    width: var(--nn-status-dot);
+    height: var(--nn-status-dot);
+    border-radius: 50%;
+    background: var(--nn-warning);
+}
+.offline-banner::before {
+    left: var(--nn-space-4);
+    top: calc(var(--nn-space-3) + .75em - var(--nn-status-dot) / 2);
+}
+@media (min-width: 768px) {
+    body[data-user] .offline-banner { left: var(--nn-sidebar-width); }
+}
+html.is-offline body { padding-bottom: var(--nn-offline-room); }
+
+.save-blocked {
+    position: relative;
+    margin: var(--nn-space-3) 0 0;
+    padding-left: calc(var(--nn-status-dot) + var(--nn-space-2));
+    color: var(--nn-warning-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.save-blocked::before { left: 0; top: calc(.75em - var(--nn-status-dot) / 2); }
+/* Said in the banner when the button is not in the form (form="..."): a second line there. */
+.offline-banner .save-blocked {
+    display: block;
+    margin-top: var(--nn-space-1);
+    padding-left: 0;
+}
+.offline-banner .save-blocked::before { content: none; }
+
+.draft-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--nn-space-2);
+    margin-bottom: var(--nn-space-4);
+    padding: var(--nn-space-1) var(--nn-space-1) var(--nn-space-1) var(--nn-space-3);
+    background: var(--nn-info-bg);
+    color: var(--nn-info-text);      /* 7.5:1; the navy Discard 7.7:1 */
+    border: 1px solid var(--nn-info-border);
+    border-radius: var(--nn-radius-control);
+    font-size: var(--nn-font-sm);
+}
+.draft-notice time {
+    font-weight: 600;
+    white-space: nowrap;
+}

@@ -287,6 +287,27 @@
     </div>
 </dialog>
 
+<!-- Saving on a bad connection (P15, js/save.js).
+     offlineBanner: once per page (layout/layout.html), fixed at the bottom of the window. Empty, and so invisible, until
+     the browser reports no connection; the script then fills it with data-text ("No connection. Your text is kept on
+     this device.", on a page with a draft form) or data-text-plain, and empties it when the connection is back. A live
+     region, so screen readers hear both. data-blocked is the message the script puts next to the button of a form
+     sent while offline (the form is not sent). data-busy is the default label of a button whose form is being sent. -->
+<div th:fragment="offlineBanner" id="offlineBanner" class="offline-banner" role="status"
+     th:data-text="#{save.offline}" th:data-text-plain="#{save.offline.plain}"
+     th:data-blocked="#{save.offline.blocked}" th:data-busy="#{save.busy}"></div>
+
+<!-- draftNotice: once per signed-in page (layout/layout.html). js/save.js copies it to the top of a form whose draft it
+     restored, writes data-template into the text with the draft's time (UTC) as a <time> in place of {time}, and makes
+     Discard put back what the server sent. -->
+<template th:fragment="draftNotice" id="draftNotice">
+    <div class="draft-notice" role="status">
+        <span class="draft-notice-text" th:data-template="#{save.draft.restored('{time}')}"></span>
+        <span class="draft-notice-sep" aria-hidden="true">·</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-draft-discard th:text="#{save.draft.discard}">Discard</button>
+    </div>
+</template>
+
 <!-- Page header (P06): the first thing in every page's <main>, so every page starts the same way. In this order:
        breadcrumbs  every page below the top level (the sidebar entries are the top level): the section, the record,
                     then this page, each a link except the last; the last is the heading and is added here.
@@ -479,8 +500,9 @@
 
 <!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
      "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."). -->
+<!-- data-flash="success": the server confirmed a save; js/save.js then removes the draft of the form just sent (P15). -->
 <th:block th:fragment="flash">
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert" data-flash="success">
         <span th:text="${successArgs != null} ? ${#messages.msgWithParams(successMessage, successArgs)} : #{${successMessage}}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
     </div>

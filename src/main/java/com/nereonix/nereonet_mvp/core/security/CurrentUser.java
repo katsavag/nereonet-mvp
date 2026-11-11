@@ -11,14 +11,22 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 // The logged-in user. Templates read it as ${#authentication.principal}.
 public class CurrentUser extends User {
 
+    private final Long id;
     private final String fullName;
     private final Role role;
 
     public CurrentUser(com.nereonix.nereonet_mvp.core.user.User user) {
         super(user.getEmail(), user.getPasswordHash(), user.isEnabled(), true, true, true,
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
+        this.id = user.getId();
         this.fullName = user.getFullName();
         this.role = user.getRole();
+    }
+
+    // The user's id. Pages carry it (<body data-user>), so the drafts js/save.js keeps in the browser are per user and
+    // one person's text is never offered to the next person on a shared PC (P15).
+    public Long getId() {
+        return id;
     }
 
     public String getFullName() {

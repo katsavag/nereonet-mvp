@@ -5,7 +5,8 @@
      be sent before anything is: the target, the recipients per ship (counted again when it is sent) and the title
      and message as the crew will see them. The form carries the text in hidden fields: "Send to N people" posts it
      to /office/announcements/send, "Back to edit" to /office/announcements/new, which shows the form with the text.
-     Ship names are not links here: leaving this page would lose the text. -->
+     Ship names are not links here: leaving this page would lose the text. data-draft-for: once sent, js/save.js removes
+     the draft of the form (P15). -->
 <main th:with="fleetTarget=${targetShip == null},
                targetLabel=${targetShip == null} ? #{announcement.target.fleet} : ${targetShip.name} + ' · ' + #{ship.codeValue(${targetShip.imoNumber})}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.review.heading}, crumbs=~{::pageCrumbs},
@@ -74,7 +75,7 @@
             </article>
         </section>
 
-        <form method="post" th:action="@{/office/announcements/send}">
+        <form method="post" th:action="@{/office/announcements/send}" th:data-draft-for="@{/office/announcements/new}">
             <input type="hidden" name="target" th:value="${form.target}">
             <input type="hidden" name="title" th:value="${form.title}">
             <input type="hidden" name="body" th:value="${form.body}">

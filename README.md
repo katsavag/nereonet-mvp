@@ -535,7 +535,8 @@ The app makes no request to any other host: everything a page needs is served fr
       page the form was on (from the `Referer` header). A page opened while signed out also opens after signing in.
       `core/security/ReturnTo` only returns to paths of this app, never to `/login`, `/logout`, `/register` or
       `/error`, nor to an `/office` page for crew or a `/ship` page for the office (on a shared PC the next person
-      may be someone else); otherwise it is the home page. What was typed into the form is lost.
+      may be someone else); otherwise it is the home page. The text of a long-text form is not lost: the browser
+      keeps a draft and the form opens with it (see "saving on a bad connection (P15)" below).
 
   - sign-in and registration (P13): a first-time seafarer on a phone gets in without help (see 7 for the flow and
     the messages):
@@ -557,6 +558,40 @@ The app makes no request to any other host: everything a page needs is served fr
       and the checklist: `layout/parts :: newPasswordFields`, for a form class that extends `NewPasswordForm`;
     - text links between the signed-out pages ("Forgot your password?", "Back to sign in", P14) are
       `layout/parts :: authLink`: underlined, 14 px semibold, a 40 px (44 px on phones) touch target.
+
+  - saving on a bad connection (P15): typing a long text and pressing Save is safe on an unstable satellite link.
+    All of it is `js/save.js`, on every page; without the script every form still submits as before. No offline
+    queue and no service worker:
+    - sent once: when a POST form is sent, all its submit buttons are disabled and the one pressed shows a spinner
+      and "Saving…" (sign-in "Signing in…", sign-out "Signing out…", request export "Exporting…": `data-busy-label`).
+      A second click, a double click or Enter sends nothing more. Back to the page (browser Back, `pageshow`) gives
+      the buttons back. The request export answers with a file and does not leave the page (`data-download`), so
+      its button comes back after 4 seconds. The confirmation dialog (P10) sends its form the same way
+      (`requestSubmit`);
+    - drafts: the long-text forms (new announcement: title and message; library: add an item, publish a new
+      version, ship particulars; office and crew) carry `data-draft="<the URL of their page>"`. While the user types,
+      their fields are kept in the browser's `localStorage` under that URL and the signed-in user's id
+      (`<body data-user>`, `CurrentUser.getId()`), so on a shared PC one person's draft is never shown to the next.
+      File inputs, passwords, hidden fields and fields marked `data-draft-skip` are never kept: the announcement's
+      **Send to** is not, so a draft never picks a ship. Opening the form with a draft that differs from what the
+      server sent puts the draft back and says "Draft restored from 12:40 UTC · Discard" (another day: "21 Oct 2026 ·
+      12:40 UTC"; `layout/parts :: draftNotice`); **Discard** puts back what the server sent and removes the draft;
+    - the draft is removed only when the server confirms the save: sending the form (or the review page's form,
+      `data-draft-for`) notes it in `sessionStorage`, and the next page removes it if it shows the success message
+      (`data-flash="success"` on `layout/parts :: flash`). The form shown again with errors, an error message or the
+      sign-in page keep it. So after a session expired (P12) the user signs in, lands on the form and the text is
+      back. The review and send URLs of announcements, which only take POST, now redirect a GET to the form
+      (`GET /office/announcements/review` → `/office/announcements/new`), so returning there after signing in works;
+    - unsaved changes: leaving a signed-in page with a form whose fields changed (or with a file chosen) asks first
+      (`beforeunload`), except while a form is being sent. Fields of a closed pop-up do not count; signed-out pages
+      never ask;
+    - offline: while the browser reports no connection a banner is fixed at the bottom of the window (right of the
+      sidebar from 768 px; `layout/parts :: offlineBanner`, a live region): "No connection. Your text is kept on this
+      device." on a page with a draft form, "No connection. Wait for it to come back before you save anything."
+      elsewhere. Sending a POST form is stopped and "Not sent: there is no connection. Send it again when the
+      connection is back." appears under its buttons. The banner and the message go when the connection returns.
+      Storage may be full, blocked or missing (private windows): every access is wrapped, and the page then works
+      without drafts.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

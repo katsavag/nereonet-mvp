@@ -112,6 +112,14 @@ public class AnnouncementController {
         return "redirect:/office/announcements/" + sent.announcement().getId();
     }
 
+    // Review and send take only POST. A form sent from a page with one of these URLs (the form shown again with its
+    // errors, or the review page) after the session expired comes back here after signing in (P12, ReturnTo): show the
+    // form, where js/save.js restores the text from the browser's draft (P15).
+    @GetMapping({"/office/announcements/review", "/office/announcements/send"})
+    public String backToForm() {
+        return "redirect:/office/announcements/new";
+    }
+
     @GetMapping("/office/announcements/{id}")
     public String detail(@PathVariable Long id, Model model) {
         Announcement announcement = announcementService.get(id);

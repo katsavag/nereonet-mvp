@@ -272,8 +272,9 @@ class PageHeaderFlowTest {
 
         // Export CSV moved from the card header to the page header; it still submits the list's form without JavaScript.
         String requests = html(get("/office/requests"));
-        assertThat(requests).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\">")
-                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\">");
+        // (data-download, data-busy-label: P15.)
+        assertThat(requests).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\" data-download>")
+                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
     }
 
     @Test

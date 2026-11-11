@@ -15,6 +15,9 @@
   layout/parts :: confirmDialog, is at the end of the signed-in frame.
   Times (P11): shown in UTC with layout/parts :: localTime; data-local-time on the body is the wording js/local-time.js
   uses for the viewer's own time ("Your time: {time}").
+  Saving on a bad connection (P15, js/save.js): every POST form shows "Saving…" once sent and cannot be sent twice; a
+  form with data-draft keeps its text in the browser while the user types. data-user on the body (signed in only) is
+  the user's id, so drafts are per user; layout/parts :: offlineBanner and draftNotice hold the texts.
 -->
 <html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:lang="${#locale.language}">
@@ -27,7 +30,8 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body th:data-local-time="#{time.local('{time}')}">
+<body th:data-local-time="#{time.local('{time}')}"
+      th:data-user="${#authorization.expression('isAuthenticated()')} ? ${#authentication.principal.id} : null">
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
     <!-- Sidebar (P07): brand, the navigation groups (scroll on their own when the window is short), and the user
@@ -89,7 +93,7 @@
                     </div>
                     <form th:action="@{/logout}" method="post">
                         <button type="submit" class="btn btn-outline-light btn-sm text-nowrap"
-                                th:text="#{nav.signOut}">Sign out</button>
+                                th:data-busy-label="#{save.busy.signOut}" th:text="#{nav.signOut}">Sign out</button>
                     </form>
                 </div>
             </div>
@@ -124,6 +128,8 @@
     </div>
     <!-- The confirmation dialog of every confirmForm on the page (P10, js/confirm.js). -->
     <dialog th:replace="~{layout/parts :: confirmDialog}"></dialog>
+    <!-- "Draft restored from 12:40 UTC · Discard" (P15), copied into a form with a draft by js/save.js. -->
+    <template th:replace="~{layout/parts :: draftNotice}"></template>
 </div>
 
 <div sec:authorize="!isAuthenticated()">
@@ -133,6 +139,9 @@
     <main th:replace="${content}"></main>
 </div>
 
+<!-- "No connection." (P15): empty and invisible until js/save.js sees the browser go offline. -->
+<div th:replace="~{layout/parts :: offlineBanner}"></div>
+
 <script th:src="@{/vendor/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/local-time.js}"></script>
 <script th:src="@{/js/row-menu.js}"></script>
@@ -140,5 +149,6 @@
 <script th:src="@{/js/password.js}"></script>
 <script th:src="@{/js/ship-tabs.js}"></script>
 <script th:src="@{/js/confirm.js}"></script>
+<script th:src="@{/js/save.js}"></script>
 </body>
 </html>

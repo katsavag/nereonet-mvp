@@ -59,7 +59,12 @@
         const target = form;
         returnFocus = null;
         dialog.close();
-        target.submit();
+        // requestSubmit fires "submit", so js/save.js sees it: not sent while offline, no "leave this page?" (P15).
+        if (typeof target.requestSubmit === 'function') {
+            target.requestSubmit();
+        } else {
+            target.submit();
+        }
     });
 
     // The backdrop: a click on the dialog element itself, outside its content.

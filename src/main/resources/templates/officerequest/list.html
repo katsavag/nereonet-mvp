@@ -15,7 +15,8 @@
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.size()}, subtitle=#{request.list.hint}, actions=~{::pageActions})}">
         <!-- Submits the export form around the list below (form attribute), with the checked requests. -->
         <th:block th:fragment="pageActions">
-            <button th:unless="${requests.isEmpty()}" type="submit" form="exportForm" class="btn btn-primary">
+            <button th:unless="${requests.isEmpty()}" type="submit" form="exportForm" class="btn btn-primary"
+                    th:data-busy-label="#{save.busy.export}">
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
                 <span th:text="#{request.export}">Export CSV</span>
             </button>
@@ -46,8 +47,9 @@
         </div>
     </form>
 
-    <!-- Check requests and export them. The download does not reload this page. -->
-    <form id="exportForm" th:action="@{/office/requests/export}" method="post">
+    <!-- Check requests and export them. The download does not reload this page (data-download: js/save.js gives the
+         button back after a few seconds, P15). -->
+    <form id="exportForm" th:action="@{/office/requests/export}" method="post" data-download>
         <input th:if="${onShip}" type="hidden" name="returnShipId" th:value="${ship.id}">
         <div class="card">
             <p th:if="${requests.isEmpty()}" class="card-body text-body-secondary mb-0"

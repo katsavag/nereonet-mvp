@@ -142,10 +142,13 @@
               title=#{library.retire.confirm.title(${item.title})}, body=#{library.retire.confirm.body(${item.title})},
               confirm=#{library.retire.submit}, tone='danger')}"></form>
 
-<!-- The "Add an item" form. Needs ${form} and ${categories}. ?fileTooLarge comes from UploadTooLargeFilter.
+<!-- Drafts (P15): the item, version and particulars forms below post to the URL of their own page, which is also the
+     key js/save.js keeps their draft under (data-draft) while the user types; the file is never kept.
+
+     The "Add an item" form. Needs ${form} and ${categories}. ?fileTooLarge comes from UploadTooLargeFilter.
      Six fields, so they are grouped under two legends: the item, and its content. -->
 <form th:fragment="itemForm(action, cancelUrl)" th:object="${form}" method="post" enctype="multipart/form-data"
-      th:action="@{${action}}" novalidate>
+      th:action="@{${action}}" th:data-draft="@{${action}}" novalidate>
     <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
     <!-- A single error not tied to a field (the library is full); more than one error are in the summary above. -->
     <div th:if="${#fields.hasGlobalErrors() and #fields.detailedErrors().size() == 1}" class="alert alert-danger" role="alert">
@@ -208,7 +211,7 @@
      ?fileTooLarge comes from UploadTooLargeFilter. Title, category and current version cannot change here: plain
      text, not inputs. -->
 <form th:fragment="versionForm(action, cancelUrl)" th:object="${form}" method="post" enctype="multipart/form-data"
-      th:action="@{${action}}" novalidate th:with="current=${item.currentVersion}">
+      th:action="@{${action}}" th:data-draft="@{${action}}" novalidate th:with="current=${item.currentVersion}">
     <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
     <div class="form-grid">
         <dl class="static-fields">
@@ -277,7 +280,7 @@
 <!-- The "Edit ship particulars" form. Needs ${ship} and ${form}. The IMO number and flag come from the ship record:
      plain text, not inputs. -->
 <form th:fragment="particularsForm(action, cancelUrl)" th:object="${form}" method="post"
-      th:action="@{${action}}" novalidate>
+      th:action="@{${action}}" th:data-draft="@{${action}}" novalidate>
     <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
     <div class="form-grid">
         <dl class="static-fields">
