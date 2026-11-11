@@ -149,7 +149,9 @@ public class InvitationService {
                 Role.OFFICE_USER);
     }
 
-    private Optional<Invitation> findPending(Long id) {
+    /** The PENDING invitation with this id (expired or not), if there is one. */
+    @Transactional(readOnly = true)
+    public Optional<Invitation> findPending(Long id) {
         return invitationRepository.findById(id)
                 .filter(invitation -> invitation.getStatus() == Invitation.Status.PENDING);
     }

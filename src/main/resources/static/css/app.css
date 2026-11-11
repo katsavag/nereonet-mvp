@@ -795,7 +795,9 @@ fieldset:disabled button.btn {
     --bs-list-group-active-border-color: var(--nn-blue);
 }
 
-.modal {
+/* The confirmation dialog (P10) is a native <dialog>, not a Bootstrap .modal, but looks the same. */
+.modal,
+.confirm-dialog {
     --bs-modal-bg: var(--nn-surface);
     --bs-modal-border-color: var(--nn-border);
     --bs-modal-border-radius: var(--nn-radius-modal);
@@ -1442,4 +1444,80 @@ fieldset:disabled button.btn {
     bottom: calc((100% - var(--nn-touch-target)) / 2);
     left: min(0px, calc((100% - var(--nn-touch-target)) / 2));
     right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Confirmations (P10): layout/parts :: confirmForm, confirmDialog, js/confirm.js and confirm/confirm.html.
+     - .confirm-dialog: the one confirmation dialog, a native <dialog> shown as a modal (the browser keeps focus inside
+       it and makes the page behind it inert). The same surface, radius, header and footer as the Bootstrap modals
+       (the .modal variables above), at most 500px wide with a 16px gutter on phones. Heading, one sentence, then
+       Cancel (.btn-ghost, focused first) and the confirm button on the right: .btn-outline-danger for what cannot be
+       undone, .btn-primary for what Activate undoes.
+     - .confirm-form: the form around a confirmForm trigger; display: contents, so the trigger lays out as if it
+       were the menu entry or page action itself (full width in the stacked page actions on phones).
+     - .confirm-page: the same question as a page, where the trigger leads without JavaScript.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-backdrop: rgba(0, 0, 0, .5);   /* as Bootstrap's modal backdrop */
+    --nn-dialog-width: 500px;
+}
+
+.confirm-dialog {
+    --bs-modal-border-width: var(--bs-border-width);
+    --bs-modal-header-border-width: var(--bs-border-width);
+    --bs-modal-footer-border-width: var(--bs-border-width);
+    --bs-modal-footer-gap: var(--nn-space-2);
+    --bs-modal-title-line-height: 1.5;
+    width: min(var(--nn-dialog-width), calc(100% - 2 * var(--nn-space-4)));
+    max-width: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--nn-text);
+    overflow: visible;
+}
+.confirm-dialog::backdrop { background-color: var(--nn-backdrop); }
+.confirm-dialog .modal-content { box-shadow: 0 8px 32px rgba(var(--nn-navy-rgb), .2); }
+.confirm-dialog .modal-title { overflow-wrap: anywhere; }
+.confirm-dialog .modal-body p { overflow-wrap: anywhere; }
+
+.confirm-form { display: contents; }
+
+.confirm-page .confirm-page-body {
+    margin-bottom: var(--nn-space-5);
+    overflow-wrap: anywhere;
+}
+
+/* Announcement review (P10): announcement/review.html, the step between the form and sending.
+     - .review-stack: recipients, the preview and the actions, 24px apart, in the 720px form column.
+     - .review-recipients: the people per ship; a muted IMO number after each name, so ships with similar names are
+       told apart; a Total row for All ships.
+     - .review-label: the small heading above the preview, like a table header.
+     - .announcement-preview: the title and message as the crew will see them (plain text, line breaks kept). */
+.review-stack {
+    display: grid;
+    gap: var(--nn-section-gap);
+}
+.review-imo {
+    margin-left: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.review-recipients > tfoot > tr > * {
+    padding: var(--nn-cell-padding-y) var(--nn-cell-padding-x);
+    border-bottom: 0;
+    font-weight: 600;
+}
+.review-label {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.announcement-preview-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
 }

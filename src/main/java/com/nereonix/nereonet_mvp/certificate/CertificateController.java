@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
@@ -27,10 +28,13 @@ public class CertificateController {
 
     private final CertificateService certificateService;
     private final ShipFrame shipFrame;
+    private final ConfirmPages confirmPages;
 
-    public CertificateController(CertificateService certificateService, ShipFrame shipFrame) {
+    public CertificateController(CertificateService certificateService, ShipFrame shipFrame,
+                                 ConfirmPages confirmPages) {
         this.certificateService = certificateService;
         this.shipFrame = shipFrame;
+        this.confirmPages = confirmPages;
     }
 
     @GetMapping("/office/certificates")
@@ -109,6 +113,23 @@ public class CertificateController {
         certificateService.update(userId, id, form.getType(), form.getNumber(), form.getExpiresOn());
         redirectAttributes.addFlashAttribute("successMessage", "certificate.updated");
         return "redirect:/office/crew/" + userId + "/edit";
+    }
+
+    // The confirmation page: where Delete leads when js/confirm.js did not load (P10).
+    @GetMapping("/office/crew/{userId}/certificates/{id}/delete")
+    public String confirmDelete(@PathVariable Long userId, @PathVariable Long id, Model model) {
+        Certificate certificate = certificateService.getCertificate(userId, id);
+        User member = certificateService.getCrewMember(userId);
+        String memberUrl = "/office/crew/" + userId + "/edit";
+        return confirmPages.danger()
+                .title("certificate.delete.confirm.title", certificate.getType())
+                .body("certificate.delete.confirm.body", certificate.getType(), member.getFullName())
+                .confirmLabel("certificate.delete")
+                .action("/office/crew/" + userId + "/certificates/" + id + "/delete", null)
+                .cancelUrl(memberUrl)
+                .crumb("nav.crew", "/office/crew")
+                .crumbText(member.getFullName(), memberUrl)
+                .show(model);
     }
 
     @PostMapping("/office/crew/{userId}/certificates/{id}/delete")

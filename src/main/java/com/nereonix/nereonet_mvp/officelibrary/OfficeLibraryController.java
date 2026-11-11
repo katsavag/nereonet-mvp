@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
@@ -31,10 +32,12 @@ public class OfficeLibraryController {
 
     private final LibraryService libraryService;
     private final ShipFrame shipFrame;
+    private final ConfirmPages confirmPages;
 
-    public OfficeLibraryController(LibraryService libraryService, ShipFrame shipFrame) {
+    public OfficeLibraryController(LibraryService libraryService, ShipFrame shipFrame, ConfirmPages confirmPages) {
         this.libraryService = libraryService;
         this.shipFrame = shipFrame;
+        this.confirmPages = confirmPages;
     }
 
     // The ship page's Library tab.
@@ -127,6 +130,25 @@ public class OfficeLibraryController {
         }
         redirectAttributes.addFlashAttribute("successMessage", "library.published");
         return "redirect:/office/ships/" + shipId + "/library";
+    }
+
+    // The confirmation page: where Retire this item leads when js/confirm.js did not load (P10).
+    @GetMapping("/office/ships/{shipId}/library/{id}/retire")
+    public String confirmRetire(@PathVariable Long shipId, @PathVariable Long id, Model model) {
+        Ship ship = libraryService.ship(shipId);
+        LibraryItem item = libraryService.shipItem(shipId, id);
+        String editUrl = ShipTab.LIBRARY.url(shipId) + "/" + id + "/edit";
+        return confirmPages.danger()
+                .title("library.retire.confirm.title", item.getTitle())
+                .body("library.retire.confirm.body", item.getTitle())
+                .confirmLabel("library.retire.submit")
+                .action(ShipTab.LIBRARY.url(shipId) + "/" + id + "/retire", null)
+                .cancelUrl(editUrl)
+                .crumb("nav.ships", "/office/ships")
+                .crumbText(ship.getName(), ShipTab.OVERVIEW.url(shipId))
+                .crumb("ship.tab.library", ShipTab.LIBRARY.url(shipId))
+                .crumb("library.edit.heading", editUrl)
+                .show(model);
     }
 
     @PostMapping("/office/ships/{shipId}/library/{id}/retire")

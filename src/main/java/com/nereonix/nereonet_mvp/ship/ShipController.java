@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.dashboard.DashboardService;
@@ -31,11 +32,14 @@ public class ShipController {
     private final ShipService shipService;
     private final ShipFrame shipFrame;
     private final DashboardService dashboardService;
+    private final ConfirmPages confirmPages;
 
-    public ShipController(ShipService shipService, ShipFrame shipFrame, DashboardService dashboardService) {
+    public ShipController(ShipService shipService, ShipFrame shipFrame, DashboardService dashboardService,
+                          ConfirmPages confirmPages) {
         this.shipService = shipService;
         this.shipFrame = shipFrame;
         this.dashboardService = dashboardService;
+        this.confirmPages = confirmPages;
     }
 
     // The ship page's Overview tab: open items, crew on board by department, particulars.
@@ -96,6 +100,21 @@ public class ShipController {
         return back(id, tab);
     }
 
+    // The confirmation page: where Deactivate leads when js/confirm.js did not load (P10).
+    @GetMapping("/office/ships/{id}/deactivate")
+    public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
+        Ship ship = shipService.get(id);
+        return confirmPages.neutral()
+                .title("ship.deactivate.confirm.title", ship.getName())
+                .body("ship.deactivate.confirm.body", ship.getName())
+                .confirmLabel("ship.deactivate")
+                .action("/office/ships/" + id + "/deactivate", ShipTab.of(tab).map(ShipTab::key).orElse(null))
+                .cancelUrl(backUrl(id, tab))
+                .crumb("nav.ships", "/office/ships")
+                .crumbText(ship.getName(), ShipTab.OVERVIEW.url(id))
+                .show(model);
+    }
+
     @PostMapping("/office/ships/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @RequestParam(required = false) String tab,
                              RedirectAttributes redirectAttributes) {
@@ -114,7 +133,11 @@ public class ShipController {
 
     // To the ship page tab the action came from, or to the ships list.
     private static String back(Long id, String tab) {
-        return "redirect:" + ShipTab.of(tab).map(t -> t.url(id)).orElse("/office/ships");
+        return "redirect:" + backUrl(id, tab);
+    }
+
+    private static String backUrl(Long id, String tab) {
+        return ShipTab.of(tab).map(t -> t.url(id)).orElse("/office/ships");
     }
 
     private String showEditPage(Ship ship, String tab, Model model) {

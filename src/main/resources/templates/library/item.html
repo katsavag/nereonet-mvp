@@ -19,7 +19,7 @@
         <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary"
                th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">Edit this item</a>
-            <th:block th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'})}"></th:block>
+            <form th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'}, ${item})}"></form>
         </th:block>
     </header>
 

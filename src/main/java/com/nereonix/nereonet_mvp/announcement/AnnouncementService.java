@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -95,19 +96,43 @@ public class AnnouncementService {
                 all.stream().filter(r -> r.getAcknowledgedAt() == null).toList());
     }
 
+    /** How many people on one ship an announcement would go to (the review step, P10). */
+    public record ShipRecipients(Ship ship, int people) {
+    }
+
+    /** A sent announcement and the number of people it went to, counted when it was sent. */
+    public record Sent(Announcement announcement, int recipients) {
+    }
+
+    /** The ship, if it exists and is active: only active ships get announcements. */
+    @Transactional(readOnly = true)
+    public Optional<Ship> findActiveShip(Long shipId) {
+        return shipRepository.findById(shipId).filter(Ship::isActive);
+    }
+
+    /**
+     * Who an announcement to this ship (null: the whole fleet) would go to if it were sent now, per ship by name: the
+     * same rule as create(). For the fleet every active ship is listed, also one with nobody on board.
+     */
+    @Transactional(readOnly = true)
+    public List<ShipRecipients> recipientsPerShip(Long shipId) {
+        Ship ship = shipId == null ? null : activeShip(shipId);
+        Map<Long, Long> perShip = recipients(ship).stream()
+                .collect(Collectors.groupingBy(user -> user.getShip().getId(), Collectors.counting()));
+        List<Ship> ships = ship == null ? findActiveShips() : List.of(ship);
+        return ships.stream()
+                .map(s -> new ShipRecipients(s, perShip.getOrDefault(s.getId(), 0L).intValue()))
+                .toList();
+    }
+
     /**
      * Sends an announcement to one active ship, or to the whole fleet when shipId is null. The recipients are fixed
-     * now: every enabled user with a ship role who is on that ship (on any active ship for the fleet).
-     * Returns the new announcement.
+     * now: every enabled user with a ship role who is on that ship (on any active ship for the fleet), counted again
+     * here, whatever the review page showed.
      */
     @Transactional
-    public Announcement create(String title, String body, Long shipId, String actorEmail) {
-        Ship ship = null;
-        if (shipId != null) {
-            ship = shipRepository.findById(shipId)
-                    .filter(Ship::isActive)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such active ship"));
-        }
+    public Sent create(String title, String body, Long shipId, String actorEmail) {
+        Ship ship = shipId == null ? null : activeShip(shipId);
 
         Announcement announcement = new Announcement();
         announcement.setTitle(title.strip());
@@ -117,9 +142,7 @@ public class AnnouncementService {
         announcement.setCreatedAt(Instant.now());
         announcementRepository.save(announcement);
 
-        List<User> users = ship == null
-                ? userRepository.findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role.OFFICE_USER)
-                : userRepository.findAllByShipAndRoleNotAndEnabledTrue(ship, Role.OFFICE_USER);
+        List<User> users = recipients(ship);
         for (User user : users) {
             AnnouncementRecipient recipient = new AnnouncementRecipient();
             recipient.setAnnouncement(announcement);
@@ -131,6 +154,19 @@ public class AnnouncementService {
         auditService.record("ANNOUNCEMENT_CREATED", ship,
                 announcement.getTitle() + " (" + (ship == null ? "all ships" : ship.getName()) + ", "
                         + users.size() + " recipients)");
-        return announcement;
+        return new Sent(announcement, users.size());
+    }
+
+    // 400 for a ship that does not exist or is not active.
+    private Ship activeShip(Long shipId) {
+        return findActiveShip(shipId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such active ship"));
+    }
+
+    // Every enabled user with a ship role on this ship, or on any active ship when ship is null.
+    private List<User> recipients(Ship ship) {
+        return ship == null
+                ? userRepository.findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role.OFFICE_USER)
+                : userRepository.findAllByShipAndRoleNotAndEnabledTrue(ship, Role.OFFICE_USER);
     }
 }

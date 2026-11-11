@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.invitation.EmailAlreadyRegisteredException;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
@@ -29,10 +30,12 @@ public class CrewController {
 
     private final CrewService crewService;
     private final ShipFrame shipFrame;
+    private final ConfirmPages confirmPages;
 
-    public CrewController(CrewService crewService, ShipFrame shipFrame) {
+    public CrewController(CrewService crewService, ShipFrame shipFrame, ConfirmPages confirmPages) {
         this.crewService = crewService;
         this.shipFrame = shipFrame;
+        this.confirmPages = confirmPages;
     }
 
     // The "Add crew member" form is a modal on the list page.
@@ -101,6 +104,31 @@ public class CrewController {
         return "redirect:/office/crew";
     }
 
+    // The confirmation pages: where Deactivate and Delete lead when js/confirm.js did not load (P10).
+    @GetMapping("/office/users/{id}/deactivate")
+    public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
+        User user = crewService.getUser(id);
+        return withCrumbs(confirmPages.neutral()
+                .title("user.deactivate.confirm.title", user.getFullName())
+                .body("user.deactivate.confirm.body", user.getFullName())
+                .confirmLabel("user.deactivate")
+                .action("/office/users/" + id + "/deactivate", crewTab(user, tab) ? ShipTab.CREW.key() : null)
+                .cancelUrl(listUrl(user, tab)), user, tab)
+                .show(model);
+    }
+
+    @GetMapping("/office/users/{id}/delete")
+    public String confirmDelete(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
+        User user = crewService.getUser(id);
+        return withCrumbs(confirmPages.danger()
+                .title("user.delete.confirm.title", user.getFullName())
+                .body("user.delete.confirm.body", user.getFullName(), user.getEmail())
+                .confirmLabel("user.delete")
+                .action("/office/users/" + id + "/delete", crewTab(user, tab) ? ShipTab.CREW.key() : null)
+                .cancelUrl(listUrl(user, tab)), user, tab)
+                .show(model);
+    }
+
     @PostMapping("/office/users/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @RequestParam(required = false) String tab,
                              @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
@@ -128,13 +156,38 @@ public class CrewController {
     // Back to the list the button was on: the ship page's Crew tab (tab=crew, sent by crew/parts :: userMenuItems
     // there), Crew or Office users (OfficeUserController).
     private static String redirectToList(User user, String tab) {
+        return "redirect:" + listUrl(user, tab);
+    }
+
+    private static String listUrl(User user, String tab) {
         if (user.getRole() == Role.OFFICE_USER) {
-            return "redirect:/office/users";
+            return "/office/users";
         }
-        if (ShipTab.of(tab).orElse(null) == ShipTab.CREW && user.getShip() != null) {
-            return "redirect:" + ShipTab.CREW.url(user.getShip().getId());
+        if (crewTab(user, tab)) {
+            return ShipTab.CREW.url(user.getShip().getId());
         }
-        return "redirect:/office/crew";
+        return "/office/crew";
+    }
+
+    // Started from the Crew tab of the user's ship page.
+    private static boolean crewTab(User user, String tab) {
+        return user.getRole() != Role.OFFICE_USER && ShipTab.of(tab).orElse(null) == ShipTab.CREW
+                && user.getShip() != null;
+    }
+
+    // The confirmation page's breadcrumbs: the list it was started from, then the user (crew members have a page).
+    private static ConfirmPages.Builder withCrumbs(ConfirmPages.Builder page, User user, String tab) {
+        if (user.getRole() == Role.OFFICE_USER) {
+            return page.crumb("nav.officeUsers", "/office/users");
+        }
+        if (crewTab(user, tab)) {
+            page.crumb("nav.ships", "/office/ships")
+                    .crumbText(user.getShip().getName(), ShipTab.OVERVIEW.url(user.getShip().getId()))
+                    .crumb("ship.tab.crew", ShipTab.CREW.url(user.getShip().getId()));
+        } else {
+            page.crumb("nav.crew", "/office/crew");
+        }
+        return page.crumbText(user.getFullName(), "/office/crew/" + user.getId() + "/edit");
     }
 
     private String showList(Long shipId, Model model) {

@@ -109,6 +109,53 @@
     </div>
 </details>
 
+<!-- An action that asks first (P10): deactivate, delete, cancel, retire. Never one click.
+     A POST form that opts in to the confirmation dialog (confirmDialog, js/confirm.js) with data attributes. Its
+     trigger is a link to the action's own URL: with the script, clicking it opens the dialog and Confirm submits the
+     form; without the script (or a browser without <dialog>) it opens the plain confirmation page (GET on the same
+     URL, confirm/confirm.html, built from the same message keys by core/confirm/ConfirmPages). So the form never
+     submits without a confirmation, and it has no submit button that could.
+     Named parameters; tab and dismiss are optional:
+       action     the POST URL, e.g. '/office/ships/' + ${s.id} + '/deactivate'
+       tab        the ship page tab to return to (sent as "tab", also on the confirmation page's URL), or null
+       label      the trigger's text: "Deactivate"
+       linkClass  the trigger's classes: 'dropdown-item dropdown-item-danger' in a "more" menu, a btn class on a page
+       title      the dialog's heading, naming the record: "Deactivate MV Demo?"
+       body       the consequence in one sentence: "No new crew can be invited to MV Demo until it is activated again."
+       confirm    the confirm button: "Deactivate"
+       tone       'danger' (cannot be undone: red button, Enter does not confirm) or 'neutral' (Activate undoes it)
+       dismiss    the dismiss button when "Cancel" would be confusing ("Keep invitation" next to "Cancel invitation")
+     Use: <form th:replace="~{layout/parts :: confirmForm(action=..., label=#{ship.deactivate}, linkClass='...',
+                title=#{ship.deactivate.confirm.title(${s.name})}, body=#{...}, confirm=#{ship.deactivate}, tone='neutral')}"></form> -->
+<form th:fragment="confirmForm" class="confirm-form" method="post" th:action="@{${action}}"
+      th:data-confirm-title="${title}" th:data-confirm-body="${body}" th:data-confirm-label="${confirm}"
+      th:data-confirm-tone="${tone}" th:data-confirm-dismiss="${dismiss}">
+    <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
+    <a th:class="${linkClass}" th:href="${tab != null} ? @{${action}(tab=${tab})} : @{${action}}"
+       data-confirm-open aria-haspopup="dialog" th:text="${label}">Deactivate</a>
+</form>
+
+<!-- The one confirmation dialog (P10), once per page (layout/layout.html). js/confirm.js fills it from the
+     data-confirm-* attributes of the form whose trigger was clicked (confirmForm) and shows it as a modal <dialog>:
+     focus starts on Cancel, Esc and the backdrop cancel, and in a danger dialog Enter does not confirm (Space or a
+     click does). The confirm button gets its tone from the script (btn-outline-danger or btn-primary). -->
+<dialog th:fragment="confirmDialog" id="confirmDialog" class="confirm-dialog"
+        aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogBody"
+        th:data-cancel-label="#{form.cancel}">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title h5 fw-bold" id="confirmDialogTitle"></h2>
+        </div>
+        <div class="modal-body">
+            <p class="mb-0" id="confirmDialogBody"></p>
+        </div>
+        <div class="modal-footer confirm-dialog-footer">
+            <button type="button" class="btn btn-ghost" data-confirm-cancel th:text="#{form.cancel}">Cancel</button>
+            <button type="button" class="btn" data-confirm-ok></button>
+        </div>
+    </div>
+</dialog>
+
 <!-- Page header (P06): the first thing in every page's <main>, so every page starts the same way. In this order:
        breadcrumbs  every page below the top level (the sidebar entries are the top level): the section, the record,
                     then this page, each a link except the last; the last is the heading and is added here.

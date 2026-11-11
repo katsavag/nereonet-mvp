@@ -15,7 +15,7 @@
     </div>
 
     <div class="mt-4">
-        <th:block th:replace="~{core/library/parts :: retire(${libraryUrl + '/' + item.id + '/retire'})}"></th:block>
+        <form th:replace="~{core/library/parts :: retire(${libraryUrl + '/' + item.id + '/retire'}, ${item})}"></form>
     </div>
 </main>
 </body>

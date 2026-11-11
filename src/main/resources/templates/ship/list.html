@@ -59,10 +59,11 @@
                                     </form>
                                     <th:block th:if="${s.active}">
                                         <hr class="dropdown-divider">
-                                        <form th:action="@{/office/ships/{id}/deactivate(id=${s.id})}" method="post">
-                                            <button type="submit" class="dropdown-item dropdown-item-danger"
-                                                    th:text="#{ship.deactivate}">Deactivate</button>
-                                        </form>
+                                        <form th:replace="~{layout/parts :: confirmForm(action=${'/office/ships/' + s.id + '/deactivate'},
+                                                label=#{ship.deactivate}, linkClass='dropdown-item dropdown-item-danger',
+                                                title=#{ship.deactivate.confirm.title(${s.name})},
+                                                body=#{ship.deactivate.confirm.body(${s.name})},
+                                                confirm=#{ship.deactivate}, tone='neutral')}"></form>
                                     </th:block>
                                 </th:block>
                             </details>

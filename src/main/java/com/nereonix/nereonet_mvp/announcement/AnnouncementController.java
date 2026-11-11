@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.announcement;
 
+import java.util.List;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,7 +21,9 @@ import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 import jakarta.validation.Valid;
 
-// /office/** is limited to OFFICE_USER in SecurityConfig. No edit or delete on purpose.
+// /office/** is limited to OFFICE_USER in SecurityConfig. No edit or delete on purpose, so sending takes two steps
+// (P10): the form posts to /review, which shows what will be sent and to how many people; only the review page's
+// "Send to N people" posts to /send. "Back to edit" posts the text back to /new, which shows the form again.
 // The ship page's Announcements tab lists one ship's; New announcement there opens the form with that ship
 // preselected (?shipId=) and, once sent, returns to the tab (the form's returnShipId field).
 @Controller
@@ -62,21 +66,50 @@ public class AnnouncementController {
         return showForm(fromShip, model);
     }
 
-    @PostMapping("/office/announcements/new")
-    public String create(@Valid @ModelAttribute("form") AnnouncementForm form, BindingResult result,
-                         @RequestParam(required = false) Long returnShipId, Model model,
-                         @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
+    // Step 1 of 2 (P10): the form's Review button. A valid form shows the review page: the target, the recipients per
+    // ship and the text as the crew will see it. Nothing is saved; the review page carries the form in hidden fields.
+    @PostMapping("/office/announcements/review")
+    public String review(@Valid @ModelAttribute("form") AnnouncementForm form, BindingResult result,
+                         @RequestParam(required = false) Long returnShipId, Model model) {
         Ship fromShip = returnShipId == null ? null : shipFrame.ship(returnShipId);
-        if (result.hasErrors()) {
+        if (!checkTarget(form, result)) {
             return showForm(fromShip, model);
         }
-        Announcement announcement = announcementService.create(form.getTitle(), form.getBody(), form.shipId(),
+        List<AnnouncementService.ShipRecipients> perShip = announcementService.recipientsPerShip(form.shipId());
+        model.addAttribute("fromShip", fromShip);
+        model.addAttribute("targetShip", form.shipId() == null ? null : perShip.getFirst().ship());
+        model.addAttribute("perShip", perShip);
+        model.addAttribute("people", perShip.stream().mapToInt(AnnouncementService.ShipRecipients::people).sum());
+        return "announcement/review";
+    }
+
+    // Back to edit on the review page: the form again, with the text as it was. Also where an old form page that still
+    // posts here ends up, so nothing is ever sent from this URL.
+    @PostMapping("/office/announcements/new")
+    public String edit(@ModelAttribute("form") AnnouncementForm form,
+                       @RequestParam(required = false) Long returnShipId, Model model) {
+        return showForm(returnShipId == null ? null : shipFrame.ship(returnShipId), model);
+    }
+
+    // Step 2 of 2: "Send to N people" on the review page. The recipients are counted again now (the success message
+    // gives the number it went to); a form that is no longer valid (e.g. the ship was deactivated meanwhile) goes
+    // back to the form with its errors.
+    @PostMapping("/office/announcements/send")
+    public String send(@Valid @ModelAttribute("form") AnnouncementForm form, BindingResult result,
+                       @RequestParam(required = false) Long returnShipId, Model model,
+                       @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
+        Ship fromShip = returnShipId == null ? null : shipFrame.ship(returnShipId);
+        if (!checkTarget(form, result)) {
+            return showForm(fromShip, model);
+        }
+        AnnouncementService.Sent sent = announcementService.create(form.getTitle(), form.getBody(), form.shipId(),
                 currentUser.getUsername());
         redirectAttributes.addFlashAttribute("successMessage", "announcement.created");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {sent.recipients()});
         if (fromShip != null) {
             return "redirect:" + ShipTab.ANNOUNCEMENTS.url(fromShip.getId());
         }
-        return "redirect:/office/announcements/" + announcement.getId();
+        return "redirect:/office/announcements/" + sent.announcement().getId();
     }
 
     @GetMapping("/office/announcements/{id}")
@@ -85,6 +118,16 @@ public class AnnouncementController {
         model.addAttribute("announcement", announcement);
         model.addAttribute("recipients", announcementService.findRecipients(announcement));
         return "announcement/detail";
+    }
+
+    // True when the form is valid and its target is the fleet or an active ship; a ship deactivated since the form
+    // was opened is an error on the target field.
+    private boolean checkTarget(AnnouncementForm form, BindingResult result) {
+        if (!result.hasErrors() && form.shipId() != null
+                && announcementService.findActiveShip(form.shipId()).isEmpty()) {
+            result.rejectValue("target", "announcement.error.targetRequired");
+        }
+        return !result.hasErrors();
     }
 
     // fromShip: the ship whose tab the form was opened from (breadcrumbs, Cancel, where to return), or null.

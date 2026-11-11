@@ -20,16 +20,19 @@
         <button type="submit" class="dropdown-item" th:text="#{user.activate}">Activate</button>
     </form>
     <hr class="dropdown-divider">
-    <form th:if="${u.enabled}" th:action="@{/office/users/{id}/deactivate(id=${u.id})}" method="post">
-        <input th:if="${shipTab != null}" type="hidden" name="tab" th:value="${shipTab}">
-        <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.deactivate}">Deactivate</button>
-    </form>
-    <!-- Deleting cannot be undone, so the browser asks first. -->
-    <form th:unless="${u.enabled}" th:action="@{/office/users/{id}/delete(id=${u.id})}" method="post"
-          th:data-confirm="#{user.delete.confirm(${u.email})}" onsubmit="return confirm(this.dataset.confirm)">
-        <input th:if="${shipTab != null}" type="hidden" name="tab" th:value="${shipTab}">
-        <button type="submit" class="dropdown-item dropdown-item-danger" th:text="#{user.delete}">Delete</button>
-    </form>
+    <!-- Both ask first (layout/parts :: confirmForm). Deactivate is undone by Activate; Delete cannot be undone. -->
+    <th:block th:if="${u.enabled}">
+        <form th:replace="~{layout/parts :: confirmForm(action=${'/office/users/' + u.id + '/deactivate'}, tab=${shipTab},
+                label=#{user.deactivate}, linkClass='dropdown-item dropdown-item-danger',
+                title=#{user.deactivate.confirm.title(${u.fullName})}, body=#{user.deactivate.confirm.body(${u.fullName})},
+                confirm=#{user.deactivate}, tone='neutral')}"></form>
+    </th:block>
+    <th:block th:unless="${u.enabled}">
+        <form th:replace="~{layout/parts :: confirmForm(action=${'/office/users/' + u.id + '/delete'}, tab=${shipTab},
+                label=#{user.delete}, linkClass='dropdown-item dropdown-item-danger',
+                title=#{user.delete.confirm.title(${u.fullName})}, body=#{user.delete.confirm.body(${u.fullName}, ${u.email})},
+                confirm=#{user.delete}, tone='danger')}"></form>
+    </th:block>
 </th:block>
 
 </body>

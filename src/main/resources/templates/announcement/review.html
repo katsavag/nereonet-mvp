@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.review.title}, ~{::main})}">
+<body>
+<!-- Step 2 of 2 of a new announcement (P10). Announcements cannot be edited or deleted, so this page shows what will
+     be sent before anything is: the target, the recipients per ship (counted again when it is sent) and the title
+     and message as the crew will see them. The form carries the text in hidden fields: "Send to N people" posts it
+     to /office/announcements/send, "Back to edit" to /office/announcements/new, which shows the form with the text.
+     Ship names are not links here: leaving this page would lose the text. -->
+<main th:with="fleetTarget=${targetShip == null},
+               targetLabel=${targetShip == null} ? #{announcement.target.fleet} : ${targetShip.name} + ' · ' + #{ship.codeValue(${targetShip.imoNumber})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.review.heading}, crumbs=~{::pageCrumbs},
+                eyebrow=${targetLabel}, subtitle=#{announcement.review.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:if="${fromShip != null}">
+                <th:block th:replace="~{ship/parts :: crumbs(${fromShip}, 'announcements')}"></th:block>
+            </th:block>
+            <th:block th:if="${fromShip == null}">
+                <li th:replace="~{layout/parts :: crumb(#{nav.announcements}, '/office/announcements')}"></li>
+            </th:block>
+        </th:block>
+    </header>
+
+    <div class="review-stack form-box">
+        <!-- Who gets it: the target, then the people per ship (every active ship for All ships). -->
+        <section class="card" aria-labelledby="reviewRecipientsTitle">
+            <div class="card-body">
+                <h2 class="h5 fw-bold mb-3" id="reviewRecipientsTitle" th:text="#{announcement.review.recipients}">Recipients</h2>
+                <dl class="static-fields">
+                    <dt th:text="#{announcement.target}">Send to</dt>
+                    <dd class="fw-semibold" th:text="${targetLabel}">MV Demo · IMO 9074729</dd>
+                </dl>
+            </div>
+            <div class="table-responsive">
+                <table class="table data-table review-recipients align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" th:text="#{announcement.review.ship}">Ship</th>
+                        <th scope="col" class="num" th:text="#{announcement.review.people}">People</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${perShip}">
+                        <td>
+                            <span th:text="${r.ship().name}">MV Demo</span>
+                            <span class="review-imo num" th:text="#{ship.codeValue(${r.ship().imoNumber})}">IMO 9074729</span>
+                        </td>
+                        <td class="num" th:text="${r.people()}">5</td>
+                    </tr>
+                    </tbody>
+                    <tfoot th:if="${fleetTarget}">
+                    <tr>
+                        <th scope="row" th:text="#{announcement.review.total}">Total</th>
+                        <td class="num fw-semibold" th:text="${people}">12</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card-body">
+                <p class="form-text mt-0 mb-0" th:text="#{announcement.review.recipientsHint}">Everyone with a ship role on
+                    board now. They are counted again when you send it.</p>
+                <p th:if="${people == 0}" class="alert alert-warning mt-3 mb-0" role="status"
+                   th:text="#{announcement.review.nobody}">Nobody would receive it: there is no active crew on board.</p>
+            </div>
+        </section>
+
+        <!-- What they get: the title and the message as plain text, line breaks kept, as on the crew's screen. -->
+        <section aria-labelledby="reviewPreviewTitle">
+            <h2 class="review-label" id="reviewPreviewTitle" th:text="#{announcement.review.preview}">As the crew will see it</h2>
+            <article class="card announcement-preview">
+                <div class="card-body">
+                    <h3 class="announcement-preview-title text-break" th:text="${form.title}">Safety drill</h3>
+                    <div class="text-break text-pre-line" th:text="${form.body}">Drill on Friday at 10:00.</div>
+                </div>
+            </article>
+        </section>
+
+        <form method="post" th:action="@{/office/announcements/send}">
+            <input type="hidden" name="target" th:value="${form.target}">
+            <input type="hidden" name="title" th:value="${form.title}">
+            <input type="hidden" name="body" th:value="${form.body}">
+            <input th:if="${fromShip != null}" type="hidden" name="returnShipId" th:value="${fromShip.id}">
+            <div class="form-actions mt-0">
+                <button type="submit" class="btn btn-primary" th:text="#{announcement.review.send(${people})}">Send to 12 people</button>
+                <button type="submit" class="btn btn-outline-secondary" th:formaction="@{/office/announcements/new}"
+                        th:text="#{announcement.review.back}">Back to edit</button>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

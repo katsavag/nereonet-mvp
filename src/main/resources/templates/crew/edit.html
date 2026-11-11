@@ -92,13 +92,14 @@
                        th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${member.id},cid=${c.id})}"
                        th:text="#{certificate.edit}">Edit</a>
                     <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${c.type})}, ~{::certificateMenuItems})}">
-                        <form th:fragment="certificateMenuItems"
-                              th:action="@{/office/crew/{id}/certificates/{cid}/delete(id=${member.id},cid=${c.id})}"
-                              method="post" th:data-confirm="#{certificate.delete.confirm(${c.type})}"
-                              onsubmit="return confirm(this.dataset.confirm)">
-                            <button type="submit" class="dropdown-item dropdown-item-danger"
-                                    th:text="#{certificate.delete}">Delete</button>
-                        </form>
+                        <th:block th:fragment="certificateMenuItems">
+                            <form th:replace="~{layout/parts :: confirmForm(
+                                    action=${'/office/crew/' + member.id + '/certificates/' + c.id + '/delete'},
+                                    label=#{certificate.delete}, linkClass='dropdown-item dropdown-item-danger',
+                                    title=#{certificate.delete.confirm.title(${c.type})},
+                                    body=#{certificate.delete.confirm.body(${c.type}, ${member.fullName})},
+                                    confirm=#{certificate.delete}, tone='danger')}"></form>
+                        </th:block>
                     </details>
                 </div>
             </li>

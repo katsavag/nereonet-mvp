@@ -135,32 +135,12 @@
     </section>
 </th:block>
 
-<!-- "Retire this item" button and its confirmation modal, which posts to action. The button that opens the modal is
-     secondary: danger buttons appear only inside a confirmation dialog or an overflow menu. -->
-<th:block th:fragment="retire(action)">
-    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#retireModal"
-            th:text="#{library.retire}">Retire this item</button>
-    <div class="modal fade" id="retireModal" tabindex="-1" aria-labelledby="retireModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form class="modal-content" method="post" th:action="@{${action}}">
-                <div class="modal-header">
-                    <h2 class="modal-title h5 fw-bold" id="retireModalTitle"
-                        th:text="#{library.retire.heading}">Retire this item?</h2>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            th:attr="aria-label=#{common.close}"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0" th:text="#{library.retire.text}">Crew will no longer see it. This is final.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
-                            th:text="#{form.cancel}">Cancel</button>
-                    <button type="submit" class="btn btn-outline-danger" th:text="#{library.retire.submit}">Retire</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</th:block>
+<!-- "Retire this item": asks first in the confirmation dialog (layout/parts :: confirmForm), then posts to action.
+     The trigger is secondary: danger buttons appear only inside a confirmation dialog or an overflow menu. -->
+<form th:fragment="retire(action, item)"
+      th:replace="~{layout/parts :: confirmForm(action=${action}, label=#{library.retire}, linkClass='btn btn-outline-secondary',
+              title=#{library.retire.confirm.title(${item.title})}, body=#{library.retire.confirm.body(${item.title})},
+              confirm=#{library.retire.submit}, tone='danger')}"></form>
 
 <!-- The "Add an item" form. Needs ${form} and ${categories}. ?fileTooLarge comes from UploadTooLargeFilter.
      Six fields, so they are grouped under two legends: the item, and its content. -->

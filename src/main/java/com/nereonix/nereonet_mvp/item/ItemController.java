@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
 
@@ -21,10 +23,12 @@ public class ItemController {
 
     private final ItemService itemService;
     private final ShipFrame shipFrame;
+    private final ConfirmPages confirmPages;
 
-    public ItemController(ItemService itemService, ShipFrame shipFrame) {
+    public ItemController(ItemService itemService, ShipFrame shipFrame, ConfirmPages confirmPages) {
         this.itemService = itemService;
         this.shipFrame = shipFrame;
+        this.confirmPages = confirmPages;
     }
 
     // The ship page's Items tab.
@@ -80,6 +84,23 @@ public class ItemController {
         }
         redirectAttributes.addFlashAttribute("successMessage", "item.updated");
         return "redirect:/office/ships/" + id + "/items";
+    }
+
+    // The confirmation page: where Deactivate leads when js/confirm.js did not load (P10).
+    @GetMapping("/office/ships/{id}/items/{itemId}/deactivate")
+    public String confirmDeactivate(@PathVariable Long id, @PathVariable Long itemId, Model model) {
+        Ship ship = itemService.getShip(id);
+        Item item = itemService.getItem(id, itemId);
+        return confirmPages.neutral()
+                .title("item.deactivate.confirm.title", item.getName())
+                .body("item.deactivate.confirm.body", item.getName(), ship.getName())
+                .confirmLabel("item.deactivate")
+                .action("/office/ships/" + id + "/items/" + itemId + "/deactivate", null)
+                .cancelUrl(ShipTab.ITEMS.url(id))
+                .crumb("nav.ships", "/office/ships")
+                .crumbText(ship.getName(), ShipTab.OVERVIEW.url(id))
+                .crumb("ship.tab.items", ShipTab.ITEMS.url(id))
+                .show(model);
     }
 
     @PostMapping("/office/ships/{id}/items/{itemId}/deactivate")

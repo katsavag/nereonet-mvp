@@ -122,7 +122,7 @@ class FormsFlowTest {
 
     @Test
     void formWithOneErrorHasNoSummary() throws Exception {
-        String html = mockMvc.perform(post("/office/announcements/new")
+        String html = mockMvc.perform(post("/office/announcements/review")
                         .param("target", "fleet").param("title", "").param("body", "Drill on Friday").with(csrf()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
@@ -210,7 +210,7 @@ class FormsFlowTest {
                 Map.entry("/office/crew/" + crew.getId() + "/edit", "Save"),
                 Map.entry("/office/crew/" + crew.getId() + "/certificates/new", "Save"),
                 Map.entry("/office/ships/" + ship.getId() + "/items/new", "Save"),
-                Map.entry("/office/announcements/new", "Send"),
+                Map.entry("/office/announcements/new", "Review"),
                 Map.entry("/office/ships/" + ship.getId() + "/invitations/new", "Send invitation"),
                 Map.entry(library + "/new", "Add item"),
                 Map.entry(library + "/" + itemId + "/edit", "Publish"),

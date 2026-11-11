@@ -85,7 +85,9 @@ Requirements: Java 25, Docker.
    type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be
    edited in a pop-up (except the IMO number) and deactivated or activated, never deleted: on the list both are in the
    row's **⋯** menu (**Edit**, then **Activate** or **Deactivate**). The ship's name opens its ship page.
-   Inactive ships stay in the list but cannot get new crew invitations.
+   Inactive ships stay in the list but cannot get new crew invitations. **Deactivate** asks first ("Deactivate MV Demo?
+   No new crew can be invited to MV Demo until it is activated again.", see "confirmations (P10)" below); **Activate**
+   does not.
 
    **Ship page** (`/office/ships/{id}`, P08): one place per ship. Every tab starts with the same ship header:
    breadcrumbs (Ships › MV Demo), the ship's name as the heading, then IMO number, type, flag and an Active / Inactive
@@ -124,7 +126,9 @@ Requirements: Java 25, Docker.
      `/office/invitations` redirects to `/office/users`. Pending invitations are listed there with the users, as
      "Invited", or "Invitation expired" when past their expiry date; accepted and cancelled invitations are not listed
      (an accepted one is a user). Each has **Resend** (new link and expiry date, new email; the old link stops
-     working) and, in the row's **⋯** menu, **Cancel** (the link then shows the "invalid or expired" page).
+     working) and, in the row's **⋯** menu, **Cancel** (the link then shows the "invalid or expired" page). Cancel asks
+     first: "Cancel the invitation to Jane Doe? The link sent to jane@example.com stops working.", with **Keep
+     invitation** and **Cancel invitation**.
    - Crew members: **Add crew member** on the **Crew** page (see 8), or on a ship page's **Crew** tab, which opens
      `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`) and returns to the tab. The form asks for
      full name, email (once; the success message names the address) and role, and an optional rank (from a fixed list),
@@ -161,8 +165,10 @@ Requirements: Java 25, Docker.
 9. Office users (signed in as an office user): **Office users** in the sidebar (`/office/users`) lists the office users
    and the pending office invitations together, with **Invite office user** (see 6).
    Any user, crew or office, can be deactivated (they can no longer sign in) and activated again, from the **⋯** menu
-   at the end of their row (here and on **Crew**). A deactivated user can also be deleted (**Delete** in the same
-   menu, after a confirmation): the user and every invitation for their email are removed,
+   at the end of their row (here and on **Crew**). **Deactivate** asks first ("Deactivate Jane Doe? Jane Doe will not be
+   able to sign in until activated again."; a session that is already open is not ended). A deactivated user can also
+   be deleted (**Delete** in the same menu, after the confirmation "Delete Jane Doe? Jane Doe (jane@example.com) will be
+   deleted for good and cannot be restored."): the user and every invitation for their email are removed,
    so they can be invited again. Their audit log entries stay and show "Deleted user"; invitations they sent stay.
    They are removed from the recipient lists of announcements; announcements they sent stay and show "Deleted user".
    You cannot deactivate or delete yourself.
@@ -176,7 +182,8 @@ Requirements: Java 25, Docker.
 
 11. Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see 5).
    Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`) and an optional category.
-   **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted.
+   **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted. Deactivate asks first
+   ("The crew of MV Demo cannot request Basmati rice until it is activated again.").
    **Import** (`/office/ships/{id}/items/import`) adds many items at once:
    - **Download template** gives `items-template.xlsx` with the header row `Name | Unit | Category`. Only this header is accepted.
    - Upload it as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). The review screen shows every row, editable, with
@@ -195,7 +202,8 @@ Requirements: Java 25, Docker.
 
 12. Certificates (signed in as an office user): on a crew member's **Edit** page (`/office/crew/{id}/edit`) the
    **Certificates** card lists their certificates (type, optional number, expiry date) with **Add certificate**,
-   **Edit** and, in the row's **⋯** menu, **Delete**. **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
+   **Edit** and, in the row's **⋯** menu, **Delete** (after the confirmation "Delete STCW Basic Safety?").
+   **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
    expires within 90 days or has expired, soonest first, filterable by ship, with a badge: Expired, 30, 60 or 90 days.
 
    A daily job (06:00 UTC; change it with `CERTIFICATE_REMINDER_CRON`, a Spring cron such as `0 0 6 * * *`) reminds
@@ -213,7 +221,19 @@ Requirements: Java 25, Docker.
    announcement, newest first, with its target (All ships or a ship), date and e.g. "1 of 2 acknowledged".
    Filter by ship to see the announcements sent to that ship or to all ships.
    **New announcement** asks for the target (All ships or one active ship; nothing is preselected), a title and a
-   plain-text message. The recipients are fixed when it is sent: every active user with a ship role on that ship
+   plain-text message. Announcements cannot be edited or deleted, so sending takes two steps (P10):
+   - the form's button is **Review** (`POST /office/announcements/review`): an invalid form shows its errors; a valid
+     one shows the review page, which saves nothing: the target (as the eyebrow and as "Send to"), the number of people
+     per ship (every active ship for All ships, with a Total, and a warning when nobody would receive it) and the
+     title and message exactly as the crew will see them (plain text, line breaks kept). The page carries the form in
+     hidden fields;
+   - **Back to edit** (`POST /office/announcements/new`) shows the form again with the text as it was. An old form
+     page that still posts to that URL also just gets the form back: nothing is sent from it;
+   - **Send to 12 people** (`POST /office/announcements/send`) checks the form again (a ship deactivated meanwhile is
+     an error on the target), counts the recipients again and sends; the message says how many it went to
+     ("Announcement sent to 13 people.").
+
+   The recipients are fixed when it is sent: every active user with a ship role on that ship
    (on every active ship for All ships). Someone who joins the ship later is not a recipient; someone who leaves the
    ship or is deactivated later stays in the list. Opening an announcement shows its text and two lists:
    acknowledged (name, role, ship, time) and not yet acknowledged. Announcements cannot be edited or deleted.
@@ -269,8 +289,8 @@ Requirements: Java 25, Docker.
 
    **Retire an item**: the Master sees **Retire this item** on an item of their ship (Chief cook and crew members
    do not; `POST /ship/library/{id}/retire` gives them 403); office users have it at the bottom of the item's
-   **Edit this item** page (`POST /office/ships/{shipId}/library/{id}/retire`). A confirmation asks "Retire this
-   item? Crew will no longer see it. This is final." **Retire** hides the item from every list, its page and file
+   **Edit this item** page (`POST /office/ships/{shipId}/library/{id}/retire`). The confirmation dialog (P10) asks
+   "Retire Galley rules? The crew will no longer see Galley rules, and it cannot be brought back." **Retire** hides the item from every list, its page and file
    give 404, it no longer counts towards the 50 items, and it is recorded in the audit log. There is no way back.
    The item stays in the database with its versions and acknowledgements. To try it: as `master.demo@example.com`
    open an item, press **Retire this item**, then **Retire**; it is gone from **Library**.
@@ -319,8 +339,8 @@ The app makes no request to any other host: everything a page needs is served fr
     sign-in, registration and error pages and for **I have read this**. Every button can be tapped over at least
     40 px (44 px on phones), also the small ones. Four levels: `btn-primary` (filled navy, at most one per view and
     one per modal), `btn-outline-secondary` (secondary: surface, visible border, navy text), `btn-ghost`
-    (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog
-    or a row's overflow menu, never directly in a row). Filter forms use secondary **Filter** and tertiary
+    (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog,
+    on a confirmation page or in a row's overflow menu, never directly in a row). Filter forms use secondary **Filter** and tertiary
     **Clear**. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
   - page header actions sit in `.page-actions` (the `actions` slot of `layout/parts :: pageHeader`) with a 16 px icon
     before the label (`layout/parts :: icon`: plus, upload, download); on phones they stack full width;
@@ -337,7 +357,8 @@ The app makes no request to any other host: everything a page needs is served fr
     status colours (`layout/parts :: status`, tones ok, warning, danger, info, primary, neutral);
   - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
     **⋯** "more" menu (`layout/parts :: rowMenu`) named after the record for screen readers ("More actions: MV
-    Demo"), holding the rest; destructive entries (deactivate, delete, cancel) come last, after a divider, in red.
+    Demo"), holding the rest; destructive entries (deactivate, delete, cancel) come last, after a divider, in red,
+    and ask first (see "confirmations (P10)" below).
     The menu is a Bootstrap dropdown on a native `<details>` element: with JavaScript Bootstrap opens it (arrow
     keys, Escape, positioned over the page so a scrolling table never cuts it off; `js/row-menu.js` keeps the
     details element open meanwhile); without JavaScript the details element opens and every entry is still an
@@ -424,6 +445,23 @@ The app makes no request to any other host: everything a page needs is served fr
     - phones (below 768 px): the sidebar is an offcanvas opened from the top bar's menu button and closed with Esc or
       the backdrop. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
       out, then the page.
+
+  - confirmations (P10): no action that cannot be undone or that takes access away happens on one click, and every
+    confirmation looks and reads the same. Deactivate (ship, user, galley item), Delete (user, certificate), Cancel
+    (office invitation) and Retire (library item) are each a `layout/parts :: confirmForm`; Activate needs none:
+    - the form opts in with data attributes: `data-confirm-title` names the record ("Deactivate MV Demo?"),
+      `data-confirm-body` gives the consequence in one sentence, `data-confirm-label` is the confirm button,
+      `data-confirm-tone` is `danger` (cannot be undone: delete, cancel, retire) or `neutral` (Activate undoes it:
+      deactivate), and the optional `data-confirm-dismiss` replaces "Cancel" where it would read like the action
+      ("Keep invitation" next to "Cancel invitation"). The texts are message keys (`*.confirm.title`, `*.confirm.body`);
+    - `js/confirm.js` opens the one dialog, `layout/parts :: confirmDialog` (a native `<dialog>` in the layout, styled
+      like the other modals): focus starts on Cancel; Esc, Cancel and the backdrop close it and focus goes back to
+      the menu button or the trigger; the confirm button is `btn-outline-danger` (danger) or `btn-primary` (neutral)
+      and works once; in a danger dialog Enter does not confirm (Space or a click does);
+    - without the script (or in a browser without `<dialog>`) nothing is submitted silently: the form has no submit
+      button and its trigger is a link to the action's own URL, where a GET shows the same question as a plain page
+      (`confirm/confirm.html`, built by `core/confirm/ConfirmPages` from the same message keys) with the confirm
+      button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`).
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

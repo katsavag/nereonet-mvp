@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
@@ -39,9 +40,11 @@ import jakarta.validation.Valid;
 public class LibraryController {
 
     private final LibraryService libraryService;
+    private final ConfirmPages confirmPages;
 
-    public LibraryController(LibraryService libraryService) {
+    public LibraryController(LibraryService libraryService, ConfirmPages confirmPages) {
         this.libraryService = libraryService;
+        this.confirmPages = confirmPages;
     }
 
     @GetMapping("/ship/library")
@@ -168,6 +171,22 @@ public class LibraryController {
         }
         redirectAttributes.addFlashAttribute("successMessage", "library.published");
         return "redirect:/ship/library/" + id;
+    }
+
+    // The confirmation page: where Retire this item leads when js/confirm.js did not load (P10).
+    @GetMapping("/ship/library/{id}/retire")
+    public String confirmRetire(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                                Model model) {
+        LibraryItem item = libraryService.visibleItem(currentUser.getUsername(), id);
+        return confirmPages.danger()
+                .title("library.retire.confirm.title", item.getTitle())
+                .body("library.retire.confirm.body", item.getTitle())
+                .confirmLabel("library.retire.submit")
+                .action("/ship/library/" + id + "/retire", null)
+                .cancelUrl("/ship/library/" + id)
+                .crumb("nav.library", "/ship/library")
+                .crumbText(item.getTitle(), "/ship/library/" + id)
+                .show(model);
     }
 
     @PostMapping("/ship/library/{id}/retire")

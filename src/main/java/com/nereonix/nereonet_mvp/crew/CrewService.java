@@ -116,6 +116,13 @@ public class CrewService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
+    // Any user, crew or office (the deactivate and delete confirmations). 404 if there is none.
+    @Transactional(readOnly = true)
+    public User getUser(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
     // For the edit page. They are added, edited and deleted in the certificate feature.
     @Transactional(readOnly = true)
     public List<Certificate> findCertificates(Long userId) {

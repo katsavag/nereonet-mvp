@@ -178,7 +178,7 @@ class ShipPageFlowTest {
                 .param("role", "CREW_MEMBER").with(csrf()));
         mockMvc.perform(post("/office/ships/{id}/items/new", demo.getId())
                 .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
-        mockMvc.perform(post("/office/announcements/new")
+        mockMvc.perform(post("/office/announcements/send")
                 .param("target", "fleet").param("title", "Fleet notice").param("body", "Hello").with(csrf()));
 
         String html = html(get("/office/ships/{id}", demo.getId()));
@@ -272,7 +272,7 @@ class ShipPageFlowTest {
         // Opened elsewhere, nothing is preselected.
         assertThat(html(get("/office/announcements/new"))).doesNotContain("selected=\"selected\"", "returnShipId");
 
-        mockMvc.perform(post("/office/announcements/new").param("target", demo.getId().toString())
+        mockMvc.perform(post("/office/announcements/send").param("target", demo.getId().toString())
                         .param("title", "Drill").param("body", "Friday").param("returnShipId", demo.getId().toString())
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/announcements"));
@@ -324,7 +324,7 @@ class ShipPageFlowTest {
     void everyShipNameInTheOfficeLinksToTheShipPage() throws Exception {
         certificate(cadet, "STCW Basic Safety", 20);
         request(demo, null);
-        mockMvc.perform(post("/office/announcements/new").param("target", demo.getId().toString())
+        mockMvc.perform(post("/office/announcements/send").param("target", demo.getId().toString())
                 .param("title", "Drill").param("body", "Friday").with(csrf()));
         String link = "<a class=\"ship-link\" href=\"/office/ships/" + demo.getId() + "\">MV Demo</a>";
         for (String url : List.of("/office", "/office/ships", "/office/crew", "/office/certificates",

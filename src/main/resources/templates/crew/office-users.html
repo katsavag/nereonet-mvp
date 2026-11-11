@@ -43,10 +43,12 @@
                             <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.fullName})}, ~{::invitationMenuItems})}">
                                 <th:block th:fragment="invitationMenuItems">
                                     <hr class="dropdown-divider">
-                                    <form th:action="@{/office/invitations/{id}/cancel(id=${inv.id})}" method="post">
-                                        <button type="submit" class="dropdown-item dropdown-item-danger"
-                                                th:text="#{invitation.cancel}">Cancel</button>
-                                    </form>
+                                    <form th:replace="~{layout/parts :: confirmForm(action=${'/office/invitations/' + inv.id + '/cancel'},
+                                            label=#{invitation.cancel}, linkClass='dropdown-item dropdown-item-danger',
+                                            title=#{invitation.cancel.confirm.title(${inv.fullName})},
+                                            body=#{invitation.cancel.confirm.body(${inv.email})},
+                                            confirm=#{invitation.cancel.confirm.submit},
+                                            dismiss=#{invitation.cancel.confirm.keep}, tone='danger')}"></form>
                                 </th:block>
                             </details>
                         </div>
