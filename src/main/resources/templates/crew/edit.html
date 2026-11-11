@@ -83,7 +83,8 @@
                     <div class="fw-semibold text-break" th:text="${c.type}">STCW Basic Safety</div>
                     <div class="small text-body-secondary">
                         <span th:if="${c.number}" class="text-break" th:text="${c.number} + ' · '">12345 · </span>
-                        <span th:text="#{certificate.expiresOnValue(${#temporals.format(c.expiresOn, 'd MMM yyyy')})}">Expires 10 Jan 2027</span>
+                        <span class="text-nowrap" th:text="#{certificate.expiresOnValue(${@dates.date(c.expiresOn)})}">Expires 10 Jan 2027</span>
+                        <span th:replace="~{layout/parts :: certificateHint(${c.expiresOn})}">· in 60 days</span>
                     </div>
                 </div>
                 <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>

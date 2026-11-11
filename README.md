@@ -463,6 +463,24 @@ The app makes no request to any other host: everything a page needs is served fr
       (`confirm/confirm.html`, built by `core/confirm/ConfirmPages` from the same message keys) with the confirm
       button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`).
 
+  - times and dates (P11): office and ship read the same time for the same event, so every time is shown in UTC
+    and says so. One format in both languages, from one place, the `@dates` bean (`core/time/Dates`); month names
+    follow the page language:
+    - a date and time is `layout/parts :: localTime`: "21 Oct 2026 · 12:40 UTC" (Greek "21 Οκτ 2026 · 12:40 UTC"),
+      with `datetime="2026-10-21T12:40:00Z"`. The text is the same whatever the viewer's time zone (Athens,
+      Singapore). `js/local-time.js` does not change it: it adds the viewer's own time as a tooltip and as screen
+      reader text, "Your time: 21 Oct 2026, 14:40" (wording from `time.local`, on `<body data-local-time>`);
+      without the script there is just no tooltip;
+    - a date without a time (a certificate's expiry) is `layout/parts :: localDate`, "21 Oct 2026", with no zone;
+    - dates that drive action get a relative hint after them, in whole UTC days from today (UTC), computed on the
+      server: certificate expiry "in 23 days", "expires today", "expired 5 days ago"
+      (`layout/parts :: certificateHint`, or `expiryDate` for the date and its hint: certificates list, crew edit
+      page, ship Overview, office Overview) and invitation expiry "expires in 2 days", "expired today"
+      (`layout/parts :: invitationHint`: Office users, Crew, office Overview, where a crew invitation now reads
+      "sent 4 Nov 2026 · 09:12 UTC · expires in 3 days"). The hint is secondary text (`.date-hint`) that never breaks;
+    - the audit log's date filter is labelled **From (UTC)** and **To (UTC)**: it filters on UTC days;
+    - certificate reminder emails and notifications (English) use the same date format (`Dates.DATE_PATTERN`).
+
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
 (`spring.web.resources` in `application.yml`). A changed file gets a new URL, so browsers on board load each

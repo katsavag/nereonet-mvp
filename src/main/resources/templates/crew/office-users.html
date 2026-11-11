@@ -33,6 +33,7 @@
                     </td>
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status(${expired} ? 'warning' : 'primary', ${expired} ? #{users.status.invitationExpired} : #{crew.status.invited})}">Invited</span>
+                        <span th:replace="~{layout/parts :: invitationHint(${inv.expiresAt})}">· expires in 2 days</span>
                     </td>
                     <td class="cell-actions">
                         <div class="row-actions">

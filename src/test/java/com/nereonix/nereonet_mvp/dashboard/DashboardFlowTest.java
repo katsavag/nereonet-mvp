@@ -164,16 +164,17 @@ class DashboardFlowTest {
         // a. expired certificate
         String certificateUrl = "/office/crew/" + cook.getId() + "/certificates/" + gone.getId() + "/edit";
         assertThat(list).contains(">Expired</span>", "href=\"" + certificateUrl + "\"", ">Open certificate</a>",
-                "Chris Cook, Cook", "expired " + date(-3));
+                "Chris Cook, Cook", ">" + date(-3) + "</time>", "expired 3 days ago");
         // b. expiring certificate
-        assertThat(list).contains(">Expires in 12 days</span>", "Dana Cadet, Deck Cadet", "expires " + date(12),
+        assertThat(list).contains(">Expires in 12 days</span>", "Dana Cadet, Deck Cadet", ">" + date(12) + "</time>",
+                "</span> in 12 days</span>",
                 "href=\"/office/crew/" + cadet.getId() + "/certificates/" + soon.getId() + "/edit\"");
         // c. request: Export in place
         assertThat(list).contains(">Not exported</span>", "href=\"/office/requests/" + request.getId() + "\"",
                 "Request #" + request.getId() + " · 1 item", "Bob Bosun, Bosun",
                 "action=\"/office/requests/export\"", "name=\"ids\" value=\"" + request.getId() + "\"", ">Export</button>");
         // d. invitations: Resend, back to the Overview
-        assertThat(list).contains(">Not accepted</span>", "Oiler",
+        assertThat(list).contains(">Not accepted</span>", "Oiler", "expired 1 day ago", "expires in 4 days",
                 "action=\"/office/invitations/" + expired.getId() + "/resend\"",
                 "action=\"/office/invitations/" + waiting.getId() + "/resend\"",
                 "name=\"returnTo\" value=\"overview\"", ">Resend invitation</button>");

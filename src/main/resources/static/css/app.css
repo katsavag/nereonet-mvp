@@ -1521,3 +1521,15 @@ fieldset:disabled button.btn {
     font-size: var(--nn-font-title);
     font-weight: 700;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Dates and times (P11): layout/parts :: localTime, localDate, dateHint, expiryDate; js/local-time.js.
+   Every time is shown in UTC and says so ("21 Oct 2026 · 12:40 UTC"); the viewer's own time is a tooltip and
+   screen reader text. The hint after a date that drives action ("in 23 days", "expired 5 days ago") is secondary
+   text (6.6:1 on the surface) and never breaks inside.
+   --------------------------------------------------------------------------------------------------------------- */
+.date-hint {
+    color: var(--nn-text-secondary);
+    white-space: nowrap;
+}
+.local-time[title] { cursor: help; }

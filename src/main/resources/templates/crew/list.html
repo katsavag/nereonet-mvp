@@ -79,6 +79,7 @@
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status('primary', #{crew.status.invited})}">Invited</span>
+                        <span th:replace="~{layout/parts :: invitationHint(${inv.expiresAt})}">· expires in 2 days</span>
                     </td>
                     <td class="cell-actions"></td>
                 </tr>

@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
+import com.nereonix.nereonet_mvp.core.time.Dates;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -28,7 +29,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 public class CertificateReminderService {
 
     private static final Logger log = LoggerFactory.getLogger(CertificateReminderService.class);
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern(Dates.DATE_PATTERN, Locale.ENGLISH);
 
     private final CertificateRepository certificateRepository;
     private final CertificateReminderRepository reminderRepository;

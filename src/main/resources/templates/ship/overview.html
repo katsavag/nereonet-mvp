@@ -27,7 +27,8 @@
                             <div class="small text-body-secondary">
                                 <span th:text="${c.user.fullName}">Jane Doe</span>
                                 <span aria-hidden="true">·</span>
-                                <span th:text="#{ship.overview.expiresOn(${#temporals.format(c.expiresOn, 'd MMM yyyy')})}">Expires on 10 Jan 2027</span>
+                                <span class="text-nowrap" th:text="#{ship.overview.expiresOn(${@dates.date(c.expiresOn)})}">Expires on 10 Jan 2027</span>
+                                <span th:replace="~{layout/parts :: certificateHint(${c.expiresOn})}">· in 60 days</span>
                             </div>
                         </div>
                         <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>

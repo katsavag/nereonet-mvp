@@ -72,8 +72,8 @@
                         <th:block th:unless="${c.user.ship}">—</th:block>
                     </td>
                     <td class="stack-hide" th:text="${c.number} ?: '—'">12345</td>
-                    <td class="text-nowrap" th:attr="data-label=#{certificate.expiresOn}"
-                        th:text="${#temporals.format(c.expiresOn, 'd MMM yyyy')}">10 Jan 2027</td>
+                    <td class="text-nowrap" th:attr="data-label=#{certificate.expiresOn}"><span
+                            th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}">10 Jan 2027 · in 60 days</span></td>
                     <td class="cell-status">
                         <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                     </td>

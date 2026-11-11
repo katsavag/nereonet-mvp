@@ -62,9 +62,7 @@
                         <p class="attention-context">
                             <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
                             · <span th:replace="~{dashboard/dashboard :: person(${item.fullName}, ${item.rank})}">Jane Doe, Second Officer</span>
-                            · <span class="text-nowrap" th:text="${type == 'CERTIFICATE_EXPIRED'}
-                                    ? #{dashboard.item.expiredOn(${#temporals.format(item.expiresOn, 'd MMM yyyy')})}
-                                    : #{dashboard.item.expiresOn(${#temporals.format(item.expiresOn, 'd MMM yyyy')})}">expires 20 Nov 2026</span>
+                            · <span th:replace="~{layout/parts :: expiryDate(${item.expiresOn})}">20 Nov 2026 · in 9 days</span>
                         </p>
                     </div>
                     <div class="attention-action">
@@ -112,8 +110,9 @@
                         <p class="attention-context">
                             <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
                             <th:block th:if="${item.rank != null}">· <span th:text="#{${'rank.' + item.rank}}">Second Officer</span></th:block>
-                            · <span th:text="${item.expired} ? #{dashboard.item.expired} : #{dashboard.item.sent}">sent</span>
-                            <time th:replace="~{layout/parts :: localTime(${item.expired} ? ${item.expiresAt} : ${item.sentAt})}"></time>
+                            · <span th:text="#{dashboard.item.sent}">sent</span>
+                            <time th:replace="~{layout/parts :: localTime(${item.sentAt})}"></time>
+                            <span th:replace="~{layout/parts :: invitationHint(${item.expiresAt})}">· expires in 4 days</span>
                         </p>
                     </div>
                     <form class="attention-action" th:action="@{/office/invitations/{id}/resend(id=${item.id})}" method="post">

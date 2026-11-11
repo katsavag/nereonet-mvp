@@ -12,6 +12,8 @@
   with arguments add "successArgs", an Object[] (see layout/parts :: flash).
   Confirmations (P10): an action that must be confirmed is a layout/parts :: confirmForm; the one dialog it opens,
   layout/parts :: confirmDialog, is at the end of the signed-in frame.
+  Times (P11): shown in UTC with layout/parts :: localTime; data-local-time on the body is the wording js/local-time.js
+  uses for the viewer's own time ("Your time: {time}").
 -->
 <html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:lang="${#locale.language}">
@@ -24,7 +26,7 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body>
+<body th:data-local-time="#{time.local('{time}')}">
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
     <!-- Sidebar (P07): brand, the navigation groups (scroll on their own when the window is short), and the user
