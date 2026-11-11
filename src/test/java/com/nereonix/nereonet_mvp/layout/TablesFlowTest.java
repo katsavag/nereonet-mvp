@@ -92,8 +92,7 @@ class TablesFlowTest {
         mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
                 .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
         mockMvc.perform(post("/office/invitations")
-                .param("fullName", "New Office").param("email", "new.office@example.com")
-                .param("confirmEmail", "new.office@example.com").with(csrf()));
+                .param("fullName", "New Office").param("email", "new.office@example.com").with(csrf()));
         mockMvc.perform(post("/office/announcements/new")
                 .param("target", ship.getId().toString()).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
 

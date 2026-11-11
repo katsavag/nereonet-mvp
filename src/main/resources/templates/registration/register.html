@@ -17,32 +17,41 @@
 
             <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
                 <input type="hidden" th:field="*{token}">
-                <div class="mb-3">
-                    <label for="email" class="form-label fw-semibold" th:text="#{registration.email}">Email</label>
-                    <input type="email" id="email" class="form-control form-control-lg"
-                           th:value="${invitation.email}" autocomplete="username" readonly>
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <div class="form-grid">
+                    <!-- From the invitation; they cannot change here: plain text, not inputs. -->
+                    <dl class="static-fields">
+                        <dt th:text="#{registration.email}">Email</dt>
+                        <dd th:text="${invitation.email}">jane@example.com</dd>
+                        <dt th:text="#{registration.fullName}">Full name</dt>
+                        <dd th:text="${invitation.fullName}">Jane Doe</dd>
+                    </dl>
+                    <!-- Not shown and not sent: lets password managers save the password with the email address. -->
+                    <input type="email" hidden th:value="${invitation.email}" autocomplete="username" aria-hidden="true">
+                    <div>
+                        <label for="password" class="form-label" th:text="#{registration.password}">Password</label>
+                        <input type="password" th:field="*{password}" class="form-control form-control-lg"
+                               th:errorclass="is-invalid" autocomplete="new-password"
+                               aria-describedby="passwordHint passwordCounter" required
+                               th:autofocus="${#fields.detailedErrors().size() <= 1}">
+                        <div class="invalid-feedback" th:errors="*{password}"></div>
+                        <div class="form-meta">
+                            <div id="passwordHint" class="form-text" th:text="#{registration.passwordHint}">At least 8 characters.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'password', 'password')}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="confirmPassword" class="form-label"
+                               th:text="#{registration.confirmPassword}">Repeat password</label>
+                        <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
+                               th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
+                               autocomplete="new-password" required>
+                        <div class="invalid-feedback" th:errors="*{passwordConfirmed}"></div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="fullName" class="form-label fw-semibold" th:text="#{registration.fullName}">Full name</label>
-                    <input type="text" id="fullName" class="form-control form-control-lg"
-                           th:value="${invitation.fullName}" readonly>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label fw-semibold" th:text="#{registration.password}">Password</label>
-                    <input type="password" th:field="*{password}" class="form-control form-control-lg"
-                           th:errorclass="is-invalid" autocomplete="new-password" required autofocus>
-                    <div class="invalid-feedback" th:errors="*{password}"></div>
-                    <div class="form-text" th:text="#{registration.passwordHint}">At least 8 characters.</div>
-                </div>
-                <div class="mb-4">
-                    <label for="confirmPassword" class="form-label fw-semibold"
-                           th:text="#{registration.confirmPassword}">Repeat password</label>
-                    <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
-                           th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
-                           autocomplete="new-password" required>
-                    <div class="invalid-feedback" th:errors="*{passwordConfirmed}"></div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
             </form>
         </div>
     </div>

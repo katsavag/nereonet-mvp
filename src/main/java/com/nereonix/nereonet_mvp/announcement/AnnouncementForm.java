@@ -33,7 +33,8 @@ public class AnnouncementForm {
     public void setTitle(String title) { this.title = title == null ? null : title.strip(); }
 
     public String getBody() { return body; }
-    public void setBody(String body) { this.body = body == null ? null : body.strip(); }
+    // Browsers send line breaks as \r\n; store \n so each line break counts as one character, as in the counter.
+    public void setBody(String body) { this.body = body == null ? null : body.replace("\r\n", "\n").strip(); }
 
     public String getTarget() { return target; }
     public void setTarget(String target) { this.target = target; }

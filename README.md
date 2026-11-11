@@ -68,13 +68,16 @@ Requirements: Java 25, Docker.
 
 6. Invitations (signed in as an office user). The email with the `/register?token=...` link
    appears in Mailpit.
-   - Office users: **Office invitations** in the sidebar (`/office/invitations`), then **Invite office user** (opens a pop-up form).
+   - Office users: **Office invitations** in the sidebar (`/office/invitations`), then **Invite office user** (opens a pop-up form
+     with full name and email; the email is asked once, and the success message names the address the invitation went to,
+     e.g. "Invitation sent to jane@example.com.").
      The list shows each invitation's status (Pending, Expired, Accepted, Cancelled; "Expired" is a pending invitation
      past its expiry date) and can be filtered by status. Pending invitations, expired or not, have **Resend** (new link
      and expiry date, new email; the old link stops working) and, in the row's **⋯** menu, **Cancel** (the link then
      shows the "invalid or expired" page).
    - Crew members: **Add crew member** on the **Crew** page (see 8), or open
-     `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`). The form also asks for an optional rank (from a fixed list),
+     `/office/ships/{shipId}/invitations/new` (the demo ship is usually id `1`). The form asks for full name, email (once; the
+     success message names the address) and role, and an optional rank (from a fixed list),
      which is copied to the user on registration. A ship can have only one active Master and one
      active Chief cook; inviting a second one shows an error on the role field.
 
@@ -84,7 +87,8 @@ Requirements: Java 25, Docker.
 
 8. Crew (signed in as an office user): **Crew** in the sidebar (`/office/crew`) lists every user with a ship role
    and every pending crew invitation (status "Invited"), filterable by ship. **Add crew member** opens a pop-up form
-   (full name, email, optional rank, role, active ship) that sends an invitation email (see Mailpit);
+   (full name, email, optional rank, role, active ship) that sends an invitation email (see Mailpit) and names the address in
+   its success message;
    the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank, role
    and ship (active ships only; the email cannot be changed). Picking another ship moves the crew member. The one active
    Master / Chief cook per ship rule is checked here too.
@@ -206,11 +210,11 @@ Requirements: Java 25, Docker.
    row of a ship's library (`/office/ships/{shipId}/library/{id}/edit`). The form shows the title, category and
    current version read-only, the current text pre-filled (or the current file name), and asks for a new version
    label (required, different from the current one) and new text **or** a new file (same rules as Add an item).
-   **Publish new version** makes it the version the crew see and records it in the audit log. Earlier versions and
+   **Publish** makes it the version the crew see and records it in the audit log. Earlier versions and
    their acknowledgements stay in the database. Nobody has acknowledged the new version, so a Required item shows
    "Required · to acknowledge" again and the ship's users get "Library · New document to read" again. To try it:
    as `cook.demo@example.com` acknowledge "Drug and alcohol policy"; as `master.demo@example.com` open it, press
-   **Edit this item**, enter a new version label and press **Publish new version**; sign in as the cook again.
+   **Edit this item**, enter a new version label and press **Publish**; sign in as the cook again.
 
    **Retire an item**: the Master sees **Retire this item** on an item of their ship (Chief cook and crew members
    do not; `POST /ship/library/{id}/retire` gives them 403); office users have it at the bottom of the item's
@@ -256,7 +260,7 @@ The app makes no request to any other host: everything a page needs is served fr
   - status pairs (subtle background + text, contrast at least 4.5:1) for ok, warning, danger and info, used by
     `bg-*-subtle`, `text-*-emphasis`, `text-bg-*`, `alert-*` and `list-group-item-*`;
   - radius 6 px badges (never pills), 8 px buttons and fields, 12 px cards, 16 px modals;
-  - type h1 28 px, card title 18 px, body 16 px, tables and helper text 14 px, eyebrow 12 px; `.num` gives
+  - type h1 28 px, card title 18 px, body 16 px, tables and form labels 14 px, help text 13 px, eyebrow 12 px; `.num` gives
     tabular figures for IMO numbers, dates, counts and quantities;
   - spacing 4 / 8 / 12 / 16 / 24 / 32 px: 24 px between page sections, 16 px inside cards, card padding 20 px;
   - buttons, three sizes: 40 px by default (page header actions, form actions, filters, modal footers), `btn-sm`
@@ -291,6 +295,37 @@ The app makes no request to any other host: everything a page needs is served fr
     the checkbox before it and the actions after it), two or three key fields as label and value (`data-label`),
     the status badge; less important columns (`.stack-hide`) are left out, so there is no sideways scrolling.
     The audit log and the import review tables keep their columns and scroll sideways.
+
+  - forms (P05): one pattern on every form (ship, crew, invitation, certificate, item, announcement, library new, edit
+    and particulars, registration, crew and item import), in the "Forms" section of `app.css`:
+    - layout: the form card (`.form-box`) is at most 720 px wide; fields sit in `.form-grid`, one per row, and from
+      768 px short related fields (`.field-half`) two per row (Type + Flag, Rank + Role, Role + Rank, Number + Expires
+      on, Unit + Category, Category + Version label). Long fields, textareas and the ship pickers span the full width
+      (a ship's name and IMO number are never cut off). A form with more than five fields groups them under short
+      legends (`.form-section`: "Item details" and "Content" on Add an item);
+    - labels 14 px, weight 600, 6 px above the field; optional fields say "(optional)" after the label
+      (`layout/parts :: optional`), required ones have no asterisk; help text 13 px under the field; the error
+      message stays under the field;
+    - values that cannot change (email on the crew edit page and on registration, IMO number on Edit ship, the
+      title, category and current version on Publish new version, IMO number and flag on the particulars page) are
+      plain text in label and value rows (`<dl class="static-fields">`), never read-only or disabled inputs;
+    - actions: on full pages bottom left, primary first, then **Cancel** as a tertiary button (`.form-actions`); in
+      pop-ups in the footer on the right, **Cancel** then the primary. Wording: **Save**, **Cancel** (`form.save`,
+      `form.cancel`) or a specific verb (**Send invitation**, **Send**, **Add item**, **Publish**). Registration keeps
+      its full-width 48 px **Create account**, as on the sign-in page;
+    - errors: a form posted with more than one error starts with a summary ("This form has 3 errors",
+      `layout/parts :: errorSummary`) linking to each field in page order; `js/forms.js` moves focus to it (in a
+      pop-up once it has opened) and puts each field's label before its message;
+    - character limits: every field with a `@Size(max)` in its form class shows a counter under it
+      (`layout/parts :: counter`; the limit is read from the form class by the `formFields` bean,
+      `core/form/FormFields`). Without JavaScript it reads "Up to 5,000 characters"; `js/forms.js` turns it into
+      "123 / 5,000" while typing, and "5,012 / 5,000 · 12 too many" in red and bold over the limit. Announcement
+      messages and ship particulars count a line break as one character, as the server does;
+    - pop-up or page: a pop-up only for short forms (add and edit ship, invite office user, add crew member; the
+      last one has five fields until P18 shortens it), everything else is a full page;
+    - file inputs show the accepted types and the size limit before a file is chosen ("PDF, DOCX or XLSX, at most
+      10 MB", "XLSX or CSV, at most 10 MB") and, with `js/forms.js`, the chosen file's name and size after it, with a
+      warning when a library file is over 10 MB.
 
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`

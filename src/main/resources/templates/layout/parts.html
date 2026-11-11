@@ -100,10 +100,50 @@
     </th:block>
 </th:block>
 
-<!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key. -->
+<!-- Form parts (P05). The pattern: app.css, section "Forms". -->
+
+<!-- "(optional)" after the label of a field that may stay empty. No asterisks on required fields.
+     Use: <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label> -->
+<span th:fragment="optional" class="form-label-optional" th:text="#{form.optional}">(optional)</span>
+
+<!-- Character counter of a field with a server-side maximum: the @Size(max) of property in the form's class
+     (@formFields.maxLength); nothing when it has none. Without JavaScript it reads "Up to 4,000 characters";
+     js/forms.js turns it into "123 / 4,000" as the user types. Put it in the field's .form-meta, after the help
+     text, and its id (fieldId + 'Counter') in the field's aria-describedby.
+     Use: <div th:replace="~{layout/parts :: counter(${form}, 'title', 'title')}"></div>
+     form: the form object; property: its field; fieldId: the input's id (usually the same as property). -->
+<th:block th:fragment="counter(form, property, fieldId)" th:with="max=${@formFields.maxLength(form, property)}">
+    <div th:if="${max != null}" class="form-counter" th:id="${fieldId + 'Counter'}"
+         th:data-counter-for="${fieldId}" th:data-max="${max}"
+         th:data-template="#{form.counter.count('{count}', '{max}')}"
+         th:data-over-template="#{form.counter.over('{count}', '{max}', '{over}')}"
+         th:text="#{form.counter.limit(${max})}">Up to 4,000 characters</div>
+</th:block>
+
+<!-- Error summary at the top of a form posted with more than one error: one link per error, to its field, in the
+     order of the fields; js/forms.js moves focus to it. The messages also stay under each field.
+     Use as the form's first child (th:object set): <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+     form: the form object; idPrefix: the prefix of the field ids when they have one ('edit' for editName), or ''. -->
+<th:block th:fragment="errorSummary(form, idPrefix)" th:with="errors=${#fields.detailedErrors()}">
+    <div th:if="${errors.size() > 1}" class="alert alert-danger error-summary" tabindex="-1"
+         th:attr="aria-labelledby=${idPrefix + 'ErrorSummaryTitle'}">
+        <h2 class="error-summary-title" th:id="${idPrefix + 'ErrorSummaryTitle'}"
+            th:text="#{form.errorSummary(${errors.size()})}">This form has 2 errors</h2>
+        <ul>
+            <li th:each="e : ${@formFields.inFormOrder(form, errors)}"
+                th:with="fieldId=${e.global} ? null : ${@formFields.id(e.fieldName, idPrefix)}">
+                <a th:unless="${e.global}" th:href="${'#' + fieldId}" th:text="${e.message}">Enter a title.</a>
+                <span th:if="${e.global}" th:text="${e.message}">The library is full.</span>
+            </li>
+        </ul>
+    </div>
+</th:block>
+
+<!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
+     "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."). -->
 <th:block th:fragment="flash">
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
-        <span th:text="#{${successMessage}}"></span>
+        <span th:text="${successArgs != null} ? ${#messages.msgWithParams(successMessage, successArgs)} : #{${successMessage}}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
     </div>
     <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">

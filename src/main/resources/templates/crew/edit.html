@@ -11,48 +11,56 @@
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">
             <form th:action="@{/office/crew/{id}/edit(id=${member.id})}" th:object="${form}" method="post" novalidate>
-                <div class="mb-3">
-                    <label for="email" class="form-label fw-semibold" th:text="#{user.email}">Email</label>
-                    <input type="email" id="email" class="form-control" th:value="${member.email}"
-                           aria-describedby="emailHint" readonly>
-                    <div id="emailHint" class="form-text" th:text="#{crew.edit.emailReadOnly}">The email cannot be changed.</div>
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <div class="form-grid">
+                    <!-- The email cannot be changed: plain text, not an input. -->
+                    <dl class="static-fields">
+                        <dt th:text="#{user.email}">Email</dt>
+                        <dd>
+                            <span th:text="${member.email}">jane@example.com</span>
+                            <span class="form-text d-block" th:text="#{crew.edit.emailReadOnly}">The email cannot be changed.</span>
+                        </dd>
+                    </dl>
+                    <div>
+                        <label for="fullName" class="form-label" th:text="#{user.fullName}">Full name</label>
+                        <input type="text" th:field="*{fullName}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="fullNameCounter" required>
+                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'fullName', 'fullName')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
+                            <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
+                            <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{rank}"></div>
+                    </div>
+                    <div class="field-half">
+                        <label for="role" class="form-label" th:text="#{user.role}">Role</label>
+                        <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
+                            <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{role}"></div>
+                    </div>
+                    <!-- Full width, so the ship's name and IMO number are never cut off: a wrong ship is costly. -->
+                    <div>
+                        <label for="shipId" class="form-label" th:text="#{user.ship}">Ship</label>
+                        <select th:field="*{shipId}" class="form-select" th:errorclass="is-invalid"
+                                aria-describedby="shipHint" required>
+                            <option value="" th:text="#{crew.edit.chooseShip}">Choose a ship</option>
+                            <option th:each="s : ${ships}" th:value="${s.id}"
+                                    th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{shipId}"></div>
+                        <div id="shipHint" class="form-text" th:text="#{crew.edit.shipHint}">Pick another ship to move this crew member.</div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="fullName" class="form-label fw-semibold" th:text="#{user.fullName}">Full name</label>
-                    <input type="text" th:field="*{fullName}" class="form-control" th:errorclass="is-invalid"
-                           autocomplete="off" required>
-                    <div class="invalid-feedback" th:errors="*{fullName}"></div>
-                </div>
-                <div class="mb-3">
-                    <label for="rank" class="form-label fw-semibold" th:text="#{user.rank}">Rank</label>
-                    <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
-                        <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
-                        <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
-                    </select>
-                    <div class="invalid-feedback" th:errors="*{rank}"></div>
-                </div>
-                <div class="mb-3">
-                    <label for="role" class="form-label fw-semibold" th:text="#{user.role}">Role</label>
-                    <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
-                        <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
-                    </select>
-                    <div class="invalid-feedback" th:errors="*{role}"></div>
-                </div>
-                <div class="mb-4">
-                    <label for="shipId" class="form-label fw-semibold" th:text="#{user.ship}">Ship</label>
-                    <select th:field="*{shipId}" class="form-select" th:errorclass="is-invalid"
-                            aria-describedby="shipHint" required>
-                        <option value="" th:text="#{crew.edit.chooseShip}">Choose a ship</option>
-                        <option th:each="s : ${ships}" th:value="${s.id}"
-                                th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-                    </select>
-                    <div class="invalid-feedback" th:errors="*{shipId}"></div>
-                    <div id="shipHint" class="form-text" th:text="#{crew.edit.shipHint}">Pick another ship to move this crew member.</div>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary" th:text="#{crew.form.save}">Save</button>
-                    <a class="btn btn-outline-secondary" th:href="@{/office/crew}"
-                       th:text="#{crew.form.cancel}">Cancel</a>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+                    <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{form.cancel}">Cancel</a>
                 </div>
             </form>
         </div>

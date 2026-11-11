@@ -99,42 +99,48 @@
                             th:attr="aria-label=#{common.close}"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="imoNumber" class="form-label fw-semibold" th:text="#{ship.imoNumber}">IMO number</label>
-                        <input type="text" th:field="*{imoNumber}" class="form-control font-monospace"
-                               th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
-                               inputmode="numeric" autocomplete="off" aria-describedby="imoNumberHint" required>
-                        <div class="invalid-feedback" th:errors="*{imoNumber}"></div>
-                        <div class="invalid-feedback" th:errors="*{imoNumberValid}"></div>
-                        <div id="imoNumberHint" class="form-text" th:text="#{ship.imoNumberHint}">7 digits, e.g. 9074729.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="name" class="form-label fw-semibold" th:text="#{ship.name}">Name</label>
-                        <input type="text" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
-                               autocomplete="off" required>
-                        <div class="invalid-feedback" th:errors="*{name}"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="type" class="form-label fw-semibold" th:text="#{ship.type}">Type</label>
-                        <select th:field="*{type}" class="form-select" th:errorclass="is-invalid">
-                            <option value="" th:text="#{ship.type.none}">Not set</option>
-                            <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
-                        </select>
-                        <div class="invalid-feedback" th:errors="*{type}"></div>
-                    </div>
-                    <div>
-                        <label for="flag" class="form-label fw-semibold" th:text="#{ship.flag}">Flag</label>
-                        <input type="text" th:field="*{flag}" class="form-control" list="countryOptions"
-                               th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
-                               autocomplete="off" aria-describedby="flagHint">
-                        <div class="invalid-feedback" th:errors="*{flagValid}"></div>
-                        <div id="flagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+                    <div th:replace="~{layout/parts :: errorSummary(${newForm}, '')}"></div>
+                    <div class="form-grid">
+                        <div>
+                            <label for="imoNumber" class="form-label" th:text="#{ship.imoNumber}">IMO number</label>
+                            <input type="text" th:field="*{imoNumber}" class="form-control num"
+                                   th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
+                                   inputmode="numeric" autocomplete="off" aria-describedby="imoNumberHint" required>
+                            <div class="invalid-feedback" th:errors="*{imoNumber}"></div>
+                            <div class="invalid-feedback" th:errors="*{imoNumberValid}"></div>
+                            <div id="imoNumberHint" class="form-text" th:text="#{ship.imoNumberHint}">7 digits, e.g. 9074729.</div>
+                        </div>
+                        <div>
+                            <label for="name" class="form-label" th:text="#{ship.name}">Name</label>
+                            <input type="text" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="nameCounter" required>
+                            <div class="invalid-feedback" th:errors="*{name}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${newForm}, 'name', 'name')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="type" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{type}" class="form-select" th:errorclass="is-invalid">
+                                <option value="" th:text="#{ship.type.none}">Not set</option>
+                                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{type}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="flag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="text" th:field="*{flag}" class="form-control" list="countryOptions"
+                                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
+                                   autocomplete="off" aria-describedby="flagHint">
+                            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
+                            <div id="flagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
-                            th:text="#{ship.form.cancel}">Cancel</button>
-                    <button type="submit" class="btn btn-primary" th:text="#{ship.form.save}">Save</button>
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
+                            th:text="#{form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
                 </div>
 
                 <!-- The form was posted with errors: open the modal again so they are visible. -->
@@ -157,39 +163,48 @@
                             th:attr="aria-label=#{common.close}"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <div class="form-label fw-semibold" th:text="#{ship.imoNumber}">IMO number</div>
-                        <div id="editImo" class="font-monospace"
-                             th:text="${editShip != null} ? #{ship.codeValue(${editShip.imoNumber})} : ''">IMO 9074729</div>
-                        <div class="form-text mt-0" th:text="#{ship.imoNumberReadOnly}">The IMO number cannot be changed.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editName" class="form-label fw-semibold" th:text="#{ship.name}">Name</label>
-                        <input type="text" id="editName" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
-                               autocomplete="off" required>
-                        <div class="invalid-feedback" th:errors="*{name}"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editType" class="form-label fw-semibold" th:text="#{ship.type}">Type</label>
-                        <select id="editType" th:field="*{type}" class="form-select" th:errorclass="is-invalid">
-                            <option value="" th:text="#{ship.type.none}">Not set</option>
-                            <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
-                        </select>
-                        <div class="invalid-feedback" th:errors="*{type}"></div>
-                    </div>
-                    <div>
-                        <label for="editFlag" class="form-label fw-semibold" th:text="#{ship.flag}">Flag</label>
-                        <input type="text" id="editFlag" th:field="*{flag}" class="form-control" list="countryOptions"
-                               th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
-                               autocomplete="off" aria-describedby="editFlagHint">
-                        <div class="invalid-feedback" th:errors="*{flagValid}"></div>
-                        <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+                    <div th:replace="~{layout/parts :: errorSummary(${editForm}, 'edit')}"></div>
+                    <div class="form-grid">
+                        <!-- The IMO number cannot be changed: plain text, not an input. -->
+                        <dl class="static-fields">
+                            <dt th:text="#{ship.imoNumber}">IMO number</dt>
+                            <dd>
+                                <span id="editImo" class="num"
+                                      th:text="${editShip != null} ? #{ship.codeValue(${editShip.imoNumber})} : ''">IMO 9074729</span>
+                                <span class="form-text d-block" th:text="#{ship.imoNumberReadOnly}">The IMO number cannot be changed.</span>
+                            </dd>
+                        </dl>
+                        <div>
+                            <label for="editName" class="form-label" th:text="#{ship.name}">Name</label>
+                            <input type="text" id="editName" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="editNameCounter" required>
+                            <div class="invalid-feedback" th:errors="*{name}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${editForm}, 'name', 'editName')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="editType" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select id="editType" th:field="*{type}" class="form-select" th:errorclass="is-invalid">
+                                <option value="" th:text="#{ship.type.none}">Not set</option>
+                                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{type}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="editFlag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="text" id="editFlag" th:field="*{flag}" class="form-control" list="countryOptions"
+                                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
+                                   autocomplete="off" aria-describedby="editFlagHint">
+                            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
+                            <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
-                            th:text="#{ship.form.cancel}">Cancel</button>
-                    <button type="submit" class="btn btn-primary" th:text="#{ship.form.save}">Save</button>
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
+                            th:text="#{form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
                 </div>
 
                 <script th:if="${#fields.hasAnyErrors()}">
@@ -218,7 +233,9 @@
             form.querySelector('#editName').value = button.dataset.name;
             form.querySelector('#editType').value = button.dataset.type ?? '';
             form.querySelector('#editFlag').value = button.dataset.flag ?? '';
+            form.querySelector('#editName').dispatchEvent(new Event('input')); // update the counter
             form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+            form.querySelector('.error-summary')?.remove();
         });
     </script>
 </main>

@@ -56,6 +56,11 @@ public class LibraryItemForm {
         return !hasFile() || file.getSize() <= MAX_FILE_SIZE;
     }
 
+    // For the file input (data-max-size), which warns before the upload.
+    public long getMaxFileSize() {
+        return MAX_FILE_SIZE;
+    }
+
     public boolean hasFile() {
         return file != null && !file.isEmpty();
     }

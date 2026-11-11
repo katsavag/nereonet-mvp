@@ -13,31 +13,39 @@
         <div class="card-body p-3 p-md-4">
             <form th:object="${form}" method="post" novalidate
                   th:action="${certificate == null} ? @{/office/crew/{id}/certificates/new(id=${member.id})} : @{/office/crew/{id}/certificates/{cid}/edit(id=${member.id},cid=${certificate.id})}">
-                <div class="mb-3">
-                    <label for="type" class="form-label fw-semibold" th:text="#{certificate.type}">Type</label>
-                    <input type="text" th:field="*{type}" class="form-control" th:errorclass="is-invalid"
-                           autocomplete="off" aria-describedby="typeHint" required>
-                    <div class="invalid-feedback" th:errors="*{type}"></div>
-                    <div id="typeHint" class="form-text" th:text="#{certificate.typeHint}">For example STCW Basic Safety.</div>
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <div class="form-grid">
+                    <div>
+                        <label for="type" class="form-label" th:text="#{certificate.type}">Type</label>
+                        <input type="text" th:field="*{type}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="typeHint typeCounter" required>
+                        <div class="invalid-feedback" th:errors="*{type}"></div>
+                        <div class="form-meta">
+                            <div id="typeHint" class="form-text" th:text="#{certificate.typeHint}">For example STCW Basic Safety.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'type', 'type')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="number" class="form-label">[[#{certificate.number}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" th:field="*{number}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="numberCounter">
+                        <div class="invalid-feedback" th:errors="*{number}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'number', 'number')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="expiresOn" class="form-label" th:text="#{certificate.expiresOn}">Expires on</label>
+                        <input type="date" th:field="*{expiresOn}" class="form-control" th:errorclass="is-invalid"
+                               aria-describedby="expiresOnHint" required>
+                        <div class="invalid-feedback" th:errors="*{expiresOn}"></div>
+                        <div id="expiresOnHint" class="form-text" th:text="#{certificate.expiresOnHint}">Reminders are sent 90, 60 and 30 days before.</div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="number" class="form-label fw-semibold" th:text="#{certificate.number}">Number</label>
-                    <input type="text" th:field="*{number}" class="form-control" th:errorclass="is-invalid"
-                           autocomplete="off" aria-describedby="numberHint">
-                    <div class="invalid-feedback" th:errors="*{number}"></div>
-                    <div id="numberHint" class="form-text" th:text="#{certificate.numberHint}">Optional.</div>
-                </div>
-                <div class="mb-4">
-                    <label for="expiresOn" class="form-label fw-semibold" th:text="#{certificate.expiresOn}">Expires on</label>
-                    <input type="date" th:field="*{expiresOn}" class="form-control" th:errorclass="is-invalid"
-                           aria-describedby="expiresOnHint" required>
-                    <div class="invalid-feedback" th:errors="*{expiresOn}"></div>
-                    <div id="expiresOnHint" class="form-text" th:text="#{certificate.expiresOnHint}">Reminders are sent 90, 60 and 30 days before.</div>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary" th:text="#{certificate.form.save}">Save</button>
-                    <a class="btn btn-outline-secondary" th:href="@{/office/crew/{id}/edit(id=${member.id})}"
-                       th:text="#{certificate.form.cancel}">Cancel</a>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+                    <a class="btn btn-ghost" th:href="@{/office/crew/{id}/edit(id=${member.id})}"
+                       th:text="#{form.cancel}">Cancel</a>
                 </div>
             </form>
         </div>

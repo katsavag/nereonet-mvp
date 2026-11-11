@@ -82,13 +82,13 @@ public class CrewService {
      * Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).
      */
     @Transactional
-    public void addCrewMember(String fullName, String email, Rank rank, Role role, Long shipId,
+    public Invitation addCrewMember(String fullName, String email, Rank rank, Role role, Long shipId,
                               String actorEmail) {
         if (!SHIP_ROLES.contains(role)) {
             throw new IllegalArgumentException("Not a ship role: " + role);
         }
         // Records INVITATION_SENT in the audit log.
-        invitationService.invite(email, fullName, role, shipId, rank, actorEmail);
+        return invitationService.invite(email, fullName, role, shipId, rank, actorEmail);
     }
 
     @Transactional(readOnly = true)

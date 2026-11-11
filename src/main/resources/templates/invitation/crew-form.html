@@ -4,7 +4,8 @@
     <title th:text="#{invitation.crew.title}">Invite crew member</title>
 </head>
 <body>
-<!-- Standalone page until the ship page exists; then this form becomes a modal there. The ship comes from the URL. -->
+<!-- Standalone page until the ship page exists; then this form becomes a modal there. The ship comes from the URL.
+     The email is asked once; the success message names the address it went to. -->
 <main>
     <p class="eyebrow mb-1" th:text="${ship.name}">MV Demo</p>
     <h1 class="fw-bold mb-4" th:text="#{invitation.crew.heading}">Invite crew member</h1>
@@ -13,43 +14,47 @@
         <div class="card-body p-3 p-md-4">
             <form th:action="@{/office/ships/{id}/invitations/new(id=${ship.id})}" th:object="${form}"
                   method="post" novalidate>
-                <div class="mb-3">
-                    <label for="fullName" class="form-label fw-semibold" th:text="#{invitation.fullName}">Full name</label>
-                    <input type="text" th:field="*{fullName}" class="form-control"
-                           th:errorclass="is-invalid" autocomplete="off" required>
-                    <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <div class="form-grid">
+                    <div>
+                        <label for="fullName" class="form-label" th:text="#{invitation.fullName}">Full name</label>
+                        <input type="text" th:field="*{fullName}" class="form-control"
+                               th:errorclass="is-invalid" autocomplete="off" aria-describedby="fullNameCounter" required>
+                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'fullName', 'fullName')}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="form-label" th:text="#{invitation.email}">Email</label>
+                        <input type="email" th:field="*{email}" class="form-control"
+                               th:errorclass="is-invalid" autocomplete="off" aria-describedby="emailCounter" required>
+                        <div class="invalid-feedback" th:errors="*{email}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'email', 'email')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="role" class="form-label" th:text="#{invitation.role}">Role</label>
+                        <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
+                            <option value="" th:text="#{invitation.form.chooseRole}">Choose a role</option>
+                            <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{role}"></div>
+                    </div>
+                    <div class="field-half">
+                        <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
+                            <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
+                            <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{rank}"></div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label fw-semibold" th:text="#{invitation.email}">Email</label>
-                    <input type="email" th:field="*{email}" class="form-control"
-                           th:errorclass="is-invalid" autocomplete="off" required>
-                    <div class="invalid-feedback" th:errors="*{email}"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
+                    <a class="btn btn-ghost" th:href="@{/office/crew(shipId=${ship.id})}" th:text="#{form.cancel}">Cancel</a>
                 </div>
-                <div class="mb-3">
-                    <label for="confirmEmail" class="form-label fw-semibold"
-                           th:text="#{invitation.confirmEmail}">Repeat email</label>
-                    <input type="email" th:field="*{confirmEmail}" class="form-control"
-                           th:classappend="${#fields.hasErrors('emailConfirmed')} ? 'is-invalid'"
-                           autocomplete="off" required>
-                    <div class="invalid-feedback" th:errors="*{emailConfirmed}"></div>
-                </div>
-                <div class="mb-3">
-                    <label for="role" class="form-label fw-semibold" th:text="#{invitation.role}">Role</label>
-                    <select th:field="*{role}" class="form-select" th:errorclass="is-invalid" required>
-                        <option value="" th:text="#{invitation.form.chooseRole}">Choose a role</option>
-                        <option th:each="r : ${roles}" th:value="${r}" th:text="#{${'role.' + r}}">Crew member</option>
-                    </select>
-                    <div class="invalid-feedback" th:errors="*{role}"></div>
-                </div>
-                            <div class="mb-4">
-                    <label for="rank" class="form-label fw-semibold" th:text="#{user.rank}">Rank</label>
-                    <select th:field="*{rank}" class="form-select" th:errorclass="is-invalid">
-                        <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
-                        <option th:each="r : ${ranks}" th:value="${r}" th:text="#{${'rank.' + r}}">Second Officer</option>
-                    </select>
-                    <div class="invalid-feedback" th:errors="*{rank}"></div>
-                </div>
-                <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
             </form>
         </div>
     </div>

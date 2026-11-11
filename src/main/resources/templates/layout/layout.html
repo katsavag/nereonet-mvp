@@ -5,7 +5,8 @@
   Logged in: navy sidebar (an offcanvas below md) with the user's name and a logout button.
   Not logged in: the page's <main> fills the screen and brings its own container.
   Messages: add a flash attribute "successMessage" or "errorMessage"
-  holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved").
+  holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved"); for a message
+  with arguments add "successArgs", an Object[] (see layout/parts :: flash).
 -->
 <html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:lang="${#locale.language}">
@@ -198,5 +199,6 @@
 <script th:src="@{/vendor/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/local-time.js}"></script>
 <script th:src="@{/js/row-menu.js}"></script>
+<script th:src="@{/js/forms.js}"></script>
 </body>
 </html>

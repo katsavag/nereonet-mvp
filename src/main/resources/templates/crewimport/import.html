@@ -42,9 +42,15 @@
             </a>
 
             <form th:action="@{/office/crew/import}" method="post" enctype="multipart/form-data">
-                <label for="file" class="form-label fw-semibold" th:text="#{crewImport.file}">Crew file</label>
-                <input type="file" id="file" name="file" class="form-control mb-3" accept=".xlsx,.csv" required>
-                <button type="submit" class="btn btn-primary" th:text="#{crewImport.upload}">Upload and review</button>
+                <label for="file" class="form-label" th:text="#{crewImport.file}">File</label>
+                <input type="file" id="file" name="file" class="form-control" accept=".xlsx,.csv"
+                       aria-describedby="fileHint fileInfo" data-file-info="fileInfo" required>
+                <div id="fileHint" class="form-text" th:text="#{form.importFileHint}">XLSX or CSV, at most 10 MB.</div>
+                <p id="fileInfo" class="form-file-info" aria-live="polite" hidden></p>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{crewImport.upload}">Upload and review</button>
+                    <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{form.cancel}">Cancel</a>
+                </div>
             </form>
         </div>
     </div>

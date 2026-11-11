@@ -34,6 +34,11 @@ public class PublishVersionForm {
         return !hasFile() || file.getSize() <= LibraryItemForm.MAX_FILE_SIZE;
     }
 
+    // For the file input (data-max-size), which warns before the upload.
+    public long getMaxFileSize() {
+        return LibraryItemForm.MAX_FILE_SIZE;
+    }
+
     public boolean hasFile() {
         return file != null && !file.isEmpty();
     }

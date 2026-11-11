@@ -9,7 +9,7 @@
      - inside cards, between fields and blocks: 16px (mb-3, g-3); card padding 20px (--nn-card-padding)
    Surfaces, three levels only: page (cream) > surface (cards, modals, tables, list groups, menus) > field (inputs).
    Radius: 6px badges, 8px buttons and fields, 12px cards, 16px modals.
-   Type: h1 28px/700, card title 18px/600, body 16px, table and helper text 14px, eyebrow 12px. */
+   Type: h1 28px/700, card title 18px/600, body 16px, table text and form labels 14px, help text 13px, eyebrow 12px. */
 
 /* Brand font: Inter (variable, weights 100-900), served from /fonts, Latin and Greek subsets only.
    The browser downloads a subset only when the page has characters in its unicode-range.
@@ -177,7 +177,6 @@ h1, .h1 {
     font-size: var(--nn-font-title);
     font-weight: 600 !important;
 }
-.form-text { font-size: var(--nn-font-sm); }
 
 /* Tabular figures for IMO numbers, dates, counts and quantities, so columns of numbers line up. */
 .num { font-variant-numeric: tabular-nums; }
@@ -259,6 +258,157 @@ h1, .h1 {
 .form-check-input[type=checkbox]:indeterminate {
     background-color: var(--nn-blue);
     border-color: var(--nn-blue);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Forms (P05): one pattern for every form.
+     - .form-box: the form card, at most 720px wide.
+     - .form-grid: the fields, 16px apart, one per row; from 768px a .field-half sits next to the next one
+       (short related fields: Rank + Role, Number + Expires on). Long fields and textareas span the full width.
+     - .form-section: a fieldset with a short legend, for forms with more than five fields.
+     - labels 14px/600, 6px above the field; "(optional)" after the label (.form-label-optional), no asterisks;
+       help text 13px under the field, the character counter (.form-counter) at the right of the same line
+       (.form-meta); the error message stays under the field.
+     - .static-fields: values that cannot change, as plain text in label and value rows, never as inputs.
+     - .error-summary: at the top of a form posted with more than one error, linking to each field; it gets focus.
+     - .form-actions: full pages, bottom left, primary first, then Cancel as tertiary (.btn-ghost).
+       In modals the footer is right-aligned: Cancel (.btn-ghost), then the primary.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-form-width: 45rem;          /* 720px */
+    --nn-label-gap: 6px;
+    --nn-font-help: .8125rem;        /* 13px, help text and counters */
+}
+
+.form-box { max-width: var(--nn-form-width); }
+
+.form-label {
+    margin-bottom: var(--nn-label-gap);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.form-label-optional {
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+.form-text {
+    margin-top: var(--nn-space-1);
+    font-size: var(--nn-font-help);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-4);
+}
+@media (min-width: 768px) {
+    .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .form-grid > * { grid-column: 1 / -1; }
+    .form-grid > .field-half { grid-column: auto; }
+}
+
+.form-section {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.form-section + .form-section {
+    margin-top: var(--nn-space-5);
+    padding-top: var(--nn-space-5);
+    border-top: 1px solid var(--nn-divider);
+}
+.form-section > legend {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+/* A group of radios inside a form: its legend looks like a field label. */
+.form-group-legend {
+    float: none;
+    margin-bottom: var(--nn-label-gap);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+
+/* Help text on the left, the counter on the right, on one line under the field. */
+.form-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 var(--nn-space-3);
+    margin-top: var(--nn-space-1);
+}
+.form-meta > .form-text { margin-top: 0; }
+.form-counter {
+    margin-left: auto;
+    font-size: var(--nn-font-help);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--nn-text-secondary);
+}
+/* Over the limit: red, bold and "12 too many" in the text, so not by colour alone. */
+.form-counter.is-over,
+.form-file-info.is-over {
+    font-weight: 600;
+    color: var(--nn-danger);
+}
+.form-file-info {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    overflow-wrap: anywhere;
+}
+
+/* Read-only values: label and value rows; side by side from 576px. */
+.static-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0;
+}
+.static-fields > dt {
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+}
+.static-fields > dd {
+    margin: 0 0 var(--nn-space-3);
+    overflow-wrap: anywhere;
+}
+.static-fields > dd:last-child { margin-bottom: 0; }
+@media (min-width: 576px) {
+    .static-fields {
+        grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr);
+        gap: var(--nn-space-2) var(--nn-space-4);
+        align-items: baseline;
+    }
+    .static-fields > dd { margin-bottom: 0; }
+}
+
+.error-summary { margin-bottom: var(--nn-space-5); }
+.error-summary:focus {
+    outline: var(--nn-focus-width) solid var(--nn-focus-color);
+    outline-offset: var(--nn-focus-offset);
+}
+.error-summary-title {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.error-summary ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+.error-summary a {
+    font-weight: 600;
+    color: inherit;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-5);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -718,7 +868,6 @@ fieldset:disabled button.btn {
 }
 
 .login-box { max-width: 32rem; }
-.form-box { max-width: 40rem; }
 
 /* Sidebar navigation links, as in the mocks */
 .sidebar .nav-link {

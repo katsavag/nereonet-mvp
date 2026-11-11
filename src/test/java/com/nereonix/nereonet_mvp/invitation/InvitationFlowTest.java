@@ -56,7 +56,6 @@ class InvitationFlowTest {
         mockMvc.perform(post("/office/invitations")
                         .param("fullName", "New Office")
                         .param("email", "New.Office@Example.com")
-                        .param("confirmEmail", "new.office@example.com")
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/invitations"));
 
@@ -81,7 +80,6 @@ class InvitationFlowTest {
         mockMvc.perform(post(url)
                         .param("fullName", "Crew Member")
                         .param("email", "crew.member@example.com")
-                        .param("confirmEmail", "crew.member@example.com")
                         .param("role", "CREW_MEMBER")
                         .with(csrf()))
                 .andExpect(redirectedUrl(url));
@@ -99,7 +97,6 @@ class InvitationFlowTest {
         mockMvc.perform(post("/office/invitations")
                         .param("fullName", "New Office")
                         .param("email", "new.office@example.com")
-                        .param("confirmEmail", "new.office@example.com")
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/invitations"));
         Invitation invitation = onlyInvitation();

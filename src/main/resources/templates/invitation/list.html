@@ -91,7 +91,7 @@
         </div>
     </div>
 
-    <!-- Invite office user. Full screen on phones. -->
+    <!-- Invite office user. Full screen on phones. The email is asked once; the success message names the address it went to. -->
     <div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <form class="modal-content" th:action="@{/office/invitations}" th:object="${form}" method="post" novalidate>
@@ -102,30 +102,31 @@
                             th:attr="aria-label=#{common.close}"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="fullName" class="form-label fw-semibold" th:text="#{invitation.fullName}">Full name</label>
-                        <input type="text" th:field="*{fullName}" class="form-control"
-                               th:errorclass="is-invalid" autocomplete="off" required>
-                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label fw-semibold" th:text="#{invitation.email}">Email</label>
-                        <input type="email" th:field="*{email}" class="form-control"
-                               th:errorclass="is-invalid" autocomplete="off" required>
-                        <div class="invalid-feedback" th:errors="*{email}"></div>
-                    </div>
-                    <div>
-                        <label for="confirmEmail" class="form-label fw-semibold"
-                               th:text="#{invitation.confirmEmail}">Repeat email</label>
-                        <input type="email" th:field="*{confirmEmail}" class="form-control"
-                               th:classappend="${#fields.hasErrors('emailConfirmed')} ? 'is-invalid'"
-                               autocomplete="off" required>
-                        <div class="invalid-feedback" th:errors="*{emailConfirmed}"></div>
+                    <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                    <div class="form-grid">
+                        <div>
+                            <label for="fullName" class="form-label" th:text="#{invitation.fullName}">Full name</label>
+                            <input type="text" th:field="*{fullName}" class="form-control"
+                                   th:errorclass="is-invalid" autocomplete="off" aria-describedby="fullNameCounter" required>
+                            <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'fullName', 'fullName')}"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="email" class="form-label" th:text="#{invitation.email}">Email</label>
+                            <input type="email" th:field="*{email}" class="form-control"
+                                   th:errorclass="is-invalid" autocomplete="off" aria-describedby="emailCounter" required>
+                            <div class="invalid-feedback" th:errors="*{email}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'email', 'email')}"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
-                            th:text="#{invitation.form.cancel}">Cancel</button>
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"
+                            th:text="#{form.cancel}">Cancel</button>
                     <button type="submit" class="btn btn-primary" th:text="#{invitation.form.submit}">Send invitation</button>
                 </div>
 

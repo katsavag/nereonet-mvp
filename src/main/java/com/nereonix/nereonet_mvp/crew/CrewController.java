@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.invitation.EmailAlreadyRegisteredException;
+import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -45,8 +46,9 @@ public class CrewController {
         if (result.hasErrors()) {
             return showList(null, model);
         }
+        Invitation invitation;
         try {
-            crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getRole(),
+            invitation = crewService.addCrewMember(form.getFullName(), form.getEmail(), form.getRank(), form.getRole(),
                     form.getShipId(), currentUser.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
@@ -56,6 +58,7 @@ public class CrewController {
             return showList(null, model);
         }
         redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {invitation.getEmail()});
         return "redirect:/office/crew";
     }
 

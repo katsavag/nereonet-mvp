@@ -54,14 +54,15 @@ public class InvitationController {
         if (result.hasErrors()) {
             return showList(new InvitationFilterForm(), model);
         }
+        Invitation invitation;
         try {
-            invitationService.invite(form.getEmail(), form.getFullName(), Role.OFFICE_USER, null, null,
+            invitation = invitationService.invite(form.getEmail(), form.getFullName(), Role.OFFICE_USER, null, null,
                     user.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
             return showList(new InvitationFilterForm(), model);
         }
-        redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
+        sent(invitation, redirectAttributes);
         return "redirect:/office/invitations";
     }
 
@@ -98,8 +99,9 @@ public class InvitationController {
         if (result.hasErrors()) {
             return showCrewForm(ship, model);
         }
+        Invitation invitation;
         try {
-            invitationService.invite(form.getEmail(), form.getFullName(), form.getRole(), ship.getId(),
+            invitation = invitationService.invite(form.getEmail(), form.getFullName(), form.getRole(), ship.getId(),
                     form.getRank(), user.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
@@ -108,9 +110,15 @@ public class InvitationController {
             result.rejectValue("role", "user.error.shipRoleTaken");
             return showCrewForm(ship, model);
         }
-        redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
+        sent(invitation, redirectAttributes);
         // Back to an empty form until the ship page exists.
         return "redirect:/office/ships/" + ship.getId() + "/invitations/new";
+    }
+
+    // "Invitation sent to <address>.": there is no "Repeat email" field, so the office sees where it went.
+    private static void sent(Invitation invitation, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {invitation.getEmail()});
     }
 
     private String showList(InvitationFilterForm filter, Model model) {
