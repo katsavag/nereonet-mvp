@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 
 public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> {
 
@@ -31,10 +30,4 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     // Requests with this status never exported, every ship: the sidebar counter of Requests.
     long countByStatusAndExportedAtIsNull(RequestStatus status);
-
-    // Requests with this status never exported, per ship.
-    @Query("""
-            select new com.nereonix.nereonet_mvp.core.ship.ShipCount(r.ship.id, count(r))
-            from ItemRequest r where r.status = :status and r.exportedAt is null group by r.ship.id""")
-    List<ShipCount> countNotExportedByShip(RequestStatus status);
 }

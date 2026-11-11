@@ -41,16 +41,4 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
               and c.expiresOn <= :until
             order by c.expiresOn asc, c.id asc""")
     List<Certificate> findDueForReminder(LocalDate today, LocalDate until);
-
-    // Per ship of the certificate's user: expired, and expiring within 30, 31-60 and 61-90 days.
-    @Query("""
-            select new com.nereonix.nereonet_mvp.core.certificate.CertificateCounts(c.user.ship.id,
-                sum(case when c.expiresOn < :today then 1 else 0 end),
-                sum(case when c.expiresOn >= :today and c.expiresOn <= :in30 then 1 else 0 end),
-                sum(case when c.expiresOn > :in30 and c.expiresOn <= :in60 then 1 else 0 end),
-                sum(case when c.expiresOn > :in60 then 1 else 0 end))
-            from Certificate c
-            where c.expiresOn <= :in90 and c.user.ship is not null
-            group by c.user.ship.id""")
-    List<CertificateCounts> countExpiringByShip(LocalDate today, LocalDate in30, LocalDate in60, LocalDate in90);
 }

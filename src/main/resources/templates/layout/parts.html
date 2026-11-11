@@ -178,6 +178,32 @@
 <span th:fragment="status(tone, label)" class="badge status-badge" th:classappend="'status-' + ${tone}"
       th:text="${label}">Active</span>
 
+<!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows, P09). Same tones as
+     status; the text still carries the meaning. icon: 'alert' (expired), 'clock' (expiring, waiting), 'export'
+     (not exported), 'mail' (invitation), 'eye' (not acknowledged).
+     Use: <span th:replace="~{layout/parts :: statusIcon('danger', #{...}, 'alert')}"></span> -->
+<span th:fragment="statusIcon(tone, label, icon)" class="badge status-badge status-badge-icon"
+      th:classappend="'status-' + ${tone}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <th:block th:if="${icon == 'alert'}"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></th:block>
+        <th:block th:if="${icon == 'clock'}"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></th:block>
+        <th:block th:if="${icon == 'export'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
+        <th:block th:if="${icon == 'mail'}"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></th:block>
+        <th:block th:if="${icon == 'eye'}"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></th:block>
+    </svg>
+    <span th:text="${label}">Expired</span>
+</span>
+
+<!-- A count in a table cell that links to the list behind it (the Overview's fleet table, P09). Zero is a muted dash,
+     not a link ("0" for screen readers). url: a URL built with @{...}.
+     Use: <td class="num"><th:block th:replace="~{layout/parts :: countLink(${row.crew}, @{/office/crew(shipId=${id})})}"></th:block></td> -->
+<th:block th:fragment="countLink(value, url)">
+    <th:block th:if="${value == 0}"><span class="count-zero" aria-hidden="true">–</span><span
+            class="visually-hidden">0</span></th:block>
+    <a th:unless="${value == 0}" class="count-link" th:href="${url}" th:text="${value}">3</a>
+</th:block>
+
 <!-- A ship's name, linking to its page (office pages; P08: every ship name in the office links there).
      Use: <td><a th:replace="~{layout/parts :: shipLink(${u.ship})}"></a></td> -->
 <a th:fragment="shipLink(ship)" class="ship-link" th:href="@{/office/ships/{id}(id=${ship.id})}" th:text="${ship.name}">MV Demo</a>

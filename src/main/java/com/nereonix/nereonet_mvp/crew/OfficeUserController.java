@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.invitation.EmailAlreadyRegisteredException;
@@ -72,12 +73,15 @@ public class OfficeUserController {
         return LIST;
     }
 
+    // Office and crew invitations. returnTo=overview: started from the Overview's "Needs attention" list (P09), which
+    // it returns to; any other value is ignored (never a redirect to a URL taken from the request).
     @PostMapping("/office/invitations/{id}/resend")
-    public String resend(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String resend(@PathVariable Long id, @RequestParam(required = false) String returnTo,
+                         RedirectAttributes redirectAttributes) {
         boolean done = invitationService.resend(id);
         redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
                 done ? "invitation.resent" : "invitation.error.notPending");
-        return LIST;
+        return "overview".equals(returnTo) ? "redirect:/office" : LIST;
     }
 
     @PostMapping("/office/invitations/{id}/cancel")

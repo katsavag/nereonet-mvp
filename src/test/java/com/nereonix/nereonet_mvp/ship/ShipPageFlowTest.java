@@ -186,10 +186,10 @@ class ShipPageFlowTest {
                 "Overview 3 active", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1", "Requests 2");
         assertThat(html).contains("ship-tab-count num ship-tab-count-alert", "(3 open items)");
 
-        // The same rule as the fleet Overview.
-        long fleetOpenItems = dashboardService.load().ships().stream()
-                .filter(card -> card.ship().getId().equals(demo.getId())).findFirst().orElseThrow().openItems();
-        assertThat(fleetOpenItems).isEqualTo(3);
+        // The same rule as the fleet Overview's certificate and request columns.
+        DashboardService.FleetRow fleetRow = dashboardService.load().fleet().stream()
+                .filter(row -> row.ship().id().equals(demo.getId())).findFirst().orElseThrow();
+        assertThat(fleetRow.certificateIssues() + fleetRow.requestsNotExported()).isEqualTo(3);
         assertThat(html).contains("Medical fitness", "STCW Basic Safety", "Not exported").doesNotContain("Food hygiene");
 
         // Crew on board by department; the pending invitation is not on board.

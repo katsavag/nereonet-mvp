@@ -1,90 +1,349 @@
 package com.nereonix.nereonet_mvp.dashboard;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
-import com.nereonix.nereonet_mvp.core.certificate.CertificateCounts;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.invitation.Invitation;
-import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
-import com.nereonix.nereonet_mvp.core.library.LibraryService;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipCount;
-import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
+import com.nereonix.nereonet_mvp.dashboard.AttentionType.Group;
+import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
 
-// The office home page. Read only: one "group by ship" count query per number, no lists loaded to count.
+/**
+ * The office Overview (P09): a work list of open items ("Needs attention") and a fleet table, and the Overview tab of
+ * the ship page. Read only.
+ *
+ * load() always runs the same 7 queries, whatever the size of the fleet: active ships, crew on board per ship, and
+ * one per kind of open item (certificates, requests, invitations, announcements, library items). See DashboardQueries.
+ */
 @Service
 public class DashboardService {
 
     /** A certificate is an open item when it has expired or expires within this many days (UTC). */
     public static final int OPEN_ITEM_CERTIFICATE_DAYS = 30;
 
-    private final ShipRepository shipRepository;
+    /** A pending crew invitation is an open item this long after it was (last) sent, or once it has expired. */
+    public static final Duration INVITATION_PENDING_LIMIT = Duration.ofHours(48);
+
+    /** An announcement or a Required library item is an open item this long after it was sent / published. */
+    public static final Duration ACKNOWLEDGEMENT_LIMIT = Duration.ofDays(7);
+
+    /** The "Needs attention" card shows at most this many rows; the full lists are linked from it. */
+    public static final int SHOWN_ITEMS = 50;
+
+    private final DashboardQueries queries;
     private final UserRepository userRepository;
-    private final InvitationRepository invitationRepository;
     private final CertificateRepository certificateRepository;
-    private final AnnouncementRecipientRepository recipientRepository;
     private final ItemRequestRepository requestRepository;
-    private final LibraryService libraryService;
+    // The same setting InvitationService uses for an invitation's expiry date.
+    private final int invitationValidDays;
+    private final Clock clock = Clock.systemUTC();
 
-    public DashboardService(ShipRepository shipRepository, UserRepository userRepository,
-                            InvitationRepository invitationRepository, CertificateRepository certificateRepository,
-                            AnnouncementRecipientRepository recipientRepository,
-                            ItemRequestRepository requestRepository, LibraryService libraryService) {
-        this.shipRepository = shipRepository;
+    public DashboardService(DashboardQueries queries, UserRepository userRepository,
+                            CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
+                            @Value("${app.invitation.valid-days:7}") int invitationValidDays) {
+        this.queries = queries;
         this.userRepository = userRepository;
-        this.invitationRepository = invitationRepository;
         this.certificateRepository = certificateRepository;
-        this.recipientRepository = recipientRepository;
         this.requestRepository = requestRepository;
-        this.libraryService = libraryService;
+        this.invitationValidDays = invitationValidDays;
     }
 
-    /** One active ship's numbers. Certificate counts are as the badges: expired, 30, 31-60 and 61-90 days. */
-    public record ShipCard(Ship ship, long crew, long pendingInvitations, long certificatesExpired,
-                           long certificates30, long certificates60, long certificates90,
-                           long announcementsNotAcknowledged, long requestsNotExported,
-                           long libraryNotAcknowledged) {
+    // ---------------------------------------------------------------------------------------------------------------
+    // Open items
+    // ---------------------------------------------------------------------------------------------------------------
 
-        /** Expired certificates, certificates expiring within 30 days and approved requests not exported.
-         *  The same rule as openItemCount and shipOverview for one ship. */
-        public long openItems() {
-            return certificatesExpired + certificates30 + requestsNotExported;
+    /** One row of the "Needs attention" card. */
+    public sealed interface AttentionItem
+            permits CertificateItem, RequestItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
+
+        AttentionType type();
+
+        Long id();
+
+        /** The active ships it concerns: one, or for an announcement the ships of those who have not acknowledged. */
+        Set<Long> shipIds();
+
+        /** Orders the items of one type, smallest first: the most overdue or the oldest. */
+        long sortKey();
+    }
+
+    /** An expired certificate, or one expiring within 30 days (type tells which); daysLeft is negative once expired. */
+    public record CertificateItem(AttentionType type, Long id, Long userId, String certificateType,
+                                  LocalDate expiresOn, long daysLeft, FleetShip ship, String fullName, Rank rank)
+            implements AttentionItem {
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
         }
 
-        public boolean needsAttention() {
-            return openItems() > 0;
+        public long sortKey() {
+            return expiresOn.toEpochDay();
         }
     }
 
-    /** Ships that need attention first, then by name. The fleet totals add up the cards. */
-    public record Dashboard(List<ShipCard> ships) {
+    /** An approved request never exported; requestedBy is null when that user was deleted. */
+    public record RequestItem(Long id, FleetShip ship, String requestedBy, Rank rank, Instant approvedAt, long lines)
+            implements AttentionItem {
 
-        public long enabledCrew() {
-            return ships.stream().mapToLong(ShipCard::crew).sum();
+        public AttentionType type() {
+            return AttentionType.REQUEST_NOT_EXPORTED;
         }
 
-        public long openItems() {
-            return ships.stream().mapToLong(ShipCard::openItems).sum();
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return approvedAt == null ? Long.MIN_VALUE : approvedAt.getEpochSecond();
         }
     }
+
+    /** A pending crew invitation: expired, or sent (last) more than 48 hours ago. */
+    public record InvitationItem(Long id, FleetShip ship, String fullName, Rank rank, Instant sentAt,
+                                 Instant expiresAt, boolean expired) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.INVITATION;
+        }
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return expiresAt.getEpochSecond();
+        }
+    }
+
+    /** An announcement not acknowledged by everyone. target is null for all ships. */
+    public record AnnouncementItem(Long id, String title, FleetShip target, Instant sentAt, long recipients,
+                                   long acknowledged, Set<Long> shipIds) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.ANNOUNCEMENT;
+        }
+
+        public long notAcknowledged() {
+            return recipients - acknowledged;
+        }
+
+        public long sortKey() {
+            return sentAt.getEpochSecond();
+        }
+    }
+
+    /** A Required library item whose current version not everyone on board has acknowledged. */
+    public record LibraryAttentionItem(Long id, String title, FleetShip ship, String versionLabel,
+                                       Instant publishedAt, long onBoard, long acknowledged) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.LIBRARY_ITEM;
+        }
+
+        public long notAcknowledged() {
+            return onBoard - acknowledged;
+        }
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return publishedAt.getEpochSecond();
+        }
+    }
+
+    /** Most urgent type first, then the most overdue or oldest. */
+    static final Comparator<AttentionItem> URGENCY = Comparator
+            .comparing(AttentionItem::type)
+            .thenComparingLong(AttentionItem::sortKey)
+            .thenComparing(AttentionItem::id);
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // The page
+    // ---------------------------------------------------------------------------------------------------------------
+
+    /** One active ship in the fleet table. openItems counts every kind of open item, invitations included. */
+    public record FleetRow(FleetShip ship, long crew, long certificateIssues, long notAcknowledged,
+                           long requestsNotExported, long openItems) {
+    }
+
+    /** A kind of open item with its number, for the links to the full lists. */
+    public record GroupCount(Group group, long count) {
+    }
+
+    /**
+     * The Overview.
+     * fleet        active ships, those with open items first, then by name
+     * crewOnBoard  enabled crew on the active ships
+     * openItems    every open item of the fleet (the summary line), whatever the filter
+     * items        the open items the filter keeps, most urgent first
+     * groups       the number of open items per kind (unfiltered), kinds without any left out
+     * group, ship  the filter (/office?type=...&shipId=...), each null when not set
+     * checkedAt    when this was loaded
+     */
+    public record Dashboard(List<FleetRow> fleet, long crewOnBoard, long openItems, List<AttentionItem> items,
+                            List<GroupCount> groups, Group group, FleetShip ship, Instant checkedAt) {
+
+        public boolean filtered() {
+            return group != null || ship != null;
+        }
+
+        /** The rows on the card: all of them in a filtered (full) list, else the first SHOWN_ITEMS. */
+        public List<AttentionItem> shown() {
+            return filtered() || items.size() <= SHOWN_ITEMS ? items : items.subList(0, SHOWN_ITEMS);
+        }
+
+        public boolean truncated() {
+            return shown().size() < items.size();
+        }
+    }
+
+    /** The unfiltered Overview. */
+    @Transactional(readOnly = true)
+    public Dashboard load() {
+        return load(null, null);
+    }
+
+    /**
+     * The Overview, its open items filtered to one kind (group) and / or one active ship (shipId); null keeps all.
+     * An unknown or inactive shipId filters nothing.
+     */
+    @Transactional(readOnly = true)
+    public Dashboard load(Group group, Long shipId) {
+        Instant now = clock.instant();
+        LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
+
+        List<FleetShip> ships = queries.activeShips();
+        Map<Long, FleetShip> shipsById = ships.stream()
+                .collect(Collectors.toMap(FleetShip::id, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+        Map<Long, Long> crew = userRepository.countEnabledByShip().stream()
+                .collect(Collectors.toMap(ShipCount::shipId, ShipCount::count));
+
+        List<AttentionItem> all = new ArrayList<>();
+        for (DashboardQueries.CertificateRow c : queries.certificatesExpiringUntil(today.plusDays(OPEN_ITEM_CERTIFICATE_DAYS))) {
+            AttentionType type = c.expiresOn().isBefore(today)
+                    ? AttentionType.CERTIFICATE_EXPIRED : AttentionType.CERTIFICATE_EXPIRING;
+            all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(),
+                    ChronoUnit.DAYS.between(today, c.expiresOn()), shipsById.get(c.shipId()), c.fullName(), c.rank()));
+        }
+        for (DashboardQueries.RequestRow r : queries.requestsNotExported()) {
+            all.add(new RequestItem(r.id(), shipsById.get(r.shipId()), r.requestedBy(), r.rank(), r.approvedAt(),
+                    r.lines()));
+        }
+        // expiresAt is (last) sent + the validity, so "sent more than 48 hours ago" is a bound on expiresAt.
+        // It includes the expired ones: they were sent at least the validity ago.
+        Duration validity = Duration.ofDays(invitationValidDays);
+        Instant expiresBefore = now.plus(validity).minus(INVITATION_PENDING_LIMIT);
+        for (DashboardQueries.InvitationRow i : queries.pendingInvitationsExpiringBefore(expiresBefore)) {
+            all.add(new InvitationItem(i.id(), shipsById.get(i.shipId()), i.fullName(), i.rank(),
+                    i.expiresAt().minus(validity), i.expiresAt(), i.expiresAt().isBefore(now)));
+        }
+        all.addAll(announcements(queries.announcementsSentBefore(now.minus(ACKNOWLEDGEMENT_LIMIT)), shipsById));
+        for (DashboardQueries.LibraryRow l : queries.requiredItemsNotAcknowledged(now.minus(ACKNOWLEDGEMENT_LIMIT))) {
+            all.add(new LibraryAttentionItem(l.id(), l.title(), shipsById.get(l.shipId()), l.versionLabel(),
+                    l.publishedAt(), l.onBoard(), l.acknowledged()));
+        }
+        all.sort(URGENCY);
+
+        List<FleetRow> fleet = ships.stream()
+                .map(ship -> fleetRow(ship, crew.getOrDefault(ship.id(), 0L), all))
+                .sorted(Comparator.comparing(row -> row.openItems() == 0)) // stable: keeps the name order
+                .toList();
+
+        Map<Group, Long> perGroup = new EnumMap<>(Group.class);
+        all.forEach(item -> perGroup.merge(item.type().group(), 1L, Long::sum));
+        List<GroupCount> groups = perGroup.entrySet().stream()
+                .map(e -> new GroupCount(e.getKey(), e.getValue())).toList();
+
+        FleetShip ship = shipId == null ? null : shipsById.get(shipId);
+        List<AttentionItem> items = all.stream()
+                .filter(item -> group == null || item.type().group() == group)
+                .filter(item -> ship == null || item.shipIds().contains(ship.id()))
+                .toList();
+
+        return new Dashboard(fleet, fleet.stream().mapToLong(FleetRow::crew).sum(), all.size(), items, groups,
+                group, ship, now);
+    }
+
+    /** One item per announcement that someone on an active ship has not acknowledged. */
+    private static List<AttentionItem> announcements(List<DashboardQueries.AnnouncementShipRow> rows,
+                                                     Map<Long, FleetShip> activeShips) {
+        Map<Long, List<DashboardQueries.AnnouncementShipRow>> byAnnouncement = rows.stream()
+                .collect(Collectors.groupingBy(DashboardQueries.AnnouncementShipRow::id, LinkedHashMap::new,
+                        Collectors.toList()));
+        List<AttentionItem> items = new ArrayList<>();
+        byAnnouncement.forEach((id, perShip) -> {
+            Set<Long> shipIds = new LinkedHashSet<>();
+            long recipients = 0;
+            long acknowledged = 0;
+            for (DashboardQueries.AnnouncementShipRow row : perShip) {
+                recipients += row.recipients();
+                acknowledged += row.acknowledged();
+                if (row.acknowledged() < row.recipients() && activeShips.containsKey(row.recipientShipId())) {
+                    shipIds.add(row.recipientShipId());
+                }
+            }
+            if (!shipIds.isEmpty()) {
+                DashboardQueries.AnnouncementShipRow first = perShip.getFirst();
+                FleetShip target = first.shipId() == null ? null : activeShips.get(first.shipId());
+                items.add(new AnnouncementItem(id, first.title(), target, first.sentAt(), recipients, acknowledged,
+                        Set.copyOf(shipIds)));
+            }
+        });
+        return items;
+    }
+
+    private static FleetRow fleetRow(FleetShip ship, long crew, List<AttentionItem> items) {
+        long certificates = 0;
+        long acknowledgements = 0;
+        long requests = 0;
+        long open = 0;
+        for (AttentionItem item : items) {
+            if (!item.shipIds().contains(ship.id())) {
+                continue;
+            }
+            open++;
+            switch (item.type().group()) {
+                case CERTIFICATES -> certificates++;
+                case ACKNOWLEDGEMENTS -> acknowledgements++;
+                case REQUESTS -> requests++;
+                case INVITATIONS -> { }
+            }
+        }
+        return new FleetRow(ship, crew, certificates, acknowledgements, requests, open);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // The ship page's Overview tab
+    // ---------------------------------------------------------------------------------------------------------------
 
     /** The crew on board in one department; department is null for users without a rank. */
     public record Department(Rank.Department department, List<User> crew) {
@@ -132,38 +391,7 @@ public class DashboardService {
                 + requestRepository.countByStatusAndShipIdAndExportedAtIsNull(RequestStatus.APPROVED, ship.getId());
     }
 
-    private static LocalDate openItemsUntil() {
-        return LocalDate.now(ZoneOffset.UTC).plusDays(OPEN_ITEM_CERTIFICATE_DAYS);
-    }
-
-    @Transactional(readOnly = true)
-    public Dashboard load() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        Map<Long, Long> crew = byShip(userRepository.countEnabledByShip());
-        Map<Long, Long> invitations = byShip(invitationRepository.countByStatusPerShip(Invitation.Status.PENDING));
-        Map<Long, Long> announcements = byShip(recipientRepository.countUnacknowledgedByShip());
-        Map<Long, Long> requests = byShip(requestRepository.countNotExportedByShip(RequestStatus.APPROVED));
-        Map<Long, Long> library = libraryService.requiredNotAcknowledgedByShip();
-        Map<Long, CertificateCounts> certificates = certificateRepository
-                .countExpiringByShip(today, today.plusDays(OPEN_ITEM_CERTIFICATE_DAYS), today.plusDays(60), today.plusDays(90)).stream()
-                .collect(Collectors.toMap(CertificateCounts::shipId, c -> c));
-        CertificateCounts none = new CertificateCounts(null, 0, 0, 0, 0);
-
-        List<ShipCard> cards = shipRepository.findAllByActiveTrueOrderByNameAsc().stream()
-                .map(ship -> {
-                    Long id = ship.getId();
-                    CertificateCounts c = certificates.getOrDefault(id, none);
-                    return new ShipCard(ship, crew.getOrDefault(id, 0L), invitations.getOrDefault(id, 0L),
-                            c.expired(), c.within30(), c.within60(), c.within90(),
-                            announcements.getOrDefault(id, 0L), requests.getOrDefault(id, 0L),
-                            library.getOrDefault(id, 0L));
-                })
-                .sorted(Comparator.comparing(card -> !card.needsAttention())) // stable: keeps name order
-                .toList();
-        return new Dashboard(cards);
-    }
-
-    private static Map<Long, Long> byShip(List<ShipCount> counts) {
-        return counts.stream().collect(Collectors.toMap(ShipCount::shipId, ShipCount::count));
+    private LocalDate openItemsUntil() {
+        return LocalDate.now(clock).plusDays(OPEN_ITEM_CERTIFICATE_DAYS);
     }
 }

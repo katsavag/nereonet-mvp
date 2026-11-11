@@ -1,111 +1,228 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{office.title}, ~{::main})}">
 <body>
-<main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{office.heading})}"></header>
+<!-- The office Overview (P09): a work list, then the fleet. dashboard: DashboardService.Dashboard.
+     "Needs attention": one row per open item, most urgent first (AttentionType), the first 50 unless filtered
+     (/office?type=invitations&shipId=3 is the full list of one kind and / or one ship). Each row: status badge with an
+     icon and the kind, the title linking to the record, one context line (ship · person · date) and one action.
+     Fleet: one row per active ship, those with open items first; a zero is a muted dash, never a link. -->
+<main th:with="d=${dashboard}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{office.heading},
+            subtitle=#{dashboard.summary(${d.fleet.size()}, ${d.crewOnBoard}, ${d.openItems})},
+            actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-primary" th:href="@{/office/announcements/new}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{announcement.new}">New announcement</span>
+            </a>
+        </th:block>
+    </header>
 
-    <!-- Fleet totals -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.activeShips}">Active ships</p>
-                    <p class="fs-2 fw-bold mb-0" th:text="${dashboard.ships.size()}">5</p>
-                </div>
-            </div>
+    <section class="card attention mb-4" aria-labelledby="attentionTitle">
+        <div class="card-header attention-header">
+            <h2 class="h5 fw-bold mb-0" id="attentionTitle" th:text="#{dashboard.attention.heading}">Needs attention</h2>
+            <p class="attention-total"><span class="visually-hidden" th:text="#{dashboard.attention.totalLabel}">Open items:</span>
+                <span class="num" th:text="${d.items.size()}">11</span></p>
         </div>
-        <div class="col-12 col-sm-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.enabledCrew}">Active crew</p>
-                    <p class="fs-2 fw-bold mb-0" th:text="${dashboard.enabledCrew()}">84</p>
-                </div>
-            </div>
+
+        <!-- A filtered list: what it shows and the way back to everything. -->
+        <div th:if="${d.filtered()}" class="attention-filter">
+            <p class="mb-0">
+                <span th:text="#{dashboard.attention.filtered}">Showing only:</span>
+                <strong th:if="${d.group != null}" th:text="#{${'dashboard.group.' + d.group}}">Crew invitations</strong>
+                <th:block th:if="${d.group != null and d.ship != null}">·</th:block>
+                <strong th:if="${d.ship != null}" th:text="${d.ship.name}">MV Demo</strong>
+            </p>
+            <a class="attention-filter-clear" th:href="@{/office}" th:text="#{dashboard.attention.showAll}">Show all open items</a>
         </div>
-        <div class="col-12 col-sm-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <p class="small text-body-secondary mb-1" th:text="#{dashboard.fleet.openItems}">Open items needing attention</p>
-                    <p class="fs-2 fw-bold mb-0" th:classappend="${dashboard.openItems() > 0} ? 'text-danger'"
-                       th:text="${dashboard.openItems()}">3</p>
-                    <p class="small text-body-secondary mb-0" th:text="#{dashboard.fleet.openItemsHint}">Expired certificates, ...</p>
-                </div>
-            </div>
+
+        <!-- Empty: say so, and when it was checked. -->
+        <div th:if="${d.items.isEmpty()}" class="card-body attention-empty">
+            <p class="attention-empty-title" th:text="#{dashboard.attention.empty}">Nothing needs your attention</p>
+            <p class="attention-empty-time">
+                <span th:text="#{dashboard.attention.checkedAt}">Last checked</span>
+                <time th:replace="~{layout/parts :: localTime(${d.checkedAt})}"></time>
+            </p>
         </div>
-    </div>
 
-    <h2 class="h5 fw-bold mb-1" th:text="#{dashboard.ships.heading}">Ships</h2>
-    <p class="text-body-secondary small mb-3" th:text="#{dashboard.ships.hint}">Ships that need attention are listed first.</p>
+        <ul th:unless="${d.items.isEmpty()}" class="list-group list-group-flush attention-list">
+            <li th:each="item, st : ${d.shown()}" class="list-group-item attention-item"
+                th:with="type=${item.type().name()}, titleId=${'attention' + st.index}">
 
-    <p th:if="${dashboard.ships.isEmpty()}" class="text-body-secondary" th:text="#{dashboard.ships.empty}">No active ships.</p>
-
-    <!-- One card per active ship: 1 column on phones, 2 on tablets, 3 on wide screens (the sidebar takes 16rem). -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-        <div class="col" th:each="card : ${dashboard.ships}" th:with="id=${card.ship.id}">
-            <div class="card h-100" th:classappend="${card.needsAttention()} ? 'border-warning'">
-                <div class="card-header bg-transparent d-flex justify-content-between align-items-start gap-2 py-3">
-                    <div class="text-break">
-                        <h3 class="h6 fw-bold mb-0"><a th:replace="~{layout/parts :: shipLink(${card.ship})}">MV Demo</a></h3>
-                        <span class="small text-body-secondary font-monospace"
-                              th:text="#{ship.codeValue(${card.ship.imoNumber})}">IMO 9074729</span>
-                    </div>
-                    <span th:if="${card.needsAttention()}" class="badge rounded-pill text-bg-warning text-nowrap"
-                          th:text="#{dashboard.needsAttention}">Needs attention</span>
-                </div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <span th:text="#{dashboard.crew}">Crew on board</span>
-                        <a class="fw-semibold" th:href="@{/office/crew(shipId=${id})}" th:text="${card.crew}">12</a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <span th:text="#{dashboard.invitations}">Pending invitations</span>
-                        <a class="fw-semibold" th:href="@{/office/crew(shipId=${id})}"
-                           th:text="${card.pendingInvitations}">2</a>
-                    </li>
-                    <li class="list-group-item">
-                        <div class="mb-1" th:text="#{dashboard.certificates}">Certificates</div>
-                        <div class="d-flex flex-wrap gap-3 small">
-                            <a th:href="@{/office/certificates(shipId=${id})}"
-                               th:classappend="${card.certificatesExpired > 0} ? 'link-danger'">
-                                <span th:text="#{certificate.badge.expired}">Expired</span>
-                                <span class="fw-semibold" th:text="${card.certificatesExpired}">0</span>
-                            </a>
-                            <a th:href="@{/office/certificates(shipId=${id})}"
-                               th:classappend="${card.certificates30 > 0} ? 'link-danger'">
-                                <span th:text="#{certificate.badge.days(30)}">30 days</span>
-                                <span class="fw-semibold" th:text="${card.certificates30}">0</span>
-                            </a>
-                            <a th:href="@{/office/certificates(shipId=${id})}">
-                                <span th:text="#{certificate.badge.days(60)}">60 days</span>
-                                <span class="fw-semibold" th:text="${card.certificates60}">0</span>
-                            </a>
-                            <a th:href="@{/office/certificates(shipId=${id})}">
-                                <span th:text="#{certificate.badge.days(90)}">90 days</span>
-                                <span class="fw-semibold" th:text="${card.certificates90}">0</span>
-                            </a>
+                <!-- a. Expired certificate, b. certificate expiring within 30 days -->
+                <th:block th:if="${type == 'CERTIFICATE_EXPIRED' or type == 'CERTIFICATE_EXPIRING'}"
+                          th:with="url=@{/office/crew/{u}/certificates/{id}/edit(u=${item.userId}, id=${item.id})}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <th:block th:if="${type == 'CERTIFICATE_EXPIRED'}"><span th:replace="~{layout/parts :: statusIcon('danger', #{certificate.badge.expired}, 'alert')}"></span></th:block>
+                            <th:block th:unless="${type == 'CERTIFICATE_EXPIRED'}"><span th:replace="~{layout/parts :: statusIcon('warning', #{dashboard.item.expiresIn(${item.daysLeft})}, 'clock')}"></span></th:block>
+                            <span th:text="#{dashboard.kind.certificate}">Certificate</span>
                         </div>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <span th:text="#{dashboard.announcements}">Announcements not acknowledged by everyone</span>
-                        <a class="fw-semibold" th:href="@{/office/announcements(shipId=${id})}"
-                           th:text="${card.announcementsNotAcknowledged}">1</a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <span th:text="#{dashboard.requests}">Approved requests not exported</span>
-                        <a class="fw-semibold" th:href="@{/office/requests(shipId=${id},notExported=true)}"
-                           th:classappend="${card.requestsNotExported > 0} ? 'link-danger'"
-                           th:text="${card.requestsNotExported}">1</a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <span th:text="#{dashboard.library}">Required library items not acknowledged by everyone</span>
-                        <a class="fw-semibold" th:href="@{/office/ships/{id}/library(id=${id})}"
-                           th:text="${card.libraryNotAcknowledged}">1</a>
-                    </li>
-                    <!-- Stock alerts: add a list-group-item here when the inventory exists. -->
-                </ul>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}" th:text="${item.certificateType}">STCW Basic Safety</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            · <span th:replace="~{dashboard/dashboard :: person(${item.fullName}, ${item.rank})}">Jane Doe, Second Officer</span>
+                            · <span class="text-nowrap" th:text="${type == 'CERTIFICATE_EXPIRED'}
+                                    ? #{dashboard.item.expiredOn(${#temporals.format(item.expiresOn, 'd MMM yyyy')})}
+                                    : #{dashboard.item.expiresOn(${#temporals.format(item.expiresOn, 'd MMM yyyy')})}">expires 20 Nov 2026</span>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openCertificate}">Open certificate</a>
+                    </div>
+                </th:block>
+
+                <!-- c. Approved request not exported: Export downloads its CSV here and marks it exported. -->
+                <th:block th:if="${type == 'REQUEST_NOT_EXPORTED'}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon('info', #{dashboard.item.notExported}, 'export')}"></span>
+                            <span th:text="#{dashboard.kind.request}">Approved request</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="@{/office/requests/{id}(id=${item.id})}"
+                           th:text="#{dashboard.item.request(${item.id}, ${item.lines})}">Request #12 · 3 items</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            · <span th:replace="~{dashboard/dashboard :: person(${item.requestedBy}, ${item.rank})}">Jane Doe, Bosun</span>
+                            <th:block th:if="${item.approvedAt != null}">
+                                · <span th:text="#{dashboard.item.approved}">approved</span>
+                                <time th:replace="~{layout/parts :: localTime(${item.approvedAt})}"></time>
+                            </th:block>
+                        </p>
+                    </div>
+                    <form class="attention-action" th:action="@{/office/requests/export}" method="post">
+                        <input type="hidden" name="ids" th:value="${item.id}">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:attr="aria-describedby=${titleId}"
+                                th:text="#{dashboard.action.export}">Export</button>
+                    </form>
+                </th:block>
+
+                <!-- d. Crew invitation expired, or sent more than 48 hours ago and not accepted. Invitations have no page
+                     of their own: the title opens the ship's crew list, where it is listed. -->
+                <th:block th:if="${type == 'INVITATION'}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <th:block th:if="${item.expired}"><span th:replace="~{layout/parts :: statusIcon('warning', #{dashboard.item.invitationExpired}, 'mail')}"></span></th:block>
+                            <th:block th:unless="${item.expired}"><span th:replace="~{layout/parts :: statusIcon('neutral', #{dashboard.item.notAccepted}, 'mail')}"></span></th:block>
+                            <span th:text="#{dashboard.kind.invitation}">Crew invitation</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="@{/office/crew(shipId=${item.ship.id})}"
+                           th:text="${item.fullName}">Jane Doe</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            <th:block th:if="${item.rank != null}">· <span th:text="#{${'rank.' + item.rank}}">Second Officer</span></th:block>
+                            · <span th:text="${item.expired} ? #{dashboard.item.expired} : #{dashboard.item.sent}">sent</span>
+                            <time th:replace="~{layout/parts :: localTime(${item.expired} ? ${item.expiresAt} : ${item.sentAt})}"></time>
+                        </p>
+                    </div>
+                    <form class="attention-action" th:action="@{/office/invitations/{id}/resend(id=${item.id})}" method="post">
+                        <input type="hidden" name="returnTo" value="overview">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:attr="aria-describedby=${titleId}"
+                                th:text="#{dashboard.action.resend}">Resend invitation</button>
+                    </form>
+                </th:block>
+
+                <!-- e. Announcement sent more than 7 days ago, not acknowledged by everyone. -->
+                <th:block th:if="${type == 'ANNOUNCEMENT'}"
+                          th:with="url=@{/office/announcements/{id}(id=${item.id})}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon('neutral', #{dashboard.item.notAcknowledged}, 'eye')}"></span>
+                            <span th:text="#{dashboard.kind.announcement}">Announcement</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}" th:text="${item.title}">Safety drill</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.target != null} ? ${item.target.name} : #{announcement.target.fleet}">All ships</span>
+                            · <span th:text="#{dashboard.item.notAcknowledgedCount(${item.notAcknowledged()}, ${item.recipients})}">3 of 12 not acknowledged</span>
+                            · <span th:text="#{dashboard.item.sent}">sent</span>
+                            <time th:replace="~{layout/parts :: localTime(${item.sentAt})}"></time>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url} + '#pending'" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.viewNotAcknowledged}">View who has not acknowledged</a>
+                    </div>
+                </th:block>
+
+                <!-- e. Required library item published more than 7 days ago, not acknowledged by everyone on board. -->
+                <th:block th:if="${type == 'LIBRARY_ITEM'}"
+                          th:with="url=@{/office/ships/{s}/library/{id}/acknowledgements(s=${item.ship.id}, id=${item.id})}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon('neutral', #{dashboard.item.notAcknowledged}, 'eye')}"></span>
+                            <span th:text="#{dashboard.kind.library}">Required library item</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}" th:text="${item.title}">Drug and alcohol policy</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            · <span th:text="#{dashboard.item.notAcknowledgedCount(${item.notAcknowledged()}, ${item.onBoard})}">2 of 4 not acknowledged</span>
+                            · <span th:text="#{dashboard.item.published(${item.versionLabel})}">version 2 published</span>
+                            <time th:replace="~{layout/parts :: localTime(${item.publishedAt})}"></time>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.viewNotAcknowledged}">View who has not acknowledged</a>
+                    </div>
+                </th:block>
+            </li>
+        </ul>
+
+        <!-- The full list of each kind: requests not exported on Requests; the other kinds on this page filtered to
+             them (/office?type=...) until their own lists can filter by status (P20 certificates, P17 crew). -->
+        <div th:if="${!d.filtered() and !d.groups.isEmpty()}" class="card-footer attention-footer">
+            <p th:if="${d.truncated()}" class="attention-truncated"
+               th:text="#{dashboard.attention.truncated(${d.shown().size()}, ${d.items.size()})}">Showing the first 50 of 63.</p>
+            <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
+            <ul class="attention-lists" aria-labelledby="attentionListsTitle">
+                <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
+                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(notExported=true)} : @{/office(type=${g.group.param()})}">
+                        <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
+                        <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section aria-labelledby="fleetTitle">
+        <h2 class="h5 fw-bold mb-1" id="fleetTitle" th:text="#{dashboard.fleet.heading}">Fleet</h2>
+        <p class="text-body-secondary small mb-3" th:text="#{dashboard.fleet.hint}">Active ships, those with open items first.</p>
+        <div class="card">
+            <p th:if="${d.fleet.isEmpty()}" class="card-body text-body-secondary mb-0" th:text="#{dashboard.fleet.empty}">No active ships.</p>
+            <div th:unless="${d.fleet.isEmpty()}" class="table-responsive">
+                <table class="table data-table data-table-stack align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" th:text="#{dashboard.fleet.ship}">Ship</th>
+                        <th scope="col" class="num" th:text="#{dashboard.fleet.crew}">Crew on board</th>
+                        <th scope="col" class="num" th:text="#{dashboard.fleet.certificates}">Certificate issues</th>
+                        <th scope="col" class="num" th:text="#{dashboard.fleet.notAcknowledged}">Not acknowledged</th>
+                        <th scope="col" class="num" th:text="#{dashboard.fleet.requests}">Requests not exported</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${d.fleet}" th:with="id=${row.ship.id}">
+                        <td class="cell-primary"><a th:replace="~{layout/parts :: shipLink(${row.ship})}">MV Demo</a></td>
+                        <td class="num" th:attr="data-label=#{dashboard.fleet.crew}"><th:block
+                                th:replace="~{layout/parts :: countLink(${row.crew}, @{/office/crew(shipId=${id})})}"></th:block></td>
+                        <td class="num" th:attr="data-label=#{dashboard.fleet.certificates}"><th:block
+                                th:replace="~{layout/parts :: countLink(${row.certificateIssues}, @{/office(type='certificates', shipId=${id})})}"></th:block></td>
+                        <td class="num" th:attr="data-label=#{dashboard.fleet.notAcknowledged}"><th:block
+                                th:replace="~{layout/parts :: countLink(${row.notAcknowledged}, @{/office(type='acknowledgements', shipId=${id})})}"></th:block></td>
+                        <td class="num" th:attr="data-label=#{dashboard.fleet.requests}"><th:block
+                                th:replace="~{layout/parts :: countLink(${row.requestsNotExported}, @{/office/requests(shipId=${id}, notExported=true)})}"></th:block></td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+    </section>
 </main>
+
+<!-- "Jane Doe, Second Officer"; the name alone without a rank; "Deleted user" when the user was deleted. -->
+<span th:fragment="person(name, rank)" th:text="${name == null} ? #{dashboard.item.deletedUser}
+        : (${rank != null} ? #{dashboard.item.personRank(${name}, ${#messages.msg('rank.' + rank)})} : ${name})">Jane Doe, Second Officer</span>
 </body>
 </html>

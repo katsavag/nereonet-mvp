@@ -52,14 +52,33 @@ Requirements: Java 25, Docker.
 
 4. Emails sent by the app appear in the Mailpit inbox at http://localhost:8025.
 
-   **Overview** (`/office`, the office home page): fleet totals (active ships, active crew, open items that need
-   attention) and one card per active ship with crew on board (enabled users), pending invitations, certificates
-   expired / expiring within 30, 60 and 90 days, announcements not yet acknowledged by everyone on that ship,
-   approved requests not exported and Required library items not acknowledged by everyone on board (links to the
-   ship's library). Each number links to its page filtered to that ship. A ship with an expired
-   certificate, one expiring within 30 days, or an approved request not exported gets a "Needs attention" badge and
-   is listed first; these are the "open items". With the dev data, the demo ship needs attention (two approved
-   requests not exported); export them on **Requests** and it no longer does.
+   **Overview** (`/office`, the office home page, P09) is a work list: what needs the office, with the next step on
+   each row, so it can be cleared without visiting other pages first. Under the title one summary line ("5 ships ·
+   84 crew · 3 open items": active ships, enabled crew on them, open items); the page action is **New announcement**.
+   - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
+     1. certificate expired; 2. certificate expiring within 30 days (UTC dates); 3. approved request not exported;
+     4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
+     date and `app.invitation.valid-days`); 5. announcement sent, or Required library item published (current
+     version), more than 7 days ago that not everyone has acknowledged. Within a kind, the most overdue or oldest first.
+     Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the request,
+     the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
+     (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Export**
+     (downloads that request's CSV, as on Requests, and marks it exported; it is gone the next time the page loads),
+     **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
+     has not acknowledged**. The card shows the first 50 rows ("Showing the first 50 of 63"); under it **Full lists**
+     links each kind to its full list: requests to `/office/requests?notExported=true`, the others to this page
+     filtered to that kind (`/office?type=certificates`, `invitations`, `acknowledgements`, every row, with **Show all
+     open items** to go back) until the certificate and crew lists can filter by status (P20, P17). With nothing open
+     the card says "Nothing needs your attention" and when it was checked.
+   - **Fleet**: one row per active ship (the name opens the ship page): crew on board, certificate issues (expired or
+     within 30 days), not acknowledged (announcements and Required library items as above), requests not exported.
+     Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
+     its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office?type=certificates&shipId=…`,
+     `/office?type=acknowledgements&shipId=…`, `/office/requests?shipId=…&notExported=true`.
+   - `DashboardService.load()` always runs the same 7 queries, whatever the size of the fleet (active ships, crew per
+     ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
+   With the dev data the two seeded approved requests are two rows with **Export**; export them and the card says
+   "Nothing needs your attention".
 
 5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,

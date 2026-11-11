@@ -26,7 +26,6 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
-import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -298,13 +297,6 @@ public class LibraryService {
             }
         }
         return new AcknowledgementOverview(item, acknowledged, notAcknowledged);
-    }
-
-    /** Per ship id: the Required items that not all of the crew acknowledged. Ships with none are left out. */
-    @Transactional(readOnly = true)
-    public Map<Long, Long> requiredNotAcknowledgedByShip() {
-        return itemRepository.countRequiredNotAcknowledgedByShip(Role.OFFICE_USER).stream()
-                .collect(Collectors.toMap(ShipCount::shipId, ShipCount::count));
     }
 
     /** The file of the item's current version; 404 for a text version or a missing file. */
