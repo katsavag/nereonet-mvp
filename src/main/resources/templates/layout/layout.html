@@ -6,7 +6,8 @@
   name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
   Logged in: navy sidebar (an offcanvas below md, closed with Esc): grouped navigation with the active entry and
   counters (P07, see the comment on the aside), the user's name and a logout button.
-  Not logged in: the page's <main> fills the screen and brings its own container.
+  Not logged in: the page's <main> fills the screen and brings its own container (the sign-in, registration and
+  error pages use layout/parts :: authFrame, P13).
   Messages: add a flash attribute "successMessage" or "errorMessage"
   holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved"); for a message
   with arguments add "successArgs", an Object[] (see layout/parts :: flash).
@@ -75,7 +76,7 @@
                     </ul>
                     <!-- Office screens are English and Greek; crew screens are English only. -->
                     <div sec:authorize="hasRole('OFFICE_USER')" class="sidebar-lang">
-                        <div th:replace="~{layout/parts :: langSwitch('link-light link-underline-opacity-0')}"></div>
+                        <div th:replace="~{layout/parts :: langSwitch('link-light link-underline-opacity-0', null)}"></div>
                     </div>
                 </nav>
 
@@ -136,6 +137,7 @@
 <script th:src="@{/js/local-time.js}"></script>
 <script th:src="@{/js/row-menu.js}"></script>
 <script th:src="@{/js/forms.js}"></script>
+<script th:src="@{/js/password.js}"></script>
 <script th:src="@{/js/ship-tabs.js}"></script>
 <script th:src="@{/js/confirm.js}"></script>
 </body>

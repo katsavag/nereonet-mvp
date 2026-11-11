@@ -69,3 +69,6 @@ app:
   library:
     # Folder for library files (created if missing). Back it up together with the database.
     storage-dir: ${LIBRARY_STORAGE_DIR}
+  # Optional free text (e.g. "Crewing department, crewing@example.com, +30 210 000 0000"), shown on the
+  # "link is invalid or has expired" page. Not shown when empty.
+  support-contact: ${SUPPORT_CONTACT:}

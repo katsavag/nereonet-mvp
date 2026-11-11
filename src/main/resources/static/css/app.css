@@ -879,6 +879,7 @@ fieldset:disabled button.btn {
     background-size: 37px 37px;
 }
 
+/* The signed-out frame and the password fields: section "Sign-in and registration (P13)" at the end. */
 .login-box { max-width: 32rem; }
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -993,7 +994,9 @@ fieldset:disabled button.btn {
     margin-top: var(--nn-space-2);
     padding: 0 var(--nn-space-2) 0 var(--nn-space-3);
 }
-.sidebar-lang .lang-switch a {
+/* The English / Greek links (layout/parts :: langSwitch) are touch targets, in the sidebar and on the sign-in and
+   registration pages. */
+.lang-switch a {
     display: inline-flex;
     align-items: center;
     min-height: var(--nn-touch-target);
@@ -1540,21 +1543,175 @@ fieldset:disabled button.btn {
    easy to read out.
    --------------------------------------------------------------------------------------------------------------- */
 .error-page { max-width: 40rem; }
-.error-reference {
+/* The same quiet box holds the office contact on the "link is invalid or has expired" page (P13). */
+.error-reference,
+.support-contact {
     margin-bottom: var(--nn-space-5);
     padding: var(--nn-space-4);
     background: var(--nn-surface);
     border: 1px solid var(--nn-divider);
     border-radius: var(--nn-radius-card);
 }
-.error-reference-label {
+.error-reference-label,
+.support-contact-label {
     margin-bottom: var(--nn-space-1);
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
-.error-reference-value {
+.error-reference-value,
+.support-contact-value {
     margin-bottom: 0;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 .error-reference-value .num { letter-spacing: .08em; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Sign-in and registration (P13): layout/parts :: authFrame, passwordToggle, capsLockHint; js/password.js.
+     - .auth-frame: the signed-out frame (sign-in, registration, invalid link, signed-out error pages). From 768px
+       the navy brand panel (.auth-brand) is a column on the left; on phones it collapses to a 64px header bar, so
+       the form starts above the fold (at 390 x 844 the sign-in button is in view without scrolling).
+     - .password-field: a password input with "Show" / "Hide" inside it on the right (.password-toggle, navy text
+       9:1 on the field, a touch target as tall as the field). The input makes room only once the script has shown
+       the button (.has-toggle).
+     - .caps-lock-hint: "Caps Lock is on." in the warning pair (6.7:1) under the field; empty, it takes no space.
+     - .password-rules: the registration rules as a checklist. Without the script, small bullets; with it, an empty
+       circle for a rule not yet met and a filled green circle with a check mark for one that is, plus the words
+       "done" / "not yet" for screen readers: never colour alone.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-auth-bar-height: 64px;
+    --nn-password-toggle-room: 6.5rem; /* the widest label, "Απόκρυψη", and its padding */
+}
+
+.auth-brand { padding: 3rem; }
+.auth-panel {
+    display: flex;
+    flex-direction: column;
+    padding: var(--nn-space-4);
+}
+.auth-lang {
+    display: flex;
+    justify-content: flex-end;
+}
+.auth-body {
+    display: flex;
+    flex-grow: 1;
+    justify-content: center;
+}
+.auth-body > .login-box { padding: var(--nn-space-5) 0; }
+@media (min-width: 768px) {
+    .auth-panel { padding: var(--nn-space-5); }
+    .auth-body { align-items: center; }
+}
+@media (max-width: 767.98px) {
+    .auth-brand {
+        display: flex;
+        align-items: center;
+        height: var(--nn-auth-bar-height);
+        padding: 0 var(--nn-gutter);
+    }
+    .auth-panel { padding-top: var(--nn-space-2); }
+    .auth-body > .login-box { padding-top: var(--nn-space-4); }
+}
+
+.password-field { position: relative; }
+.password-field.has-toggle > .form-control { padding-right: var(--nn-password-toggle-room); }
+/* Bootstrap's invalid icon would sit under "Show"; the red border and the message under the field remain. */
+.password-field.has-toggle > .form-control.is-invalid { background-image: none; }
+.password-toggle {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    min-width: var(--nn-touch-target);
+    padding: 0 var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-blue);
+    background: transparent;
+    border: 0;
+    border-radius: 0 var(--nn-radius-control) var(--nn-radius-control) 0;
+}
+.password-toggle:hover {
+    color: var(--nn-blue-dark);
+    text-decoration: underline;
+}
+/* Inside the field, so the ring is drawn inside the button rather than over the field's border. */
+.password-toggle:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width) - 2px); }
+
+.caps-lock-hint {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-help);
+    font-weight: 600;
+    color: var(--nn-warning-text);
+}
+.caps-lock-hint:not(:empty) {
+    display: inline-block;
+    padding: 2px var(--nn-space-2);
+    background: var(--nn-warning-bg);
+    border: 1px solid var(--nn-warning-border);
+    border-radius: var(--nn-radius-badge);
+}
+.caps-lock-hint:empty { margin: 0; }
+
+.password-rules {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    font-size: var(--nn-font-help);
+    color: var(--nn-text-secondary);
+    list-style: none;
+}
+.password-rules > li {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+}
+.password-rules > li::before {
+    content: "";
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin: 0 5px;
+    background: currentColor;
+    border-radius: 50%;
+}
+.password-rules.is-live > li::before {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    background: transparent;
+    border: 1.5px solid var(--nn-field-border);
+}
+.password-rules.is-live > li.is-met {
+    font-weight: 600;
+    color: var(--nn-ok-text);
+}
+.password-rules.is-live > li.is-met::before {
+    background: var(--nn-ok);
+    border-color: var(--nn-ok);
+}
+/* The check mark: a short L turned 45 degrees, white on the green circle. */
+.password-rules.is-live > li.is-met::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    width: 4px;
+    height: 8px;
+    margin-top: -5px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* "This link is invalid or has expired": the two causes, each with what to do. */
+.invalid-link-causes {
+    display: grid;
+    gap: var(--nn-space-2);
+    margin-bottom: var(--nn-space-5);
+    padding-left: 1.25rem;
+}

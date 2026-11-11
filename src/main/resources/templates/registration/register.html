@@ -1,56 +1,79 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{registration.title}, ~{::main})}">
 <body>
-<!-- Same split screen as the sign-in page. No language switch: its links would drop the token. -->
-<main class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
-    <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
-        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
-    </div>
+<!-- Same frame as the sign-in page. The language switch keeps the token, so switching stays on this invitation. -->
+<main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true, token=${form.token})}">
+    <th:block th:fragment="authContent">
+        <!-- What the person is joining (P13): the ship and their rank (or role, without a rank), or the office. -->
+        <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.heading},
+                subtitle=${invitation.ship == null} ? #{registration.joining.office}
+                    : #{registration.joining.ship(${invitation.ship.name},
+                        ${invitation.rank != null} ? #{${'rank.' + invitation.rank}} : #{${'registration.joining.role.' + invitation.role}})})}"></header>
 
-    <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
-        <div class="login-box w-100 py-4">
-            <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.heading})}"></header>
-
-            <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
-                <input type="hidden" th:field="*{token}">
-                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
-                <div class="form-grid">
-                    <!-- From the invitation; they cannot change here: plain text, not inputs. -->
-                    <dl class="static-fields">
-                        <dt th:text="#{registration.email}">Email</dt>
-                        <dd th:text="${invitation.email}">jane@example.com</dd>
-                        <dt th:text="#{registration.fullName}">Full name</dt>
-                        <dd th:text="${invitation.fullName}">Jane Doe</dd>
-                    </dl>
-                    <!-- Not shown and not sent: lets password managers save the password with the email address. -->
-                    <input type="email" hidden th:value="${invitation.email}" autocomplete="username" aria-hidden="true">
-                    <div>
-                        <label for="password" class="form-label" th:text="#{registration.password}">Password</label>
+        <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+            <input type="hidden" th:field="*{token}">
+            <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+            <div class="form-grid">
+                <!-- From the invitation; they cannot change here: plain text, not inputs. -->
+                <dl class="static-fields">
+                    <dt th:text="#{registration.email}">Email</dt>
+                    <dd th:text="${invitation.email}">jane@example.com</dd>
+                    <dt th:text="#{registration.fullName}">Full name</dt>
+                    <dd th:text="${invitation.fullName}">Jane Doe</dd>
+                </dl>
+                <!-- Not shown and not sent: lets password managers save the password with the email address. -->
+                <input type="email" hidden th:value="${invitation.email}" autocomplete="username" aria-hidden="true">
+                <div>
+                    <label for="password" class="form-label" th:text="#{registration.password}">Password</label>
+                    <div class="password-field">
                         <input type="password" th:field="*{password}" class="form-control form-control-lg"
                                th:errorclass="is-invalid" autocomplete="new-password"
-                               aria-describedby="passwordHint passwordCounter" required
+                               aria-describedby="passwordRules passwordCounter" required
                                th:autofocus="${#fields.detailedErrors().size() <= 1}">
-                        <div class="invalid-feedback" th:errors="*{password}"></div>
-                        <div class="form-meta">
-                            <div id="passwordHint" class="form-text" th:text="#{registration.passwordHint}">At least 8 characters.</div>
-                            <div th:replace="~{layout/parts :: counter(${form}, 'password', 'password')}"></div>
-                        </div>
+                        <th:block th:replace="~{layout/parts :: passwordToggle('password')}"></th:block>
                     </div>
-                    <div>
-                        <label for="confirmPassword" class="form-label"
-                               th:text="#{registration.confirmPassword}">Repeat password</label>
+                    <p th:replace="~{layout/parts :: capsLockHint('password')}"></p>
+                    <div class="invalid-feedback" th:classappend="${#fields.hasErrors('password')} ? 'd-block'"
+                         th:errors="*{password}"></div>
+                    <!-- The rules the server checks (RegistrationForm), as a checklist that js/password.js ticks while
+                         the user types: a check mark and "done" for a rule that is met, an empty circle and
+                         "not yet" for one that is not. Without the script: the same list, without ticks. -->
+                    <div class="form-meta">
+                        <ul id="passwordRules" class="password-rules"
+                            th:attr="aria-label=#{registration.rules}"
+                            th:data-met="#{registration.rule.met}" th:data-unmet="#{registration.rule.unmet}"
+                            th:with="min=${@formFields.minLength(form, 'password')}">
+                            <li th:if="${min != null}" data-rule="min-length" th:data-min="${min}" aria-atomic="true">
+                                <span th:text="#{registration.rule.length(${min})}">At least 8 characters</span><span
+                                    class="visually-hidden password-rule-state"></span>
+                            </li>
+                            <li data-rule="match" data-match="confirmPassword" aria-atomic="true">
+                                <span th:text="#{registration.rule.match}">Both passwords are the same</span><span
+                                    class="visually-hidden password-rule-state"></span>
+                            </li>
+                        </ul>
+                        <div th:replace="~{layout/parts :: counter(${form}, 'password', 'password')}"></div>
+                    </div>
+                </div>
+                <div>
+                    <label for="confirmPassword" class="form-label"
+                           th:text="#{registration.confirmPassword}">Repeat password</label>
+                    <div class="password-field">
                         <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
                                th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
                                autocomplete="new-password" required>
-                        <div class="invalid-feedback" th:errors="*{passwordConfirmed}"></div>
+                        <th:block th:replace="~{layout/parts :: passwordToggle('confirmPassword')}"></th:block>
                     </div>
+                    <p th:replace="~{layout/parts :: capsLockHint('confirmPassword')}"></p>
+                    <div class="invalid-feedback" th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'd-block'"
+                         th:errors="*{passwordConfirmed}"></div>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
+            </div>
+        </form>
+    </th:block>
 </main>
 </body>
 </html>

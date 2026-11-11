@@ -52,14 +52,14 @@ public class RegistrationService {
                 .filter(invitation -> invitation.getStatus() == Invitation.Status.PENDING);
     }
 
-    /** Creates the user and accepts the invitation. Returns false if the token is not valid. */
+    /** Creates the user and accepts the invitation. Returns the new user, or empty if the token is not valid. */
     @Transactional
-    public boolean register(String token, String rawPassword) {
+    public Optional<User> register(String token, String rawPassword) {
         Optional<Invitation> found = findValidInvitation(token);
         if (found.isEmpty()) {
             // Never the token.
             log.info("Registration with an invalid, expired or used invitation link");
-            return false;
+            return Optional.empty();
         }
         Invitation invitation = found.get();
         User user = userService.createUser(invitation.getEmail(), invitation.getFullName(), rawPassword,
@@ -68,6 +68,6 @@ public class RegistrationService {
         invitation.setAcceptedAt(Instant.now());
         // Nobody is logged in during registration: the new user is the actor.
         auditService.record("USER_REGISTERED", user.getShip(), user.getEmail() + " as " + user.getRole(), user);
-        return true;
+        return Optional.of(user);
     }
 }

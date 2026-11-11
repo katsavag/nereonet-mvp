@@ -15,7 +15,8 @@ import jakarta.validation.metadata.PropertyDescriptor;
 
 /**
  * Helpers for the form templates (P05), used as {@code @formFields} in Thymeleaf:
- * the character limit of a field, read from its {@code @Size(max)} in the form class (the counter under the field),
+ * the character limits of a field, read from its {@code @Size} in the form class (the counter under the field, and
+ * the "At least 8 characters" rule of the registration password),
  * and the field id and order of each error (the error summary at the top of a form, layout/parts :: errorSummary).
  */
 @Component("formFields")
@@ -48,6 +49,21 @@ public class FormFields {
                 .map(constraint -> ((Size) constraint.getAnnotation()).max())
                 .filter(max -> max < Integer.MAX_VALUE)
                 .min(Integer::compare)
+                .orElse(null);
+    }
+
+    /** The {@code @Size(min)} of the property in the form's class, or null when it has none (P13: password rules). */
+    public Integer minLength(Object form, String property) {
+        PropertyDescriptor descriptor = validator.getConstraintsForClass(form.getClass())
+                .getConstraintsForProperty(property);
+        if (descriptor == null) {
+            return null;
+        }
+        return descriptor.getConstraintDescriptors().stream()
+                .filter(constraint -> constraint.getAnnotation() instanceof Size)
+                .map(constraint -> ((Size) constraint.getAnnotation()).min())
+                .filter(min -> min > 0)
+                .max(Integer::compare)
                 .orElse(null);
     }
 

@@ -1,17 +1,31 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{registration.invalid.title}, ~{::main})}">
 <body>
-<main class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
-    <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
-        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
-    </div>
+<main th:replace="~{layout/parts :: authFrame(content=~{::authContent})}">
+    <th:block th:fragment="authContent">
+        <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.invalid.heading})}"></header>
 
-    <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
-        <div class="login-box w-100 py-4">
-            <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.invalid.heading}, subtitle=#{registration.invalid.text})}"></header>
-            <a th:href="@{/login}" class="btn btn-primary btn-lg w-100" th:text="#{registration.invalid.signIn}">Go to sign in</a>
+        <!-- The two causes (P13) and what to do about each; the office contact (app.support-contact) only when set. -->
+        <p th:text="#{registration.invalid.text}">An invitation link stops working for one of two reasons:</p>
+        <ul class="invalid-link-causes">
+            <li>
+                <strong th:text="#{registration.invalid.used}">It was used already.</strong>
+                <span th:text="#{registration.invalid.usedHelp}">Your account exists: sign in with your email and
+                    the password you chose.</span>
+            </li>
+            <li>
+                <strong th:text="#{registration.invalid.expired}">It expired.</strong>
+                <span th:text="#{registration.invalid.expiredHelp(${invitationValidDays})}">A link works for 7 days.
+                    Ask the office to send you a new invitation.</span>
+            </li>
+        </ul>
+        <div th:if="${supportContact != null}" class="support-contact">
+            <p class="support-contact-label" th:text="#{registration.invalid.contact}">Office contact</p>
+            <p class="support-contact-value text-pre-line" th:text="${supportContact}">crewing@example.com, +30 210 000 0000</p>
         </div>
-    </div>
+
+        <a th:href="@{/login}" class="btn btn-primary btn-lg w-100" th:text="#{registration.invalid.signIn}">Go to sign in</a>
+    </th:block>
 </main>
 </body>
 </html>

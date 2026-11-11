@@ -15,14 +15,65 @@
     </div>
 </div>
 
-<!-- English / Greek links. linkClass sets the link colour. -->
-<div th:fragment="langSwitch(linkClass)" class="lang-switch small">
+<!-- English / Greek links. linkClass sets the link colour. token: the invitation token of the registration page, kept
+     in the links so switching language stays on the same invitation (P13); null everywhere else. -->
+<div th:fragment="langSwitch(linkClass, token)" class="lang-switch small">
     <a th:class="${linkClass}" th:classappend="${#locale.language == 'en'} ? 'fw-bold'"
-       th:href="@{''(lang='en')}" th:text="#{nav.lang.en}">English</a>
-    <span class="mx-1 opacity-50">·</span>
+       th:href="${token != null} ? @{''(lang='en', token=${token})} : @{''(lang='en')}"
+       th:text="#{nav.lang.en}">English</a>
+    <span class="mx-1 opacity-50" aria-hidden="true">·</span>
     <a th:class="${linkClass}" th:classappend="${#locale.language == 'el'} ? 'fw-bold'"
-       th:href="@{''(lang='el')}" th:text="#{nav.lang.el}">Ελληνικά</a>
+       th:href="${token != null} ? @{''(lang='el', token=${token})} : @{''(lang='el')}"
+       th:text="#{nav.lang.el}">Ελληνικά</a>
 </div>
+
+<!-- The signed-out frame (sign-in, registration, invalid link, signed-out error pages): the navy brand panel and the
+     form column. From 768px the panel is a column on the left; on phones it collapses to a 64px header bar, so the
+     form starts above the fold (P13). Named parameters:
+       content  the column's content, ~{::authContent}, defined inside the host element
+       lang     true: the English / Greek switch above the content
+       token    the invitation token the switch keeps (registration), or leave it out
+     Use: <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
+              <th:block th:fragment="authContent">...</th:block></main> -->
+<main th:fragment="authFrame" class="auth-frame row g-0 min-vh-100 align-content-start align-content-md-stretch">
+    <div class="auth-brand col-md-5 col-lg-4 bg-navy bg-grid">
+        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
+    </div>
+    <div class="auth-panel col-md-7 col-lg-8">
+        <div th:if="${lang}" class="auth-lang">
+            <div th:replace="~{layout/parts :: langSwitch('link-secondary link-underline-opacity-0', ${token})}"></div>
+        </div>
+        <div class="auth-body">
+            <div class="login-box w-100" th:insert="${content}"></div>
+        </div>
+    </div>
+</main>
+
+<!-- Password fields (P13): sign-in and registration. The input sits in a .password-field with passwordToggle after
+     it; capsLockHint goes right after the .password-field. js/password.js brings both to life; without it the
+     field is an ordinary password field.
+       <div class="password-field">
+           <input type="password" id="password" ...>
+           <th:block th:replace="~{layout/parts :: passwordToggle('password')}"></th:block>
+       </div>
+       <p th:replace="~{layout/parts :: capsLockHint('password')}"></p>
+     passwordToggle: "Show" / "Hide" inside the field, named "Show password" / "Hide password"; a screen reader also
+     hears "Your password is visible / hidden". Hidden until the script runs, so there is never a button that does
+     nothing. -->
+<th:block th:fragment="passwordToggle(fieldId)">
+    <button type="button" class="password-toggle" hidden th:data-password-toggle="${fieldId}"
+            th:attr="aria-controls=${fieldId}, aria-label=#{password.show}"
+            th:data-label-show="#{password.show}" th:data-label-hide="#{password.hide}"
+            th:data-text-show="#{password.showShort}" th:data-text-hide="#{password.hideShort}"
+            th:text="#{password.showShort}">Show</button>
+    <span class="visually-hidden" aria-live="polite" th:id="${fieldId + 'Visibility'}"
+          th:data-shown="#{password.shown}" th:data-hidden="#{password.hidden}"></span>
+</th:block>
+
+<!-- "Caps Lock is on." under a password field while the field has focus and Caps Lock is on (js/password.js fills
+     it; empty otherwise). A live region, so a screen reader hears it too. -->
+<p th:fragment="capsLockHint(fieldId)" class="caps-lock-hint" aria-live="polite" th:id="${fieldId + 'CapsLock'}"
+   th:data-caps-lock-for="${fieldId}" th:data-text="#{password.capsLock}"></p>
 
 <!-- One sidebar entry (P07). section: its NavSection key; the entry whose key is navSection (navigation/NavigationAdvice,
      from the URL) is active: lighter background, a 3px accent bar on the left, aria-current="page". Exactly one entry
@@ -349,17 +400,15 @@
         <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, eyebrow=#{error.eyebrow(${status})}, subtitle=${text})}"></header>
         <th:block th:replace="~{layout/parts :: errorNext(${serverError}, ${home}, 'btn btn-primary')}"></th:block>
     </main>
-    <main sec:authorize="!isAuthenticated()" class="row g-0 min-vh-100 align-content-start align-content-md-stretch">
-        <div class="col-md-5 col-lg-4 bg-navy bg-grid p-4 p-md-5">
-            <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
-        </div>
-        <div class="col-md-7 col-lg-8 d-flex align-items-md-center justify-content-center p-3 p-md-4">
-            <div class="login-box w-100 py-4">
+    <!-- th:replace runs before sec:authorize on the same element, so the condition sits on a wrapper. -->
+    <th:block sec:authorize="!isAuthenticated()">
+        <main th:replace="~{layout/parts :: authFrame(content=~{::errorSignedOut})}">
+            <th:block th:fragment="errorSignedOut">
                 <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, eyebrow=#{error.eyebrow(${status})}, subtitle=${text})}"></header>
                 <th:block th:replace="~{layout/parts :: errorNext(${serverError}, ${home}, 'btn btn-primary btn-lg w-100')}"></th:block>
-            </div>
-        </div>
-    </main>
+            </th:block>
+        </main>
+    </th:block>
 </th:block>
 
 <!-- The next step of an error page: the reference (5xx only) and the link home. -->

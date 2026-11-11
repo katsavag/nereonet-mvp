@@ -136,8 +136,20 @@ Requirements: Java 25, Docker.
      active Chief cook; inviting a second one shows an error on the role field.
 
 7. Registration: open the `/register?token=...` link from the invitation email (signed out, e.g. in a
-   private window), set a password, then sign in. Each link works once; after that, or after it expires,
-   it shows an "invalid or expired" page.
+   private window) and set a password. The page says what the person is joining: "You are joining MV Demo as Second
+   Officer." (the invitation's rank, or its role without a rank: "as Master", "as a crew member") or "You are joining
+   Nereonet as an office user.". **Create account** signs the new user in at once and opens their home page
+   (`/office` or `/ship`) with "Your account is ready. You are signed in."; there is no trip through the sign-in
+   form. The English / Ελληνικά links keep the token, so switching language stays on the same invitation.
+   Each link works once; after that, or after it expires (or is cancelled), it shows the "This link is invalid or has
+   expired" page, which names the two causes and what to do about each (used already: sign in; expired: ask the office
+   for a new invitation, "A link works for 7 days", from `app.invitation.valid-days`). When `app.support-contact` is
+   set (`SUPPORT_CONTACT`, free text, see "Configuration outside dev"), the page also shows it as "Office contact".
+
+   Sign-in messages: a wrong email or password, for any account, gives "Wrong email or password.". A deactivated
+   account (see 9) gives "This account is deactivated. Contact your office." only when the password was right
+   (`/login?deactivated`; `SecurityConfig` checks "enabled" after the password, not before as Spring Security does by
+   default), so the message never tells a stranger that an email has an account.
 
 8. Crew (signed in as an office user): **Crew** in the sidebar (`/office/crew`) lists every user with a ship role
    and every pending crew invitation (status "Invited"), filterable by ship. **Add crew member** opens a pop-up form
@@ -504,6 +516,24 @@ The app makes no request to any other host: everything a page needs is served fr
       `/error`, nor to an `/office` page for crew or a `/ship` page for the office (on a shared PC the next person
       may be someone else); otherwise it is the home page. What was typed into the form is lost.
 
+  - sign-in and registration (P13): a first-time seafarer on a phone gets in without help (see 7 for the flow and
+    the messages):
+    - one signed-out frame, `layout/parts :: authFrame` (sign-in, registration, invalid link, signed-out error
+      pages): the navy brand panel on the left from 768 px; on phones it collapses to a 64 px header bar, so the
+      form starts above the fold (at 390 × 844 the **Continue** button ends at about 430 px). The language switch
+      (sign-in and registration) is a 40 px (44 px on phones) touch target;
+    - password fields (sign-in, both registration fields) have **Show** / **Hide** inside the field on the right
+      (`layout/parts :: passwordToggle`; accessible name "Show password" / "Hide password", and a screen reader
+      hears "Your password is visible / hidden"); the field is set back to hidden before the form is sent. Under
+      the field "Caps Lock is on." appears while the field has focus and Caps Lock is on
+      (`layout/parts :: capsLockHint`). Both come from `js/password.js`; without it the button stays hidden and the
+      field is an ordinary password field;
+    - the registration password rules are a checklist under the field, "At least 8 characters" (the `@Size(min)` of
+      `RegistrationForm`, via `@formFields.minLength`) and "Both passwords are the same", which `js/password.js`
+      ticks while the user types: a green circle with a check mark and "done" for screen readers, an empty circle
+      and "not yet" otherwise. Without the script it is a plain list. The server checks the same rules again; its
+      messages stay under the fields.
+
 Links from templates (`@{/css/app.css}`) and `url(...)` in CSS get a content hash in the URL
 (`/css/app-<md5>.css`), and these files are sent with `Cache-Control: max-age=31536000, public`
 (`spring.web.resources` in `application.yml`). A changed file gets a new URL, so browsers on board load each
@@ -530,6 +560,7 @@ Set these environment variables:
 | `INVITATION_JWT_SECRET` | random secret, at least 32 characters, for signing invitation links |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
+| `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |
 
 Outside dev, SMTP login and STARTTLS are required (no plain-text fallback). Keep secrets out of
 checked-in files (`application*.yml`, `docker-compose.yml`) and do not enable `mail.debug` or DEBUG
