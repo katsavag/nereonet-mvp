@@ -1287,6 +1287,18 @@ fieldset:disabled button.btn {
     overflow: hidden;
 }
 
+/* Experiment (ship/map): the VesselFinder map on the Overview tab, full width, 400px high, 300px on phones. The
+   embed writes its own iframe with a height attribute; !important in case it also sets an inline height. */
+.ship-map iframe {
+    display: block;
+    width: 100% !important;
+    height: 400px !important;
+    border: 0;
+}
+@media (max-width: 575.98px) {
+    .ship-map iframe { height: 300px !important; }
+}
+
 /* ---------------------------------------------------------------------------------------------------------------
    Overview (P09): dashboard/dashboard.html, the office home page as a work list.
      - .attention: the "Needs attention" card. Header: title, and the number of open items on the right.

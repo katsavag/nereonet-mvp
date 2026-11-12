@@ -78,6 +78,10 @@ app:
   library:
     # Folder for library files (created if missing). Back it up together with the database.
     storage-dir: ${LIBRARY_STORAGE_DIR}
+  # Experiment: the ship's position on the free VesselFinder map, on the office ship page (ship/ShipMap). false: no
+  # map and no external script.
+  ship-map:
+    enabled: ${SHIP_MAP_ENABLED:true}
   # Optional free text (e.g. "Crewing department, crewing@example.com, +30 210 000 0000"), shown on the
   # "link is invalid or has expired" page. Not shown when empty.
   support-contact: ${SUPPORT_CONTACT:}

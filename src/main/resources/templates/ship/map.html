@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- Experiment (see ship/ShipMap): the ship's position on the free VesselFinder map, by its IMO number. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The "Position" card, full width. Rendered only when app.ship-map.enabled is true, so with the switch off no
+     external script is loaded. aismap.js reads the variables below and writes the map's iframe where it stands; the
+     IMO number is inserted by th:inline="javascript" (JavaScript-escaped), never concatenated. The map is 400px high,
+     300px on phones (.ship-map in app.css).
+     Use: <section th:replace="~{ship/map :: card(${ship})}"></section> -->
+<section th:fragment="card(ship)" th:if="${@shipMap.enabled()}" class="card ship-map-card mt-4" aria-labelledby="shipMapTitle">
+    <div class="card-body">
+        <h2 class="h5 fw-bold mb-3" id="shipMapTitle" th:text="#{ship.map.title}">Position</h2>
+        <div class="ship-map">
+            <script type="text/javascript" th:inline="javascript">
+                var width="100%";
+                var height="400";
+                var names=true;
+                var imo=/*[[${ship.imoNumber}]]*/ "9074729";
+                var show_track=true;
+            </script>
+            <script type="text/javascript" src="https://www.vesselfinder.com/aismap.js"></script>
+        </div>
+        <p class="small text-body-secondary mt-2 mb-0" th:text="#{ship.map.source}">Position data by VesselFinder</p>
+    </div>
+</section>
+
+</body>
+</html>
