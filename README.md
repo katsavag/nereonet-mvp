@@ -260,7 +260,8 @@ Requirements: Java 25, Docker.
    the details), filterable by ship and date range (UTC days), sortable by when, who, action and ship. Recorded so far: ship added,
    edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted; password reset (the user, by their email; see 17);
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
-   certificate reminder sent (by "System"); announcement sent; requests exported (count and ids).
+   certificate reminder sent (by "System"); announcement sent, announcement acknowledged (by the crew member, with the
+   title); requests exported (count and ids).
    Entries are read-only.
 
 11. Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see 5).
@@ -393,9 +394,10 @@ Requirements: Java 25, Docker.
 
    The recipients are fixed when it is sent: every active user with a ship role on that ship
    (on every active ship for All ships). Someone who joins the ship later is not a recipient; someone who leaves the
-   ship or is deactivated later stays in the list. Opening an announcement shows its text and two lists:
-   acknowledged (name, role, ship, time) and not yet acknowledged. Announcements cannot be edited or deleted.
-   Crew members cannot acknowledge yet (their pages come later), so every recipient shows as "not yet".
+   ship or is deactivated later stays in the list. Each recipient gets an in-app notification "Announcement · <title>"
+   (the subject is their ship) that opens the announcement on their own page (19). Opening an announcement shows its
+   text, "1 of 3 acknowledged" under the heading, and two lists: acknowledged (name, role, ship, time) and not yet
+   acknowledged. Announcements cannot be edited or deleted.
 
 15. Approved requests (signed in as an office user): **Requests** in the sidebar (`/office/requests`) lists the item
    requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at and number
@@ -548,11 +550,12 @@ Requirements: Java 25, Docker.
      it (the role when no rank is set). Next to the name: "Not Demo Cook?" and **Sign out**, one tap from Home, so
      the next person on a shared PC sees whose session it is.
    - **To read**: the Required library items of the person's ship that they have not acknowledged in the current
-     version, oldest version first, with their number after the heading. Each is a full-width card (at least 56 px)
-     with the type icon, the type ("Library"), the title and "Published 12 Nov 2026" (UTC date), and opens the item,
-     where **I have read this** is. Retired items and items of other ships never show. A new version puts the item
-     back on the list. Nothing left: "You are up to date." **Open the Library** follows the list. Announcements join
-     the list (and an "All announcements" link) with P27, which adds the crew's announcement pages.
+     version and the announcements they have not acknowledged (P27, see 19), together, oldest first, with their number
+     after the heading. Each is a full-width card (at least 56 px) with the type icon (the announcements icon for an
+     announcement), the type ("Library" or "Announcement"), the title and "Published 12 Nov 2026" or "Sent 12 Nov
+     2026" (UTC date), and opens the item or announcement, where **I have read this** is. Retired items and items of
+     other ships never show. A new version puts the item back on the list. Nothing left: "You are up to date."
+     **All announcements** and **Open the Library** follow the list.
    - **My certificates**: the person's own certificates, soonest expiry first (so expired, then expiring soon, then
      valid): type, "Expires 3 Nov 2026 · expired 8 days ago", the number when set, and the expiry badge of the office
      lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
@@ -562,12 +565,12 @@ Requirements: Java 25, Docker.
      acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
    - From 992 px To read (and the Master's card) and the certificates sit side by side.
    - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
-     :: tabBar`) with **Home**, **Library** and **Notifications** (the unread count as a badge on the icon, in words
+     :: tabBar`) with **Home**, **Announcements** (P27), **Library** and **Notifications** (the unread count as a badge on the icon, in words
      for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
      one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
      the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
-     Library; Account: Notifications). The page keeps room for the bar, and the offline banner and the pinned **I have
-     read this** sit above it. P27 adds **Announcements** between Home and Library in both.
+     Announcements, Library; Account: Notifications). The page keeps room for the bar, and the offline banner and the
+     pinned **I have read this** sit above it.
    - The page loads no images and no script of its own (only the layout's shared files). Measured with the dev data
      as `cook.demo@example.com` (Chrome, 390 px): the HTML is 19.6 KB; with an empty cache the whole page transfers
      569 KB (Bootstrap CSS 232 KB and JS 81 KB, `app.css` 126 KB, the shared scripts 61 KB, the Latin font subset
@@ -576,6 +579,29 @@ Requirements: Java 25, Docker.
    - To try it: sign in as `cook.demo@example.com` / `crew123`: "Drug and alcohol policy" is under To read; open it,
      press **I have read this**, then **Home**: "You are up to date.". As `master.demo@example.com` the Crew
      acknowledgements card lists it with its count.
+
+19. Crew announcements (P27, any ship user): the crew read and acknowledge the announcements the office sends (14).
+   `announcement/ShipAnnouncementController`, `templates/announcement/ship-list.html` and `ship-detail.html`; English
+   only, as every crew screen. **Announcements** sits between Home and Library in the sidebar and the phone tab bar.
+   - `/ship/announcements`: the announcements the signed-in person is a recipient of, newest first. Each row is one
+     link (the whole row) with the title, the date sent (UTC) and "To acknowledge" or "Acknowledged". One to
+     acknowledge has a bold title and the "To acknowledge" badge; the words carry the state, weight and colour only
+     repeat it. With none: "No announcements yet".
+   - `/ship/announcements/{id}`: All ships or the ship (with its IMO number) as the eyebrow, the title, "Office ·
+     <sender name>" (just "Office" when the sender was deleted) and the date and time sent in UTC, the message as plain
+     text with its line breaks, then **I have read this**, filling the reading column (48 rem wide at most) and, on
+     phones, pinned to the bottom of the screen above the tab bar until the message ends, as on a Required library
+     item (16).
+   - **I have read this** (`POST /ship/announcements/{id}/acknowledge`) sets the person's `acknowledgedAt`, records
+     "Announcement acknowledged" in the audit log (10) and comes back with "Thank you. Your acknowledgement is
+     recorded."; the button is replaced by "Acknowledged · 12 Nov 2026 · 14:05 UTC". Pressing it again (a second tab,
+     a resend over a bad link) changes nothing: same time, no new audit entry, no message.
+   - Someone who is not a recipient (another ship, joined after it was sent) gets 404 on both URLs, and never sees it
+     in their list. The crew never see who else has or has not acknowledged: only their own state.
+   - Unacknowledged announcements are on the Home page's To read (18) until acknowledged.
+   - To try it: as `office@example.com` send an announcement to MV Demo (14). As `cook.demo@example.com` /
+     `crew123`: **Notifications** has "Announcement · <title>"; open it, press **I have read this**. As the office, the
+     announcement's page shows "1 of 2 acknowledged" with Demo Cook and the time under Acknowledged.
 
 Run the tests (H2 in memory, no Docker needed):
 
@@ -745,7 +771,7 @@ The app makes no request to any other host: everything a page needs is served fr
     uppercase group labels:
     - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Announcements, Requests),
       **Administration** (Office users, Audit log), **Account** (Notifications, the language switch); crew: **On board**
-      (Home `/ship`, Library; Announcements comes with P27) and **Account** (Notifications). The user block (name,
+      (Home `/ship`, Announcements `/ship/announcements`, Library) and **Account** (Notifications). The user block (name,
       role, **Sign out**) is pinned at the bottom; when the window is shorter than the navigation, only the navigation
       scrolls. The brand (logo and name) links to the user's home page (`/office` or `/ship`);
     - the entry of the current section is active: lighter background, a 3 px pink bar on its left edge, white semibold

@@ -27,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.announcement.AnnouncementService;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
@@ -86,6 +87,9 @@ class ShipHomeFlowTest {
     @Autowired
     NotificationService notificationService;
 
+    @Autowired
+    AnnouncementService announcementService;
+
     Ship ship;
     User master;
     User cook;
@@ -132,6 +136,27 @@ class ShipHomeFlowTest {
         policy.setCurrentVersion(second);
         itemRepository.flush();
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
+    }
+
+    // P27: announcements not yet acknowledged join To read, in date order with the library items, until acknowledged.
+    @Test
+    @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
+    void unacknowledgedAnnouncementsAreToRead() throws Exception {
+        Long id = announcementService.create("Safety drill", "Drill on Friday.", ship.getId(), "office@example.com")
+                .announcement().getId();
+
+        String toRead = section(TO_READ, home(cook));
+        // The policy was published two days ago, the announcement sent now: oldest first.
+        assertThat(titles(toRead)).containsExactly("Drug and alcohol policy", "Safety drill");
+        assertThat(toRead).contains("href=\"/ship/announcements/" + id + "\"", "class=\"read-card-type\">Announcement<",
+                        "<span>Sent</span>", "<span class=\"read-card-icon\" aria-hidden=\"true\">",
+                        "href=\"/ship/announcements\">All announcements</a>");
+
+        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", id).with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(redirectedUrl("/ship/announcements/" + id));
+        assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
+        // Only the cook acknowledged it: still to read for the others.
+        assertThat(titles(section(TO_READ, home(crew)))).containsExactly("Drug and alcohol policy", "Safety drill");
     }
 
     @Test
@@ -195,10 +220,11 @@ class ShipHomeFlowTest {
                 "/ship/library/" + policy.getId());
         String html = home(cook);
 
-        // The tab bar: Home (active), Library, Notifications with the unread count, in words too.
+        // The tab bar: Home (active), Announcements, Library, Notifications with the unread count, in words too.
         String tabBar = section(TAB_BAR, html);
         assertThat(Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
-                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/library", "/notifications");
+                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/announcements", "/ship/library",
+                "/notifications");
         assertThat(tabBar).contains("aria-label=\"Main navigation\"",
                         "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">",
                         "<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>", "1 unread");

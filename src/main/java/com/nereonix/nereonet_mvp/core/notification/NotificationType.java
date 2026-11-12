@@ -9,7 +9,7 @@ public enum NotificationType {
     CERTIFICATE("certificates"),
     /** A library document to read. */
     LIBRARY("library"),
-    /** An announcement to the ship. None is sent yet: the crew's announcements come with P27. */
+    /** An announcement from the office, sent to each recipient when it is sent (P27). */
     ANNOUNCEMENT("announcements");
 
     private final String icon;

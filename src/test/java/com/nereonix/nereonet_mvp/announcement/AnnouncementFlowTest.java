@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.announcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -29,6 +30,11 @@ import com.nereonix.nereonet_mvp.core.announcement.Announcement;
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipient;
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRepository;
+import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
+import com.nereonix.nereonet_mvp.core.notification.Notification;
+import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
+import com.nereonix.nereonet_mvp.core.notification.NotificationType;
+import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -59,6 +65,12 @@ class AnnouncementFlowTest {
 
     @Autowired
     MessageSource messageSource;
+
+    @Autowired
+    NotificationRepository notificationRepository;
+
+    @Autowired
+    AuditRepository auditRepository;
 
     @Test
     void recipientsAreFixedWhenTheAnnouncementIsSent() throws Exception {
@@ -213,6 +225,137 @@ class AnnouncementFlowTest {
                 .param("target", "fleet").param("title", "").param("body", "Friday").with(csrf()));
         assertThat(html).contains("Enter a title.", "action=\"/office/announcements/review\"")
                 .doesNotContain("Review announcement");
+    }
+
+    // P27: sending notifies each recipient; the crew list their own announcements newest first, open one, acknowledge
+    // it once (recorded and audited); pressing again changes nothing; the office then sees who acknowledged.
+    @Test
+    void crewListOpenAndAcknowledgeTheirAnnouncements() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        User cook = crewMember("cook@example.com", "Demo Cook", demo);
+        crewMember("anna@example.com", "Anna Testa", demo);
+
+        Announcement drill = send(demo, "Safety drill", "Drill on Friday.\r\nMuster at <10:00>.");
+        Announcement galley = send(null, "Galley inspection", "Next week.");
+        announcementRepository.flush();
+
+        // Each recipient gets a notification that opens the announcement.
+        Notification notification = notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc("cook@example.com")
+                .stream().filter(n -> n.getLink().equals("/ship/announcements/" + drill.getId())).findFirst().orElseThrow();
+        assertThat(notification.getType()).isEqualTo(NotificationType.ANNOUNCEMENT);
+        assertThat(notification.getText()).isEqualTo("Announcement · Safety drill");
+        assertThat(notification.getSubject()).isEqualTo("MV Demo");
+        assertThat(notification.getReadAt()).isNull();
+        assertThat(notificationRepository.countByUserEmailAndReadAtIsNull("anna@example.com")).isEqualTo(2);
+
+        // The list: newest first, both to acknowledge (bold title and the badge's words).
+        String list = html(get("/ship/announcements").with(user(new CurrentUser(cook))));
+        assertThat(list).contains("<title>Announcements · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>")
+                .containsSubsequence("href=\"/ship/announcements/" + galley.getId() + "\"", "Galley inspection",
+                        "To acknowledge", "href=\"/ship/announcements/" + drill.getId() + "\"", "Safety drill",
+                        "To acknowledge");
+        assertThat(count(list, "announcement-row is-unread")).isEqualTo(2);
+        // Announcements is the active tab (and sidebar entry).
+        assertThat(list).contains("<a class=\"tab-bar-link active\" href=\"/ship/announcements\" aria-current=\"page\">");
+
+        // The detail: sender, time in UTC, the text with its line breaks (escaped), I have read this. Nobody else.
+        String office = userRepository.findByEmail("office@example.com").orElseThrow().getFullName();
+        String detail = html(get("/ship/announcements/{id}", drill.getId()).with(user(new CurrentUser(cook))));
+        assertThat(detail).contains("<h1 class=\"page-title\">", "Safety drill", "Office · " + office, " UTC</time>",
+                        "Drill on Friday.\nMuster at &lt;10:00&gt;.",
+                        "<div class=\"ack-bar ack-bar-full is-pinned\">",
+                        "action=\"/ship/announcements/" + drill.getId() + "/acknowledge\"",
+                        ">I have read this</button>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>")
+                .doesNotContain("Anna Testa", "Acknowledged ·", "of 2 acknowledged");
+
+        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", drill.getId())
+                        .with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(redirectedUrl("/ship/announcements/" + drill.getId()))
+                .andExpect(flash().attribute("successMessage", "announcement.ship.acknowledgedMessage"));
+        AnnouncementRecipient mine = recipientRepository.findByAnnouncementIdAndUserEmail(drill.getId(), "cook@example.com")
+                .orElseThrow();
+        Instant acknowledgedAt = mine.getAcknowledgedAt();
+        assertThat(acknowledgedAt).isNotNull();
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("ANNOUNCEMENT_ACKNOWLEDGED"))
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getActor().getEmail()).isEqualTo("cook@example.com");
+                    assertThat(e.getShip().getId()).isEqualTo(demo.getId());
+                    assertThat(e.getDetails()).isEqualTo("\"Safety drill\"");
+                });
+
+        // The button is replaced by the acknowledgement and its time.
+        String after = html(get("/ship/announcements/{id}", drill.getId()).with(user(new CurrentUser(cook))));
+        assertThat(after).containsPattern("(?s)<p class=\"alert alert-success mb-0\">\\s*<span>Acknowledged ·</span>\\s*"
+                        + "<time class=\"local-time text-nowrap\"[^>]*>[^<]+ UTC</time>")
+                .contains("<div class=\"ack-bar ack-bar-full\">")
+                .doesNotContain("I have read this", "/acknowledge\"");
+
+        // Pressing again (a second tab, a resend) changes nothing: same time, no new audit entry, no message.
+        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", drill.getId())
+                        .with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(redirectedUrl("/ship/announcements/" + drill.getId()))
+                .andExpect(flash().attributeCount(0));
+        recipientRepository.flush();
+        assertThat(recipientRepository.findByAnnouncementIdAndUserEmail(drill.getId(), "cook@example.com")
+                .orElseThrow().getAcknowledgedAt()).isEqualTo(acknowledgedAt);
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("ANNOUNCEMENT_ACKNOWLEDGED")).hasSize(1);
+
+        // The list: the drill now acknowledged (regular title), the other still to acknowledge.
+        String listAfter = html(get("/ship/announcements").with(user(new CurrentUser(cook))));
+        assertThat(count(listAfter, "announcement-row is-unread")).isEqualTo(1);
+        assertThat(listAfter).containsSubsequence("Galley inspection", "To acknowledge", "Safety drill", "Acknowledged");
+
+        // The office sees it: 1 of 2, the cook acknowledged, Anna not yet.
+        String officeDetail = html(get("/office/announcements/{id}", drill.getId()));
+        assertThat(officeDetail).contains("1 of 2 acknowledged");
+        int acknowledged = officeDetail.indexOf("id=\"acknowledged\"");
+        int pending = officeDetail.indexOf("id=\"pending\"");
+        assertThat(officeDetail.substring(acknowledged, pending)).contains("Demo Cook").doesNotContain("Anna Testa");
+        assertThat(html(get("/office/audit"))).contains("Announcement acknowledged");
+    }
+
+    // P27: someone who is not a recipient (another ship, joined later, or no such announcement) gets 404, never the text.
+    @Test
+    void aNonRecipientGetsNotFound() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        Ship other = ship("9176187", "MV Other");
+        crewMember("cook@example.com", "Demo Cook", demo);
+        User olga = crewMember("olga@example.com", "Olga Other", other);
+        Announcement drill = send(demo, "Safety drill", "Drill on Friday.");
+        User later = crewMember("lena@example.com", "Lena Later", demo);
+
+        for (User u : List.of(olga, later)) {
+            mockMvc.perform(get("/ship/announcements/{id}", drill.getId()).with(user(new CurrentUser(u))))
+                    .andExpect(status().isNotFound());
+            mockMvc.perform(post("/ship/announcements/{id}/acknowledge", drill.getId())
+                            .with(user(new CurrentUser(u))).with(csrf()))
+                    .andExpect(status().isNotFound());
+            assertThat(html(get("/ship/announcements").with(user(new CurrentUser(u)))))
+                    .doesNotContain("Safety drill")
+                    .contains("No announcements yet", "Messages from the office to you appear here.");
+        }
+        mockMvc.perform(get("/ship/announcements/{id}", drill.getId() + 1000).with(user(new CurrentUser(olga))))
+                .andExpect(status().isNotFound());
+        assertThat(recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(drill))
+                .allSatisfy(r -> assertThat(r.getAcknowledgedAt()).isNull());
+        assertThat(auditRepository.findAll()).noneMatch(e -> e.getAction().equals("ANNOUNCEMENT_ACKNOWLEDGED"));
+        // The crew pages are for ship roles only.
+        mockMvc.perform(get("/ship/announcements")).andExpect(status().isForbidden());
+    }
+
+    // Sends an announcement as the office (to one ship, or to all ships when ship is null).
+    private Announcement send(Ship ship, String title, String body) throws Exception {
+        mockMvc.perform(post("/office/announcements/send")
+                        .param("target", ship == null ? "fleet" : ship.getId().toString())
+                        .param("title", title).param("body", body).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        return announcementRepository.findAll().stream().filter(a -> a.getTitle().equals(title)).findFirst()
+                .orElseThrow();
+    }
+
+    private static int count(String html, String needle) {
+        return html.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
     }
 
     private String html(MockHttpServletRequestBuilder request) throws Exception {

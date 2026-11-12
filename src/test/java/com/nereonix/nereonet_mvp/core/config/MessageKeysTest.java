@@ -32,7 +32,7 @@ class MessageKeysTest {
             "certificate.reminder.office.subject",
             "invitation.email.subject",
             "invitation.email.text",
-            // Crew (ship) screens: the library as the crew see it, their navigation and the ship home page.
+            // Crew (ship) screens: the library as the crew see it, their navigation, the ship home page and their announcements.
             // (Download and the file size are on the office's read view too since P22, so they are in Greek.)
             "library.acknowledge",
             "library.acknowledged",
@@ -48,16 +48,32 @@ class MessageKeysTest {
             "home.notYou",
             "home.toRead.heading",
             "home.toRead.kind.LIBRARY",
-            "home.toRead.published",
+            "home.toRead.kind.ANNOUNCEMENT",
+            "home.toRead.date.LIBRARY",
+            "home.toRead.date.ANNOUNCEMENT",
             "home.toRead.empty",
             "home.links.library",
+            "home.links.announcements",
             "home.crewAcknowledgements.heading",
             "home.crewAcknowledgements.empty",
             "home.certificates.heading",
             "home.certificates.expires",
             "home.certificates.number",
             "home.certificates.empty",
-            "home.certificates.contact");
+            "home.certificates.contact",
+            // The crew's announcements and their notification (P27).
+            "announcement.notification",
+            "announcement.ship.title",
+            "announcement.ship.hint",
+            "announcement.ship.empty.title",
+            "announcement.ship.empty.text",
+            "announcement.ship.toAcknowledge",
+            "announcement.ship.acknowledged",
+            "announcement.ship.from",
+            "announcement.ship.fromOffice",
+            "announcement.ship.acknowledge",
+            "announcement.ship.acknowledgedAt",
+            "announcement.ship.acknowledgedMessage");
 
     @Test
     void everyOfficeKeyIsInGreek() throws IOException {

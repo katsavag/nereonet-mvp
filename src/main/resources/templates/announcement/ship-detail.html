@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
+<body>
+<!-- One announcement as its recipient sees it (P27): the target as the eyebrow (All ships, or the ship), the title,
+     "Office · <sender>" and when it was sent (UTC), the message as plain text with its line breaks, then the person's
+     own acknowledgement, as on a Required library item (library/item.html): "I have read this" until pressed, then
+     "Acknowledged · <date and time> UTC". The reading column has a comfortable line length; the button fills it and,
+     on phones, stays pinned to the bottom of the screen until the message ends (.ack-bar.is-pinned). Never who else
+     has or has not acknowledged. -->
+<main th:with="toAcknowledge=${recipient.acknowledgedAt == null}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs},
+                         subtitleParts=~{::pageSubtitle},
+                         eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : null, eyebrowShip=${announcement.ship})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{announcement.ship.title}, '/ship/announcements')}"></li>
+        </th:block>
+        <th:block th:fragment="pageSubtitle">
+            <span th:text="${announcement.createdBy} ? #{announcement.ship.from(${announcement.createdBy.fullName})}
+                         : #{announcement.ship.fromOffice}">Office · Jane Doe</span>
+            ·
+            <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
+        </th:block>
+    </header>
+
+    <div class="announcement-read">
+        <div class="card">
+            <div class="card-body text-break text-pre-line" th:text="${announcement.body}">Message text</div>
+        </div>
+
+        <div class="ack-bar ack-bar-full" th:classappend="${toAcknowledge} ? 'is-pinned'">
+            <form th:if="${toAcknowledge}" method="post"
+                  th:action="@{/ship/announcements/{id}/acknowledge(id=${announcement.id})}">
+                <button type="submit" class="btn btn-primary btn-lg" th:text="#{announcement.ship.acknowledge}">I have read this</button>
+            </form>
+            <p th:unless="${toAcknowledge}" class="alert alert-success mb-0">
+                <span th:text="#{announcement.ship.acknowledgedAt}">Acknowledged ·</span>
+                <time th:replace="~{layout/parts :: localTime(${recipient.acknowledgedAt})}"></time>
+            </p>
+        </div>
+    </div>
+</main>
+</body>
+</html>

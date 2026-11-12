@@ -11,6 +11,9 @@
             <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
             ·
             <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
+            ·
+            <!-- As in the list: the crew acknowledge on their own page (P27). -->
+            <span th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 acknowledged</span>
         </th:block>
     </header>
 

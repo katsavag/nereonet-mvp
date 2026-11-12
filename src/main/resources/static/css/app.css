@@ -3235,7 +3235,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .tab-bar-list {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
+    /* Equal tabs, except that a tab is never narrower than its label on one line ("Announcements", P27, on a
+       360px phone): that one takes what it needs and the others share the rest. */
+    grid-auto-columns: minmax(max-content, 1fr);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -3414,7 +3416,26 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     width: 20px;
     height: 20px;
 }
-.home-links { margin: var(--nn-space-2) 0 0; }
+.home-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+    margin: var(--nn-space-2) 0 0;
+}
+/* An announcement's card (P27): the announcements icon in the place, and at the size, of a library type icon. */
+.read-card-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-file-type-width);
+    height: var(--nn-file-type-height);
+    color: var(--nn-blue);
+}
+.read-card-icon > svg {
+    width: 24px;
+    height: 24px;
+}
 
 .crew-ack-row {
     display: flex;
@@ -3458,3 +3479,45 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Crew announcements (P27): announcement/ship-list.html and ship-detail.html.
+     - .announcement-row: one announcement, the title (a .stretched-link, so the whole row opens it) and the date
+       sent; on the right (below on phones) "To acknowledge" or "Acknowledged". One to acknowledge (.is-unread) has
+       a bold title, one acknowledged a regular one: the badge's words carry the state, weight and colour repeat it.
+     - .announcement-read: the message and the acknowledgement, at a comfortable line length (--nn-read-measure).
+     - .ack-bar-full: "I have read this" fills the reading column at every width (the library's .ack-bar only on
+       phones); pinned to the bottom of the screen on phones as there (.ack-bar.is-pinned).
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-read-measure: 48rem;        /* 768px, about 90 characters a line */
+}
+
+.announcement-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding-block: var(--nn-space-3);
+}
+.announcement-row-main {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+.announcement-row-title {
+    font-weight: 400;
+    color: var(--nn-text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.announcement-row.is-unread .announcement-row-title { font-weight: 700; }
+.announcement-row:hover .announcement-row-title,
+.announcement-row-title:focus-visible { text-decoration: underline; }
+.announcement-row-meta {
+    margin: 2px 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.announcement-read { max-width: var(--nn-read-measure); }
+.ack-bar-full .btn { width: 100%; }

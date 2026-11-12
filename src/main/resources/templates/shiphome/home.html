@@ -20,7 +20,8 @@
 
     <div class="row g-4">
         <div class="col-lg-7">
-            <!-- To read: each card opens the item, where "I have read this" is. Oldest first. -->
+            <!-- To read: Required library items and announcements (P27) not yet acknowledged, oldest first. Each card
+                 opens the item or announcement, where "I have read this" is. -->
             <section class="home-section" aria-labelledby="toReadTitle">
                 <h2 class="home-section-title" id="toReadTitle">
                     <span th:text="#{home.toRead.heading}">To read</span>
@@ -30,11 +31,15 @@
                 <ul th:unless="${home.toRead.isEmpty()}" class="read-list">
                     <li th:each="r : ${home.toRead}">
                         <a class="read-card" th:href="@{${r.url}}">
-                            <span th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span>
+                            <th:block th:if="${r.version != null}"><span
+                                    th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span></th:block>
+                            <!-- An announcement: the sidebar's announcements icon; the type below says it in words. -->
+                            <span th:if="${r.version == null}" class="read-card-icon" aria-hidden="true"><svg
+                                    th:replace="~{layout/parts :: navIcon('announcements')}"></svg></span>
                             <span class="read-card-main">
                                 <span class="read-card-type" th:text="#{${'home.toRead.kind.' + r.kind}}">Library</span>
                                 <span class="read-card-title" th:text="${r.title}">Drug and alcohol policy</span>
-                                <span class="read-card-date"><span th:text="#{home.toRead.published}">Published</span>
+                                <span class="read-card-date"><span th:text="#{${'home.toRead.date.' + r.kind}}">Published</span>
                                     <time th:replace="~{layout/parts :: utcDate(${r.date})}"></time></span>
                             </span>
                             <svg class="read-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -47,8 +52,8 @@
                     <svg th:replace="~{layout/parts :: icon('check')}"></svg>
                     <span th:text="#{home.toRead.empty}">You are up to date.</span>
                 </p>
-                <!-- P27 adds "All announcements" here. -->
                 <p class="home-links">
+                    <a class="btn btn-ghost" th:href="@{/ship/announcements}" th:text="#{home.links.announcements}">All announcements</a>
                     <a class="btn btn-ghost" th:href="@{/ship/library}" th:text="#{home.links.library}">Open the Library</a>
                 </p>
             </section>

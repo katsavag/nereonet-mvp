@@ -123,13 +123,15 @@ class NavigationFlowTest {
     }
 
     @Test
-    void crewSidebarHasHomeLibraryAndNotifications() throws Exception {
+    void crewSidebarHasHomeAnnouncementsLibraryAndNotifications() throws Exception {
         String nav = sidebar(get("/ship/library").with(user(new CurrentUser(crew))));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList())
-                .containsExactly("/ship", "/ship/library", "/notifications");
+                .containsExactly("/ship", "/ship/announcements", "/ship/library", "/notifications");
         assertThat(nav).contains(">On board</p>", ">Account</p>").doesNotContain("/office", "lang=el");
         // The ship home page is Home (P26).
         assertActive(get("/ship").with(user(new CurrentUser(crew))), "/ship", "Home");
+        // The crew's announcements (P27).
+        assertActive(get("/ship/announcements").with(user(new CurrentUser(crew))), "/ship/announcements", "Announcements");
     }
 
     @Test
@@ -179,6 +181,7 @@ class NavigationFlowTest {
         assertThat(NavSection.of("/office/crewing")).isNull();
         assertThat(NavSection.of("/ship")).isEqualTo(NavSection.HOME);
         assertThat(NavSection.of("/ship/library/3")).isEqualTo(NavSection.LIBRARY);
+        assertThat(NavSection.of("/ship/announcements/7")).isEqualTo(NavSection.ANNOUNCEMENTS);
         assertThat(NavSection.of("/shipping")).isNull();
         assertThat(NavSection.of("/error")).isNull();
     }
