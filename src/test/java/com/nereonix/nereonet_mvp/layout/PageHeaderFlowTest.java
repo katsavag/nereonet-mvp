@@ -156,7 +156,7 @@ class PageHeaderFlowTest {
         add(pages, "/office/announcements", null, "Announcements", List.of(), null);
         add(pages, "/office/requests", null, "Approved requests", List.of(), null);
         add(pages, "/notifications", null, "Notifications", List.of(), null);
-        add(pages, "/ship", crew, "Overview", List.of(), null);
+        add(pages, "/ship", crew, "Home", List.of(), SHIP_CONTEXT);
         add(pages, "/ship/library", crew, "Library", List.of(), SHIP_CONTEXT);
         // Below the top level: section > record > page.
         add(pages, "/office/announcements/new", null, "New announcement", List.of("Announcements", "New announcement"), null);

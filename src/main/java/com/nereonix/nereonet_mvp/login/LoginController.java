@@ -11,10 +11,4 @@ public class LoginController {
     public String login() {
         return "login/login";
     }
-
-    // Placeholder landing page after login for ship crew. The office home page is in the dashboard package.
-    @GetMapping("/ship")
-    public String ship() {
-        return "login/ship";
-    }
 }

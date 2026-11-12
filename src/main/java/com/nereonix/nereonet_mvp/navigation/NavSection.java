@@ -18,7 +18,8 @@ public enum NavSection {
     // Office, Administration. Office invitations are part of the Office users page.
     USERS("users", List.of("/office/users", "/office/invitations")),
     AUDIT("audit", List.of("/office/audit")),
-    // Ship
+    // Ship. Home is /ship itself only (P26), see of().
+    HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
     // Account, everyone
     NOTIFICATIONS("notifications", List.of("/notifications"));
@@ -37,7 +38,7 @@ public enum NavSection {
 
     /**
      * The section of a path within the application (no context path), or null for a page with no sidebar entry
-     * (/ship until the ship home page gets one in P26, the sign-in page).
+     * (the sign-in page, /error).
      */
     public static NavSection of(String path) {
         if (path == null) {
@@ -46,6 +47,9 @@ public enum NavSection {
         String p = path.length() > 1 && path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
         if (p.equals("/office")) {
             return OVERVIEW;
+        }
+        if (p.equals("/ship")) {
+            return HOME;
         }
         for (NavSection section : values()) {
             for (String prefix : section.prefixes) {

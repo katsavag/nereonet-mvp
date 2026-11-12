@@ -42,9 +42,22 @@ class MessageKeysTest {
             "library.required.acknowledged",
             "library.required.toAcknowledge",
             "nav.group.ship",
+            "nav.home",
             "nav.library",
-            "ship.heading",
-            "ship.title");
+            "home.title",
+            "home.notYou",
+            "home.toRead.heading",
+            "home.toRead.kind.LIBRARY",
+            "home.toRead.published",
+            "home.toRead.empty",
+            "home.links.library",
+            "home.crewAcknowledgements.heading",
+            "home.crewAcknowledgements.empty",
+            "home.certificates.heading",
+            "home.certificates.expires",
+            "home.certificates.number",
+            "home.certificates.empty",
+            "home.certificates.contact");
 
     @Test
     void everyOfficeKeyIsInGreek() throws IOException {

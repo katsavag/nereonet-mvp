@@ -540,6 +540,43 @@ Requirements: Java 25, Docker.
      link. Each link sent is a `password_reset` row (token id, user, email, sent at, expires at, used at), kept for the
      hourly limit.
 
+18. Crew home page (P26, any ship user: Master, Chief cook, crew members): `/ship`, where a ship user lands after
+   signing in and where **Home** and the brand lead. Made for a phone first (390 px, one hand, a slow link, a shared
+   PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeService`, `templates/shiphome/home.html`
+   (it replaces the placeholder `login/ship.html`).
+   - **Header**: the ship's name and IMO number as the eyebrow, the person's name as the heading and their rank under
+     it (the role when no rank is set). Next to the name: "Not Demo Cook?" and **Sign out**, one tap from Home, so
+     the next person on a shared PC sees whose session it is.
+   - **To read**: the Required library items of the person's ship that they have not acknowledged in the current
+     version, oldest version first, with their number after the heading. Each is a full-width card (at least 56 px)
+     with the type icon, the type ("Library"), the title and "Published 12 Nov 2026" (UTC date), and opens the item,
+     where **I have read this** is. Retired items and items of other ships never show. A new version puts the item
+     back on the list. Nothing left: "You are up to date." **Open the Library** follows the list. Announcements join
+     the list (and an "All announcements" link) with P27, which adds the crew's announcement pages.
+   - **My certificates**: the person's own certificates, soonest expiry first (so expired, then expiring soon, then
+     valid): type, "Expires 3 Nov 2026 · expired 8 days ago", the number when set, and the expiry badge of the office
+     lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
+     office to update a certificate." Without any: "No certificates on record."
+   - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
+     the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
+     acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
+   - From 992 px To read (and the Master's card) and the certificates sit side by side.
+   - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
+     :: tabBar`) with **Home**, **Library** and **Notifications** (the unread count as a badge on the icon, in words
+     for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
+     one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
+     the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
+     Library; Account: Notifications). The page keeps room for the bar, and the offline banner and the pinned **I have
+     read this** sit above it. P27 adds **Announcements** between Home and Library in both.
+   - The page loads no images and no script of its own (only the layout's shared files). Measured with the dev data
+     as `cook.demo@example.com` (Chrome, 390 px): the HTML is 19.6 KB; with an empty cache the whole page transfers
+     569 KB (Bootstrap CSS 232 KB and JS 81 KB, `app.css` 126 KB, the shared scripts 61 KB, the Latin font subset
+     49 KB). Those files carry a content hash and are cached for a year, so every later visit transfers only the
+     HTML. The app does not compress responses, so these are uncompressed sizes.
+   - To try it: sign in as `cook.demo@example.com` / `crew123`: "Drug and alcohol policy" is under To read; open it,
+     press **I have read this**, then **Home**: "You are up to date.". As `master.demo@example.com` the Crew
+     acknowledgements card lists it with its count.
+
 Run the tests (H2 in memory, no Docker needed):
 
 ```
@@ -708,13 +745,13 @@ The app makes no request to any other host: everything a page needs is served fr
     uppercase group labels:
     - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Announcements, Requests),
       **Administration** (Office users, Audit log), **Account** (Notifications, the language switch); crew: **On board**
-      (Library; Home and Announcements come with P26 and P27) and **Account** (Notifications). The user block (name,
+      (Home `/ship`, Library; Announcements comes with P27) and **Account** (Notifications). The user block (name,
       role, **Sign out**) is pinned at the bottom; when the window is shorter than the navigation, only the navigation
       scrolls. The brand (logo and name) links to the user's home page (`/office` or `/ship`);
     - the entry of the current section is active: lighter background, a 3 px pink bar on its left edge, white semibold
       text and `aria-current="page"`. Pages below an entry keep it active (`/office/crew/12/edit` → Crew,
       `/office/ships/3/library` → Ships, `/office/invitations` → Office users), also their error pages. Exactly one entry
-      is active on every page except `/ship`, which has no entry until P26. The section comes from one place,
+      is active on every page (on `/ship` it is Home, P26). The section comes from one place,
       `navigation/NavigationAdvice` (model attribute `navSection`, from the URL via `NavSection`); controllers do not set it;
     - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
@@ -722,8 +759,9 @@ The app makes no request to any other host: everything a page needs is served fr
       exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
-    - phones (below 768 px): the sidebar is an offcanvas opened from the top bar's menu button and closed with Esc or
-      the backdrop. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
+    - phones (below 768 px), office users: the sidebar is an offcanvas opened from the top bar's menu button and closed
+      with Esc or the backdrop. Ship crew have no menu button and no bell: the bottom tab bar (18, P26) has the same
+      entries. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
       out, then the page.
 
   - confirmations (P10): no action that cannot be undone or that takes access away happens on one click, and every

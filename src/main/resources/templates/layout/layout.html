@@ -4,8 +4,9 @@
     <html th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
   title: the page name as text. The browser tab shows "Page name · Nereonet"; on phones the top bar shows the page
   name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
-  Logged in: navy sidebar (an offcanvas below md, closed with Esc): grouped navigation with the active entry and
-  counters (P07, see the comment on the aside), the user's name and a logout button.
+  Logged in: navy sidebar from md: grouped navigation with the active entry and counters (P07, see the comment on the
+  aside), the user's name and a logout button. Below md, office users open it as an offcanvas from the top bar (closed
+  with Esc); ship crew have the bottom tab bar instead (P26, layout/parts :: tabBar) and no menu button.
   Not logged in: the page's <main> fills the screen and brings its own container (the sign-in, registration and
   error pages use layout/parts :: authFrame, P13).
   Messages: add a flash attribute "successMessage" or "errorMessage"
@@ -30,7 +31,9 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
+<!-- has-tab-bar: a signed-in ship user, who gets the bottom tab bar below md (P26); app.css leaves room for it. -->
 <body th:data-local-time="#{time.local('{time}')}"
+      th:class="${#authorization.expression('isAuthenticated() and !hasRole(''OFFICE_USER'')')} ? 'has-tab-bar'"
       th:data-user="${#authorization.expression('isAuthenticated()')} ? ${#authentication.principal.id} : null">
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
@@ -68,10 +71,12 @@
                             <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
                         </ul>
                     </th:block>
-                    <!-- Ship: Home (P26) and Announcements (P27) are added to this group, Home first. -->
+                    <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26). Announcements (P27)
+                         goes between Home and Library, in both. -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
+                            <li th:replace="~{layout/parts :: navItem('home', '/ship', #{nav.home}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
                         </ul>
                     </th:block>
@@ -93,10 +98,7 @@
                         <div class="sidebar-user-role"
                              th:text="#{${'role.' + #authentication.principal.role}}">Office user</div>
                     </div>
-                    <form th:action="@{/logout}" method="post">
-                        <button type="submit" class="btn btn-outline-light btn-sm text-nowrap"
-                                th:data-busy-label="#{save.busy.signOut}" th:text="#{nav.signOut}">Sign out</button>
-                    </form>
+                    <form th:replace="~{layout/parts :: signOut('btn btn-outline-light btn-sm text-nowrap')}"></form>
                 </div>
             </div>
         </div>
@@ -104,8 +106,11 @@
 
     <!-- min-width: 0, so a wide table scrolls inside its card instead of widening the page. -->
     <div class="app-main flex-grow-1">
-        <header class="d-md-none bg-navy text-white d-flex align-items-center gap-2 px-2 py-2">
-            <button type="button" class="btn text-white p-2" data-bs-toggle="offcanvas" data-bs-target="#sidebar"
+        <!-- Office: menu button, page name, bell. Ship crew: the page name only; the tab bar at the bottom has the
+             navigation and Notifications (P26). -->
+        <header class="topbar d-md-none bg-navy text-white d-flex align-items-center gap-2 px-2 py-2">
+            <button sec:authorize="hasRole('OFFICE_USER')" type="button" class="btn text-white p-2"
+                    data-bs-toggle="offcanvas" data-bs-target="#sidebar"
                     aria-controls="sidebar" th:attr="aria-label=#{nav.toggle}">
                 <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -115,7 +120,8 @@
             <span class="topbar-title fw-bold" th:text="${title}">Ships</span>
             <!-- Notification bell with the unread count, always visible on phones. js/notifications.js updates the
                  count and the label in place after Mark as read (P23). -->
-            <a class="btn text-white p-2 ms-auto position-relative" id="notificationBell" th:href="@{/notifications}"
+            <a sec:authorize="hasRole('OFFICE_USER')" class="btn text-white p-2 ms-auto position-relative"
+               id="notificationBell" th:href="@{/notifications}"
                th:attr="aria-label=#{notification.bell(${unreadNotifications ?: 0})}">
                 <th:block th:replace="~{layout/parts :: bellIcon}"></th:block>
                 <span th:if="${unreadNotifications != null and unreadNotifications > 0}"
@@ -129,6 +135,10 @@
             <main th:replace="${content}"></main>
         </div>
     </div>
+    <!-- Ship crew on phones (P26): Home, Library and Notifications at the bottom of the screen. -->
+    <th:block sec:authorize="!hasRole('OFFICE_USER')">
+        <nav th:replace="~{layout/parts :: tabBar}"></nav>
+    </th:block>
     <!-- The confirmation dialog of every confirmForm on the page (P10, js/confirm.js). -->
     <dialog th:replace="~{layout/parts :: confirmDialog}"></dialog>
     <!-- "Draft restored from 12:40 UTC · Discard" (P15), copied into a form with a draft by js/save.js. -->

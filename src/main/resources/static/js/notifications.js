@@ -4,7 +4,7 @@
 //    with fetch and Accept: application/json. The answer is the new unread count and the counters' words
 //    (notification/NotificationController.Unread). The row (every row, for all) loses its dot, bold text, "Unread:"
 //    and its Mark as read button; the sidebar entry's pill (layout/parts :: navItem, data-nav="notifications") and the
-//    phone top bar's bell (#notificationBell) show the new count; Mark all as read goes once nothing is unread.
+//    phone top bar's bell (#notificationBell, office) or the crew's tab bar (P26) show the new count; Mark all as read goes once nothing is unread.
 //    [data-notification-status] says what happened, for screen readers. Focus moves from the button that went to the
 //    next Mark as read button, or to the page heading.
 //  - Offline, or when the answer is not the count (the session expired, an error), the form is sent the ordinary way:
@@ -85,6 +85,38 @@
         }
         pill.textContent = shownCount(data.unread);
         pill.nextElementSibling.textContent = data.countLabel;
+    }
+
+    // The crew's phone tab bar (P26, layout/parts :: tabItem): the badge on the icon and its words; nothing at zero.
+    function updateTabBar(data) {
+        const link = document.querySelector('[data-nav="notifications"] .tab-bar-link');
+        if (!link) {
+            return;
+        }
+        let badge = link.querySelector('.tab-bar-count');
+        let words = link.querySelector('.visually-hidden');
+        if (data.unread === 0) {
+            if (badge) {
+                badge.remove();
+            }
+            if (words) {
+                words.remove();
+            }
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'tab-bar-count num';
+            badge.setAttribute('aria-hidden', 'true');
+            link.querySelector('.tab-bar-icon').append(badge);
+        }
+        if (!words) {
+            words = document.createElement('span');
+            words.className = 'visually-hidden';
+            link.append(words);
+        }
+        badge.textContent = shownCount(data.unread);
+        words.textContent = data.countLabel;
     }
 
     // The phone top bar's bell: its label "Notifications, 3 unread" and the red badge; no badge at zero.
@@ -169,6 +201,7 @@
                     removeMarkAll();
                 }
                 updateSidebar(data);
+                updateTabBar(data);
                 updateBell(data);
                 announce(all ? status.dataset.all : status.dataset.one);
                 if (focused) {

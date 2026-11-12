@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
+<body>
+<!-- The crew home page (P26): what this person is asked to read and whether their certificates are in order, in one
+     phone screen. English only, as every crew screen. Read only except Sign out. No images, no script of its own.
+     Phones: one column (To read, Crew acknowledgements for the Master, My certificates); from 992px To read and the
+     Master's card on the left, the certificates on the right.
+     The header says who is signed in, their rank and ship; on a shared PC "Not Demo Cook? Sign out" sits next to the
+     name. -->
+<main class="crew-home" th:with="u=${home.user}, today=${@dates.today()}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
+            subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <div class="home-sign-out">
+                <span class="home-sign-out-name" th:text="#{home.notYou(${u.fullName})}">Not Demo Cook?</span>
+                <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary')}"></form>
+            </div>
+        </th:block>
+    </header>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <!-- To read: each card opens the item, where "I have read this" is. Oldest first. -->
+            <section class="home-section" aria-labelledby="toReadTitle">
+                <h2 class="home-section-title" id="toReadTitle">
+                    <span th:text="#{home.toRead.heading}">To read</span>
+                    <span th:unless="${home.toRead.isEmpty()}" class="title-count"><span aria-hidden="true">·</span>
+                        <span class="num" th:text="${home.toRead.size()}">1</span></span>
+                </h2>
+                <ul th:unless="${home.toRead.isEmpty()}" class="read-list">
+                    <li th:each="r : ${home.toRead}">
+                        <a class="read-card" th:href="@{${r.url}}">
+                            <span th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span>
+                            <span class="read-card-main">
+                                <span class="read-card-type" th:text="#{${'home.toRead.kind.' + r.kind}}">Library</span>
+                                <span class="read-card-title" th:text="${r.title}">Drug and alcohol policy</span>
+                                <span class="read-card-date"><span th:text="#{home.toRead.published}">Published</span>
+                                    <time th:replace="~{layout/parts :: utcDate(${r.date})}"></time></span>
+                            </span>
+                            <svg class="read-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                                 focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                        </a>
+                    </li>
+                </ul>
+                <p th:if="${home.toRead.isEmpty()}" class="up-to-date">
+                    <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                    <span th:text="#{home.toRead.empty}">You are up to date.</span>
+                </p>
+                <!-- P27 adds "All announcements" here. -->
+                <p class="home-links">
+                    <a class="btn btn-ghost" th:href="@{/ship/library}" th:text="#{home.links.library}">Open the Library</a>
+                </p>
+            </section>
+
+            <!-- The Master: Required items not everyone on board has acknowledged yet, each with its count, linking to
+                 its acknowledgement overview. -->
+            <section th:if="${home.master()}" class="home-section" aria-labelledby="crewAcknowledgementsTitle">
+                <h2 class="home-section-title" id="crewAcknowledgementsTitle"
+                    th:text="#{home.crewAcknowledgements.heading}">Crew acknowledgements</h2>
+                <div class="card">
+                    <p th:if="${home.crewPending.isEmpty()}" class="card-body mb-0"
+                       th:text="#{home.crewAcknowledgements.empty}">Everyone on board has acknowledged every required document.</p>
+                    <ul th:unless="${home.crewPending.isEmpty()}" class="list-group list-group-flush">
+                        <li th:each="item : ${home.crewPending}" class="list-group-item crew-ack-row">
+                            <span class="crew-ack-title" th:text="${item.title}">Drug and alcohol policy</span>
+                            <a th:replace="~{core/library/parts :: progress(${home.crewCounts}, ${item.id}, ${'/ship/library/' + item.id + '/acknowledgements'})}"></a>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-5">
+            <!-- The person's own certificates, soonest expiry first (expired, then expiring soon). Read only. -->
+            <section class="home-section" aria-labelledby="certificatesTitle">
+                <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
+                <div class="card">
+                    <p th:if="${home.certificates.isEmpty()}" class="card-body mb-0"
+                       th:text="#{home.certificates.empty}">No certificates on record.</p>
+                    <ul th:unless="${home.certificates.isEmpty()}" class="list-group list-group-flush">
+                        <li th:each="c : ${home.certificates}" class="list-group-item cert-row">
+                            <div class="cert-row-main">
+                                <p class="cert-row-type" th:text="${c.type}">STCW Basic Safety</p>
+                                <p class="cert-row-meta">
+                                    <span th:text="#{home.certificates.expires}">Expires</span>
+                                    <span th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}"></span>
+                                </p>
+                                <p th:if="${c.number}" class="cert-row-meta"
+                                   th:text="#{home.certificates.number(${c.number})}">No. 12345</p>
+                            </div>
+                            <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
+                        </li>
+                    </ul>
+                </div>
+                <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

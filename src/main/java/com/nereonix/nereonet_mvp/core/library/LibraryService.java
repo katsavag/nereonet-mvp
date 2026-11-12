@@ -6,6 +6,7 @@ import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
@@ -83,6 +84,19 @@ public class LibraryService {
             byCategory.computeIfAbsent(item.getCategory(), c -> new ArrayList<>()).add(item);
         }
         return byCategory;
+    }
+
+    /**
+     * The ship's Required items that are not retired, oldest current version first (then by id): the crew home page's
+     * "To read" and the Master's "Crew acknowledgements" (P26).
+     */
+    @Transactional(readOnly = true)
+    public List<LibraryItem> requiredItems(Ship ship) {
+        return itemRepository.findAllByShipAndRetiredFalseAndCurrentVersionIsNotNullOrderByTitleAsc(ship).stream()
+                .filter(LibraryItem::isRequired)
+                .sorted(Comparator.comparing((LibraryItem item) -> item.getCurrentVersion().getPublishedAt())
+                        .thenComparing(LibraryItem::getId))
+                .toList();
     }
 
     /** Any ship, for the office; otherwise 404. */

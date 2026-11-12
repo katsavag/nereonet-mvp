@@ -148,7 +148,7 @@
 
 <!-- One sidebar entry (P07). section: its NavSection key; the entry whose key is navSection (navigation/NavigationAdvice,
      from the URL) is active: lighter background, a 3px accent bar on the left, aria-current="page". Exactly one entry
-     is active on a page, none on a page without an entry (/ship until P26).
+     is active on a page, none on a page without an entry (an error page outside every section).
      url: an app path. label: text. count: a number shown as a quiet pill on the right, hidden when null or zero,
      "99+" above 99; countLabel: the same number in words for screen readers ("3 unread"), or null without count.
      The icon is navIcon(section). data-nav on the item is the section, for scripts that update its count in place
@@ -166,11 +166,49 @@
     </a>
 </li>
 
+<!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
+     sidebar has the same entries (layout/layout.html, group On board). Fixed at the bottom of the screen, above the
+     safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each entry is
+     tabItem. P27 adds Announcements between Home and Library, here and in the sidebar. -->
+<nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}">
+    <ul class="tab-bar-list">
+        <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
+        <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
+        <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
+                ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
+    </ul>
+</nav>
+
+<!-- One tab of the tab bar (P26), with the same parameters as navItem: the icon over the label, the active one (the
+     section from the URL, as in the sidebar) in navy and semibold with a bar on its top edge and aria-current="page".
+     count: a badge on the icon, hidden when null or zero, "99+" above 99; countLabel the same in words.
+     data-nav: for js/notifications.js, which updates the count after Mark as read. -->
+<li th:fragment="tabItem(section, url, label, count, countLabel)" class="tab-bar-item" th:data-nav="${section}"
+    th:with="active=${navSection == section}">
+    <a class="tab-bar-link" th:classappend="${active} ? 'active'" th:href="@{${url}}" th:aria-current="${active} ? 'page'">
+        <span class="tab-bar-icon">
+            <svg th:replace="~{layout/parts :: navIcon(${section})}"></svg>
+            <span th:if="${count != null and count > 0}" class="tab-bar-count num" aria-hidden="true"
+                  th:text="${count > 99} ? '99+' : ${count}">3</span>
+        </span>
+        <span class="tab-bar-label" th:text="${label}">Home</span>
+        <span th:if="${count != null and count > 0}" class="visually-hidden" th:text="${countLabel}">3 unread</span>
+    </a>
+</li>
+
+<!-- Sign out: the sidebar's user block and the crew home page (P26, next to the signed-in name, for shared PCs on
+     board). buttonClass: the button's classes. -->
+<form th:fragment="signOut(buttonClass)" th:action="@{/logout}" method="post">
+    <button type="submit" th:class="${buttonClass}" th:data-busy-label="#{save.busy.signOut}"
+            th:text="#{nav.signOut}">Sign out</button>
+</form>
+
 <!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). The empty states (P25) show the same
      icons larger, and 'items' (galley items, a ship tab without a sidebar entry). -->
 <svg th:fragment="navIcon(name)" class="sidebar-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
      focusable="false">
+    <th:block th:if="${name == 'home'}"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9M10 20v-6h4v6"/></th:block>
     <th:block th:if="${name == 'overview'}"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></th:block>
     <th:block th:if="${name == 'ships'}"><path d="M3 14h18l-2.5 5h-13z"/><path d="M6 14V9h12v5M12 9V4"/></th:block>
     <th:block th:if="${name == 'crew'}"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></th:block>

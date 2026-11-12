@@ -3198,3 +3198,263 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .setup-step-action { grid-column: 2; }
     .setup-step > .status-badge { justify-self: start; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Crew navigation on phones (P26): layout/parts :: tabBar and tabItem, for ship users (body.has-tab-bar).
+     - .tab-bar: fixed at the bottom below 768px (from 768px the sidebar has the same entries), on the surface with a
+       line above, padded over the safe area of phones with a home indicator. Equal columns, however many entries.
+     - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
+       aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
+     - .tab-bar-count: the unread count on the Notifications icon, white on the danger colour (6.7:1); the number is
+       repeated in words for screen readers.
+   The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
+   this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-topbar-height: 3.5rem;      /* 56px: a 40px button and 8px above and below */
+    --nn-tab-bar-height: 3.5rem;     /* 56px */
+    --nn-tab-bar-room: calc(var(--nn-tab-bar-height) + env(safe-area-inset-bottom, 0px));
+    --nn-tab-bar-icon: 1.5rem;       /* 24px */
+}
+
+.topbar { min-height: var(--nn-topbar-height); }
+/* No menu button before it: the page name starts on the content's 16px gutter. */
+.has-tab-bar .topbar-title { padding-left: var(--nn-space-2); }
+
+.tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;                   /* over the page, under the offline banner, offcanvas and dialogs */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--nn-surface);
+    border-top: 1px solid var(--nn-divider);
+    box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
+}
+.tab-bar-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.tab-bar-link {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--nn-tab-bar-height);
+    padding: var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-size: var(--nn-font-xs);
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+}
+.tab-bar-link:hover { color: var(--nn-blue); background-color: var(--nn-hover); }
+/* Inside the tab, where the screen edge cannot cut the ring off. */
+.tab-bar-link:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width) - var(--nn-focus-offset)); }
+.tab-bar-link.active {
+    color: var(--nn-blue);
+    font-weight: 600;
+}
+.tab-bar-link.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background-color: var(--nn-blue);
+}
+.tab-bar-icon {
+    position: relative;
+    display: inline-flex;
+}
+.tab-bar-icon > svg {
+    width: var(--nn-tab-bar-icon);
+    height: var(--nn-tab-bar-icon);
+}
+.tab-bar-label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.tab-bar-count {
+    position: absolute;
+    top: -6px;
+    left: calc(100% - 10px);
+    min-width: 1.125rem;
+    padding: 0 4px;
+    border-radius: 999px;
+    background-color: var(--nn-danger);
+    color: #fff;
+    font-size: .6875rem;             /* 11px */
+    font-weight: 700;
+    line-height: 1.125rem;
+    text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    .has-tab-bar .app-content { padding-bottom: calc(var(--nn-section-gap) + var(--nn-tab-bar-room)); }
+    .has-tab-bar .offline-banner { bottom: var(--nn-tab-bar-room); }
+}
+@media (max-width: 575.98px) {
+    .has-tab-bar .ack-bar.is-pinned {
+        bottom: var(--nn-tab-bar-room);
+        padding-bottom: var(--nn-space-3);
+    }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Crew home page (P26): shiphome/home.html.
+     - .home-sign-out: "Not Demo Cook?" and Sign out, in the page header's actions next to the name (shared PCs).
+     - .home-section-title: the section headings (To read, Crew acknowledgements, My certificates), card-title size.
+     - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
+       date published, a chevron. .up-to-date: "You are up to date." in the ok pair with a tick.
+     - .crew-ack-row: the Master's rows, the title and the acknowledgement progress (core/library/parts :: progress).
+     - .cert-row: a certificate, its type and expiry on the left, the expiry badge on the right.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-read-card-height: 3.5rem;   /* 56px */
+}
+
+.home-sign-out {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--nn-space-2) var(--nn-space-3);
+}
+.home-sign-out-name {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+@media (max-width: 575.98px) {
+    .home-sign-out { justify-content: space-between; }
+}
+
+.home-section + .home-section { margin-top: var(--nn-section-gap); }
+.home-section-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+
+.read-list {
+    display: grid;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.read-card {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-read-card-height);
+    padding: var(--nn-space-3) var(--nn-space-4);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.read-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
+.read-card:hover .read-card-title { text-decoration: underline; }
+.read-card-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+.read-card-type {
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.read-card-title {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.read-card-date {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.read-card-chevron {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--nn-text-secondary);
+}
+
+.up-to-date {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: var(--nn-space-4);
+    background-color: var(--nn-ok-bg);
+    color: var(--nn-ok-text);
+    border: 1px solid var(--nn-ok-border);
+    border-radius: var(--nn-radius-card);
+    font-weight: 600;
+}
+.up-to-date > svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+.home-links { margin: var(--nn-space-2) 0 0; }
+
+.crew-ack-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+}
+.crew-ack-title {
+    flex: 1 1 12rem;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 575.98px) {
+    .crew-ack-row .ack-progress {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+}
+
+.cert-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    padding-block: var(--nn-space-3);
+}
+.cert-row-main {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+.cert-row-type {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.cert-row-meta {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
