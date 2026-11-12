@@ -192,7 +192,8 @@
 <nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}">
     <ul class="tab-bar-list">
         <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
-        <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/announcements', #{nav.announcements}, null, null)}"></li>
+        <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/announcements', #{nav.announcements},
+                ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
         <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
         <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
                 ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>

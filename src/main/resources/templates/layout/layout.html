@@ -97,7 +97,9 @@
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
                             <li th:replace="~{layout/parts :: navItem('home', '/ship', #{nav.home}, null, null)}"></li>
-                            <li th:replace="~{layout/parts :: navItem('announcements', '/ship/announcements', #{nav.announcements}, null, null)}"></li>
+                            <!-- With the number still to acknowledge (P37). -->
+                            <li th:replace="~{layout/parts :: navItem('announcements', '/ship/announcements', #{nav.announcements},
+                                    ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
                             <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('crew', '/ship/crew', #{nav.myCrew}, null, null)}"></li>
                             <!-- The Master's approvals (P33), with the number waiting for them. -->

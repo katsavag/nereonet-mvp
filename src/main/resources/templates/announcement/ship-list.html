@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.ship.title}, ~{::main})}">
 <body>
-<!-- The crew's announcements (P27): the ones the signed-in person is a recipient of, newest first. English only, as
-     every crew screen. Each row is one link (the title, stretched over the row): title, date sent (UTC) and the
+<!-- The crew's announcements (P27): the ones the signed-in person is a recipient of, the ones to acknowledge first
+     (P37), each group newest first. English only, as every crew screen. Each row is one link (the title, stretched over the row): title, date sent (UTC) and the
      person's own state. One to acknowledge has a bold title and "To acknowledge"; one acknowledged a regular title and
      "Acknowledged": the words carry the state, weight and colour only repeat it. Nothing about anyone else. -->
 <main>

@@ -317,6 +317,59 @@ class AnnouncementFlowTest {
         assertThat(html(get("/office/audit"))).contains("Announcement acknowledged");
     }
 
+    // P37: the office sends two announcements to the Master's ship. The Master's list puts the ones to acknowledge
+    // first, and the sidebar and tab bar count them; after "I have read this" on the newer one, it moves below the
+    // older one still to acknowledge, the counter drops, and the office's detail page lists the Master as acknowledged.
+    @Test
+    void theMasterAcknowledgesAndTheListAndCounterFollow() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        User master = crewMember("master@example.com", "Demo Master", demo, Role.MASTER);
+        crewMember("anna@example.com", "Anna Testa", demo);
+
+        Announcement older = send(demo, "Bunkering plan", "Bunkering on Monday.");
+        Announcement newer = send(demo, "Safety drill", "Drill on Friday.");
+        announcementRepository.flush();
+
+        String list = html(get("/ship/announcements").with(user(new CurrentUser(master))));
+        assertThat(list).containsSubsequence("Safety drill", "To acknowledge", "Bunkering plan", "To acknowledge");
+        assertThat(count(list, "announcement-row is-unread")).isEqualTo(2);
+        // The counter, in the sidebar and on the tab: the number and the same in words.
+        assertThat(list).containsPattern("(?s)data-nav=\"announcements\".*?<span class=\"nav-count num\" aria-hidden=\"true\">2</span>"
+                        + "\\s*<span class=\"visually-hidden\">2 to acknowledge</span>")
+                .containsPattern("(?s)tab-bar-link[^>]*href=\"/ship/announcements\".*?<span class=\"tab-bar-count num\" aria-hidden=\"true\">2</span>");
+
+        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", newer.getId())
+                        .with(user(new CurrentUser(master))).with(csrf()))
+                .andExpect(redirectedUrl("/ship/announcements/" + newer.getId()));
+
+        // The one still to acknowledge comes first although it is older; the counter is 1.
+        String after = html(get("/ship/announcements").with(user(new CurrentUser(master))));
+        assertThat(after).containsSubsequence("Bunkering plan", "To acknowledge", "Safety drill", "Acknowledged");
+        assertThat(count(after, "announcement-row is-unread")).isEqualTo(1);
+        assertThat(after).contains("<span class=\"visually-hidden\">1 to acknowledge</span>")
+                .doesNotContain("2 to acknowledge");
+
+        // With nothing left to acknowledge there is no counter.
+        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", older.getId())
+                        .with(user(new CurrentUser(master))).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        String none = html(get("/ship/announcements").with(user(new CurrentUser(master))));
+        assertThat(none).doesNotContain("to acknowledge</span>");
+        assertThat(navItems(none, "announcements")).hasSize(2).allSatisfy(item ->
+                assertThat(item).doesNotContain("nav-count", "tab-bar-count"));
+
+        // The office lists the Master under acknowledged, Anna under pending.
+        String officeDetail = html(get("/office/announcements/{id}", newer.getId()));
+        assertThat(officeDetail).contains("1 of 2 acknowledged");
+        int acknowledged = officeDetail.indexOf("id=\"acknowledged\"");
+        int pending = officeDetail.indexOf("id=\"pending\"");
+        assertThat(acknowledged).isPositive().isLessThan(pending);
+        assertThat(officeDetail.substring(acknowledged, pending)).contains("Demo Master").doesNotContain("Anna Testa");
+        assertThat(officeDetail.substring(pending)).contains("Anna Testa").doesNotContain("Demo Master");
+        // Office pages have no crew counter.
+        assertThat(officeDetail).doesNotContain("to acknowledge</span>");
+    }
+
     // P27: someone who is not a recipient (another ship, joined later, or no such announcement) gets 404, never the text.
     @Test
     void aNonRecipientGetsNotFound() throws Exception {
@@ -546,6 +599,12 @@ class AnnouncementFlowTest {
                 .orElseThrow();
     }
 
+    // The sidebar entry and the tab of this section, each from its <li> to its </li>.
+    private static List<String> navItems(String html, String section) {
+        return java.util.regex.Pattern.compile("(?s)<li [^>]*data-nav=\"" + section + "\".*?</li>").matcher(html)
+                .results().map(java.util.regex.MatchResult::group).toList();
+    }
+
     private static int count(String html, String needle) {
         return html.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
     }
@@ -564,11 +623,15 @@ class AnnouncementFlowTest {
     }
 
     private User crewMember(String email, String fullName, Ship ship) {
+        return crewMember(email, fullName, ship, Role.CREW_MEMBER);
+    }
+
+    private User crewMember(String email, String fullName, Ship ship, Role role) {
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash("not-used");
         user.setFullName(fullName);
-        user.setRole(Role.CREW_MEMBER);
+        user.setRole(role);
         user.setShip(ship);
         user.setEnabled(true);
         user.setCreatedAt(Instant.now());

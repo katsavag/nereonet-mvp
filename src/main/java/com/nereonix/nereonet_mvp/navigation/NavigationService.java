@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
@@ -23,13 +24,16 @@ public class NavigationService {
     private final ItemRequestRepository requestRepository;
     private final ShipOrderLineRepository orderLineRepository;
     private final ShipOrderService orderService;
+    private final AnnouncementRecipientRepository announcementRecipientRepository;
 
     public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
-                             ShipOrderLineRepository orderLineRepository, ShipOrderService orderService) {
+                             ShipOrderLineRepository orderLineRepository, ShipOrderService orderService,
+                             AnnouncementRecipientRepository announcementRecipientRepository) {
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
         this.orderLineRepository = orderLineRepository;
         this.orderService = orderService;
+        this.announcementRecipientRepository = announcementRecipientRepository;
     }
 
     @Transactional(readOnly = true)
@@ -50,5 +54,11 @@ public class NavigationService {
     @Transactional(readOnly = true)
     public long orderLines(String email) {
         return orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email);
+    }
+
+    /** The crew's counter of Announcements (P37): the ones the user with this email has not acknowledged yet. */
+    @Transactional(readOnly = true)
+    public long announcementsToAcknowledge(String email) {
+        return announcementRecipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email);
     }
 }

@@ -18,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
  *               everyone else.
  *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
+ *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
+ *               acknowledged yet; null for office users and when signed out.
  * The one place that decides both, so no controller sets them.
  */
 @ControllerAdvice
@@ -28,6 +30,7 @@ public class NavigationAdvice {
     static final String TAB = "navTab";
     static final String APPROVALS_WAITING = "approvalsWaiting";
     static final String ORDER_LINES = "orderLines";
+    static final String ANNOUNCEMENTS_TO_ACKNOWLEDGE = "announcementsToAcknowledge";
 
     private final NavigationService navigationService;
 
@@ -80,5 +83,13 @@ public class NavigationAdvice {
             return null;
         }
         return navigationService.orderLines(currentUser.getUsername());
+    }
+
+    @ModelAttribute(ANNOUNCEMENTS_TO_ACKNOWLEDGE)
+    public Long announcementsToAcknowledge(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null || currentUser.getRole() == Role.OFFICE_USER) {
+            return null;
+        }
+        return navigationService.announcementsToAcknowledge(currentUser.getUsername());
     }
 }

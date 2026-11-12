@@ -131,6 +131,8 @@ class MessageKeysTest {
             // too, so it is in Greek.
             "nav.approvals",
             "nav.count.approvals",
+            // P37: the crew's Announcements counter.
+            "nav.count.announcements",
             "approval.title",
             "approval.hint.waiting",
             "approval.hint.decided",

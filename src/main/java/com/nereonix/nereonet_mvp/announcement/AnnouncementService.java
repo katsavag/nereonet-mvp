@@ -286,7 +286,10 @@ public class AnnouncementService {
         return new Sent(announcement, users.size(), targets.ships().size());
     }
 
-    /** The announcements this ship user is a recipient of, newest first, each with their acknowledgement (P27). */
+    /**
+     * The announcements this ship user is a recipient of, each with their acknowledgement (P27): still to acknowledge
+     * first (P37), each group newest first.
+     */
     @Transactional(readOnly = true)
     public List<AnnouncementRecipient> forUser(String email) {
         return recipientRepository.findAllForUser(email);

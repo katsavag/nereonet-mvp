@@ -19,11 +19,18 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
             from AnnouncementRecipient r where r.announcement.id in :announcementIds group by r.announcement.id""")
     List<RecipientCount> countFor(Collection<Long> announcementIds);
 
-    /** The announcements this user is a recipient of, newest first (the crew's Announcements, P27). */
+    /**
+     * The announcements this user is a recipient of (the crew's Announcements, P27): the ones still to acknowledge first
+     * (P37), each group newest first.
+     */
     @Query("""
             select r from AnnouncementRecipient r join fetch r.announcement a
-            where r.user.email = :email order by a.createdAt desc, a.id desc""")
+            where r.user.email = :email
+            order by case when r.acknowledgedAt is null then 0 else 1 end, a.createdAt desc, a.id desc""")
     List<AnnouncementRecipient> findAllForUser(String email);
+
+    /** How many announcements this user has still to acknowledge: the crew's sidebar counter (P37). */
+    long countByUserEmailAndAcknowledgedAtIsNull(String email);
 
     /** The ones this user has not acknowledged yet, oldest first (To read on the crew home page, P27). */
     @Query("""

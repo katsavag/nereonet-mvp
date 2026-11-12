@@ -667,8 +667,10 @@ Requirements: Java 25, Docker.
 
 19. Crew announcements (P27, any ship user): the crew read and acknowledge the announcements the office sends (14).
    `announcement/ShipAnnouncementController`, `templates/announcement/ship-list.html` and `ship-detail.html`; English
-   only, as every crew screen. **Announcements** sits between Home and Library in the sidebar and the phone tab bar.
-   - `/ship/announcements`: the announcements the signed-in person is a recipient of, newest first. Each row is one
+   only, as every crew screen. **Announcements** sits between Home and Library in the sidebar and the phone tab bar,
+   with the number the person has still to acknowledge (P37; "2 to acknowledge" for screen readers, none at zero).
+   - `/ship/announcements`: the announcements the signed-in person is a recipient of, the ones to acknowledge first
+     (P37), each group newest first. Each row is one
      link (the whole row) with the title, the date sent (UTC) and "To acknowledge" or "Acknowledged". One to
      acknowledge has a bold title and the "To acknowledge" badge; the words carry the state, weight and colour only
      repeat it. With none: "No announcements yet".
