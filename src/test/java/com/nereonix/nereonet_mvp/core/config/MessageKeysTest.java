@@ -36,6 +36,7 @@ class MessageKeysTest {
             // (Download and the file size are on the office's read view too since P22, so they are in Greek.)
             "library.acknowledge",
             "library.acknowledged",
+            "library.empty.crew",
             "library.notification.newRequired",
             "library.notification.reminder",
             "library.required.acknowledged",

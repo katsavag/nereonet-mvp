@@ -20,7 +20,10 @@
     </div>
 
     <div class="card">
-        <th:block th:replace="~{layout/parts :: listEmpty(${entries}, ${list}, #{audit.empty})}"></th:block>
+        <!-- Nothing recorded yet (P25): the audit log has no action of its own; the setup steps are on the Overview. -->
+        <th:block th:replace="~{layout/parts :: listEmpty(rows=${entries}, list=${list}, icon='audit',
+                title=#{audit.empty.title}, text=#{audit.empty.text},
+                action=~{layout/parts :: emptyLink('/office', #{empty.goToOverview}, 'btn btn-primary')})}"></th:block>
 
         <!-- data-table: the shared list style. The audit log keeps its columns on phones and scrolls sideways.
              Every row is one line, so all rows have the same height; long values are cut with an ellipsis and

@@ -3,8 +3,9 @@
 <body>
 <!-- Office users and pending office invitations in one list (P07); /office/invitations redirects here. Searched,
      filtered by status, sorted and paginated on the server (P19). -->
-<main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{users.list.heading}, count=${people.totalElements}, actions=~{::pageActions})}">
+<!-- Empty (P25; only before the first office user, as the signed-in user is listed): the empty state holds Invite. -->
+<main th:with="noUsers=${list.emptyUnfiltered(people)}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{users.list.heading}, count=${people.totalElements}, actions=${noUsers} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#inviteModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -27,7 +28,8 @@
     </div>
 
     <div class="card">
-        <th:block th:replace="~{layout/parts :: listEmpty(${people}, ${list}, #{users.list.empty})}"></th:block>
+        <th:block th:replace="~{layout/parts :: listEmpty(rows=${people}, list=${list}, icon='users',
+                title=#{users.list.empty.title}, text=#{users.list.empty.text}, action=~{::pageActions})}"></th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones; table-sticky:
              the header stays visible while the page scrolls. -->

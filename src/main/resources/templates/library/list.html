@@ -2,8 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout/layout :: layout(#{library.title}, ~{::main})}">
 <body>
-<main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrowShip=${ship}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
+<!-- An empty library (P25): the Master's Add an item is in the empty state instead of the page header. -->
+<main th:with="master=${#authorization.expression('hasRole(''MASTER'')')}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrowShip=${ship}, actions=${master and !itemsByCategory.isEmpty()} ? ~{::pageActions} : null)}">
         <!-- Only the Master adds items. -->
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/ship/library/new}">
@@ -13,7 +14,7 @@
         </th:block>
     </header>
 
-    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false,${acknowledgedItemIds}, ${acknowledgementCounts}, ${#authorization.expression('hasRole(''MASTER'')')} ? '/ship/library/particulars' : null)}"></th:block>
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false,${acknowledgedItemIds}, ${acknowledgementCounts}, ${master} ? '/ship/library/particulars' : null, ${master} ? ~{::pageActions} : null)}"></th:block>
 </main>
 </body>
 </html>

@@ -12,8 +12,10 @@
      says "Required · to acknowledge" or "Required · acknowledged"); null for the office (the badge says "Required").
      acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" with a thin bar on each Required
      item, linking to its acknowledgement overview; null for the other crew.
-     particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them. -->
-<th:block th:fragment="content(ship, itemsByCategory, office, acknowledgedItemIds, acknowledgementCounts, particularsUrl)">
+     particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them.
+     addAction: Add an item, shown in the empty library's empty state (P25; the page header then leaves it out), or
+     null for the crew who cannot add (the empty state then says who does). -->
+<th:block th:fragment="content(ship, itemsByCategory, office, acknowledgedItemIds, acknowledgementCounts, particularsUrl, addAction)">
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
@@ -41,8 +43,12 @@
         </div>
     </div>
 
-    <p th:if="${itemsByCategory.isEmpty()}" class="text-body-secondary" th:text="#{library.empty}">
-        The library is empty.</p>
+    <th:block th:if="${itemsByCategory.isEmpty()}">
+        <div class="card">
+            <div th:replace="~{layout/parts :: emptyState(icon='library', title=#{library.empty.title},
+                    text=${addAction != null} ? #{library.empty.text} : #{library.empty.crew}, action=${addAction})}"></div>
+        </div>
+    </th:block>
 
     <section th:each="entry : ${itemsByCategory}" class="mb-4">
         <h2 class="h6 fw-bold text-uppercase text-body-secondary mb-2"

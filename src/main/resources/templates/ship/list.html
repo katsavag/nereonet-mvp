@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
 <body>
-<main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=~{::pageActions})}">
+<!-- No ships yet (P25): the empty state holds Add ship, so the page header leaves it out. -->
+<main th:with="noShips=${ships.isEmpty()}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=${noShips} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newShipModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -12,11 +13,13 @@
     </header>
 
     <div class="card">
-        <p th:if="${ships.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{ship.list.empty}">No ships yet.</p>
+        <th:block th:if="${noShips}">
+            <div th:replace="~{layout/parts :: emptyState(icon='ships', title=#{ship.list.empty.title},
+                    text=#{ship.list.empty.text}, action=~{::pageActions})}"></div>
+        </th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
-        <div th:unless="${ships.isEmpty()}" class="table-responsive">
+        <div th:unless="${noShips}" class="table-responsive">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>

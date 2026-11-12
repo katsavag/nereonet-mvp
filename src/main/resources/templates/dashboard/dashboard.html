@@ -6,11 +6,14 @@
      (/office?type=invitations&shipId=3 is the full list of one kind and / or one ship). Each row: status badge with an
      icon and the kind, the title linking to the record, one context line (ship · person · date) and one action.
      Fleet: one row per active ship, those with open items first; a zero is a muted dash, never a link.
-     overviewUrl: this page with its filter, sent as returnTo with "Open certificate" so the form comes back here. -->
-<main th:with="d=${dashboard}">
+     overviewUrl: this page with its filter, sent as returnTo with "Open certificate" so the form comes back here.
+     First run (P25): setup (DashboardService.Setup) is a checklist of four steps, shown until all are done. While there
+     is no ship or no crew it takes the place of the work list; after that it stays above it. Its next step has the
+     page's one primary button, so the header's New announcement (step 4) waits until the checklist is done. -->
+<main th:with="d=${dashboard}, s=${setup}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{office.heading},
             subtitle=#{dashboard.summary(${d.fleet.size()}, ${d.crewOnBoard}, ${d.openItems})},
-            actions=~{::pageActions})}">
+            actions=${s.complete()} ? ~{::pageActions} : null)}">
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/announcements/new}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -19,6 +22,45 @@
         </th:block>
     </header>
 
+    <!-- The setup checklist. Each step: its number (a tick once done), the title linking to its page, one line of
+         help, and "Done" (text and tick, not colour alone). The next step is aria-current="step" and its link is the
+         primary button instead. -->
+    <section th:unless="${s.complete()}" class="card setup mb-4" aria-labelledby="setupTitle">
+        <div class="card-header setup-header">
+            <h2 class="h5 fw-bold mb-0" id="setupTitle" th:text="#{dashboard.setup.heading}">Set up Nereonet</h2>
+            <p class="setup-progress" th:text="#{dashboard.setup.progress(${s.doneCount()}, ${s.steps().size()})}">1 of 4 done</p>
+        </div>
+        <div class="card-body">
+            <p class="setup-intro" th:text="#{dashboard.setup.intro}">Four steps to get your ships and crew working together.</p>
+            <ol class="setup-steps">
+                <li th:each="step, st : ${s.steps()}" class="setup-step"
+                    th:with="next=${step == s.next()}, key=${'dashboard.setup.' + step.key()}"
+                    th:classappend="${step.done()} ? 'is-done' : (${next} ? 'is-next' : '')"
+                    th:attr="aria-current=${next} ? 'step' : null">
+                    <span class="setup-step-mark" aria-hidden="true">
+                        <svg th:if="${step.done()}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                             stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+                        <th:block th:unless="${step.done()}" th:text="${st.count}">1</th:block>
+                    </span>
+                    <div class="setup-step-text">
+                        <p class="setup-step-title">
+                            <span class="visually-hidden" th:text="#{dashboard.setup.stepNumber(${st.count})}">Step 1:</span>
+                            <a th:unless="${next}" th:href="@{${step.url()}}" th:text="#{${key + '.title'}}">Add a ship</a>
+                            <th:block th:if="${next}" th:text="#{${key + '.title'}}">Add a ship</th:block>
+                        </p>
+                        <p class="setup-step-help" th:text="#{${key + '.help'}}">Name, IMO number, type and flag.</p>
+                    </div>
+                    <th:block th:if="${step.done()}">
+                        <span th:replace="~{layout/parts :: statusIcon('ok', #{dashboard.setup.done}, 'check')}"></span>
+                    </th:block>
+                    <a th:if="${next}" class="btn btn-primary setup-step-action" th:href="@{${step.url()}}"
+                       th:text="#{${key + '.action'}}">Go to Ships</a>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <th:block th:if="${s.workListShown()}">
     <section class="card attention mb-4" aria-labelledby="attentionTitle">
         <div class="card-header attention-header">
             <h2 class="h5 fw-bold mb-0" id="attentionTitle" th:text="#{dashboard.attention.heading}">Needs attention</h2>
@@ -193,7 +235,11 @@
         <h2 class="h5 fw-bold mb-1" id="fleetTitle" th:text="#{dashboard.fleet.heading}">Fleet</h2>
         <p class="text-body-secondary small mb-3" th:text="#{dashboard.fleet.hint}">Active ships, those with open items first.</p>
         <div class="card">
-            <p th:if="${d.fleet.isEmpty()}" class="card-body text-body-secondary mb-0" th:text="#{dashboard.fleet.empty}">No active ships.</p>
+            <th:block th:if="${d.fleet.isEmpty()}">
+                <div th:replace="~{layout/parts :: emptyState(icon='ships', title=#{dashboard.fleet.empty},
+                        text=#{dashboard.fleet.empty.text},
+                        action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-outline-secondary')})}"></div>
+            </th:block>
             <div th:unless="${d.fleet.isEmpty()}" class="table-responsive">
                 <table class="table data-table data-table-stack align-middle mb-0">
                     <thead>
@@ -222,6 +268,7 @@
             </div>
         </div>
     </section>
+    </th:block>
 </main>
 
 <!-- "Jane Doe, Second Officer"; the name alone without a rank; "Deleted user" when the user was deleted. -->

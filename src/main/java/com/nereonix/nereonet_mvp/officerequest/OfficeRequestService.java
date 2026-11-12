@@ -137,6 +137,16 @@ public class OfficeRequestService {
         return shipRepository.findAllByOrderByNameAsc();
     }
 
+    /**
+     * Whether there is any approved request, of one ship or (shipId null) every ship: an empty list then says "Every
+     * approved request has been exported" rather than "No requests yet" (P25).
+     */
+    @Transactional(readOnly = true)
+    public boolean anyApproved(Long shipId) {
+        return shipId == null ? requestRepository.existsByStatus(RequestStatus.APPROVED)
+                : requestRepository.countByStatusAndShipId(RequestStatus.APPROVED, shipId) > 0;
+    }
+
     /** The approved requests not exported yet, of one ship or (shipId null) every ship: "Export all not exported (N)". */
     @Transactional(readOnly = true)
     public long countNotExported(Long shipId) {

@@ -9,13 +9,12 @@
      The crew column stays put while the table scrolls sideways (.cert-matrix). The tab's List view is
      certificate/list.html; both start with tabTop. -->
 <main>
-    <th:block th:replace="~{certificate/matrix :: tabTop('matrix', ${'/office/ships/' + ship.id + '/certificates/export'})}"></th:block>
+    <th:block th:replace="~{certificate/matrix :: tabTop('matrix', ${'/office/ships/' + ship.id + '/certificates/export'}, ${matrix.types.isEmpty()})}"></th:block>
 
     <div class="card">
-        <p th:if="${matrix.rows.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{certificate.matrix.noCrew}">No active crew on board.</p>
-        <p th:if="${!matrix.rows.isEmpty() and matrix.types.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{certificate.matrix.noCertificates}">No certificates recorded for this crew yet.</p>
+        <th:block th:if="${matrix.types.isEmpty()}">
+            <div th:replace="~{certificate/matrix :: tabEmpty(${!matrix.rows.isEmpty()})}"></div>
+        </th:block>
 
         <!-- A focusable region, so the keyboard can scroll it sideways; the caption names it. -->
         <div th:unless="${matrix.types.isEmpty()}" class="table-responsive cert-matrix-scroll" tabindex="0"
@@ -58,9 +57,9 @@
 <!-- The top of the Certificates tab, in both views: the ship frame, the tab heading with Export CSV and Add
      certificate (both for what this view shows; Add comes back to it), the Matrix / List switch and the view's hint.
      view: 'matrix' or 'list'; exportUrl: this view's CSV. Needs returnTo (this view's URL) in the model. -->
-<th:block th:fragment="tabTop(view, exportUrl)">
+<th:block th:fragment="tabTop(view, exportUrl, noCertificates)">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
-    <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ~{certificate/matrix :: tabActions(${exportUrl})})}"></div>
+    <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ${noCertificates} ? null : ~{certificate/matrix :: tabActions(${exportUrl})})}"></div>
     <nav th:replace="~{layout/parts :: viewSwitch(#{certificate.view.label}, ~{certificate/matrix :: viewLinks(${view})})}"></nav>
     <p class="tab-hint" th:text="${view == 'matrix'} ? #{certificate.matrix.hint} : #{certificate.list.hint}">Active crew on board ...</p>
 </th:block>
@@ -70,11 +69,22 @@
         <svg th:replace="~{layout/parts :: icon('download')}"></svg>
         <span th:text="#{certificate.export}">Export CSV</span>
     </a>
-    <a class="btn btn-primary" th:href="@{/office/ships/{id}/certificates/new(id=${ship.id}, returnTo=${returnTo})}">
-        <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
-        <span th:text="#{certificate.new.heading}">Add certificate</span>
-    </a>
+    <a th:replace="~{certificate/matrix :: addAction}"></a>
 </th:block>
+
+<a th:fragment="addAction" class="btn btn-primary" th:href="@{/office/ships/{id}/certificates/new(id=${ship.id}, returnTo=${returnTo})}">
+    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+    <span th:text="#{certificate.new.heading}">Add certificate</span>
+</a>
+
+<!-- The tab without certificates (P25), matrix and list: with crew on board, Add certificate (which the tab heading
+     then leaves out); without, the way to the Crew tab, as a certificate needs a crew member. -->
+<div th:fragment="tabEmpty(crewOnBoard)"
+     th:replace="~{layout/parts :: emptyState(icon='certificates',
+             title=${crewOnBoard} ? #{certificate.list.empty.title} : #{certificate.matrix.noCrew},
+             text=${crewOnBoard} ? #{certificate.tab.empty.text} : #{certificate.tab.empty.noCrew},
+             action=${crewOnBoard} ? ~{certificate/matrix :: addAction}
+                     : ~{layout/parts :: emptyLink(${'/office/ships/' + ship.id + '/crew'}, #{empty.goToCrew}, 'btn btn-primary')})}"></div>
 
 <th:block th:fragment="viewLinks(view)">
     <a class="view-switch-link" th:href="@{/office/ships/{id}/certificates(id=${ship.id})}"

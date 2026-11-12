@@ -46,8 +46,29 @@ public class DashboardQueries {
                       long acknowledged) {
     }
 
+    /** What exists of the setup steps (P25): ships, crew (users with a ship role, pending crew invitations), library
+     *  items not retired and announcements; firstShipId is the first ship added, null without a ship. */
+    public record SetupRow(long ships, long crewUsers, long crewInvitations, long libraryItems, long announcements,
+                           Long firstShipId) {
+    }
+
     @PersistenceContext
     private EntityManager entityManager;
+
+    /** The setup checklist of the Overview, in one query (not part of load()'s seven). */
+    SetupRow setup() {
+        return entityManager.createQuery("""
+                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$SetupRow(
+                    (select count(s) from Ship s),
+                    (select count(u) from User u where u.role <> :officeRole),
+                    (select count(i) from Invitation i where i.ship is not null and i.status = :pending),
+                    (select count(l) from LibraryItem l where l.retired = false),
+                    (select count(a) from Announcement a),
+                    (select min(s.id) from Ship s))""", SetupRow.class)
+                .setParameter("officeRole", Role.OFFICE_USER)
+                .setParameter("pending", Invitation.Status.PENDING)
+                .getSingleResult();
+    }
 
     List<FleetShip> activeShips() {
         return entityManager.createQuery("""

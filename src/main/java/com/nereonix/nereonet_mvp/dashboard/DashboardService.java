@@ -293,6 +293,53 @@ public class DashboardService {
                 group, ship, now);
     }
 
+    // ---------------------------------------------------------------------------------------------------------------
+    // First-run setup (P25)
+    // ---------------------------------------------------------------------------------------------------------------
+
+    /** One step of the setup checklist: key names its texts (dashboard.setup.<key>.*), url the page it is done on. */
+    public record SetupStep(String key, boolean done, String url) {
+    }
+
+    /** The setup checklist: add a ship, add or import its crew, add a library document, send an announcement. */
+    public record Setup(List<SetupStep> steps) {
+
+        /** Every step done: the checklist is not shown. */
+        public boolean complete() {
+            return steps.stream().allMatch(SetupStep::done);
+        }
+
+        /** There is a ship and crew, so there is work to list: the work list is shown (under the checklist). */
+        public boolean workListShown() {
+            return steps.get(0).done() && steps.get(1).done();
+        }
+
+        public long doneCount() {
+            return steps.stream().filter(SetupStep::done).count();
+        }
+
+        /** The first step not done, or null. */
+        public SetupStep next() {
+            return steps.stream().filter(step -> !step.done()).findFirst().orElse(null);
+        }
+    }
+
+    /**
+     * The Overview's setup checklist. A step is done when its data exists: any ship; any user with a ship role or
+     * pending crew invitation; any library item not retired; any announcement. The library step opens the first
+     * ship's Library tab (Ships while there is none). One query.
+     */
+    @Transactional(readOnly = true)
+    public Setup setup() {
+        DashboardQueries.SetupRow row = queries.setup();
+        String library = row.firstShipId() == null ? "/office/ships" : "/office/ships/" + row.firstShipId() + "/library";
+        return new Setup(List.of(
+                new SetupStep("ship", row.ships() > 0, "/office/ships"),
+                new SetupStep("crew", row.crewUsers() + row.crewInvitations() > 0, "/office/crew"),
+                new SetupStep("library", row.libraryItems() > 0, library),
+                new SetupStep("announcement", row.announcements() > 0, "/office/announcements")));
+    }
+
     /** One item per announcement that someone on an active ship has not acknowledged. */
     private static List<AttentionItem> announcements(List<DashboardQueries.AnnouncementShipRow> rows,
                                                      Map<Long, FleetShip> activeShips) {

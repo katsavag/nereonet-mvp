@@ -267,9 +267,13 @@ class CertificatePlanningFlowTest {
         assertThat(html(get("/office/ships/{id}/certificates", alpha.getId())))
                 .doesNotContain("Add Passport for Dana Cadet");
 
-        // A ship without crew says so.
-        assertThat(html(get("/office/ships/{id}/certificates", ship("MV Empty", "1000004", true).getId())))
-                .contains("No active crew on board.");
+        // A ship without crew says so, and leads to its Crew tab instead of offering Add certificate (P25).
+        Long emptyId = ship("MV Empty", "1000004", true).getId();
+        assertThat(html(get("/office/ships/{id}/certificates", emptyId)))
+                .contains("class=\"empty-state\"", "No active crew on board",
+                        "Certificates belong to a crew member: add this ship&#39;s crew first.",
+                        "href=\"/office/ships/" + emptyId + "/crew\"", "Go to Crew")
+                .doesNotContain("/office/ships/" + emptyId + "/certificates/new", "Export CSV");
     }
 
     // 5. CSV exports -------------------------------------------------------------------------------------------------

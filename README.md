@@ -83,6 +83,17 @@ Requirements: Java 25, Docker.
      ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
    With the dev data the two seeded approved requests are two rows with **Export**; export them and the card says
    "Nothing needs your attention".
+   - **Set up Nereonet** (first run, P25): a checklist of four steps, each with one line of help and a link to the page
+     where it is done: 1. **Add a ship** (Ships), 2. **Add or import its crew** (Crew), 3. **Add the ship's first library
+     document** (the first ship's Library tab; Ships while there is none), 4. **Send a first announcement**
+     (Announcements). A step shows as done (a tick and "Done") when its data exists: any ship; any user with a ship role
+     or pending crew invitation; any library item not retired; any announcement. The header says "2 of 4 done". The
+     first step not done is `aria-current="step"` and its link is the page's one primary button ("Go to Ships"), so
+     the header's **New announcement** waits until the checklist is done. While there is no ship or no crew the
+     checklist takes the place of the work list (Needs attention and Fleet: there is nothing to work on yet); after
+     that it stays above it, and it disappears once all four steps are done. With the dev data (ship, crew and
+     library, no announcement) it shows 3 of 4 above the work list until an announcement is sent.
+     `DashboardService.setup()` is one query (`DashboardQueries.setup()`), outside `load()`'s seven.
 
 5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,
@@ -600,7 +611,26 @@ The app makes no request to any other host: everything a page needs is served fr
     `crew/PeopleQueries`). The list state is read by `core/list/ListQuery` (from the `ListRequest` record), which
     also builds every link. From 1200 px the table header stays visible while the page scrolls (`.table-sticky`; below
     that wide tables scroll sideways and phone lists are stacked cards). A filtered list with no rows says "No results
-    for these filters" with **Clear all** (`layout/parts :: listEmpty`), not the first-use empty text;
+    for these filters" with **Clear all** (`layout/parts :: listEmpty`), not the list's empty state (P25, below);
+  - empty states (P25): a list with nothing in it yet (no search or filter set, `ListQuery.emptyUnfiltered(rows)`)
+    shows `layout/parts :: emptyState`, centred in its card: the list's icon (the sidebar icon, larger, in a circle in
+    the primary pair), a one-line title, one sentence saying what the list is for and what to do first, and the list's
+    first action as a button. The action is the one the page header (or the ship tab's heading) had, which the header
+    then leaves out, so the view keeps one primary button. Where the first step is done elsewhere the action leads
+    there (`layout/parts :: emptyLink`). The filtered-empty line stays as it was: left aligned, no icon, **Clear all**.
+    Per list: Ships "Add your first ship to invite its crew." (**Add ship**); Crew, Add crew member and Import from
+    file, or without an active ship "Crew members belong to a ship..." (**Go to Ships**); a ship's Crew tab (Add crew
+    member; nothing on an inactive ship); Office users (Invite office user; only shown before the first office user);
+    Certificates, "No certificates yet" (**Go to Crew**), or when certificates exist but none expires within 90 days
+    "Every certificate is valid for more than 90 days." (**Show all certificates**, secondary, `?status=all`); a
+    ship's Certificates tab, matrix and list: Add certificate, or without crew on board **Go to Crew** (its tab);
+    Galley items (Add item, Import); Requests, "No requests yet" (**Go to Ships**; on the tab **Go to galley items**),
+    or when every approved request is exported "Nothing left to export" (**Show exported requests**, `?exported=yes`);
+    Announcements (New announcement; on the tab with the ship preselected); Audit log (**Go to Overview**, where the
+    setup checklist is); Notifications (**Go to start page**); Library, office tab and the Master (Add an item; the
+    other crew read who adds documents, English only); a crew member's Certificates card (Add certificate, secondary:
+    Save is that page's primary); the ship Overview tab's Crew on board (Add crew member, opening the Crew tab's form)
+    and the Overview's Fleet card (Go to Ships). The texts are `<list>.empty.title` / `.text` message keys;
   - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
     **⋯** "more" menu (`layout/parts :: rowMenu`) named after the record for screen readers ("More actions: MV
     Demo"), holding the rest; destructive entries (deactivate, delete, cancel) come last, after a divider, in red,

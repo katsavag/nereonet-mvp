@@ -159,6 +159,15 @@ public class CertificateService {
         return shipRepository.findAllByOrderByNameAsc();
     }
 
+    /**
+     * Whether there is any certificate at all, of one ship's crew or (shipId null) of anyone: an empty list then says
+     * "No certificates expire within 90 days" rather than "No certificates yet" (P25).
+     */
+    @Transactional(readOnly = true)
+    public boolean anyCertificates(Long shipId) {
+        return shipId == null ? certificateRepository.count() > 0 : certificateRepository.existsByUserShipId(shipId);
+    }
+
     /** The type suggestions of the certificate form: types in use, most used first, then the starter list. */
     @Transactional(readOnly = true)
     public List<String> typeSuggestions() {

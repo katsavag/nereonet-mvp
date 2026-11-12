@@ -2,10 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.library}, ~{::main})}">
 <body>
-<!-- The Library tab of the ship page (see ship/ShipFrame). -->
+<!-- The Library tab of the ship page (see ship/ShipFrame). An empty library (P25): Add an item is in the empty state
+     instead of the tab heading. -->
 <main>
     <th:block th:replace="~{ship/parts :: header}"></th:block>
-    <div th:replace="~{ship/parts :: tabHeading(#{library.heading}, ~{::tabActions})}">
+    <div th:replace="~{ship/parts :: tabHeading(#{library.heading}, ${itemsByCategory.isEmpty()} ? null : ~{::tabActions})}">
         <th:block th:fragment="tabActions">
             <a class="btn btn-primary" th:href="@{/office/ships/{id}/library/new(id=${ship.id})}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -14,7 +15,7 @@
         </th:block>
     </div>
 
-    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, null,${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'})}"></th:block>
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, null,${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'}, ~{::tabActions})}"></th:block>
 </main>
 </body>
 </html>

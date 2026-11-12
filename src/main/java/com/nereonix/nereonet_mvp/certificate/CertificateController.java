@@ -121,7 +121,10 @@ public class CertificateController {
     @GetMapping("/office/ships/{id}/certificates/list")
     public String shipList(@PathVariable Long id, @RequestParam(required = false) String status,
                            @ModelAttribute ListRequest listRequest, Model model) {
-        shipFrame.show(model, shipFrame.ship(id), ShipTab.CERTIFICATES);
+        Ship ship = shipFrame.ship(id);
+        shipFrame.show(model, ship, ShipTab.CERTIFICATES);
+        // Whom a certificate can be added for: without crew on board the empty list leads to the Crew tab (P25).
+        model.addAttribute("crewOnBoard", !certificateService.findShipCrew(ship).isEmpty());
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
         return showList(new CertificateService.Filter(id, false, filter), list, model);
@@ -147,6 +150,8 @@ public class CertificateController {
         CertificateStatus status = filter.status();
         model.addAttribute("list", list);
         model.addAttribute("certificates", certificateService.findCertificates(filter, list));
+        // Empty without a filter (P25): no certificate yet at all, or none expiring within 90 days.
+        model.addAttribute("anyCertificates", certificateService.anyCertificates(filter.shipId()));
         model.addAttribute("status", status.key());
         model.addAttribute("statusOption", status.isOption());
         model.addAttribute("statusLabel", label(status));

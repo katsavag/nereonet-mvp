@@ -66,16 +66,21 @@
         </div>
     </div>
 
-    <!-- Certificates: added, edited and deleted on their own pages (certificate feature), which return here. -->
+    <!-- Certificates: added, edited and deleted on their own pages (certificate feature), which return here. None yet
+         (P25): Add certificate moves from the card header into the empty state, secondary (Save is this page's
+         primary). -->
     <div class="card form-box mt-4">
         <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
             <h2 class="h5 fw-bold mb-0" th:text="#{certificate.heading}">Certificates</h2>
-            <a class="btn btn-outline-secondary btn-sm" th:href="@{/office/crew/{id}/certificates/new(id=${member.id})}"
-               th:text="#{certificate.add}">Add certificate</a>
+            <a th:unless="${certificates.isEmpty()}" class="btn btn-outline-secondary btn-sm"
+               th:href="@{/office/crew/{id}/certificates/new(id=${member.id})}" th:text="#{certificate.add}">Add certificate</a>
         </div>
 
-        <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{certificate.empty}">No certificates yet.</p>
+        <th:block th:if="${certificates.isEmpty()}">
+            <div th:replace="~{layout/parts :: emptyState(icon='certificates', title=#{certificate.list.empty.title},
+                    text=#{certificate.empty.text},
+                    action=~{layout/parts :: emptyLink(${'/office/crew/' + member.id + '/certificates/new'}, #{certificate.add}, 'btn btn-outline-secondary')})}"></div>
+        </th:block>
 
         <ul th:unless="${certificates.isEmpty()}" class="list-group list-group-flush">
             <li th:each="c : ${certificates}" class="list-group-item d-flex flex-wrap align-items-center gap-2 py-3">

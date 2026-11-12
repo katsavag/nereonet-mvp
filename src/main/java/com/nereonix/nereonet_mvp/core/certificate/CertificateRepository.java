@@ -46,6 +46,9 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     // Expired or expiring on or before "until", every ship: the sidebar counter of Certificates.
     long countByExpiresOnLessThanEqual(LocalDate until);
 
+    // Whether the crew of one ship hold any certificate: the empty state of the ship's Certificates list (P25).
+    boolean existsByUserShipId(Long shipId);
+
     // Not expired yet, expiring on or before "until", of enabled users. For the reminder job.
     @EntityGraph(attributePaths = {"user", "user.ship"})
     @Query("""

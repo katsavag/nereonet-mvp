@@ -57,7 +57,12 @@
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${overview.crewOnBoard()}">12</span></span>
                     </h2>
                     <p class="small text-body-secondary mb-0" th:text="#{ship.overview.crewHint}">Active crew members, by department.</p>
-                    <p th:if="${overview.departments.isEmpty()}" class="mt-3 mb-0" th:text="#{ship.overview.noCrew}">No active crew on board.</p>
+                    <!-- Nobody on board yet (P25): the way to invite them, on the Crew tab with the form open. -->
+                    <th:block th:if="${overview.departments.isEmpty()}">
+                        <div th:replace="~{layout/parts :: emptyState(icon='crew', title=#{ship.overview.noCrew},
+                                text=${ship.active} ? #{ship.overview.noCrew.text} : #{crew.tab.empty.inactive},
+                                action=${ship.active} ? ~{layout/parts :: emptyLink(${'/office/ships/' + ship.id + '/crew?add=true'}, #{crew.list.add}, 'btn btn-primary')} : null)}"></div>
+                    </th:block>
                     <div th:each="d : ${overview.departments}" class="department">
                         <h3 class="department-title">
                             <span th:text="${d.department} ? #{${'department.' + d.department}} : #{department.none}">Deck</span>

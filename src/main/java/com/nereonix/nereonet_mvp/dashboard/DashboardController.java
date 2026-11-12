@@ -24,6 +24,8 @@ public class DashboardController {
         AttentionType.Group group = AttentionType.Group.fromParam(type);
         DashboardService.Dashboard dashboard = dashboardService.load(group, shipId);
         model.addAttribute("dashboard", dashboard);
+        // First run (P25): the setup checklist, until every step is done.
+        model.addAttribute("setup", dashboardService.setup());
         // This page with its filter, for the certificate form to come back to (P20).
         UriComponentsBuilder here = UriComponentsBuilder.fromPath("/office");
         if (group != null) {

@@ -166,7 +166,8 @@
     </a>
 </li>
 
-<!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). -->
+<!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). The empty states (P25) show the same
+     icons larger, and 'items' (galley items, a ship tab without a sidebar entry). -->
 <svg th:fragment="navIcon(name)" class="sidebar-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
      focusable="false">
@@ -180,6 +181,7 @@
     <th:block th:if="${name == 'audit'}"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></th:block>
     <th:block th:if="${name == 'library'}"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/></th:block>
     <th:block th:if="${name == 'notifications'}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></th:block>
+    <th:block th:if="${name == 'items'}"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4z"/><path d="M3.5 8 12 12l8.5-4M12 12v8"/></th:block>
 </svg>
 
 <!-- Dates and times (P11). Office and ship read the same time for the same event: every time is shown in UTC and
@@ -583,18 +585,50 @@
     </div>
 </nav>
 
-<!-- An empty list card. With a search or a filter set, "No results for these filters" and Clear all; otherwise the
-     list's own first-use text (emptyText: "No items yet."). rows: the Spring Page; list: the ListQuery.
-     Use: <th:block th:replace="~{layout/parts :: listEmpty(${items}, ${list}, #{item.list.empty})}"></th:block> -->
-<th:block th:fragment="listEmpty(rows, list, emptyText)">
+<!-- An empty list card. With a search or a filter set, "No results for these filters" and Clear all (one compact
+     line); otherwise the list's own emptyState (P25), with the named parameters icon, title, text and action passed
+     on to it. rows: the Spring Page; list: the ListQuery. While list.emptyUnfiltered(rows), the page header leaves
+     out the actions the empty state shows, so the view keeps one primary button.
+     Use: <th:block th:replace="~{layout/parts :: listEmpty(rows=${items}, list=${list}, icon='items',
+              title=#{item.list.empty.title}, text=#{item.list.empty.text}, action=~{::tabActions})}"></th:block> -->
+<th:block th:fragment="listEmpty">
     <div th:if="${rows.totalElements == 0 and list.filtered}" class="card-body list-empty">
         <p class="list-empty-title" th:text="#{list.noResults}">No results for these filters</p>
         <a class="btn btn-outline-secondary" th:with="url=${list.clearUrl}" th:href="@{${url}}"
            th:text="#{list.clearAll}">Clear all</a>
     </div>
-    <p th:if="${rows.totalElements == 0 and !list.filtered}" class="card-body text-body-secondary mb-0"
-       th:text="${emptyText}">No items yet.</p>
+    <th:block th:if="${list.emptyUnfiltered(rows)}">
+        <div th:replace="~{layout/parts :: emptyState(icon=${icon}, title=${title}, text=${text}, action=${action})}"></div>
+    </th:block>
 </th:block>
+
+<!-- Empty state (P25): a list with nothing in it yet says what it is for and what to do first. An icon, a one-line
+     title, one sentence of help and the list's first action, centred in the card. Distinct from the filtered-empty
+     line of listEmpty ("No results for these filters"), which is left aligned, has no icon and offers Clear all.
+     Named parameters:
+       icon    a navIcon name: 'ships', 'crew', 'certificates', 'announcements', 'requests', 'users', 'audit',
+               'library', 'notifications', 'items'
+       title   "No ships yet"
+       text    one sentence: what the list is for and what to do first, "Add your first ship to invite its crew."
+       action  the buttons, ~{::pageActions} (usually the page header's own, which the header then leaves out), or
+               null when the user can do nothing about it here
+     Use: <div th:replace="~{layout/parts :: emptyState(icon='ships', title=#{...}, text=#{...}, action=~{::pageActions})}"></div> -->
+<div th:fragment="emptyState" class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><svg th:replace="~{layout/parts :: navIcon(${icon})}"></svg></span>
+    <p class="empty-state-title" th:text="${title}">No ships yet</p>
+    <p class="empty-state-text" th:text="${text}">Add your first ship to invite its crew.</p>
+    <!-- th:if on a wrapper: th:insert runs before th:if on the same element. -->
+    <th:block th:if="${action != null}">
+        <div class="empty-state-actions" th:insert="${action}"></div>
+    </th:block>
+</div>
+
+<!-- An empty state's action that leads to another page, when what to do first is done there ("Go to Ships" on an
+     empty Crew list while there is no ship). url: an app path; buttonClass: 'btn btn-primary', or
+     'btn btn-outline-secondary' where the view already has its primary.
+     Use: action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')} -->
+<a th:fragment="emptyLink(url, label, buttonClass)" th:class="${buttonClass}" th:href="@{${url}}"
+   th:text="${label}">Go to Ships</a>
 
 <!-- Form parts (P05). The pattern: app.css, section "Forms". -->
 

@@ -319,13 +319,86 @@ class DashboardFlowTest {
 
     @Test
     void thePageHasOnePrimaryActionAndASummaryLineInsteadOfTiles() throws Exception {
+        completeSetup();
         String html = html(get("/office"));
         assertThat(count(html, "btn btn-primary")).isEqualTo(1);
         assertThat(html).contains("href=\"/office/announcements/new\"", "New announcement")
-                .contains("<p class=\"page-subtitle\">0 ships · 0 crew · 0 open items</p>")
-                .doesNotContain("fs-2 fw-bold", "Active crew", "Open items needing attention");
+                .contains("<p class=\"page-subtitle\">1 ship · 1 crew · 0 open items</p>")
+                .doesNotContain("fs-2 fw-bold", "Active crew", "Open items needing attention", "Set up Nereonet");
         assertThat(html(get("/office").param("lang", "el")))
-                .contains("0 πλοία · 0 μέλη πληρώματος · 0 ανοιχτά θέματα", "Τίποτα δεν χρειάζεται την προσοχή σας");
+                .contains("1 πλοίο · 1 μέλος πληρώματος · 0 ανοιχτά θέματα", "Τίποτα δεν χρειάζεται την προσοχή σας");
+    }
+
+    // First run (P25) ------------------------------------------------------------------------------------------------
+
+    @Test
+    void onAFreshInstallationTheSetupChecklistTakesThePlaceOfTheWorkList() throws Exception {
+        String html = html(get("/office"));
+
+        assertThat(html).contains("Set up Nereonet", "0 of 4 done", "<ol class=\"setup-steps\">")
+                .contains("Add a ship", "Add or import its crew", "Add the ship&#39;s first library document",
+                        "Send a first announcement")
+                .contains("<p class=\"page-subtitle\">0 ships · 0 crew · 0 open items</p>")
+                .doesNotContain("Needs attention", "id=\"fleetTitle\"", "New announcement", "Done</span>");
+        // The next step is the page's one primary button; the others link to their pages.
+        assertThat(count(html, "btn btn-primary")).isEqualTo(1);
+        assertThat(html).contains("aria-current=\"step\"", "<a class=\"btn btn-primary setup-step-action\" href=\"/office/ships\">Go to Ships</a>")
+                .contains("href=\"/office/crew\">Add or import its crew</a>",
+                        "href=\"/office/ships\">Add the ship&#39;s first library document</a>",
+                        "href=\"/office/announcements\">Send a first announcement</a>");
+        assertThat(html(get("/office").param("lang", "el")))
+                .contains("Ρύθμιση του Nereonet", "0 από 4 ολοκληρώθηκαν", "Μετάβαση στα Πλοία");
+    }
+
+    @Test
+    void eachStepShowsAsDoneWhenItsDataExistsAndTheChecklistGoesOnceAllAre() throws Exception {
+        Ship ship = ship("MV First");
+        String html = html(get("/office"));
+        assertThat(html).contains("1 of 4 done", "class=\"setup-step is-done\"", "Done</span>",
+                        "<a class=\"btn btn-primary setup-step-action\" href=\"/office/crew\">Go to Crew</a>")
+                .doesNotContain("Needs attention"); // a ship but no crew: still nothing to work on
+
+        // A pending crew invitation counts as crew: the work list comes back, under the checklist.
+        invitation(ship, "Ivy Invited", Rank.OILER, days(6));
+        html = html(get("/office"));
+        assertThat(html).contains("2 of 4 done", "Needs attention", "id=\"fleetTitle\"",
+                "<a class=\"btn btn-primary setup-step-action\" href=\"/office/ships/" + ship.getId() + "/library\">Go to Library</a>");
+        assertThat(html.indexOf("Set up Nereonet")).isLessThan(html.indexOf("Needs attention"));
+        assertThat(count(html, "btn btn-primary")).isEqualTo(1);
+
+        libraryItem(ship, "House rules", false, days(-1));
+        assertThat(html(get("/office"))).contains("3 of 4 done", "href=\"/office/announcements\">Go to Announcements</a>");
+
+        announcement("Welcome", ship, days(-1));
+        html = html(get("/office"));
+        assertThat(html).doesNotContain("Set up Nereonet", "setup-step").contains("Needs attention", "New announcement");
+        assertThat(dashboardService.setup().complete()).isTrue();
+    }
+
+    @Test
+    void aRetiredLibraryItemOrAnOfficeUserDoesNotCountAsSetUp() throws Exception {
+        Ship ship = ship("MV First");
+        LibraryItem retired = libraryItem(ship, "Old rules", false, days(-1));
+        retired.setRetired(true);
+        libraryItemRepository.flush();
+
+        DashboardService.Setup setup = dashboardService.setup();
+        assertThat(setup.steps()).extracting(DashboardService.SetupStep::key, DashboardService.SetupStep::done)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("ship", true),
+                        org.assertj.core.groups.Tuple.tuple("crew", false), // office@example.com is not crew
+                        org.assertj.core.groups.Tuple.tuple("library", false),
+                        org.assertj.core.groups.Tuple.tuple("announcement", false));
+        assertThat(setup.workListShown()).isFalse();
+        assertThat(setup.next().key()).isEqualTo("crew");
+    }
+
+    /** Every setup step done: a ship, a crew member, a library item and an announcement. */
+    private void completeSetup() {
+        Ship ship = ship("MV Ready");
+        User crew = crew(ship, "Anna Able", Rank.ABLE_SEAMAN);
+        libraryItem(ship, "House rules", false, days(-1));
+        Announcement welcome = announcement("Welcome", ship, days(-1), crew);
+        acknowledge(welcome, crew);
     }
 
     @Test

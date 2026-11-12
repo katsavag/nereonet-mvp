@@ -38,4 +38,7 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     // Requests with this status never exported, every ship: the sidebar counter of Requests.
     long countByStatusAndExportedAtIsNull(RequestStatus status);
+
+    // Whether there is any request with this status, every ship: the empty state of Requests (P25).
+    boolean existsByStatus(RequestStatus status);
 }

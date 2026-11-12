@@ -5,11 +5,12 @@
 <!-- Also the Announcements tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
      header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
 <!-- The ship's tab lists the announcements to this ship and to all ships, so the Target column stays. -->
-<main th:with="onShip=${shipTab != null}">
+<!-- No announcements yet (P25): the empty state holds New announcement, so the header leaves it out. -->
+<main th:with="onShip=${shipTab != null}, noAnnouncements=${list.emptyUnfiltered(rows)}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{ship/parts :: header}"></th:block>
         <!-- New announcement: this ship preselected; back to this tab once sent. Not for an inactive ship. -->
-        <div th:replace="~{ship/parts :: tabHeading(#{announcement.list.heading}, ${ship.active} ? ~{::tabActions} : null)}">
+        <div th:replace="~{ship/parts :: tabHeading(#{announcement.list.heading}, ${ship.active and !noAnnouncements} ? ~{::tabActions} : null)}">
             <th:block th:fragment="tabActions">
                 <a class="btn btn-primary" th:href="@{/office/announcements/new(shipId=${ship.id})}">
                     <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -19,7 +20,7 @@
         </div>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.totalElements}, subtitle=#{announcement.list.hint}, actions=~{::pageActions})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.totalElements}, subtitle=#{announcement.list.hint}, actions=${noAnnouncements} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/announcements/new}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -38,7 +39,9 @@
     </div>
 
     <div class="card">
-        <th:block th:replace="~{layout/parts :: listEmpty(${rows}, ${list}, #{announcement.list.empty})}"></th:block>
+        <th:block th:replace="~{layout/parts :: listEmpty(rows=${rows}, list=${list}, icon='announcements',
+                title=#{announcement.list.empty.title}, text=#{announcement.list.empty.text},
+                action=${!onShip} ? ~{::pageActions} : (${ship.active} ? ~{::tabActions} : null))}"></th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones; table-sticky:
              the header stays visible while the page scrolls. -->

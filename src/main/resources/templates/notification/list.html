@@ -26,8 +26,12 @@
        th:data-one="#{notification.markedRead}" th:data-all="#{notification.allMarkedRead}"></p>
 
     <div class="card notification-card">
-        <p th:if="${notifications.totalElements == 0}" class="card-body text-body-secondary mb-0"
-           th:text="#{notification.empty}">No notifications yet.</p>
+        <!-- None yet (P25): notifications come to the user, so the action is the way back to their start page. -->
+        <th:block th:if="${notifications.totalElements == 0}">
+            <div th:replace="~{layout/parts :: emptyState(icon='notifications', title=#{notification.empty.title},
+                    text=#{notification.empty.text},
+                    action=~{layout/parts :: emptyLink(${#authentication.principal.homeUrl}, #{notification.empty.home}, 'btn btn-primary')})}"></div>
+        </th:block>
 
         <section th:each="day, dayStat : ${days}" class="notification-day"
                  th:with="dayId=${'notificationDay' + dayStat.index}, ago=${-@dates.daysUntil(day.date)}"

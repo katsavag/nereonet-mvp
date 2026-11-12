@@ -7,13 +7,15 @@
      and the Matrix / List switch instead of the page header, the ship fixed (no ship filter, no ship column).
      Export CSV downloads the list as filtered and sorted (every page). Links to a certificate carry returnTo, so its
      form comes back here. -->
-<main th:with="onShip=${shipTab != null}">
+<!-- Empty without a filter (P25): no certificate yet (noCertificates: the empty state leads to where they are added and
+     the header leaves out its actions), or none expiring within 90 days (the way to all of them). -->
+<main th:with="onShip=${shipTab != null}, empty=${list.emptyUnfiltered(certificates)}, noCertificates=${empty and !anyCertificates}">
     <th:block th:if="${onShip}">
-        <th:block th:replace="~{certificate/matrix :: tabTop('list', ${exportUrl})}"></th:block>
+        <th:block th:replace="~{certificate/matrix :: tabTop('list', ${exportUrl}, ${noCertificates})}"></th:block>
     </th:block>
     <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.totalElements},
-            subtitle=#{certificate.list.hint}, actions=~{::pageActions})}">
+            subtitle=#{certificate.list.hint}, actions=${noCertificates} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
@@ -50,7 +52,21 @@
     </div>
 
     <div class="card">
-        <th:block th:replace="~{layout/parts :: listEmpty(${certificates}, ${list}, #{certificate.list.empty})}"></th:block>
+        <th:block th:if="${anyCertificates}">
+            <th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list}, icon='certificates',
+                    title=#{certificate.list.empty.soon}, text=#{certificate.list.empty.allValid},
+                    action=~{layout/parts :: emptyLink(${list.path + '?status=all'}, #{certificate.list.empty.showAll}, 'btn btn-outline-secondary')})}"></th:block>
+        </th:block>
+        <!-- No certificate yet: they are added on a crew member's page, or from the ship's tab while it has crew. -->
+        <th:block th:if="${!anyCertificates and !onShip}">
+            <th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list}, icon='certificates',
+                    title=#{certificate.list.empty.title}, text=#{certificate.list.empty.text},
+                    action=~{layout/parts :: emptyLink('/office/crew', #{empty.goToCrew}, 'btn btn-primary')})}"></th:block>
+        </th:block>
+        <th:block th:if="${!anyCertificates and onShip}">
+            <th:block th:if="${empty}"><div th:replace="~{certificate/matrix :: tabEmpty(${crewOnBoard})}"></div></th:block>
+            <th:block th:unless="${empty}"><th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list})}"></th:block></th:block>
+        </th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
              stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls. Soonest

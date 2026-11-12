@@ -159,6 +159,14 @@ public final class ListQuery {
         return q != null || !filters.isEmpty();
     }
 
+    /**
+     * No rows and no search or filter set (P25): the list's own empty state, which says what the list is for and
+     * offers its first action, takes the place of the page header's actions. Not "No results for these filters".
+     */
+    public boolean emptyUnfiltered(Page<?> rows) {
+        return rows.getTotalElements() == 0 && !isFiltered();
+    }
+
     /** The chips of the active search and filters, each with the link that removes it. */
     public List<Chip> getChips() {
         List<Chip> chips = new ArrayList<>();

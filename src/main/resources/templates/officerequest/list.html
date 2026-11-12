@@ -9,13 +9,14 @@
      list showing exactly the exported requests, with "3 requests exported · Download again"; the download starts by
      itself (layout/parts :: flash, js/download.js). Without JavaScript everything still submits; there is no
      select-all and no selection count, and Export selected is never disabled (nothing checked: a message). -->
-<main th:with="onShip=${shipTab != null}, showExported=${exported != null}">
+<!-- Empty without a filter (P25): the empty state says why, and the header has no actions (there is nothing to export). -->
+<main th:with="onShip=${shipTab != null}, showExported=${exported != null}, noRequests=${list.emptyUnfiltered(requests)}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{ship/parts :: header}"></th:block>
-        <div th:replace="~{ship/parts :: tabHeading(#{request.list.heading}, ~{::pageActions})}"></div>
+        <div th:replace="~{ship/parts :: tabHeading(#{request.list.heading}, ${noRequests} ? null : ~{::pageActions})}"></div>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.totalElements}, subtitle=#{request.list.hint}, actions=~{::pageActions})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.totalElements}, subtitle=#{request.list.hint}, actions=${noRequests} ? null : ~{::pageActions})}">
         <!-- Submit the forms below (form attribute). Export selected is disabled by js/list-rows.js while nothing is
              selected; the line above the table (selectionCount) says why. -->
         <th:block th:fragment="pageActions">
@@ -65,7 +66,19 @@
         <input th:if="${onShip}" type="hidden" name="returnShipId" th:value="${ship.id}">
         <input th:if="${!onShip and shipId != null}" type="hidden" name="shipId" th:value="${shipId}">
         <div class="card">
-            <th:block th:replace="~{layout/parts :: listEmpty(${requests}, ${list}, #{${emptyKey}})}"></th:block>
+            <!-- Empty (P25): no approved request yet (the crew request the ship's galley items), or every one
+                 exported (the way to the exported ones). The header's Export buttons are not shown either way. -->
+            <th:block th:if="${anyRequests}">
+                <th:block th:replace="~{layout/parts :: listEmpty(rows=${requests}, list=${list}, icon='requests',
+                        title=#{request.list.empty.allExported.title}, text=#{request.list.empty.notExported},
+                        action=~{layout/parts :: emptyLink(${list.path + '?exported=yes'}, #{request.list.empty.showExported}, 'btn btn-outline-secondary')})}"></th:block>
+            </th:block>
+            <th:block th:unless="${anyRequests}">
+                <th:block th:replace="~{layout/parts :: listEmpty(rows=${requests}, list=${list}, icon='requests',
+                        title=#{request.list.empty.title}, text=#{request.list.empty.text},
+                        action=${onShip} ? ~{layout/parts :: emptyLink(${'/office/ships/' + ship.id + '/items'}, #{request.list.empty.goToItems}, 'btn btn-primary')}
+                                         : ~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
+            </th:block>
 
             <!-- The selection line: how many are selected (a live region) and, on phones, where the table header is
                  hidden, the select-all checkbox. Shown by js/list-rows.js only. -->

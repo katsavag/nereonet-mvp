@@ -101,7 +101,9 @@ public class OfficeRequestController {
         model.addAttribute("requests", requestService.findApproved(shipId, state, export, list));
         model.addAttribute("exported", state.key());
         model.addAttribute("exportedOptions", ExportState.OPTIONS);
-        model.addAttribute("emptyKey", state.isDefault() ? "request.list.empty.notExported" : "request.list.empty");
+        // Empty without a filter (P25; only the default "not exported yet" view has none): no approved request yet at
+        // all, or every one exported.
+        model.addAttribute("anyRequests", requestService.anyApproved(shipId));
         model.addAttribute("notExportedCount", requestService.countNotExported(shipId));
         return "officerequest/list";
     }
