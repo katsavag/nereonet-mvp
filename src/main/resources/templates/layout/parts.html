@@ -3,30 +3,36 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
-<!-- Logo, app name and a tagline. For dark backgrounds. static/favicon.svg is the same wave mark: change both together. -->
-<div th:fragment="brand(tagline)" class="d-flex align-items-center gap-2">
-    <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true">
-        <path d="M4 22c6-12 14-12 20 0s14 12 20 0v8c-6 12-14 12-20 0S10 18 4 30z" fill="#5aa9ec"/>
-        <path d="M4 32c6-12 14-12 20 0s14 12 20 0v8H4z" fill="#2f7fd0"/>
-    </svg>
-    <div class="lh-1">
-        <div class="fs-4 fw-bold text-white" th:text="#{app.name}">Nereonet</div>
-        <div class="brand-tagline mt-1" th:text="${tagline}">Portal</div>
+<!-- The brand on navy (P29): the Nereonix mark (32px), "Nereonix" as text and a tagline (or null for none). The mark's
+     alt is empty: the word next to it names the app. The sidebar (its rail shows the mark only, the words stay for
+     screen readers) and the sign-in bar on phones. On light surfaces never use the full logo (its wordmark is white).
+     Lazy: where the sidebar is hidden (a crew member's phone, P26) the mark is never fetched. -->
+<div th:fragment="brand(tagline)" class="brand">
+    <img class="brand-mark" th:src="@{/img/brand/nereonix-mark-192.png}" width="32" height="32" alt="" loading="lazy">
+    <div class="brand-text">
+        <div class="brand-name" th:text="#{brand.name}">Nereonix</div>
+        <div th:if="${tagline != null}" class="brand-tagline" th:text="${tagline}">Office portal</div>
     </div>
 </div>
 
-<!-- English / Greek links. linkClass sets the link colour. Each link changes only the language (P16): it is the
-     current page with its query string kept (ship and status filters, page number, token) and lang set, from
-     @languageLinks (core/config/LanguageLinks). token: the invitation or reset token of the page, added when the URL
-     does not carry it (the form shown again after a POST with errors, P13); null everywhere else. -->
+<!-- English / Greek switch, "EN | ΕΛ" (P29), top right: the office top bar on every page, the form side of the
+     signed-out pages. Crew pages have none. The current language is bold with aria-current="true"; each link has its
+     lang and its full name as accessible name ("English", "Ελληνικά"); a 40px (44px on phones) target. Its colour comes
+     from where it sits (app.css). Each link changes only the language (P16): it is the current page with its query
+     string kept (ship and status filters, page number, token) and lang set, from @languageLinks
+     (core/config/LanguageLinks). token: the invitation or reset token of the page, added when the URL does not carry
+     it (the form shown again after a POST with errors, P13); null everywhere else. -->
 <!-- th:with: Thymeleaf evaluates th:href in restricted mode, which does not call beans. -->
-<div th:fragment="langSwitch(linkClass, token)" class="lang-switch small"
-     th:with="englishUrl=${@languageLinks.to('en', token)}, greekUrl=${@languageLinks.to('el', token)}">
-    <a th:class="${linkClass}" th:classappend="${#locale.language == 'en'} ? 'fw-bold'"
-       th:href="${englishUrl}" th:text="#{nav.lang.en}">English</a>
-    <span class="mx-1 opacity-50" aria-hidden="true">·</span>
-    <a th:class="${linkClass}" th:classappend="${#locale.language == 'el'} ? 'fw-bold'"
-       th:href="${greekUrl}" th:text="#{nav.lang.el}">Ελληνικά</a>
+<div th:fragment="langSwitch(token)" class="lang-switch" role="group" th:attr="aria-label=#{nav.lang.label}"
+     th:with="englishUrl=${@languageLinks.to('en', token)}, greekUrl=${@languageLinks.to('el', token)},
+              english=${#locale.language != 'el'}">
+    <a class="lang-switch-link" th:classappend="${english} ? 'is-current'" th:href="${englishUrl}" lang="en"
+       hreflang="en" th:attr="aria-label=#{nav.lang.en}, aria-current=${english} ? 'true' : null"
+       th:text="#{nav.lang.en.short}">EN</a>
+    <span class="lang-switch-divider" aria-hidden="true"></span>
+    <a class="lang-switch-link" th:classappend="${!english} ? 'is-current'" th:href="${greekUrl}" lang="el"
+       hreflang="el" th:attr="aria-label=#{nav.lang.el}, aria-current=${!english} ? 'true' : null"
+       th:text="#{nav.lang.el.short}">ΕΛ</a>
 </div>
 
 <!-- A quiet info note (P16): a notice the user must see where it applies, but that asks nothing of them ("Nereonix is
@@ -44,19 +50,34 @@
 
 <!-- The signed-out frame (sign-in, registration, invalid link, signed-out error pages): the navy brand panel and the
      form column. From 768px the panel is a column on the left; on phones it collapses to a 64px header bar, so the
-     form starts above the fold (P13). Named parameters:
+     form starts above the fold (P13). P29: the panel is 5/12 of the width from 768px and 4/12 from 1400px, with the
+     full logo (at most 280px wide) and one line under it, centred; the phone bar has the mark and "Nereonix"; the
+     form is a card (at most 420px) centred on the other side, with "EN | ΕΛ" at its top right. Named parameters:
        content  the column's content, ~{::authContent}, defined inside the host element
        lang     true: the English / Greek switch above the content
        token    the invitation token the switch keeps (registration), or leave it out
      Use: <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
               <th:block th:fragment="authContent">...</th:block></main> -->
 <main th:fragment="authFrame" class="auth-frame row g-0 min-vh-100 align-content-start align-content-md-stretch">
-    <div class="auth-brand col-md-5 col-lg-4 bg-navy bg-grid">
-        <div th:replace="~{layout/parts :: brand(#{login.tagline})}"></div>
+    <div class="auth-brand col-md-5 col-xxl-4 bg-navy bg-grid">
+        <!-- Phones: the 64px bar. -->
+        <div class="auth-brand-bar">
+            <div th:replace="~{layout/parts :: brand(null)}"></div>
+        </div>
+        <!-- From 768px: the full logo. On phones the picture asks for the mark of the bar above instead (already
+             loaded), so a slow link never fetches the large logo just to hide it. -->
+        <div class="auth-brand-logo">
+            <picture>
+                <source media="(max-width: 767.98px)" th:srcset="@{/img/brand/nereonix-mark-192.png}">
+                <img class="auth-logo" th:src="@{/img/brand/nereonix-logo-on-dark-600.png}" width="600" height="422"
+                     th:alt="#{brand.name}">
+            </picture>
+            <p class="auth-brand-line" th:text="#{login.tagline}">Office and ship portal</p>
+        </div>
     </div>
-    <div class="auth-panel col-md-7 col-lg-8">
+    <div class="auth-panel col-md-7 col-xxl-8">
         <div th:if="${lang}" class="auth-lang">
-            <div th:replace="~{layout/parts :: langSwitch('link-secondary link-underline-opacity-0', ${token})}"></div>
+            <div th:replace="~{layout/parts :: langSwitch(${token})}"></div>
         </div>
         <div class="auth-body">
             <div class="login-box w-100" th:insert="${content}"></div>
@@ -202,6 +223,39 @@
 <form th:fragment="signOut(buttonClass)" th:action="@{/logout}" method="post">
     <button type="submit" th:class="${buttonClass}" th:data-busy-label="#{save.busy.signOut}"
             th:text="#{nav.signOut}">Sign out</button>
+</form>
+
+<!-- Sign out in the sidebar's user block (P29): the same form, with an icon that the 64px rail shows in place of the
+     words (they stay for screen readers and come back as a tooltip on hover and focus). -->
+<form th:fragment="sidebarSignOut" th:action="@{/logout}" method="post">
+    <button type="submit" class="btn btn-outline-light btn-sm text-nowrap sidebar-sign-out"
+            th:data-busy-label="#{save.busy.signOut}">
+        <svg class="sidebar-sign-out-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/>
+        </svg>
+        <span class="sidebar-label" th:text="#{nav.signOut}">Sign out</span>
+    </button>
+</form>
+
+<!-- "Expand menu" / "Collapse menu" at the bottom of the sidebar from 768px (P29): a small form, so it works without
+     JavaScript (SidebarPreferenceController sets the cookie and comes back to this page). js/sidebar.js turns it into
+     a toggle in place: it switches body.sidebar-collapsed / sidebar-expanded, sets the same cookie and never sends
+     the form. expanded: the state the page was rendered in (@sidebarPreference). The chevron points the way the
+     sidebar will move. -->
+<form th:fragment="sidebarToggle(expanded)" class="sidebar-toggle-form" th:action="@{/preferences/sidebar}"
+      method="post" th:with="returnTo=${@sidebarPreference.returnTo()}">
+    <input type="hidden" name="state" th:value="${expanded} ? 'collapsed' : 'expanded'" data-sidebar-state>
+    <input type="hidden" name="returnTo" th:value="${returnTo}">
+    <button type="submit" class="sidebar-toggle" aria-controls="sidebar" data-sidebar-toggle
+            th:attr="aria-expanded=${expanded} ? 'true' : 'false'"
+            th:data-label-expand="#{nav.expand}" th:data-label-collapse="#{nav.collapse}">
+        <svg class="sidebar-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="m10 6 6 6-6 6"/>
+        </svg>
+        <span class="sidebar-label" th:text="${expanded} ? #{nav.collapse} : #{nav.expand}">Expand menu</span>
+    </button>
 </form>
 
 <!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). The empty states (P25) show the same

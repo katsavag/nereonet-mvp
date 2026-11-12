@@ -10,12 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.mail.ActionEmail;
+import com.nereonix.nereonet_mvp.core.mail.HtmlEmails;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -44,13 +45,14 @@ public class PasswordResetService {
     private final UserService userService;
     private final AuditService auditService;
     private final MailService mailService;
-    private final MessageSource messageSource;
+    private final PasswordResetEmails resetEmails;
+    private final HtmlEmails htmlEmails;
     private final TaskExecutor mailExecutor;
     private final String baseUrl;
 
     public PasswordResetService(PasswordResetRepository resetRepository, PasswordResetTokenService tokenService,
                                 UserRepository userRepository, UserService userService, AuditService auditService,
-                                MailService mailService, MessageSource messageSource,
+                                MailService mailService, PasswordResetEmails resetEmails, HtmlEmails htmlEmails,
                                 @Qualifier("applicationTaskExecutor") TaskExecutor mailExecutor,
                                 @Value("${app.base-url}") String baseUrl) {
         this.resetRepository = resetRepository;
@@ -59,7 +61,8 @@ public class PasswordResetService {
         this.userService = userService;
         this.auditService = auditService;
         this.mailService = mailService;
-        this.messageSource = messageSource;
+        this.resetEmails = resetEmails;
+        this.htmlEmails = htmlEmails;
         this.mailExecutor = mailExecutor;
         this.baseUrl = baseUrl;
     }
@@ -92,13 +95,15 @@ public class PasswordResetService {
         resetRepository.save(reset);
 
         String url = baseUrl + "/password/reset?token=" + tokenService.create(reset);
-        String subject = messageSource.getMessage("passwordReset.email.subject", null, locale);
-        String text = messageSource.getMessage("passwordReset.email.text",
-                new Object[] {user.getFullName(), url, VALID_FOR.toMinutes()}, locale);
-        // On another thread: sending takes seconds over SMTP, which would tell a known address from an unknown one.
+        String fullName = user.getFullName();
+        Instant expiresAt = reset.getExpiresAt();
+        // On another thread: sending takes seconds over SMTP, which would tell a known address from an unknown one. The
+        // HTML version (P29, the invitation's template) is rendered there too, in the language of the page.
         mailExecutor.execute(() -> {
             try {
-                mailService.send(normalized, subject, text);
+                ActionEmail message = resetEmails.email(fullName, normalized, url, expiresAt, locale);
+                mailService.send(normalized, message.subject(), resetEmails.text(fullName, url, locale),
+                        htmlEmails.render(message));
             } catch (RuntimeException e) {
                 log.warn("Password reset email to {} failed: {}", normalized, e.getMessage());
             }

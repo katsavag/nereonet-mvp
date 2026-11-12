@@ -3,7 +3,7 @@
      The template stays as the easy path: a file with exactly its columns skips the column mapping. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{${flow.key('title')}}, ~{::main})}">
 <body>
-<main>
+<main class="form-page form-page-aside">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{${flow.key('heading')}},
             crumbs=~{layout/parts :: importCrumbs(false)}, eyebrowShip=${flow.ship()})}"></header>
     <nav th:replace="~{layout/parts :: importSteps(1)}"></nav>
@@ -31,17 +31,17 @@
                 </div>
             </form>
         </div>
-        <!-- The easy path: the template. -->
-        <div class="card-footer import-template">
-            <h2 class="import-template-title" th:text="#{importFile.template.title}">Starting from scratch?</h2>
-            <p class="import-template-text" th:text="#{${flow.key('template.text')}}">Download the template, fill in
-                one row per crew member and upload it. A file made from the template needs no column matching.</p>
-            <a class="btn btn-outline-secondary" th:href="@{${flow.templatePath()}}">
-                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
-                <span th:text="#{importFile.template.download}">Download template</span>
-            </a>
-        </div>
     </div>
+    <!-- The easy path: the template, beside the upload from 1200px and under it before (P29). -->
+    <section class="card form-aside import-template" aria-labelledby="templateTitle">
+        <h2 class="import-template-title" id="templateTitle" th:text="#{importFile.template.title}">Starting from scratch?</h2>
+        <p class="import-template-text" th:text="#{${flow.key('template.text')}}">Download the template, fill in
+            one row per crew member and upload it. A file made from the template needs no column matching.</p>
+        <a class="btn btn-outline-secondary" th:href="@{${flow.templatePath()}}">
+            <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+            <span th:text="#{importFile.template.download}">Download template</span>
+        </a>
+    </section>
 </main>
 </body>
 </html>

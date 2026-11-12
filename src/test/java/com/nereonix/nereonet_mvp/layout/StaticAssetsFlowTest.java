@@ -30,7 +30,7 @@ class StaticAssetsFlowTest {
 
     private static final String ONE_YEAR = "max-age=31536000";
     private static final Pattern HASHED_ASSET =
-            Pattern.compile("(?:href|src)=\"(/(?:css|js|vendor|fonts)/[^\"]+-[0-9a-f]{32}\\.[a-z0-9]+|/favicon-[0-9a-f]{32}\\.svg)\"");
+            Pattern.compile("(?:href|src|srcset)=\"(/(?:css|js|vendor|fonts|img)/[^\"]+-[0-9a-f]{32}\\.[a-z0-9]+)\"");
 
     @Autowired
     MockMvc mockMvc;
@@ -47,7 +47,11 @@ class StaticAssetsFlowTest {
                 .anyMatch(u -> u.startsWith("/vendor/bootstrap/bootstrap.bundle.min-"))
                 .anyMatch(u -> u.startsWith("/css/app-"))
                 .anyMatch(u -> u.startsWith("/js/local-time-"))
-                .anyMatch(u -> u.startsWith("/favicon-"));
+                .anyMatch(u -> u.startsWith("/img/brand/favicon-32-"))
+                .anyMatch(u -> u.startsWith("/img/brand/apple-touch-icon-"))
+                // P29: the sign-in panel's logo, and the mark of the phone bar.
+                .anyMatch(u -> u.startsWith("/img/brand/nereonix-logo-on-dark-600-"))
+                .anyMatch(u -> u.startsWith("/img/brand/nereonix-mark-192-"));
 
         // Signed out: the sign-in page must be fully styled, so every asset (hashed URL included) is public.
         for (String asset : assets) {

@@ -30,8 +30,6 @@ class MessageKeysTest {
             "certificate.reminder.crew.text",
             "certificate.reminder.office.email",
             "certificate.reminder.office.subject",
-            "invitation.email.subject",
-            "invitation.email.text",
             // Crew (ship) screens: the library as the crew see it, their navigation, the ship home page and their announcements.
             // (Download and the file size are on the office's read view too since P22, so they are in Greek.)
             "library.acknowledge",

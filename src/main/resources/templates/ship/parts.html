@@ -85,6 +85,29 @@
     <p class="mb-0" th:text="#{ship.inactive.text}">You cannot invite crew to it ...</p>
 </div>
 
+<!-- The ship record as label and value rows: name, IMO number, type and flag (the Overview tab's particulars card, and
+     formAside). The flag's country name comes from the model's countries when the page has them, else its code. -->
+<dl th:fragment="particulars(ship)" class="static-fields particulars-summary">
+    <dt th:text="#{ship.name}">Name</dt>
+    <dd class="text-break" th:text="${ship.name}">MV Demo</dd>
+    <dt th:text="#{ship.imoNumber}">IMO number</dt>
+    <dd class="num" th:text="${ship.imoNumber}">9074729</dd>
+    <dt th:text="#{ship.type}">Type</dt>
+    <dd th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</dd>
+    <dt th:text="#{ship.flag}">Flag</dt>
+    <dd th:text="${ship.flag} ? (${countries != null and countries[ship.flag] != null} ? ${countries[ship.flag]} : ${ship.flag}) : '—'">Greece (GR)</dd>
+</dl>
+
+<!-- The ship a form belongs to, beside the form from 1200px (P29, main.form-page-aside; under it on smaller screens),
+     so the office always sees which ship it is changing: the particulars rows and the status. -->
+<section th:fragment="formAside(ship)" class="card form-aside" aria-labelledby="formAsideTitle">
+    <div class="card-body">
+        <h2 class="form-aside-title" id="formAsideTitle" th:text="#{library.particulars}">Ship particulars</h2>
+        <dl th:replace="~{ship/parts :: particulars(${ship})}"></dl>
+        <span th:replace="~{layout/parts :: status(${ship.active} ? 'ok' : 'neutral', ${ship.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
+    </div>
+</section>
+
 <!-- The heading of a tab's content (h2) and the tab's own actions on the right (Add crew member, Add item, ...).
      actions: a fragment, ~{::tabActions}, or null. -->
 <div th:fragment="tabHeading(heading, actions)" class="tab-heading">

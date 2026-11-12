@@ -8,11 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.mail.ActionEmail;
+import com.nereonix.nereonet_mvp.core.mail.HtmlEmails;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -31,7 +33,8 @@ public class InvitationService {
     private final ShipRepository shipRepository;
     private final InvitationTokenService tokenService;
     private final MailService mailService;
-    private final MessageSource messageSource;
+    private final InvitationEmails invitationEmails;
+    private final HtmlEmails htmlEmails;
     private final AuditService auditService;
     private final String baseUrl;
     private final int validDays;
@@ -42,7 +45,8 @@ public class InvitationService {
                              ShipRepository shipRepository,
                              InvitationTokenService tokenService,
                              MailService mailService,
-                             MessageSource messageSource,
+                             InvitationEmails invitationEmails,
+                             HtmlEmails htmlEmails,
                              AuditService auditService,
                              @Value("${app.base-url}") String baseUrl,
                              @Value("${app.invitation.valid-days:7}") int validDays) {
@@ -52,7 +56,8 @@ public class InvitationService {
         this.shipRepository = shipRepository;
         this.tokenService = tokenService;
         this.mailService = mailService;
-        this.messageSource = messageSource;
+        this.invitationEmails = invitationEmails;
+        this.htmlEmails = htmlEmails;
         this.auditService = auditService;
         this.baseUrl = baseUrl;
         this.validDays = validDays;
@@ -156,13 +161,14 @@ public class InvitationService {
                 .filter(invitation -> invitation.getStatus() == Invitation.Status.PENDING);
     }
 
+    // Plain text and HTML (P29). The invitee's language is unknown: crew emails are English, as crew screens are;
+    // office emails follow the language of the office user who sends (or resends) the invitation.
     private void sendEmail(Invitation invitation) {
         String url = baseUrl + "/register?token=" + tokenService.create(invitation);
-        // The invitee's language is unknown and crew screens are English only, so the email is English.
-        String subject = messageSource.getMessage("invitation.email.subject", null, Locale.ENGLISH);
-        String text = messageSource.getMessage("invitation.email.text",
-                new Object[] {invitation.getFullName(), url, validDays}, Locale.ENGLISH);
-        mailService.send(invitation.getEmail(), subject, text);
+        Locale locale = invitationEmails.locale(invitation, LocaleContextHolder.getLocale());
+        ActionEmail email = invitationEmails.email(invitation, url, locale);
+        mailService.send(invitation.getEmail(), email.subject(),
+                invitationEmails.text(invitation, url, validDays, locale), htmlEmails.render(email));
     }
 
     // Inactive ships cannot get new crew, so they are not found here.

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout((${item == null} ? #{item.new.heading} : #{item.edit.heading}), ~{::main})}">
 <body>
 <!-- Add and edit. item is null when adding. -->
-<main>
+<main class="form-page form-page-aside">
     <header th:replace="~{layout/parts :: pageHeader(heading=${item == null} ? #{item.new.heading} : #{item.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${ship})}">
         <th:block th:fragment="pageCrumbs">
             <th:block th:replace="~{ship/parts :: crumbs(${ship}, 'items')}"></th:block>
@@ -53,6 +53,8 @@
             </form>
         </div>
     </div>
+    <!-- The ship this form changes, beside it from 1200px (P29). -->
+    <section th:replace="~{ship/parts :: formAside(${ship})}"></section>
 </main>
 </body>
 </html>

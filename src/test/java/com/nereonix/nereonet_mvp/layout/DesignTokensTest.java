@@ -68,10 +68,12 @@ class DesignTokensTest {
     }
 
     @Test
+    // Except the emails (templates/email, P29): mail clients ignore stylesheets, so emails are styled inline.
     void templatesHaveNoInlineStyles() throws IOException {
         List<String> found = new ArrayList<>();
         try (Stream<Path> files = Files.walk(Path.of("src/main/resources/templates"))) {
-            for (Path file : files.filter(f -> f.toString().endsWith(".html")).toList()) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".html"))
+                    .filter(f -> !f.toString().replace('\\', '/').contains("templates/email/")).toList()) {
                 if (Files.readString(file).matches("(?s).*\\sstyle=\".*")) {
                     found.add(file.toString());
                 }

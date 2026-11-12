@@ -296,10 +296,14 @@ class PageHeaderFlowTest {
     @Test
     void appCssDefinesTheLayoutFrame() throws Exception {
         String css = Files.readString(Path.of("src/main/resources/static/css/app.css"));
-        assertThat(css).contains(".app-main { min-width: 0; }", "--nn-content-width: 80rem;",
-                "max-width: calc(var(--nn-content-width) + 2 * var(--nn-gutter));", "--nn-section-gap: var(--nn-space-5);",
+        // P29: the content uses the full width next to the sidebar (no 1280px cap), with 32px side gutters from 768px;
+        // forms keep their 720px column, centred (main.form-page).
+        assertThat(css).contains(".app-main { min-width: 0; }", ".app-content { padding: var(--nn-section-gap) var(--nn-gutter); }",
+                ":root { --nn-gutter: var(--nn-space-6); }", "--nn-section-gap: var(--nn-space-5);",
+                ".form-page {\n    max-width: var(--nn-form-width);\n    margin-inline: auto;",
                 ".page-header { margin-bottom: var(--nn-section-gap); }", ".page-breadcrumbs .breadcrumb {",
                 "min-height: var(--nn-touch-target);", ".topbar-title {");
+        assertThat(css).doesNotContain("--nn-content-width", "80rem");
         String layout = Files.readString(Path.of("src/main/resources/templates/layout/layout.html"));
         assertThat(layout).contains("class=\"app-main flex-grow-1\"", "class=\"app-content\"");
     }

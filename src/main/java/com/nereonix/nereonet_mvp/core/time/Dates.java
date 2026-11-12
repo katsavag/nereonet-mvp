@@ -58,6 +58,12 @@ public class Dates {
                 : DateTimeFormatter.ofPattern(DATE_TIME_PATTERN, locale()).withZone(ZoneOffset.UTC).format(instant);
     }
 
+    /** "21 Oct 2026 · 12:40 UTC" in the given language, outside a request (an email, P29); empty for null. */
+    public static String dateTime(Instant instant, Locale locale) {
+        return instant == null ? ""
+                : DateTimeFormatter.ofPattern(DATE_TIME_PATTERN, locale).withZone(ZoneOffset.UTC).format(instant);
+    }
+
     /** "12:40 UTC", under a heading that gives the day (a notification, P23); empty for null. */
     public String utcTime(Instant instant) {
         return instant == null ? "" : TIME.format(instant);

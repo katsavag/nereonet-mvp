@@ -5,7 +5,7 @@
      load. The same question as the dialog (core/confirm/ConfirmPage, built from the same message keys): the heading
      names the record, one sentence gives the consequence, then the confirm button, which posts the action, and the
      way back. Nothing has changed until the button is pressed. -->
-<main>
+<main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=${confirm.title}, crumbs=~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">
             <!-- th:each on a wrapper: th:replace runs before th:each on the same element. -->

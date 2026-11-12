@@ -32,7 +32,7 @@ spring:
         strategy:
           content:
             enabled: true
-            paths: /css/**,/js/**,/vendor/**,/fonts/**,/favicon*.svg
+            paths: /css/**,/js/**,/vendor/**,/fonts/**,/img/**
       cache:
         cachecontrol:
           max-age: 365d

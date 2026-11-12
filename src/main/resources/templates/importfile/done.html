@@ -3,7 +3,7 @@
      core/importfile/ImportResult); opened again later it leads to the list. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{importFile.done.title}, ~{::main})}">
 <body>
-<main>
+<main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{importFile.done.heading},
             crumbs=~{layout/parts :: importCrumbs(true)}, eyebrowShip=${flow.ship()})}"></header>
     <nav th:replace="~{layout/parts :: importSteps(4)}"></nav>

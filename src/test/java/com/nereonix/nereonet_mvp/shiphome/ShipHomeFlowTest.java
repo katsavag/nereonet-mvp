@@ -232,11 +232,15 @@ class ShipHomeFlowTest {
         assertThat(section(TAB_BAR, html(get("/ship/library").with(user(new CurrentUser(cook))))))
                 .contains("<a class=\"tab-bar-link active\" href=\"/ship/library\" aria-current=\"page\">");
         // No offcanvas menu button and no bell for the crew: the tab bar has both.
-        assertThat(html).containsPattern("<body[^>]* class=\"has-tab-bar\"")
-                .doesNotContain("data-bs-target=\"#sidebar\"", "id=\"notificationBell\"");
+        assertThat(html).containsPattern("<body[^>]* class=\"has-tab-bar[ \"]")
+                .doesNotContain("data-bs-toggle=\"offcanvas\"", "id=\"notificationBell\"");
 
-        // No images, and no script beyond the shared ones of the layout.
-        assertThat(html).doesNotContain("<img", "<picture", "url(", "<script>");
+        // No images, and no script beyond the shared ones of the layout. The one exception is the Nereonix mark of the
+        // sidebar (P29): lazy, so a phone, where the sidebar is hidden, never loads it.
+        assertThat(html).containsPattern("<img class=\"brand-mark\" src=\"/img/brand/nereonix-mark-192-[0-9a-f]{32}\\.png\""
+                + " width=\"32\" height=\"32\" alt=\"\" loading=\"lazy\">");
+        assertThat(html.replaceAll("<img class=\"brand-mark\"[^>]*>", ""))
+                .doesNotContain("<img", "<picture", "url(", "<script>");
         assertThat(scripts(html)).isEqualTo(scripts(html(get("/ship/library").with(user(new CurrentUser(cook))))));
     }
 

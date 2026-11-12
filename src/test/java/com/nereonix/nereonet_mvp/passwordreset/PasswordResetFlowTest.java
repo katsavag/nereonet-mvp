@@ -139,8 +139,8 @@ class PasswordResetFlowTest {
         assertThat(new String(knownPage, java.nio.charset.StandardCharsets.UTF_8))
                 .contains(CONFIRMATION).doesNotContain("known@example.com", "_csrf");
 
-        verify(mailService, timeout(5000)).send(eq("known@example.com"), anyString(), anyString());
-        verify(mailService, after(300).never()).send(eq("nobody@example.com"), anyString(), anyString());
+        verify(mailService, timeout(5000)).send(eq("known@example.com"), anyString(), anyString(), anyString());
+        verify(mailService, after(300).never()).send(eq("nobody@example.com"), anyString(), anyString(), anyString());
     }
 
     // Acceptance: a link used once shows the invalid-link page the second time, and changes nothing.
@@ -184,7 +184,7 @@ class PasswordResetFlowTest {
         mockMvc.perform(post("/password/forgot").param("email", "twice@example.com").with(csrf()));
         mockMvc.perform(post("/password/forgot").param("email", "twice@example.com").with(csrf()));
         ArgumentCaptor<String> texts = ArgumentCaptor.forClass(String.class);
-        verify(mailService, timeout(5000).times(2)).send(eq("twice@example.com"), anyString(), texts.capture());
+        verify(mailService, timeout(5000).times(2)).send(eq("twice@example.com"), anyString(), texts.capture(), anyString());
         String first = link(texts.getAllValues().get(0));
         String second = link(texts.getAllValues().get(1));
 
@@ -201,7 +201,7 @@ class PasswordResetFlowTest {
             mockMvc.perform(post("/password/forgot").param("email", "busy@example.com").with(csrf()))
                     .andExpect(redirectedUrl("/password/forgot/sent"));
         }
-        verify(mailService, after(500).times(5)).send(eq("busy@example.com"), anyString(), anyString());
+        verify(mailService, after(500).times(5)).send(eq("busy@example.com"), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -214,7 +214,7 @@ class PasswordResetFlowTest {
         userRepository.saveAndFlush(user);
         mockMvc.perform(post("/password/forgot").param("email", "gone@example.com").with(csrf()))
                 .andExpect(redirectedUrl("/password/forgot/sent"));
-        verify(mailService, after(300).times(1)).send(eq("gone@example.com"), anyString(), anyString());
+        verify(mailService, after(300).times(1)).send(eq("gone@example.com"), anyString(), anyString(), anyString());
         assertInvalidLinkPage(page(link));
     }
 
@@ -246,7 +246,7 @@ class PasswordResetFlowTest {
         user("greek@example.com", "old-password");
         mockMvc.perform(post("/password/forgot").param("email", "greek@example.com").param("lang", "el").with(csrf()));
         verify(mailService, timeout(5000)).send(eq("greek@example.com"), eq("Νέος κωδικός για το Nereonet"),
-                contains("Ο σύνδεσμος λειτουργεί μία φορά και για 60 λεπτά."));
+                contains("Ο σύνδεσμος λειτουργεί μία φορά και για 60 λεπτά."), anyString());
     }
 
     @Test
@@ -257,7 +257,7 @@ class PasswordResetFlowTest {
         assertThat(mockMvc.perform(post("/password/forgot").param("email", "not an address").with(csrf()))
                 .andExpect(view().name("passwordreset/forgot"))
                 .andReturn().getResponse().getContentAsString()).contains("Enter a valid email address");
-        verify(mailService, after(200).never()).send(anyString(), anyString(), anyString());
+        verify(mailService, after(200).never()).send(anyString(), anyString(), anyString(), anyString());
     }
 
     private void assertInvalidLinkPage(String html) {
@@ -272,7 +272,7 @@ class PasswordResetFlowTest {
 
     private String emailTo(String email) {
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-        verify(mailService, timeout(5000)).send(eq(email), eq("Set a new Nereonet password"), text.capture());
+        verify(mailService, timeout(5000)).send(eq(email), eq("Set a new Nereonet password"), text.capture(), anyString());
         return text.getValue();
     }
 

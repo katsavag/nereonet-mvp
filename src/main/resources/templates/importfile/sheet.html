@@ -3,7 +3,7 @@
      columns recognised) is chosen already. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{importFile.sheet.title}, ~{::main})}">
 <body>
-<main>
+<main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{importFile.sheet.heading},
             crumbs=~{layout/parts :: importCrumbs(true)}, eyebrowShip=${flow.ship()})}"></header>
     <nav th:replace="~{layout/parts :: importSteps(1)}"></nav>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!--
+  The HTML version of an email that asks for one action through a link (P29): the invitation and the password reset.
+  Rendered by core/mail/HtmlEmails from a core/mail/ActionEmail ("email": every text final, in the email's language)
+  and "logoSrc" ("cid:nereonix-logo", the inline attachment MailService adds; the app's URL in the dev preview).
+  Mail clients ignore stylesheets and most layout CSS: tables for layout, inline styles only (the one exception to
+  app.css, see DesignTokensTest), at most 600px wide. Every text has its own colour on its own background (navy on
+  white, white on navy, grey on cream), 4.5:1 or more, so nothing disappears when a client darkens the email. With
+  images blocked the header still reads "Nereonix": the word is text next to the logo, which has alt="".
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${email.language()}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title th:text="${email.subject()}">You are invited to Nereonet</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f1ea;color:#13202f;">
+<!-- The line mail clients show after the subject in the inbox; not shown in the email itself. -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f4f1ea;font-size:1px;line-height:1px;"
+     th:text="${email.preheader()}">Maria Papadopoulou invited you to join MV Aegean Star as Second Officer.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f1ea"
+       style="background-color:#f4f1ea;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="max-width:600px;width:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <!-- Header band: the logo and the word "Nereonix" on navy. -->
+                <tr>
+                    <td bgcolor="#10223a" style="background-color:#10223a;padding:16px 24px;border-radius:12px 12px 0 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="padding-right:12px;vertical-align:middle;">
+                                    <img th:src="${logoSrc}" src="cid:nereonix-logo" width="80" height="56" alt=""
+                                         style="display:block;width:80px;height:56px;border:0;">
+                                </td>
+                                <td style="vertical-align:middle;font-size:22px;line-height:28px;font-weight:700;color:#ffffff;"
+                                    th:text="#{brand.name}">Nereonix</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <!-- The card. -->
+                <tr>
+                    <td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px 24px;border-radius:0 0 12px 12px;color:#13202f;">
+                        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;font-weight:700;color:#13202f;"
+                            th:text="${email.heading()}">You are invited</h1>
+                        <p th:each="p : ${email.paragraphs()}" style="margin:0 0 16px;font-size:16px;line-height:24px;color:#13202f;"
+                           th:text="${p}">Hello Jane Doe,</p>
+                        <!-- The one action: a navy button, 44px high (12px padding around a 20px line). -->
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+                            <tr>
+                                <td bgcolor="#10223a" style="background-color:#10223a;border-radius:8px;">
+                                    <a th:href="${email.url()}" href="#"
+                                       style="display:inline-block;padding:12px 28px;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;"
+                                       th:text="${email.buttonLabel()}">Accept invitation</a>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="margin:0 0 4px;font-size:14px;line-height:20px;color:#474c55;"
+                           th:text="${email.linkHint()}">If the button does not work, copy this link into your browser:</p>
+                        <p style="margin:0 0 16px;font-size:14px;line-height:20px;word-break:break-all;">
+                            <a th:href="${email.url()}" href="#" style="color:#0d4a7a;text-decoration:underline;"
+                               th:text="${email.url()}">/register?token=…</a></p>
+                        <p style="margin:0;font-size:14px;line-height:20px;font-weight:600;color:#13202f;"
+                           th:text="${email.expiry()}">The invitation expires on 19 Nov 2026 · 14:00 UTC.</p>
+                    </td>
+                </tr>
+                <!-- Footer: who sent it, why the person got it, the support contact when there is one. -->
+                <tr>
+                    <td style="padding:24px 24px 0;">
+                        <p th:each="line : ${email.footer()}" style="margin:0 0 8px;font-size:13px;line-height:20px;color:#474c55;"
+                           th:text="${line}">Sent by Nereonix on behalf of Maria Papadopoulou.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

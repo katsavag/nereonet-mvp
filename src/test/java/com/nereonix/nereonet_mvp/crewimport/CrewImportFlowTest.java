@@ -125,9 +125,9 @@ class CrewImportFlowTest {
                         // Chief Engineer has no role of its own.
                         tuple("carla.motore@example.com", Rank.CHIEF_ENGINEER, Role.CREW_MEMBER));
         assertThat(invitations).allMatch(invitation -> invitation.getStatus() == Invitation.Status.PENDING);
-        verify(mailService, times(3)).send(anyString(), anyString(), contains("/register?token="));
-        verify(mailService).send(eq("anna.testa@example.com"), anyString(), anyString());
-        verify(mailService).send(eq("bruno.exemplo@example.com"), anyString(), anyString());
+        verify(mailService, times(3)).send(anyString(), anyString(), contains("/register?token="), anyString());
+        verify(mailService).send(eq("anna.testa@example.com"), anyString(), anyString(), anyString());
+        verify(mailService).send(eq("bruno.exemplo@example.com"), anyString(), anyString(), anyString());
         // A template file needs no saved mapping.
         assertThat(importMappingRepository.findAll()).isEmpty();
     }

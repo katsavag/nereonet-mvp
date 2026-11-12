@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crew.edit.title}, ~{::main})}">
 <body>
-<main>
+<main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{crew.edit.heading}, crumbs=~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{nav.crew}, '/office/crew')}"></li>

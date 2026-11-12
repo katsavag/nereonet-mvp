@@ -5,8 +5,12 @@
   title: the page name as text. The browser tab shows "Page name · Nereonet"; on phones the top bar shows the page
   name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
   Logged in: navy sidebar from md: grouped navigation with the active entry and counters (P07, see the comment on the
-  aside), the user's name and a logout button. Below md, office users open it as an offcanvas from the top bar (closed
-  with Esc); ship crew have the bottom tab bar instead (P26, layout/parts :: tabBar) and no menu button.
+  aside), the user's name and a logout button. From md it is a 64px icon rail or the full sidebar, as this browser
+  chose (P29: body.sidebar-collapsed / sidebar-expanded, from the cookie read by navigation/SidebarPreference; the
+  toggle is layout/parts :: sidebarToggle, js/sidebar.js). Below md, office users open it as an offcanvas from the top
+  bar (closed with its X, a tap outside, Esc or choosing an entry); ship crew have the bottom tab bar instead (P26,
+  layout/parts :: tabBar) and no menu button. Office pages have "EN | ΕΛ" at the right of the top bar at every width
+  (P29); crew pages are English only.
   Not logged in: the page's <main> fills the screen and brings its own container (the sign-in, registration and
   error pages use layout/parts :: authFrame, P13).
   Messages: add a flash attribute "successMessage" or "errorMessage"
@@ -27,13 +31,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title} + ' · ' + #{app.name}">Ships · Nereonet</title>
     <!-- Every asset is served by the app itself (no external hosts); URLs carry a content hash, see README. -->
-    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/img/brand/favicon-32.png}">
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/img/brand/apple-touch-icon.png}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<!-- has-tab-bar: a signed-in ship user, who gets the bottom tab bar below md (P26); app.css leaves room for it. -->
+<!-- has-tab-bar: a signed-in ship user, who gets the bottom tab bar below md (P26); app.css leaves room for it.
+     sidebar-collapsed / sidebar-expanded (signed in): the sidebar's state from md (P29), from the cookie, so the page is
+     rendered in the chosen state and never flashes the other one first. -->
 <body th:data-local-time="#{time.local('{time}')}"
+      th:with="signedIn=${#authorization.expression('isAuthenticated()')}, sidebarExpanded=${@sidebarPreference.expanded()}"
       th:class="${#authorization.expression('isAuthenticated() and !hasRole(''OFFICE_USER'')')} ? 'has-tab-bar'"
+      th:classappend="${signedIn} ? (${sidebarExpanded} ? 'sidebar-expanded' : 'sidebar-collapsed')"
       th:data-user="${#authorization.expression('isAuthenticated()')} ? ${#authentication.principal.id} : null">
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
@@ -44,11 +53,18 @@
         <div class="offcanvas-md offcanvas-start bg-navy text-white h-100" tabindex="-1" id="sidebar"
              th:attr="aria-label=#{app.name}">
             <div class="offcanvas-body sidebar-body">
-                <!-- The brand goes to the user's home page: /office or /ship. -->
-                <a class="sidebar-brand" th:href="@{${#authentication.principal.homeUrl}}"
-                   th:with="office=${#authentication.principal.role.name() == 'OFFICE_USER'}">
-                    <div th:replace="~{layout/parts :: brand(${office} ? #{portal.office} : #{portal.ship})}"></div>
-                </a>
+                <!-- The brand goes to the user's home page: /office or /ship. On phones the X closes the menu (P29). -->
+                <div class="sidebar-head">
+                    <a class="sidebar-brand" th:href="@{${#authentication.principal.homeUrl}}"
+                       th:with="office=${#authentication.principal.role.name() == 'OFFICE_USER'}">
+                        <div th:replace="~{layout/parts :: brand(${office} ? #{portal.office} : #{portal.ship})}"></div>
+                    </a>
+                    <button type="button" class="sidebar-close" data-bs-dismiss="offcanvas"
+                            data-bs-target="#sidebar" th:attr="aria-label=#{nav.close}">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                    </button>
+                </div>
 
                 <nav class="sidebar-nav" th:attr="aria-label=#{nav.label}">
                     <th:block sec:authorize="hasRole('OFFICE_USER')">
@@ -86,31 +102,30 @@
                         <li th:replace="~{layout/parts :: navItem('notifications', '/notifications', #{nav.notifications},
                                 ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
                     </ul>
-                    <!-- Office screens are English and Greek; crew screens are English only. -->
-                    <div sec:authorize="hasRole('OFFICE_USER')" class="sidebar-lang">
-                        <div th:replace="~{layout/parts :: langSwitch('link-light link-underline-opacity-0', null)}"></div>
-                    </div>
                 </nav>
 
                 <div class="sidebar-user">
                     <div class="avatar" aria-hidden="true" th:text="${#authentication.principal.initials}">JD</div>
-                    <div class="flex-grow-1 lh-sm small text-break">
+                    <div class="sidebar-user-text flex-grow-1 lh-sm small text-break">
                         <div class="fw-semibold" th:text="${#authentication.principal.fullName}">John Doe</div>
                         <div class="sidebar-user-role"
                              th:text="#{${'role.' + #authentication.principal.role}}">Office user</div>
                     </div>
-                    <form th:replace="~{layout/parts :: signOut('btn btn-outline-light btn-sm text-nowrap')}"></form>
+                    <form th:replace="~{layout/parts :: sidebarSignOut}"></form>
                 </div>
+                <!-- From md: "Expand menu" / "Collapse menu" (P29). -->
+                <form th:replace="~{layout/parts :: sidebarToggle(${sidebarExpanded})}"></form>
             </div>
         </div>
     </aside>
 
     <!-- min-width: 0, so a wide table scrolls inside its card instead of widening the page. -->
     <div class="app-main flex-grow-1">
-        <!-- Office: menu button, page name, bell. Ship crew: the page name only; the tab bar at the bottom has the
-             navigation and Notifications (P26). -->
-        <header class="topbar d-md-none bg-navy text-white d-flex align-items-center gap-2 px-2 py-2">
-            <button sec:authorize="hasRole('OFFICE_USER')" type="button" class="btn text-white p-2"
+        <!-- Office: menu button, page name, "EN | ΕΛ", bell; from md only "EN | ΕΛ", on the right (P29). Ship crew:
+             the page name only, on phones; the tab bar at the bottom has the navigation and Notifications (P26). -->
+        <header class="topbar" th:with="office=${#authorization.expression('hasRole(''OFFICE_USER'')')}"
+                th:classappend="${office} ? 'topbar-office' : 'd-md-none'">
+            <button sec:authorize="hasRole('OFFICE_USER')" type="button" class="btn topbar-button d-md-none"
                     data-bs-toggle="offcanvas" data-bs-target="#sidebar"
                     aria-controls="sidebar" th:attr="aria-label=#{nav.toggle}">
                 <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
@@ -119,9 +134,13 @@
             </button>
             <!-- The current page's name; the brand is in the sidebar. -->
             <span class="topbar-title fw-bold" th:text="${title}">Ships</span>
+            <!-- Office screens are English and Greek (P16), the switch top right at every width (P29). -->
+            <div sec:authorize="hasRole('OFFICE_USER')" class="topbar-lang">
+                <div th:replace="~{layout/parts :: langSwitch(null)}"></div>
+            </div>
             <!-- Notification bell with the unread count, always visible on phones. js/notifications.js updates the
                  count and the label in place after Mark as read (P23). -->
-            <a sec:authorize="hasRole('OFFICE_USER')" class="btn text-white p-2 ms-auto position-relative"
+            <a sec:authorize="hasRole('OFFICE_USER')" class="btn topbar-button d-md-none position-relative"
                id="notificationBell" th:href="@{/notifications}"
                th:attr="aria-label=#{notification.bell(${unreadNotifications ?: 0})}">
                 <th:block th:replace="~{layout/parts :: bellIcon}"></th:block>
@@ -130,7 +149,8 @@
                       th:text="${unreadNotifications > 99} ? '99+' : ${unreadNotifications}">3</span>
             </a>
         </header>
-        <!-- At most 1280px wide, left aligned next to the sidebar. -->
+        <!-- The full width of the window next to the sidebar, with 32px side gutters (16px on phones) (P29). Form
+             pages keep their 720px column inside it (main.form-page, app.css). -->
         <div class="app-content">
             <th:block th:replace="~{layout/parts :: flash}"></th:block>
             <main th:replace="${content}"></main>
@@ -170,5 +190,6 @@
 <script th:src="@{/js/notifications.js}"></script>
 <script th:src="@{/js/import-map.js}"></script>
 <script th:src="@{/js/ship-picker.js}"></script>
+<script th:src="@{/js/sidebar.js}"></script>
 </body>
 </html>

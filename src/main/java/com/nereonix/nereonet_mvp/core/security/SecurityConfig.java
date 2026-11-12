@@ -29,8 +29,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // /error is public so error pages are not replaced by a login redirect.
                         .requestMatchers("/login", "/register/**", "/password/**", "/error",
-                                "/css/**", "/js/**", "/vendor/**", "/fonts/**", "/images/**",
-                                "/favicon*.svg", "/favicon.ico").permitAll()
+                                "/css/**", "/js/**", "/vendor/**", "/fonts/**", "/img/**",
+                                "/favicon.ico").permitAll()
                         .requestMatchers("/office/**").hasRole("OFFICE_USER")
                         .requestMatchers("/ship/library/new", "/ship/library/particulars",
                                 "/ship/library/*/edit", "/ship/library/*/retire",

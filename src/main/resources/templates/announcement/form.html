@@ -3,7 +3,7 @@
 <body>
 <!-- fromShip: opened from that ship's Announcements tab (the ship is then preselected, see AnnouncementController):
      breadcrumbs below the ship, Cancel and the sent announcement go back to the tab. The target can still be changed. -->
-<main th:with="backUrl=${fromShip != null} ? ${'/office/ships/' + fromShip.id + '/announcements'} : '/office/announcements'">
+<main class="form-page" th:with="backUrl=${fromShip != null} ? ${'/office/ships/' + fromShip.id + '/announcements'} : '/office/announcements'">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.new.heading}, crumbs=~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">
             <th:block th:if="${fromShip != null}">

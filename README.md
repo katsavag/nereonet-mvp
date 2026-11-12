@@ -23,7 +23,7 @@ Requirements: Java 25, Docker.
 
 3. Open http://localhost:8080. Signed out, it goes to the sign-in page; signed in, it goes to
    your dashboard (office users `/office`, ship crew `/ship`). Office users can switch language
-   (English / Ελληνικά) on the sign-in page and in the sidebar. Switching changes only the language: the page, its
+   with **EN | ΕΛ** at the top right of the sign-in page and of every office page (P29). Switching changes only the language: the page, its
    filters, page number and token stay (see "language switch and required notices (P16)" below).
 
    On first start the dev profile creates an office user (`office@example.com` / `office123`)
@@ -164,6 +164,21 @@ Requirements: Java 25, Docker.
      library items and see acknowledgements", and follows the picker as it changes (`js/forms.js`; without the
      script it shows the saved rank's access). A ship can have only one active Master and one active Chief cook;
      inviting a second one shows an error on the rank field.
+   - The email (P29) is plain text and HTML in one message (`core/mail/MailService.send(to, subject, text, html)`,
+     `multipart/related` holding `multipart/alternative` text + HTML, then the logo). The HTML is
+     `templates/email/action.html`, filled from a `core/mail/ActionEmail` by `core/mail/HtmlEmails`: a 600 px table
+     layout with inline styles only (`DesignTokensTest` exempts `templates/email/`), Inter first in the font stack
+     with system fallbacks; a navy `#10223a` header with the logo (`img/brand/nereonix-logo-on-dark-600.png` attached
+     inline as `cid:nereonix-logo`, never a remote image) and "Nereonix" as text; a white card on the cream `#f4f1ea`
+     page with "Hello Jane Doe,", who invites to what ("Maria Papadopoulou invited you to join MV Aegean Star as
+     Second Officer.", or "… to join the office."), one navy **Accept invitation** button (44 px), the link as text
+     under it, the expiry in UTC; then a footer: who sent it, why the person got it and, when `SUPPORT_CONTACT` is
+     set, "Questions? Contact: …". Every text has its own colour on its own background and
+     `color-scheme: light`, so dark-mode clients and blocked images leave it readable. The texts are `email.*`
+     message keys (`core/invitation/InvitationEmails`). Crew emails are in English; office emails are in the language
+     of the office user who sends (or resends) them. The password reset email (17) uses the same template.
+     In dev, `/dev/email/invitation` (office: `?office`, Greek: `&lang=el`) and `/dev/email/password-reset` show
+     the HTML with sample data (`dev/DevEmailPreviewController`, dev profile only, signed in).
 
 7. Registration: open the `/register?token=...` link from the invitation email (signed out, e.g. in a
    private window) and set a password. The page says what the person is joining: "You are joining MV Demo as Second
@@ -551,6 +566,7 @@ Requirements: Java 25, Docker.
    for this address, we sent a link to set a new password.": the same page, byte for byte, for a known and an unknown
    address (it names no address and has no form). The email (Mailpit in dev; in the language of the page it was asked
    from) holds a `/password/reset?token=...` link that works once and for 60 minutes; no password is ever emailed.
+   It is plain text and HTML, in the invitation email's template (6, P29), with **Set a new password** as its button.
    - No email goes to an unknown or a deactivated address, nor to an address that already got 5 links within the
      last hour (the 6th request shows the same page and sends nothing). The email is sent on another thread, so the
      answer takes as long for a known address as for an unknown one.
@@ -645,7 +661,14 @@ The app makes no request to any other host: everything a page needs is served fr
   `@font-face` in `css/app.css` (`font-display: swap`, system fonts as fallback). Source: the npm package
   `@fontsource-variable/inter` 5.3.0, files `inter-latin-wght-normal.woff2` and `inter-greek-wght-normal.woff2`.
   Licence: `fonts/LICENSE-Inter.txt` (SIL OFL 1.1).
-- `favicon.svg`: the wave mark of `layout/parts :: brand`; change both together.
+- `img/brand/` (P29), the Nereonix brand: `favicon-32.png` (the browser tab) and `apple-touch-icon.png` (180 px, home
+  screen), both linked from `layout/layout.html`; `nereonix-mark-192.png`, the mark shown at 32 px by
+  `layout/parts :: brand` (mark, "Nereonix" as text, optional tagline; in the sidebar, the phone bar of the sign-in
+  pages and the crew home) with `alt=""` since the name is text next to it; `nereonix-logo-on-dark-600.png`
+  (600×422), the logo on the navy panel of the sign-in, registration and reset pages, at most 280 px wide,
+  `alt="Nereonix"` (phones get the mark instead, through `<picture>`, and never download it), and the inline logo of
+  the emails; `nereonix-mark-512.png`, the large mark, kept as source and not linked. Every `<img>` has its
+  `width` and `height`. Replace a file under the same name; the content hash changes its URL.
 - `css/app.css`: the only custom stylesheet. It defines the design tokens (`--nn-*` CSS variables) once in `:root`
   and maps Bootstrap's variables and components onto them; templates carry no inline styles. The comment at the
   top of the file lists the scales:
@@ -787,15 +810,22 @@ The app makes no request to any other host: everything a page needs is served fr
     actions=~{::pageActions})`; the comment above the fragment shows how to define the crumbs
     (`layout/parts :: crumb(label, url)`) and actions. Pages pass their name to the layout as text,
     `layout(#{ship.list.title}, ~{::main})`: the browser tab shows "Page name · Nereonet" and, on phones, the top bar
-    shows the page name instead of the app name. The content column is at most 1280 px wide, left aligned next to
-    the sidebar, with 24 px between the header, the filters and the content; it has `min-width: 0`, so a wide table
-    scrolls inside its card instead of widening the page (no page scrolls sideways at 1440, 1024 or 390 px; the
-    import review and audit log tables scroll inside their card).
+    shows the page name instead of the app name. The content uses the full width next to the sidebar (P29: no
+    1280 px cap any more), with 32 px side gutters from 768 px (16 px on phones), and 24 px between the header, the
+    filters and the content; it has `min-width: 0`, so a wide table scrolls inside its card instead of widening the
+    page (no page scrolls sideways at 1920, 1440, 1024 or 390 px; the import review and audit log tables scroll
+    inside their card). Lists, Overview, the ship page and the certificate matrix are fluid. Form pages
+    (`<main class="form-page">`) keep a 720 px column, centred; where a form has related context
+    (`form-page form-page-aside`: the ship's particulars beside an item or library form, `ship/parts :: formAside`;
+    the template beside the import upload) it goes beside the form from 1200 px and under it below. Card grids
+    (`.card-grid`: ship Overview, an announcement's acknowledged / pending lists) have 1 column, 2 from 992 px and
+    3 from 1600 px (`.card-grid-3`).
 
   - sidebar navigation (P07): the navy sidebar (`layout/layout.html`, entries `layout/parts :: navItem`) has small
     uppercase group labels:
     - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Announcements, Requests),
-      **Administration** (Office users, Audit log), **Account** (Notifications, the language switch); crew: **On board**
+      **Administration** (Office users, Audit log), **Account** (Notifications; the language switch moved to the top
+      bar, P29); crew: **On board**
       (Home `/ship`, Announcements `/ship/announcements`, Library) and **Account** (Notifications). The user block (name,
       role, **Sign out**) is pinned at the bottom; when the window is shorter than the navigation, only the navigation
       scrolls. The brand (logo and name) links to the user's home page (`/office` or `/ship`);
@@ -810,10 +840,24 @@ The app makes no request to any other host: everything a page needs is served fr
       exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
-    - phones (below 768 px), office users: the sidebar is an offcanvas opened from the top bar's menu button and closed
-      with Esc or the backdrop. Ship crew have no menu button and no bell: the bottom tab bar (18, P26) has the same
-      entries. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
-      out, then the page.
+    - rail and preference (P29), from 768 px: the sidebar is a 64 px rail by default (the mark, the entries' icons, the
+      user's initials and a sign-out icon); each entry's name shows as a tooltip beside it on hover and on keyboard
+      focus, and stays in the link for screen readers; the active entry keeps its pink bar; a counter becomes a
+      10 px dot with the number and its meaning still in the link's text. **Expand menu** / **Collapse menu** at
+      the bottom (a chevron, `aria-expanded`, `aria-controls="sidebar"`; `layout/parts :: sidebarToggle`) switches
+      to today's full 256 px sidebar and back. The choice is the cookie `sidebar=expanded|collapsed` (one year,
+      path `/`, SameSite=Lax), read by the server (`navigation/SidebarPreference`, the body class
+      `sidebar-expanded` / `sidebar-collapsed`), so the next page is drawn in the right state without a flash.
+      With JavaScript (`js/sidebar.js`) the toggle changes the page in place and writes the cookie; without it the
+      button posts its form to `POST /preferences/sidebar` (`state`, `returnTo`; CSRF as everywhere), which sets the
+      cookie and goes back to the same page and query (`returnTo` must be a path on this site, anything else goes to
+      `/`). It is a display preference: no audit entry and no message;
+    - phones (below 768 px), office users: the sidebar is an offcanvas (at most 320 px, so part of the dimmed page
+      stays visible) opened from the top bar's menu button. It closes with the X next to the brand (44 px, "Close
+      menu"), a tap outside, Esc, or by choosing an entry (`js/sidebar.js`); focus then goes back to the menu button,
+      and the page behind does not scroll while it is open. Ship crew have no menu button and no bell: the bottom tab bar (18, P26) has the same
+      entries. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, Sign out, the
+      sidebar toggle, then the page.
 
   - confirmations (P10): no action that cannot be undone or that takes access away happens on one click, and every
     confirmation looks and reads the same. Deactivate (ship, user, galley item), Delete (user, certificate), Cancel
@@ -882,9 +926,11 @@ The app makes no request to any other host: everything a page needs is served fr
   - sign-in and registration (P13): a first-time seafarer on a phone gets in without help (see 7 for the flow and
     the messages):
     - one signed-out frame, `layout/parts :: authFrame` (sign-in, registration, invalid link, signed-out error
-      pages): the navy brand panel on the left from 768 px; on phones it collapses to a 64 px header bar, so the
-      form starts above the fold (at 390 × 844 the **Continue** button ends at about 430 px). The language switch
-      (sign-in and registration) is a 40 px (44 px on phones) touch target;
+      pages): the navy brand panel on the left from 768 px (5/12 of the width, 4/12 from 1400 px) with the Nereonix
+      logo (at most 280 px, centred) and one line, "Office and ship portal"; the form card at most 420 px, centred
+      (P29). On phones the panel collapses to a 64 px bar with the mark and "Nereonix", so the form starts above the
+      fold (at 390 × 844 the **Continue** button ends at about 480 px). **EN | ΕΛ** (sign-in, registration, reset)
+      is at the top right of the form side, a 40 px (44 px on phones) touch target;
     - password fields (sign-in, both registration fields) have **Show** / **Hide** inside the field on the right
       (`layout/parts :: passwordToggle`; accessible name "Show password" / "Hide password", and a screen reader
       hears "Your password is visible / hidden"); the field is set back to hidden before the form is sent. Under
@@ -935,7 +981,11 @@ The app makes no request to any other host: everything a page needs is served fr
       without drafts.
 
   - language switch and required notices (P16):
-    - the English / Ελληνικά links (`layout/parts :: langSwitch`, sidebar and signed-out pages) change only the
+    - **EN | ΕΛ** (`layout/parts :: langSwitch`, P29): at the top right of the office top bar on every office page and
+      width (white on the navy phone bar, navy on the page from 768 px), and at the top right of the form side of
+      the signed-out pages; the crew pages have none. The current language is bold with `aria-current="true"`, a thin
+      line between the two; each link has `lang`/`hreflang` and the accessible name "English" or "Ελληνικά", and is
+      40 px (44 px on phones). The links change only the
       language. Each is the current page's query string with `lang` set, as a relative link (`?lang=el&shipId=1`),
       from the `@languageLinks` bean (`core/config/LanguageLinks`): the browser keeps the path, and the ship and
       status filters, page number and invitation or reset token stay, in their order and encoding. `lang` is never
@@ -978,7 +1028,7 @@ Set these environment variables:
 | `INVITATION_JWT_SECRET` | random secret, at least 32 characters, for signing invitation and password reset links |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
-| `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |
+| `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page and as "Questions? Contact: …" in the footer of the invitation and password reset emails, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |
 
 Outside dev, SMTP login and STARTTLS are required (no plain-text fallback). Keep secrets out of
 checked-in files (`application*.yml`, `docker-compose.yml`) and do not enable `mail.debug` or DEBUG

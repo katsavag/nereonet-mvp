@@ -92,7 +92,7 @@ class CrewFlowTest {
         assertThat(invitation.getShip().getId()).isEqualTo(ship.getId());
         assertThat(invitation.getRank()).isEqualTo(Rank.CHIEF_COOK);
         verify(mailService, times(1))
-                .send(eq("jane.cook@example.com"), anyString(), contains("/register?token="));
+                .send(eq("jane.cook@example.com"), anyString(), contains("/register?token="), anyString());
 
         mockMvc.perform(get("/office/crew"))
                 .andExpect(content().string(Matchers.containsString("jane.cook@example.com")));
@@ -212,7 +212,7 @@ class CrewFlowTest {
                 .andExpect(redirectedUrl(back));
         assertThat(invitationRepository.findById(expired.getId()).orElseThrow().getDisplayStatus())
                 .isEqualTo(Invitation.DisplayStatus.PENDING);
-        verify(mailService, times(1)).send(eq("erik@example.com"), anyString(), contains("/register?token="));
+        verify(mailService, times(1)).send(eq("erik@example.com"), anyString(), contains("/register?token="), anyString());
 
         // Cancel: the confirmation page (no script) keeps the filters; confirming returns to the list.
         assertThat(html(get("/office/invitations/{id}/cancel", expired.getId()).param("returnTo", "crew")

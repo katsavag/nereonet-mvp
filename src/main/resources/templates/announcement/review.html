@@ -9,7 +9,7 @@
      to /office/announcements/new, which shows the form with the text and the ticks.
      Ship names are not links here: leaving this page would lose the text. data-draft-for: once sent, js/save.js removes
      the draft of the form (P15). -->
-<main th:with="ships=${targets.ships()},
+<main class="form-page" th:with="ships=${targets.ships()},
                targetLabel=${targets.fleet()} ? #{announcement.target.fleet}
                    : (${onlyShip != null} ? ${onlyShip.name} + ' · ' + #{ship.codeValue(${onlyShip.imoNumber})}
                    : #{announcement.target.ships(${ships.size()})})">

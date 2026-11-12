@@ -7,10 +7,11 @@
 <main>
     <th:block th:replace="~{ship/parts :: header}"></th:block>
 
-    <div class="row g-4">
+    <!-- The cards in a grid (P29): one column, two from 992px (open items across both), three from 1600px. -->
+    <div class="card-grid card-grid-3">
         <!-- Open items: each listed, so nothing has to be looked up on another page. -->
-        <div class="col-12">
-            <section class="card" aria-labelledby="openItemsTitle">
+        <div class="card-grid-wide">
+            <section class="card h-100" aria-labelledby="openItemsTitle">
                 <div class="card-body">
                     <h2 class="h5 fw-bold mb-1" id="openItemsTitle">
                         <span th:text="#{ship.overview.openItems}">Open items</span>
@@ -49,7 +50,7 @@
         </div>
 
         <!-- Crew on board: enabled users with a ship role, by the department of their rank. -->
-        <div class="col-12 col-lg-6">
+        <div>
             <section class="card h-100" aria-labelledby="crewTitle">
                 <div class="card-body">
                     <h2 class="h5 fw-bold mb-1" id="crewTitle">
@@ -81,20 +82,11 @@
         </div>
 
         <!-- Particulars: the ship record and the start of the particulars text; the full text is on the Library tab. -->
-        <div class="col-12 col-lg-6">
+        <div>
             <section class="card h-100" aria-labelledby="particularsTitle">
                 <div class="card-body">
                     <h2 class="h5 fw-bold mb-3" id="particularsTitle" th:text="#{library.particulars}">Ship particulars</h2>
-                    <dl class="static-fields particulars-summary">
-                        <dt th:text="#{ship.name}">Name</dt>
-                        <dd class="text-break" th:text="${ship.name}">MV Demo</dd>
-                        <dt th:text="#{ship.imoNumber}">IMO number</dt>
-                        <dd class="num" th:text="${ship.imoNumber}">9074729</dd>
-                        <dt th:text="#{ship.type}">Type</dt>
-                        <dd th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</dd>
-                        <dt th:text="#{ship.flag}">Flag</dt>
-                        <dd th:text="${ship.flag} ? (${countries[ship.flag]} ?: ${ship.flag}) : '—'">Greece (GR)</dd>
-                    </dl>
+                    <dl th:replace="~{ship/parts :: particulars(${ship})}"></dl>
                     <div th:if="${ship.particularsText}" class="particulars-excerpt text-break text-pre-line mt-3"
                          th:text="${ship.particularsText}">Particulars</div>
                     <p th:unless="${ship.particularsText}" class="text-body-secondary mt-3 mb-0"

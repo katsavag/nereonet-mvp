@@ -75,7 +75,7 @@ class InvitationFlowTest {
         assertThat(invitation.getShip()).isNull();
         assertThat(invitation.getStatus()).isEqualTo(Invitation.Status.PENDING);
         verify(mailService, times(1))
-                .send(eq("new.office@example.com"), anyString(), contains("/register?token="));
+                .send(eq("new.office@example.com"), anyString(), contains("/register?token="), anyString());
     }
 
     @Test
@@ -103,7 +103,7 @@ class InvitationFlowTest {
         assertThat(invitation.getShip().getId()).isEqualTo(ship.getId());
         assertThat(invitation.getStatus()).isEqualTo(Invitation.Status.PENDING);
         verify(mailService, times(1))
-                .send(eq("crew.member@example.com"), anyString(), contains("/register?token="));
+                .send(eq("crew.member@example.com"), anyString(), contains("/register?token="), anyString());
     }
 
     @Test
@@ -124,7 +124,7 @@ class InvitationFlowTest {
         assertThat(resent.getTokenId()).isNotEqualTo(oldTokenId);
         assertThat(resent.getStatus()).isEqualTo(Invitation.Status.PENDING);
         verify(mailService, times(1))
-                .send(eq("new.office@example.com"), anyString(), contains("/register?token="));
+                .send(eq("new.office@example.com"), anyString(), contains("/register?token="), anyString());
     }
 
     // P07: office invitations are listed on the Office users page, with Resend and Cancel; the old page redirects.
@@ -187,7 +187,7 @@ class InvitationFlowTest {
         assertThat(resent.getTokenId()).isNotEqualTo(oldTokenId);
         assertThat(resent.getExpiresAt()).isAfter(Instant.now());
         verify(mailService, times(1))
-                .send(eq("crew.member@example.com"), anyString(), contains("/register?token="));
+                .send(eq("crew.member@example.com"), anyString(), contains("/register?token="), anyString());
         assertThat(html(get(crewTab))).contains(">Invited</span>", "expires in 7 days");
 
         // Cancel without the script: the confirmation page keeps the tab, then back to it.

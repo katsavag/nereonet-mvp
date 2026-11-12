@@ -6,7 +6,7 @@
      member null): the crew member is then picked from that ship's crew (shipCrew). A matrix cell fills in the person
      and the type. Save and Cancel go back to backUrl: the page the form was opened from (returnTo), else the crew
      member's page or the ship's Certificates tab. -->
-<main th:with="onShip=${member == null},
+<main class="form-page" th:with="onShip=${member == null},
                action=${member == null} ? ${'/office/ships/' + ship.id + '/certificates/new'} : (${certificate == null} ? ${'/office/crew/' + member.id + '/certificates/new'} : ${'/office/crew/' + member.id + '/certificates/' + certificate.id + '/edit'})">
     <header th:replace="~{layout/parts :: pageHeader(heading=${certificate == null} ? #{certificate.new.heading} : #{certificate.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${onShip} ? ${ship} : null)}">
         <th:block th:fragment="pageCrumbs">

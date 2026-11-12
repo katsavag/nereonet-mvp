@@ -883,7 +883,7 @@ fieldset:disabled button.btn {
 }
 
 /* The signed-out frame and the password fields: section "Sign-in and registration (P13)" at the end. */
-.login-box { max-width: 32rem; }
+.login-box { max-width: var(--nn-auth-card-width); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Sidebar (P07): layout/layout.html, entries from layout/parts :: navItem.
@@ -918,8 +918,8 @@ fieldset:disabled button.btn {
 
 .sidebar-brand {
     display: block;
-    flex-shrink: 0;
-    margin-bottom: var(--nn-space-5);
+    flex: 0 1 auto;
+    min-width: 0;
     border-radius: var(--nn-radius-control);
     color: #fff;
     text-decoration: none;
@@ -993,18 +993,6 @@ fieldset:disabled button.btn {
     text-align: center;
 }
 
-.sidebar-lang {
-    margin-top: var(--nn-space-2);
-    padding: 0 var(--nn-space-2) 0 var(--nn-space-3);
-}
-/* The English / Greek links (layout/parts :: langSwitch) are touch targets, in the sidebar and on the sign-in and
-   registration pages. */
-.lang-switch a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-}
-
 .sidebar-user {
     display: flex;
     flex-shrink: 0;
@@ -1028,14 +1016,17 @@ fieldset:disabled button.btn {
     font-weight: 600;
 }
 
-/* Fixed column from md up, as tall as the window; below md it is an offcanvas opened from the top bar
-   (Esc or the backdrop closes it). */
+/* Fixed column from md up, as tall as the window (the 64px rail or the full width, P29: section "Brand, sidebar rail,
+   language switch and page width"); below md it is an offcanvas opened from the top bar. */
 @media (min-width: 768px) {
     .sidebar {
         width: var(--nn-sidebar-width);
         height: 100vh;
         position: sticky;
         top: 0;
+        /* Sticky makes the sidebar its own stacking layer: it has to sit over the page so that the rail's tooltips
+           show over cards and alerts. Under the offline banner and Bootstrap's modals. */
+        z-index: 1030;
     }
 }
 
@@ -1043,26 +1034,23 @@ fieldset:disabled button.btn {
    Layout frame and page header (P06)
      - .app-main: the column next to the sidebar. min-width: 0, so a wide table (import review, audit log) scrolls
        inside its card instead of making the whole page wider than the window.
-     - .app-content: the content, at most 1280px wide, left aligned next to the sidebar.
+     - .app-content: the content, the full width next to the sidebar (P29: no cap), with 32px side gutters from 768px
+       and 16px on phones. Form pages keep a 720px column inside it (main.form-page, P29).
      - .page-header (layout/parts :: pageHeader): breadcrumbs, eyebrow (real context only: ship name and IMO
        number), h1 with the record count, subtitle, actions on the right. 24px (--nn-section-gap) between the
        header, the filters and the content; filter forms and content cards keep mb-4 (24px).
      - .topbar-title: the page name in the phone top bar, cut with an ellipsis when too long.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
-    --nn-content-width: 80rem;       /* 1280px */
-    --nn-gutter: var(--nn-space-4);  /* 16px on phones, 24px from 768px */
+    --nn-gutter: var(--nn-space-4);  /* 16px on phones, 32px from 768px */
     --nn-section-gap: var(--nn-space-5);
 }
 @media (min-width: 768px) {
-    :root { --nn-gutter: var(--nn-space-5); }
+    :root { --nn-gutter: var(--nn-space-6); }
 }
 
 .app-main { min-width: 0; }
-.app-content {
-    max-width: calc(var(--nn-content-width) + 2 * var(--nn-gutter));
-    padding: var(--nn-section-gap) var(--nn-gutter);
-}
+.app-content { padding: var(--nn-section-gap) var(--nn-gutter); }
 
 .topbar-title {
     flex: 1 1 auto;
@@ -1724,6 +1712,9 @@ fieldset:disabled button.btn {
      - .auth-frame: the signed-out frame (sign-in, registration, invalid link, signed-out error pages). From 768px
        the navy brand panel (.auth-brand) is a column on the left; on phones it collapses to a 64px header bar, so
        the form starts above the fold (at 390 x 844 the sign-in button is in view without scrolling).
+       P29: the panel is 5/12 of the width from 768px and 4/12 from 1400px, with the full logo (at most 280px) and one
+       line, centred; the phone bar has the mark and "Nereonix"; from 768px the form is a card (at most 420px), centred
+       both ways on its side.
      - .password-field: a password input with "Show" / "Hide" inside it on the right (.password-toggle, navy text
        9:1 on the field, a touch target as tall as the field). The input makes room only once the script has shown
        the button (.has-toggle).
@@ -1734,10 +1725,36 @@ fieldset:disabled button.btn {
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-auth-bar-height: 64px;
+    --nn-auth-card-width: 26.25rem;  /* 420px */
+    --nn-auth-logo-width: 17.5rem;   /* 280px */
     --nn-password-toggle-room: 6.5rem; /* the widest label, "Απόκρυψη", and its padding */
 }
 
-.auth-brand { padding: 3rem; }
+.auth-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+}
+.auth-brand-bar { display: none; }
+.auth-brand-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nn-space-4);
+    width: 100%;
+    text-align: center;
+}
+.auth-logo {
+    display: block;
+    width: 100%;
+    max-width: var(--nn-auth-logo-width);
+    height: auto;
+}
+.auth-brand-line {
+    margin: 0;
+    color: var(--nn-sidebar-text);
+}
 .auth-panel {
     display: flex;
     flex-direction: column;
@@ -1756,14 +1773,24 @@ fieldset:disabled button.btn {
 @media (min-width: 768px) {
     .auth-panel { padding: var(--nn-space-5); }
     .auth-body { align-items: center; }
+    .auth-body > .login-box {
+        padding: var(--nn-space-6);
+        background-color: var(--nn-surface);
+        border: 1px solid var(--nn-border);
+        border-radius: var(--nn-radius-card);
+        box-shadow: var(--nn-shadow);
+    }
 }
 @media (max-width: 767.98px) {
     .auth-brand {
         display: flex;
         align-items: center;
+        justify-content: flex-start;
         height: var(--nn-auth-bar-height);
         padding: 0 var(--nn-gutter);
     }
+    .auth-brand-bar { display: block; }
+    .auth-brand-logo { display: none; }
     .auth-panel { padding-top: var(--nn-space-2); }
     .auth-body > .login-box { padding-top: var(--nn-space-4); }
 }
@@ -2798,7 +2825,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        circle, the current one its number in a primary-pair circle and a semibold label (aria-current="step"), the
        next ones an outlined number in secondary text (6.6:1). A line joins the circles, navy once passed. The words
        and the tick carry the state; the colour only repeats it.
-     - .import-template: the template, the easy path, as a quiet footer of the upload card.
+     - .import-template: the template, the easy path, in a card beside the upload card from 1200px (P29, .form-aside).
      - .import-sheets: the sheet choice, one bordered option per sheet; the whole option is the radio's label.
      - .import-map: from 768px the field's label on the left and its select on the right; stacked below. The second
        select of a two-column field (Full name: last name) follows the first.
@@ -2900,11 +2927,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 
 /* Upload: the template as the easy path. */
-.import-template {
-    padding: var(--nn-space-4) var(--nn-card-padding);
-    border-top: 1px solid var(--nn-divider);
-    background: transparent;
-}
+.import-template { padding: var(--nn-card-padding); }
 .import-template-title {
     margin: 0 0 var(--nn-space-1);
     font-size: var(--nn-font-body);
@@ -3670,3 +3693,347 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 .announcement-read { max-width: var(--nn-read-measure); }
 .ack-bar-full .btn { width: 100%; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Brand, sidebar rail, language switch and page width (P29): layout/layout.html, layout/parts :: brand, langSwitch,
+   sidebarToggle, sidebarSignOut; js/sidebar.js; navigation/SidebarPreference.
+     - .brand: the Nereonix mark (32px), "Nereonix" and the tagline, on navy. The full logo (white wordmark) is only
+       ever on navy: the sign-in panel and the email header.
+     - Sidebar from 768px: body.sidebar-collapsed (the default) is a 64px icon rail: the mark, one icon per entry, a
+       counter as a dot (the number stays in the visually hidden text), and the label as a tooltip on hover and
+       focus. The label is position: fixed, so the scrolling navigation never cuts it off; with no top set it stays
+       level with its entry. body.sidebar-expanded is the full sidebar with labels. The toggle sits at the bottom.
+     - Phones: the office menu (offcanvas) has an X at the top right, next to the brand.
+     - .topbar: on phones the navy bar (menu, page name, "EN | ΕΛ", bell); from 768px, for office users, a slim row
+       above the content with only "EN | ΕΛ" on the right. Crew have no switch.
+     - .lang-switch: "EN | ΕΛ", 40px (44px on phones) targets, the current language bold; colour from where it sits.
+     - main.form-page: a form keeps its 720px column, centred in the content area; .form-page-aside adds a second
+       column from 1200px for related context (.form-aside: the ship, or help beside the form).
+     - .card-grid: cards of a detail page: 1 column, 2 from 992px, 3 from 1600px with .card-grid-3 (small cards);
+       .card-grid-wide spans the row until there are 3 columns.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-rail-width: 4rem;           /* 64px */
+    --nn-aside-width: 20rem;         /* 320px, the context column next to a form */
+    --nn-tooltip-bg: var(--nn-text); /* white text on it 15:1 */
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-width: 0;
+}
+.brand-mark {
+    flex: none;
+    width: 32px;
+    height: 32px;
+}
+.brand-text {
+    min-width: 0;
+    line-height: 1;
+}
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+}
+.brand-tagline { margin-top: var(--nn-space-1); }
+
+/* Sidebar head: the brand, and on phones the X that closes the menu. */
+.sidebar-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2);
+    margin-bottom: var(--nn-space-5);
+}
+.sidebar-close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) 0;
+    padding: 0;
+    color: #fff;
+    background: transparent;
+    border: 0;
+    border-radius: var(--nn-radius-control);
+}
+.sidebar-close:hover { background-color: var(--nn-sidebar-hover); }
+/* Narrower than the screen, so part of the dimmed page stays visible and a tap there closes the menu. */
+.sidebar .offcanvas-md { --bs-offcanvas-width: min(20rem, 85vw); }
+
+/* Sign out in the user block: words in the full sidebar, an icon in the rail. */
+.sidebar-sign-out-icon { display: none; }
+
+/* The toggle, from 768px only. */
+.sidebar-toggle-form {
+    display: none;
+    flex-shrink: 0;
+    margin-top: var(--nn-space-2);
+}
+.sidebar-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    width: 100%;
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
+    color: var(--nn-sidebar-text);
+    font-size: var(--nn-font-sm);
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: var(--nn-radius-control);
+}
+.sidebar-toggle:hover { color: #fff; background-color: var(--nn-sidebar-hover); }
+.sidebar-toggle-icon { flex: none; }
+.sidebar-expanded .sidebar-toggle-icon { transform: rotate(180deg); }
+
+@media (min-width: 768px) {
+    .sidebar-close { display: none; }
+    .sidebar-toggle-form { display: block; }
+
+    /* The rail. */
+    .sidebar-collapsed .sidebar { width: var(--nn-rail-width); }
+    .sidebar-collapsed .sidebar .sidebar-body { padding: var(--nn-space-3) var(--nn-space-2); }
+    .sidebar-collapsed .sidebar-head {
+        justify-content: center;
+        margin-bottom: var(--nn-space-4);
+    }
+    .sidebar-collapsed .sidebar-brand {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: var(--nn-space-1) 0;
+    }
+    .sidebar-collapsed .brand-text,
+    .sidebar-collapsed .sidebar-user-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    /* Group names become thin dividers; they still name their lists for screen readers. */
+    .sidebar-collapsed .nav-group-label {
+        height: 1px;
+        margin: var(--nn-space-3) var(--nn-space-2);
+        padding: 0;
+        overflow: hidden;
+        font-size: 0;
+        line-height: 0;
+        background-color: rgba(255, 255, 255, .14);
+    }
+    .sidebar-collapsed .nav-group-label:first-child {
+        height: 0;
+        margin: 0;
+    }
+    .sidebar-collapsed .sidebar-link,
+    .sidebar-collapsed .sidebar-toggle {
+        justify-content: center;
+        gap: 0;
+        padding: 0;
+    }
+    /* A counter in the rail: a dot on the icon, ringed in navy so it stands off the icon. The number is in the
+       visually hidden text after it. */
+    .sidebar-collapsed .nav-count {
+        position: absolute;
+        top: 6px;
+        right: 9px;
+        width: 10px;
+        min-width: 0;
+        height: 10px;
+        padding: 0;
+        overflow: hidden;
+        font-size: 0;
+        line-height: 0;
+        background-color: var(--nn-sidebar-accent);
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px var(--nn-navy);
+    }
+    .sidebar-collapsed .sidebar-user {
+        flex-direction: column;
+        gap: var(--nn-space-2);
+        padding-top: var(--nn-space-3);
+    }
+    .sidebar-collapsed .sidebar-sign-out {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--nn-touch-target);
+        height: var(--nn-touch-target);
+        padding: 0;
+        overflow: hidden;
+    }
+    .sidebar-collapsed .sidebar-sign-out-icon { display: block; }
+
+    /* Labels in the rail: read by screen readers, shown as a tooltip on hover and keyboard focus. */
+    .sidebar-collapsed .sidebar-link-label,
+    .sidebar-collapsed .sidebar .sidebar-label {
+        position: fixed;
+        left: calc(var(--nn-rail-width) + var(--nn-space-2));
+        z-index: 1060;               /* over the page, under Bootstrap's modals */
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+    .sidebar-collapsed .sidebar-link:hover .sidebar-link-label,
+    .sidebar-collapsed .sidebar-link:focus-visible .sidebar-link-label,
+    .sidebar-collapsed .sidebar-toggle:hover .sidebar-label,
+    .sidebar-collapsed .sidebar-toggle:focus-visible .sidebar-label,
+    .sidebar-collapsed .sidebar-sign-out:hover .sidebar-label,
+    .sidebar-collapsed .sidebar-sign-out:focus-visible .sidebar-label {
+        width: auto;
+        height: auto;
+        padding: var(--nn-space-1) var(--nn-space-3);
+        overflow: visible;
+        clip-path: none;
+        color: #fff;
+        font-size: var(--nn-font-sm);
+        font-weight: 600;
+        line-height: 1.5;
+        background-color: var(--nn-tooltip-bg);
+        border-radius: var(--nn-radius-badge);
+        box-shadow: 0 2px 8px rgba(var(--nn-navy-rgb), .25);
+    }
+
+    body.sidebar-collapsed[data-user] .offline-banner { left: var(--nn-rail-width); }
+}
+
+/* Top bar. Phones: navy, 44px buttons. From 768px (office only; the crew's is hidden there): a slim row on the page
+   with "EN | ΕΛ" on the right. */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-1);
+    padding: 6px var(--nn-space-2);
+    color: #fff;
+    background-color: var(--nn-navy);
+    --nn-focus-color: #fff;
+}
+.topbar-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    padding: 0;
+    color: inherit;
+    border: 0;
+}
+.topbar-button:hover,
+.topbar-button:focus-visible { color: inherit; background-color: rgba(255, 255, 255, .08); }
+.topbar-lang {
+    flex: none;
+    margin-left: auto;
+}
+@media (min-width: 768px) {
+    .topbar-office {
+        min-height: 0;
+        padding: var(--nn-space-2) var(--nn-gutter) 0;
+        color: var(--nn-text);
+        background-color: transparent;
+        --nn-focus-color: var(--nn-blue);
+    }
+    .topbar-office .topbar-title { display: none; }
+    .topbar-office + .app-content { padding-top: var(--nn-space-2); }
+}
+
+/* "EN | ΕΛ". On navy: white, the other language at .85 (both 9:1 or more); on the page: navy, the other language in
+   the secondary text colour (6.6:1). */
+.lang-switch {
+    display: inline-flex;
+    align-items: center;
+    font-size: var(--nn-font-sm);
+    letter-spacing: .04em;
+}
+.lang-switch-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    padding: 0 var(--nn-space-2);
+    color: inherit;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--nn-radius-control);
+    opacity: .85;
+}
+.lang-switch-link:hover { color: inherit; text-decoration: underline; opacity: 1; }
+.lang-switch-link.is-current {
+    font-weight: 700;
+    opacity: 1;
+}
+.lang-switch-divider {
+    width: 1px;
+    height: 1rem;
+    background-color: currentColor;
+    opacity: .45;
+}
+.auth-lang .lang-switch { color: var(--nn-blue); }
+.auth-lang .lang-switch-link { opacity: 1; }
+.auth-lang .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
+/* The office top bar is on the page from 768px only; on phones it is the navy bar and keeps the colours above. */
+@media (min-width: 768px) {
+    .topbar-office .lang-switch { color: var(--nn-blue); }
+    .topbar-office .lang-switch-link { opacity: 1; }
+    .topbar-office .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
+}
+
+/* Form pages: the 720px column, centred; with an aside, two columns from 1200px. */
+.form-page {
+    max-width: var(--nn-form-width);
+    margin-inline: auto;
+}
+.form-aside { margin-top: var(--nn-section-gap); }
+@media (min-width: 1200px) {
+    .form-page-aside {
+        display: grid;
+        grid-template-columns: minmax(0, var(--nn-form-width)) minmax(16rem, var(--nn-aside-width));
+        column-gap: var(--nn-section-gap);
+        align-items: start;
+        max-width: calc(var(--nn-form-width) + var(--nn-section-gap) + var(--nn-aside-width));
+    }
+    .form-page-aside > * { grid-column: 1 / -1; }
+    .form-page-aside > .form-box { grid-column: 1; }
+    .form-page-aside > .form-aside {
+        grid-column: 2;
+        margin-top: 0;
+    }
+}
+.form-aside-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 600;
+}
+/* The particulars in the narrow aside: the label column as wide as its longest label, so values keep their room. */
+.form-aside .static-fields { margin-bottom: var(--nn-space-3); }
+@media (min-width: 576px) {
+    .form-aside .static-fields { grid-template-columns: max-content minmax(0, 1fr); }
+}
+
+/* Cards of a detail page. */
+.card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-section-gap);
+}
+@media (min-width: 992px) {
+    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card-grid > .card-grid-wide { grid-column: 1 / -1; }
+}
+@media (min-width: 1600px) {
+    .card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card-grid-3 > .card-grid-wide { grid-column: auto; }
+}
