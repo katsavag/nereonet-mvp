@@ -177,7 +177,7 @@
                         </div>
                         <a class="attention-title" th:id="${titleId}" th:href="${url}" th:text="${item.title}">Safety drill</a>
                         <p class="attention-context">
-                            <span class="attention-ship" th:text="${item.target != null} ? ${item.target.name} : #{announcement.target.fleet}">All ships</span>
+                            <span class="attention-ship" th:text="${item.fleetWide} ? #{announcement.target.fleet} : (${item.target != null} ? ${item.target.name} : #{announcement.target.ships(${item.targetShips})})">All ships</span>
                             · <span th:text="#{dashboard.item.notAcknowledgedCount(${item.notAcknowledged()}, ${item.recipients})}">3 of 12 not acknowledged</span>
                             · <span th:text="#{dashboard.item.sent}">sent</span>
                             <time th:replace="~{layout/parts :: localTime(${item.sentAt})}"></time>

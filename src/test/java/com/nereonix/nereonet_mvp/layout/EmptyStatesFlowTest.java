@@ -71,7 +71,7 @@ class EmptyStatesFlowTest {
                         "href=\"/office/ships\"", "Go to Ships"),
                 List.of("/office/certificates", "No certificates yet", "on each crew member&#39;s page",
                         "href=\"/office/crew\"", "Go to Crew"),
-                List.of("/office/announcements", "No announcements yet", "Send news and instructions to one ship",
+                List.of("/office/announcements", "No announcements yet", "Send news and instructions to all ships or to the ships they concern",
                         "href=\"/office/announcements/new\"", "New announcement"),
                 List.of("/office/requests", "No requests yet", "Galley requests approved on board appear here",
                         "href=\"/office/ships\"", "Go to Ships"),

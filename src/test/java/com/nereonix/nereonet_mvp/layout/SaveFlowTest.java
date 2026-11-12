@@ -123,12 +123,14 @@ class SaveFlowTest {
         // Announcement: title and message, never the target (a draft never picks a ship).
         String announcement = html(get("/office/announcements/new").param("shipId", ship.getId().toString()));
         assertThat(announcement).contains("data-draft=\"/office/announcements/new\"")
-                .contains("data-draft-skip id=\"target\"");
+                .containsPattern("id=\"target\" name=\"target\"[^>]*data-draft-skip")
+                .containsPattern("id=\"targetShips\" name=\"target\"[^>]*data-draft-skip")
+                .containsPattern("name=\"shipIds\"[^>]*data-draft-skip");
         // Shown again with its errors (URL /review): the same key.
         assertThat(html(post("/office/announcements/review").with(csrf()).param("target", "").param("title", "Drill")
                 .param("body", ""))).contains("data-draft=\"/office/announcements/new\"");
         // Sending from the review page removes it once the server confirms.
-        assertThat(html(post("/office/announcements/review").with(csrf()).param("target", ship.getId().toString())
+        assertThat(html(post("/office/announcements/review").with(csrf()).param("target", "ships").param("shipIds", ship.getId().toString())
                 .param("title", "Drill").param("body", "Friday 10:00")))
                 .contains("action=\"/office/announcements/send\" data-draft-for=\"/office/announcements/new\"");
 

@@ -36,10 +36,11 @@ public class DashboardQueries {
     public record InvitationRow(Long id, Long shipId, String fullName, Rank rank, Instant expiresAt) {
     }
 
-    /** One announcement's recipients on one ship. shipId is the target (null: all ships); recipientShipId the ship
-     *  the recipients were on when it was sent. */
-    public record AnnouncementShipRow(Long id, String title, Long shipId, Instant sentAt, Long recipientShipId,
-                               long recipients, long acknowledged) {
+    /** One announcement's recipients on one ship. fleetWide: sent to all ships; targetShips: how many ships it was
+     *  sent to otherwise (P28); shipId: the target when it is the only one, else null; recipientShipId the ship the
+     *  recipients were on when it was sent. */
+    public record AnnouncementShipRow(Long id, String title, boolean fleetWide, Integer targetShips, Long shipId,
+                                      Instant sentAt, Long recipientShipId, long recipients, long acknowledged) {
     }
 
     public record LibraryRow(Long id, String title, Long shipId, String versionLabel, Instant publishedAt, long onBoard,
@@ -115,10 +116,12 @@ public class DashboardQueries {
     List<AnnouncementShipRow> announcementsSentBefore(Instant sentBefore) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$AnnouncementShipRow(
-                    a.id, a.title, target.id, a.createdAt, r.ship.id, count(r), count(r.acknowledgedAt))
-                from AnnouncementRecipient r join r.announcement a left join a.ship target
+                    a.id, a.title, a.fleetWide, size(a.targetShips), oneTarget.id, a.createdAt, r.ship.id, count(r),
+                    count(r.acknowledgedAt))
+                from AnnouncementRecipient r join r.announcement a
+                    left join a.targetShips oneTarget on size(a.targetShips) = 1
                 where a.createdAt < :sentBefore
-                group by a.id, a.title, target.id, a.createdAt, r.ship.id""", AnnouncementShipRow.class)
+                group by a.id, a.title, a.fleetWide, oneTarget.id, a.createdAt, r.ship.id""", AnnouncementShipRow.class)
                 .setParameter("sentBefore", sentBefore)
                 .getResultList();
     }

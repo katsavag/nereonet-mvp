@@ -142,7 +142,8 @@ class ShipHomeFlowTest {
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
     void unacknowledgedAnnouncementsAreToRead() throws Exception {
-        Long id = announcementService.create("Safety drill", "Drill on Friday.", ship.getId(), "office@example.com")
+        Long id = announcementService.create("Safety drill", "Drill on Friday.", false, java.util.List.of(ship.getId()),
+                "office@example.com")
                 .announcement().getId();
 
         String toRead = section(TO_READ, home(cook));

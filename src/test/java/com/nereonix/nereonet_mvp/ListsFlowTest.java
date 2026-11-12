@@ -311,7 +311,11 @@ class ListsFlowTest {
         Announcement announcement = new Announcement();
         announcement.setTitle(title);
         announcement.setBody("Body of " + title);
-        announcement.setShip(ship);
+        if (ship == null) {
+            announcement.setFleetWide(true);
+        } else {
+            announcement.getTargetShips().add(ship);
+        }
         announcement.setCreatedAt(sentAt);
         announcementRepository.save(announcement);
     }

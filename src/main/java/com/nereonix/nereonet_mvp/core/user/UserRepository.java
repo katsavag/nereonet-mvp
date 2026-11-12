@@ -1,5 +1,6 @@
 package com.nereonix.nereonet_mvp.core.user;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +36,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByShipAndRoleNotAndEnabledTrue(Ship ship, Role role);
 
     List<User> findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role role);
+
+    // The crew of a chosen set of ships (an announcement to selected ships, P28).
+    List<User> findAllByShipInAndRoleNotAndEnabledTrue(Collection<Ship> ships, Role role);
 
     // Enabled users per ship (ship roles only: office users have no ship).
     @Query("""

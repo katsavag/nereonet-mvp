@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
 <body>
-<!-- One announcement as its recipient sees it (P27): the target as the eyebrow (All ships, or the ship), the title,
+<!-- One announcement as its recipient sees it (P27): the target as the eyebrow (All ships, or the ship the person was
+     on when it was sent: never the other target ships, P28), the title,
      "Office · <sender>" and when it was sent (UTC), the message as plain text with its line breaks, then the person's
      own acknowledgement, as on a Required library item (library/item.html): "I have read this" until pressed, then
      "Acknowledged · <date and time> UTC". The reading column has a comfortable line length; the button fills it and,
@@ -10,7 +11,8 @@
 <main th:with="toAcknowledge=${recipient.acknowledgedAt == null}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs},
                          subtitleParts=~{::pageSubtitle},
-                         eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : null, eyebrowShip=${announcement.ship})}">
+                         eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : null,
+                         eyebrowShip=${announcement.fleet} ? null : ${recipient.ship})}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{announcement.ship.title}, '/ship/announcements')}"></li>
         </th:block>

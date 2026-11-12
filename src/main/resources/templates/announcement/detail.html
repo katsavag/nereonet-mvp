@@ -2,8 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
 <body>
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : null, eyebrowShip=${announcement.ship})}">
-        <!-- The target: All ships, or the ship's name and IMO number. -->
+    <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle},
+                eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : (${announcement.onlyShip == null} ? #{announcement.target.ships(${announcement.targetShips.size()})} : null),
+                eyebrowShip=${announcement.onlyShip})}">
+        <!-- The target: All ships, the ship's name and IMO number, or "3 ships" (named in Acknowledgements by ship). -->
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{nav.announcements}, '/office/announcements')}"></li>
         </th:block>
@@ -20,6 +22,41 @@
     <div class="card mb-4">
         <div class="card-body text-break text-pre-line" th:text="${announcement.body}">Message text</div>
     </div>
+
+    <!-- Acknowledgements by ship (P28): every target ship (also one that had nobody on board) and every ship of the
+         recipients, by name, with the total when there is more than one. The two lists below are grouped the same way. -->
+    <section id="perShip" class="card mb-4" aria-labelledby="perShipTitle">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="h5 fw-bold mb-0" id="perShipTitle" th:text="#{announcement.perShip.heading}">Acknowledgements by ship</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table data-table review-recipients align-middle mb-0">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{announcement.review.ship}">Ship</th>
+                    <th scope="col" class="num" th:text="#{announcement.acknowledgements}">Acknowledged</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${perShip}">
+                    <td>
+                        <a th:replace="~{layout/parts :: shipLink(${s.ship()})}">MV Demo</a>
+                        <span class="review-imo num" th:text="#{ship.codeValue(${s.ship().imoNumber})}">IMO 9074729</span>
+                    </td>
+                    <td class="num" th:classappend="${s.recipients() > 0} ? 'text-nowrap'" th:text="${s.recipients() == 0} ? #{announcement.perShip.nobody}
+                            : #{announcement.count(${s.acknowledged()}, ${s.recipients()})}">1 of 2 acknowledged</td>
+                </tr>
+                </tbody>
+                <tfoot th:if="${perShip.size() > 1}">
+                <tr>
+                    <th scope="row" th:text="#{announcement.review.total}">Total</th>
+                    <td class="num fw-semibold text-nowrap"
+                        th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 acknowledged</td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
 
     <!-- Acknowledged -->
     <div id="acknowledged" class="card mb-4">

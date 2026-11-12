@@ -95,7 +95,7 @@ class LanguageSwitchFlowTest {
     // A page shown in answer to a POST (the announcement review): the posted fields stay out of the links.
     @Test
     void whatAFormPostedNeverEndsUpInTheLinks() throws Exception {
-        String html = html(post("/office/announcements/review").param("target", demo.getId().toString())
+        String html = html(post("/office/announcements/review").param("target", "ships").param("shipIds", demo.getId().toString())
                 .param("title", "Secret drill").param("body", "Friday").with(csrf()));
         assertThat(link(html, "English")).isEqualTo("?lang=en");
         assertThat(link(html, "Ελληνικά")).isEqualTo("?lang=el");

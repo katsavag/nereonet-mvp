@@ -2,13 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.review.title}, ~{::main})}">
 <body>
 <!-- Step 2 of 2 of a new announcement (P10). Announcements cannot be edited or deleted, so this page shows what will
-     be sent before anything is: the target, the recipients per ship (counted again when it is sent) and the title
-     and message as the crew will see them. The form carries the text in hidden fields: "Send to N people" posts it
-     to /office/announcements/send, "Back to edit" to /office/announcements/new, which shows the form with the text.
+     be sent before anything is: the target (All ships, the one ship, or "3 ships"), the chosen ships that are no
+     longer active and are left out (P28), the recipients per ship (counted again when it is sent, with a Total for
+     more than one ship) and the title and message as the crew will see them. The form carries the text and the active
+     target ships in hidden fields: "Send to N people on N ships" posts it to /office/announcements/send, "Back to edit"
+     to /office/announcements/new, which shows the form with the text and the ticks.
      Ship names are not links here: leaving this page would lose the text. data-draft-for: once sent, js/save.js removes
      the draft of the form (P15). -->
-<main th:with="fleetTarget=${targetShip == null},
-               targetLabel=${targetShip == null} ? #{announcement.target.fleet} : ${targetShip.name} + ' · ' + #{ship.codeValue(${targetShip.imoNumber})}">
+<main th:with="ships=${targets.ships()},
+               targetLabel=${targets.fleet()} ? #{announcement.target.fleet}
+                   : (${onlyShip != null} ? ${onlyShip.name} + ' · ' + #{ship.codeValue(${onlyShip.imoNumber})}
+                   : #{announcement.target.ships(${ships.size()})})">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.review.heading}, crumbs=~{::pageCrumbs},
                 eyebrow=${targetLabel}, subtitle=#{announcement.review.hint})}">
         <th:block th:fragment="pageCrumbs">
@@ -22,7 +26,16 @@
     </header>
 
     <div class="review-stack form-box">
-        <!-- Who gets it: the target, then the people per ship (every active ship for All ships). -->
+        <!-- Chosen ships deactivated since they were ticked (P28): named, and not sent to. -->
+        <div th:unless="${targets.leftOut().isEmpty()}" class="alert alert-warning review-left-out mb-0" role="status">
+            <h2 class="h6 fw-bold mb-1" th:text="#{announcement.review.leftOut.heading(${targets.leftOut().size()})}">1 ship left out</h2>
+            <p class="mb-0" th:text="#{announcement.review.leftOut.text}">Deactivated after you chose them, so they will not get it:</p>
+            <ul>
+                <li th:each="s : ${targets.leftOut()}" th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Old · IMO 9176187</li>
+            </ul>
+        </div>
+
+        <!-- Who gets it: the target, then the people per ship. -->
         <section class="card" aria-labelledby="reviewRecipientsTitle">
             <div class="card-body">
                 <h2 class="h5 fw-bold mb-3" id="reviewRecipientsTitle" th:text="#{announcement.review.recipients}">Recipients</h2>
@@ -48,7 +61,7 @@
                         <td class="num" th:text="${r.people()}">5</td>
                     </tr>
                     </tbody>
-                    <tfoot th:if="${fleetTarget}">
+                    <tfoot th:if="${perShip.size() > 1}">
                     <tr>
                         <th scope="row" th:text="#{announcement.review.total}">Total</th>
                         <td class="num fw-semibold" th:text="${people}">12</td>
@@ -80,11 +93,12 @@
 
         <form method="post" th:action="@{/office/announcements/send}" th:data-draft-for="@{/office/announcements/new}">
             <input type="hidden" name="target" th:value="${form.target}">
+            <input th:each="id : ${form.shipIds}" type="hidden" name="shipIds" th:value="${id}">
             <input type="hidden" name="title" th:value="${form.title}">
             <input type="hidden" name="body" th:value="${form.body}">
             <input th:if="${fromShip != null}" type="hidden" name="returnShipId" th:value="${fromShip.id}">
             <div class="form-actions mt-0">
-                <button type="submit" class="btn btn-primary" th:text="#{announcement.review.send(${people})}">Send to 12 people</button>
+                <button type="submit" class="btn btn-primary" th:text="#{announcement.review.send(${people}, ${ships.size()})}">Send to 12 people on 3 ships</button>
                 <button type="submit" class="btn btn-outline-secondary" th:formaction="@{/office/announcements/new}"
                         th:text="#{announcement.review.back}">Back to edit</button>
             </div>

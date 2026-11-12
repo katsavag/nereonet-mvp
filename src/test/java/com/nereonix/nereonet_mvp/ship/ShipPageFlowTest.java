@@ -297,12 +297,16 @@ class ShipPageFlowTest {
     @Test
     void newAnnouncementFromTheTabHasTheShipPreselectedAndReturnsThere() throws Exception {
         String form = html(get("/office/announcements/new").param("shipId", demo.getId().toString()));
-        assertThat(form).contains("<option value=\"" + demo.getId() + "\" selected=\"selected\">MV Demo · IMO 9074729</option>")
+        // Selected ships, with this ship ticked (P28).
+        assertThat(form).containsPattern("id=\"targetShips\" name=\"target\"[^>]*checked=\"checked\"")
+                .containsPattern("name=\"shipIds\"[^>]*value=\"" + demo.getId() + "\"[^>]*checked=\"checked\"")
+                .contains("<span class=\"ship-pick-name\">MV Demo</span>")
                 .contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">");
         // Opened elsewhere, nothing is preselected.
-        assertThat(html(get("/office/announcements/new"))).doesNotContain("selected=\"selected\"", "returnShipId");
+        assertThat(html(get("/office/announcements/new"))).doesNotContainPattern("<input[^>]*checked")
+                .doesNotContain("returnShipId");
 
-        mockMvc.perform(post("/office/announcements/send").param("target", demo.getId().toString())
+        mockMvc.perform(post("/office/announcements/send").param("target", "ships").param("shipIds", demo.getId().toString())
                         .param("title", "Drill").param("body", "Friday").param("returnShipId", demo.getId().toString())
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/announcements"));
@@ -354,7 +358,7 @@ class ShipPageFlowTest {
     void everyShipNameInTheOfficeLinksToTheShipPage() throws Exception {
         certificate(cadet, "STCW Basic Safety", 20);
         request(demo, null);
-        mockMvc.perform(post("/office/announcements/send").param("target", demo.getId().toString())
+        mockMvc.perform(post("/office/announcements/send").param("target", "ships").param("shipIds", demo.getId().toString())
                 .param("title", "Drill").param("body", "Friday").with(csrf()));
         String link = "<a class=\"ship-link\" href=\"/office/ships/" + demo.getId() + "\">MV Demo</a>";
         for (String url : List.of("/office", "/office/ships", "/office/crew", "/office/certificates",

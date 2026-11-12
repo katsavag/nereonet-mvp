@@ -10,7 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // ISO 3166 country codes for the flag field, shown as "Greece (GR)". Names come from the JDK.
-final class Countries {
+// Public for labels() only: the flag filter of the announcement form's ship list (P28).
+public final class Countries {
 
     private static final Set<String> CODES = Set.of(Locale.getISOCountries());
     private static final Pattern CODE_AT_END = Pattern.compile("\\(([A-Za-z]{2})\\)$");
@@ -19,7 +20,7 @@ final class Countries {
     }
 
     // Code -> "Greece (GR)", sorted by country name in the given language.
-    static Map<String, String> labels(Locale locale) {
+    public static Map<String, String> labels(Locale locale) {
         Collator collator = Collator.getInstance(locale);
         Map<String, String> labels = new LinkedHashMap<>();
         CODES.stream()

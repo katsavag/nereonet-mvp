@@ -83,14 +83,15 @@ class AnnouncementFlowTest {
         crewMember("paul@example.com", "Paul Pending", ship);
 
         mockMvc.perform(post("/office/announcements/send")
-                        .param("target", ship.getId().toString())
+                        .param("target", "ships").param("shipIds", ship.getId().toString())
                         .param("title", "Safety drill")
                         .param("body", "Drill on Friday at 10:00.")
                         .with(csrf()))
                 .andExpect(redirectedUrl("/office/announcements/" + announcementRepository.findAll().getFirst().getId()));
 
         Announcement announcement = announcementRepository.findAll().getFirst();
-        assertThat(announcement.getShip()).isEqualTo(ship);
+        assertThat(announcement.isFleetWide()).isFalse();
+        assertThat(announcement.getTargetShips()).containsExactly(ship);
         assertThat(announcement.getCreatedBy().getEmail()).isEqualTo("office@example.com");
 
         // Joins after the announcement was sent: not a recipient.
@@ -137,7 +138,7 @@ class AnnouncementFlowTest {
         assertThat(announcementRepository.count()).isZero();
         assertThat(review).contains("<h1 class=\"page-title\">", "Review announcement", "All ships",
                 "action=\"/office/announcements/send\"",
-                "<button type=\"submit\" class=\"btn btn-primary\">Send to 3 people</button>",
+                "<button type=\"submit\" class=\"btn btn-primary\">Send to 3 people on 2 ships</button>",
                 "formaction=\"/office/announcements/new\">Back to edit</button>",
                 "<input type=\"hidden\" name=\"target\" value=\"fleet\">",
                 "<input type=\"hidden\" name=\"title\" value=\"Safety drill\">",
@@ -152,8 +153,9 @@ class AnnouncementFlowTest {
                 .param("target", "fleet").param("title", "Safety drill").param("body", "Drill on Friday.").with(csrf()));
         assertThat(announcementRepository.count()).isZero();
         assertThat(edit).contains("New announcement", "action=\"/office/announcements/review\"",
-                "<option value=\"fleet\" selected=\"selected\">All ships</option>", "value=\"Safety drill\"",
-                ">Drill on Friday.</textarea>");
+                "value=\"Safety drill\"",
+                ">Drill on Friday.</textarea>")
+                .containsPattern("id=\"target\" name=\"target\"[^>]*value=\"fleet\"[^>]*checked=\"checked\"");
 
         // Someone joins after the review: the recipients are counted again when it is sent.
         crewMember("lena@example.com", "Lena Later", other);
@@ -164,12 +166,12 @@ class AnnouncementFlowTest {
                 .andReturn();
         Announcement announcement = announcementRepository.findAll().getFirst();
         assertThat(sent.getResponse().getRedirectedUrl()).isEqualTo("/office/announcements/" + announcement.getId());
-        assertThat((Object[]) sent.getFlashMap().get("successArgs")).containsExactly(4);
+        assertThat((Object[]) sent.getFlashMap().get("successArgs")).containsExactly(4, 2);
         assertThat(recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(announcement)).hasSize(4);
-        assertThat(messageSource.getMessage("announcement.created", new Object[] {4}, Locale.ENGLISH))
-                .isEqualTo("Announcement sent to 4 people.");
-        assertThat(messageSource.getMessage("announcement.review.send", new Object[] {1}, Locale.ENGLISH))
-                .isEqualTo("Send to 1 person");
+        assertThat(messageSource.getMessage("announcement.created", new Object[] {4, 2}, Locale.ENGLISH))
+                .isEqualTo("Announcement sent to 4 people on 2 ships.");
+        assertThat(messageSource.getMessage("announcement.review.send", new Object[] {1, 1}, Locale.ENGLISH))
+                .isEqualTo("Send to 1 person on 1 ship");
     }
 
     @Test
@@ -178,25 +180,25 @@ class AnnouncementFlowTest {
         crewMember("anna@example.com", "Anna Acked", demo);
 
         String review = html(post("/office/announcements/review")
-                .param("target", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
+                .param("target", "ships").param("shipIds", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
                 .with(csrf()));
-        assertThat(review).contains("<p class=\"eyebrow\">MV Demo · IMO 9074729</p>", "Send to 1 person")
+        assertThat(review).contains("<p class=\"eyebrow\">MV Demo · IMO 9074729</p>", "Send to 1 person on 1 ship")
                 .doesNotContain("Total</th>", "Nobody would receive it");
 
         // Deactivated meanwhile: back to the form with an error on the target, nothing sent.
         demo.setActive(false);
         shipRepository.flush();
         String form = html(post("/office/announcements/send")
-                .param("target", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
+                .param("target", "ships").param("shipIds", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
                 .with(csrf()));
-        assertThat(form).contains("Choose all ships or one ship.");
+        assertThat(form).contains("The ships you ticked are no longer active. Tick at least one active ship.");
         assertThat(announcementRepository.count()).isZero();
 
         // Nobody on board: the review page says so.
         Ship empty = ship("9176187", "MV Empty");
         assertThat(html(post("/office/announcements/review")
-                .param("target", empty.getId().toString()).param("title", "Drill").param("body", "Friday")
-                .with(csrf()))).contains("Nobody would receive it", "Send to 0 people");
+                .param("target", "ships").param("shipIds", empty.getId().toString()).param("title", "Drill").param("body", "Friday")
+                .with(csrf()))).contains("Nobody would receive it", "Send to 0 people on 1 ship");
     }
 
     // P16, FR-GEN-008: the form and the review page say it is no emergency channel, right above their buttons.
@@ -212,7 +214,7 @@ class AnnouncementFlowTest {
 
         Ship demo = ship("9074729", "MV Demo");
         String review = html(post("/office/announcements/review")
-                .param("target", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
+                .param("target", "ships").param("shipIds", demo.getId().toString()).param("title", "Drill").param("body", "Friday")
                 .with(csrf()));
         assertThat(review).containsPattern("(?s)<span>" + notice + "</span>\\s*</p>\\s*<form method=\"post\" "
                 + "action=\"/office/announcements/send\"");
@@ -344,12 +346,202 @@ class AnnouncementFlowTest {
         mockMvc.perform(get("/ship/announcements")).andExpect(status().isForbidden());
     }
 
+    // P28: one announcement to two of three ships reaches only their crew; the review page lists the two ships with the
+    // people on each and the total; the list says "2 ships" (names in the title and on the phone card); the detail
+    // page splits "0 of 3 acknowledged" by ship; the audit entry lists the target ship ids.
+    @Test
+    void anAnnouncementToSelectedShipsReachesOnlyTheirCrew() throws Exception {
+        Ship alpha = ship("9074729", "MV Alpha");
+        Ship beta = ship("9176187", "MV Beta");
+        Ship gamma = ship("9395044", "MV Gamma");
+        crewMember("anna@example.com", "Anna Alpha", alpha);
+        crewMember("aris@example.com", "Aris Alpha", alpha);
+        crewMember("bill@example.com", "Bill Beta", beta);
+        crewMember("gina@example.com", "Gina Gamma", gamma);
+
+        String review = html(post("/office/announcements/review")
+                .param("target", "ships").param("shipIds", beta.getId().toString(), alpha.getId().toString())
+                .param("title", "Port state control").param("body", "Inspection next week.").with(csrf()));
+        assertThat(announcementRepository.count()).isZero();
+        assertThat(review).contains("<p class=\"eyebrow\">2 ships</p>", "Send to 3 people on 2 ships",
+                        "<input type=\"hidden\" name=\"target\" value=\"ships\">",
+                        "<input type=\"hidden\" name=\"shipIds\" value=\"" + alpha.getId() + "\">",
+                        "<input type=\"hidden\" name=\"shipIds\" value=\"" + beta.getId() + "\">")
+                .doesNotContain("MV Gamma", "alert alert-warning review-left-out")
+                .containsPattern("(?s)MV Alpha</span>.*?<td class=\"num\">2</td>.*?MV Beta</span>.*?<td class=\"num\">1</td>"
+                        + ".*?Total</th>\\s*<td class=\"num fw-semibold\">3</td>");
+
+        Announcement announcement = sendTo(List.of(alpha, beta), "Port state control");
+        assertThat(announcement.isFleetWide()).isFalse();
+        assertThat(announcement.getTargetShips()).containsExactly(alpha, beta);
+        assertThat(recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(announcement))
+                .extracting(r -> r.getUser().getFullName()).containsExactly("Anna Alpha", "Aris Alpha", "Bill Beta");
+        assertThat(notificationRepository.countByUserEmailAndReadAtIsNull("bill@example.com")).isEqualTo(1);
+        assertThat(notificationRepository.countByUserEmailAndReadAtIsNull("gina@example.com")).isZero();
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("ANNOUNCEMENT_CREATED"))
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getShip()).isNull();
+                    assertThat(e.getDetails()).isEqualTo("Port state control (ship ids " + alpha.getId() + ", "
+                            + beta.getId() + ": MV Alpha, MV Beta; 3 recipients)");
+                });
+
+        // Gamma's crew never see it.
+        User gina = userRepository.findByEmail("gina@example.com").orElseThrow();
+        mockMvc.perform(get("/ship/announcements/{id}", announcement.getId()).with(user(new CurrentUser(gina))))
+                .andExpect(status().isNotFound());
+        // Beta's crew see their own ship as the target, never the other ships.
+        User bill = userRepository.findByEmail("bill@example.com").orElseThrow();
+        assertThat(html(get("/ship/announcements/{id}", announcement.getId()).with(user(new CurrentUser(bill)))))
+                .contains("<p class=\"eyebrow\">MV Beta · IMO 9176187</p>").doesNotContain("MV Alpha", "2 ships");
+
+        // The list: "2 ships", with the names as the title and for the phone card.
+        assertThat(html(get("/office/announcements")))
+                .contains("<span title=\"MV Alpha, MV Beta\">2 ships</span>",
+                        "<span class=\"target-names\">MV Alpha, MV Beta</span>", "0 of 3 acknowledged");
+
+        // The detail page: 0 of 3, split by ship, with the total.
+        String detail = html(get("/office/announcements/{id}", announcement.getId()));
+        assertThat(detail).contains("<p class=\"eyebrow\">2 ships</p>", "0 of 3 acknowledged",
+                        "Acknowledgements by ship")
+                .containsPattern("(?s)id=\"perShip\".*?MV Alpha</a>.*?<td class=\"num text-nowrap\">0 of 2 acknowledged</td>"
+                        + ".*?MV Beta</a>.*?<td class=\"num text-nowrap\">0 of 1 acknowledged</td>"
+                        + ".*?Total</th>\\s*<td class=\"num fw-semibold text-nowrap\">0 of 3 acknowledged</td>")
+                .doesNotContain("MV Gamma");
+    }
+
+    // P28: Selected ships with no box ticked, or no target at all, is an error on the target field.
+    @Test
+    void selectedShipsWithNoShipTickedIsAnError() throws Exception {
+        ship("9074729", "MV Alpha");
+        String form = html(post("/office/announcements/review")
+                .param("target", "ships").param("title", "Drill").param("body", "Friday").with(csrf()));
+        assertThat(form).contains("id=\"targetError\"", "Tick at least one ship.", "aria-describedby=\"targetError\"",
+                        "action=\"/office/announcements/review\"")
+                .doesNotContain("Review announcement");
+        assertThat(html(post("/office/announcements/send")
+                .param("target", "ships").param("title", "Drill").param("body", "Friday").with(csrf())))
+                .contains("Tick at least one ship.");
+        assertThat(html(post("/office/announcements/review")
+                .param("title", "Drill").param("body", "Friday").with(csrf())))
+                .contains("Choose all ships or selected ships.");
+        assertThat(announcementRepository.count()).isZero();
+    }
+
+    // P28: a ship deactivated between the form and sending is named on the review page and left out; with none left,
+    // sending is blocked.
+    @Test
+    void aShipDeactivatedBeforeSendingIsLeftOut() throws Exception {
+        Ship alpha = ship("9074729", "MV Alpha");
+        Ship beta = ship("9176187", "MV Beta");
+        crewMember("anna@example.com", "Anna Alpha", alpha);
+        crewMember("bill@example.com", "Bill Beta", beta);
+
+        // Deactivated after the form was opened: the review page names it and leaves it out.
+        beta.setActive(false);
+        shipRepository.flush();
+        String review = html(post("/office/announcements/review")
+                .param("target", "ships").param("shipIds", alpha.getId().toString(), beta.getId().toString())
+                .param("title", "Drill").param("body", "Friday").with(csrf()));
+        assertThat(review).contains("1 ship left out", "MV Beta · IMO 9176187", "Send to 1 person on 1 ship",
+                        "<input type=\"hidden\" name=\"shipIds\" value=\"" + alpha.getId() + "\">")
+                .doesNotContain("name=\"shipIds\" value=\"" + beta.getId() + "\"");
+
+        // Deactivated after the review page: nothing is sent, the review page comes back saying so.
+        beta.setActive(true);
+        shipRepository.flush();
+        html(post("/office/announcements/review")
+                .param("target", "ships").param("shipIds", alpha.getId().toString(), beta.getId().toString())
+                .param("title", "Drill").param("body", "Friday").with(csrf()));
+        beta.setActive(false);
+        shipRepository.flush();
+        String again = html(post("/office/announcements/send")
+                .param("target", "ships").param("shipIds", alpha.getId().toString(), beta.getId().toString())
+                .param("title", "Drill").param("body", "Friday").with(csrf()));
+        assertThat(again).contains("Review announcement", "1 ship left out", "MV Beta · IMO 9176187",
+                "Send to 1 person on 1 ship");
+        assertThat(announcementRepository.count()).isZero();
+
+        // Sent from that page: only the active ship.
+        Announcement sent = sendTo(List.of(alpha), "Drill");
+        assertThat(sent.getTargetShips()).containsExactly(alpha);
+        assertThat(recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(sent))
+                .extracting(r -> r.getUser().getFullName()).containsExactly("Anna Alpha");
+
+        // None left: blocked, back to the form with the error on the target.
+        alpha.setActive(false);
+        shipRepository.flush();
+        assertThat(html(post("/office/announcements/send")
+                .param("target", "ships").param("shipIds", alpha.getId().toString())
+                .param("title", "Second").param("body", "Friday").with(csrf())))
+                .contains("The ships you ticked are no longer active. Tick at least one active ship.",
+                        "action=\"/office/announcements/review\"");
+        assertThat(announcementRepository.count()).isEqualTo(1);
+    }
+
+    // P28: the fleet list's ship filter and each ship's Announcements tab show an announcement to all ships and every
+    // announcement with that ship among its targets; New announcement on the tab ticks that ship.
+    @Test
+    void aShipsTabListsTheAnnouncementsItIsATargetOf() throws Exception {
+        Ship alpha = ship("9074729", "MV Alpha");
+        Ship beta = ship("9176187", "MV Beta");
+        Ship gamma = ship("9395044", "MV Gamma");
+        send(null, "To the fleet", "All of you.");
+        sendTo(List.of(alpha), "Alpha only");
+        sendTo(List.of(alpha, beta), "Alpha and Beta");
+        sendTo(List.of(gamma), "Gamma only");
+        announcementRepository.flush();
+
+        assertThat(html(get("/office/ships/{id}/announcements", alpha.getId())))
+                .contains("To the fleet", "Alpha only", "Alpha and Beta").doesNotContain("Gamma only");
+        assertThat(html(get("/office/ships/{id}/announcements", beta.getId())))
+                .contains("To the fleet", "Alpha and Beta").doesNotContain("Alpha only", "Gamma only");
+        assertThat(html(get("/office/announcements").param("shipId", beta.getId().toString())))
+                .contains("To the fleet", "Alpha and Beta").doesNotContain("Alpha only", "Gamma only");
+        assertThat(announcementRepository.countForShip(alpha.getId())).isEqualTo(3);
+        assertThat(announcementRepository.countForShip(beta.getId())).isEqualTo(2);
+        assertThat(announcementRepository.countForShip(gamma.getId())).isEqualTo(2);
+
+        // Sorted by target: All ships, then one ship by name, then several ships.
+        assertThat(html(get("/office/announcements").param("sort", "target")))
+                .containsSubsequence("To the fleet", "Alpha only", "Gamma only", "Alpha and Beta");
+
+        // From the tab: Selected ships with that ship ticked, the others not.
+        String form = html(get("/office/announcements/new").param("shipId", beta.getId().toString()));
+        assertThat(form).containsPattern("<input type=\"radio\" id=\"targetShips\" name=\"target\"[^>]*checked=\"checked\"")
+                .containsPattern("<input type=\"checkbox\" name=\"shipIds\"[^>]*value=\"" + beta.getId() + "\"[^>]*checked=\"checked\"")
+                .doesNotContainPattern("<input type=\"radio\" id=\"target\" name=\"target\"[^>]*checked")
+                .doesNotContainPattern("name=\"shipIds\"[^>]*value=\"" + alpha.getId() + "\"[^>]*checked");
+        // Without it nothing is chosen.
+        assertThat(html(get("/office/announcements/new"))).doesNotContainPattern("<input[^>]*checked");
+    }
+
     // Sends an announcement as the office (to one ship, or to all ships when ship is null).
     private Announcement send(Ship ship, String title, String body) throws Exception {
+        if (ship != null) {
+            return sendTo(List.of(ship), title, body);
+        }
         mockMvc.perform(post("/office/announcements/send")
-                        .param("target", ship == null ? "fleet" : ship.getId().toString())
+                        .param("target", "fleet").param("title", title).param("body", body).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        return announcement(title);
+    }
+
+    private Announcement sendTo(List<Ship> ships, String title) throws Exception {
+        return sendTo(ships, title, "Please read.");
+    }
+
+    // Sends an announcement to these ships (Selected ships) as the office.
+    private Announcement sendTo(List<Ship> ships, String title, String body) throws Exception {
+        mockMvc.perform(post("/office/announcements/send")
+                        .param("target", "ships")
+                        .param("shipIds", ships.stream().map(s -> s.getId().toString()).toArray(String[]::new))
                         .param("title", title).param("body", body).with(csrf()))
                 .andExpect(status().is3xxRedirection());
+        return announcement(title);
+    }
+
+    private Announcement announcement(String title) {
         return announcementRepository.findAll().stream().filter(a -> a.getTitle().equals(title)).findFirst()
                 .orElseThrow();
     }

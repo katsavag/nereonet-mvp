@@ -142,9 +142,11 @@ public class DashboardService {
         }
     }
 
-    /** An announcement not acknowledged by everyone. target is null for all ships. */
-    public record AnnouncementItem(Long id, String title, FleetShip target, Instant sentAt, long recipients,
-                                   long acknowledged, Set<Long> shipIds) implements AttentionItem {
+    /** An announcement not acknowledged by everyone. fleetWide: sent to all ships; otherwise target is its one ship
+     *  (when active), or null when it went to targetShips ships (P28). */
+    public record AnnouncementItem(Long id, String title, boolean fleetWide, FleetShip target, int targetShips,
+                                   Instant sentAt, long recipients, long acknowledged, Set<Long> shipIds)
+            implements AttentionItem {
 
         public AttentionType type() {
             return AttentionType.ANNOUNCEMENT;
@@ -361,8 +363,8 @@ public class DashboardService {
             if (!shipIds.isEmpty()) {
                 DashboardQueries.AnnouncementShipRow first = perShip.getFirst();
                 FleetShip target = first.shipId() == null ? null : activeShips.get(first.shipId());
-                items.add(new AnnouncementItem(id, first.title(), target, first.sentAt(), recipients, acknowledged,
-                        Set.copyOf(shipIds)));
+                items.add(new AnnouncementItem(id, first.title(), first.fleetWide(), target, first.targetShips(),
+                        first.sentAt(), recipients, acknowledged, Set.copyOf(shipIds)));
             }
         });
         return items;

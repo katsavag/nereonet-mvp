@@ -4,7 +4,8 @@
 <body>
 <!-- Also the Announcements tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
      header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
-<!-- The ship's tab lists the announcements to this ship and to all ships, so the Target column stays. -->
+<!-- The ship's tab lists the announcements to all ships and those with this ship among their targets, so the Target
+     column stays. -->
 <!-- No announcements yet (P25): the empty state holds New announcement, so the header leaves it out. -->
 <main th:with="onShip=${shipTab != null}, noAnnouncements=${list.emptyUnfiltered(rows)}">
     <th:block th:if="${onShip}">
@@ -30,8 +31,8 @@
     </header>
     </th:block>
 
-    <!-- Search, filters and chips (P19). Filter by ship: that ship's announcements and the ones to all ships. The ship's
-         tab has no ship filter. -->
+    <!-- Search, filters and chips (P19). Filter by ship: the ones to all ships and those with that ship among their
+         targets (P28). The ship's tab has no ship filter. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{announcement.search}, ${onShip} ? null : ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div>
@@ -60,9 +61,15 @@
                     <td class="cell-primary">
                         <a th:href="@{/office/announcements/{id}(id=${a.id})}" th:text="${a.title}">Safety drill</a>
                     </td>
-                    <td th:attr="data-label=#{announcement.target}">
+                    <!-- All ships, the one ship (a link), or "3 ships" with the names as its title and, on the phone
+                         card, under it (P28). -->
+                    <td th:attr="data-label=#{announcement.target}" th:with="only=${a.onlyShip}">
                         <th:block th:if="${a.fleet}" th:text="#{announcement.target.fleet}">All ships</th:block>
-                        <th:block th:unless="${a.fleet}"><a th:replace="~{layout/parts :: shipLink(${a.ship})}">MV Demo</a></th:block>
+                        <th:block th:if="${only != null}"><a th:replace="~{layout/parts :: shipLink(${only})}">MV Demo</a></th:block>
+                        <th:block th:if="${!a.fleet and only == null}">
+                            <span th:title="${a.targetNames}" th:text="#{announcement.target.ships(${a.targetShips.size()})}">3 ships</span>
+                            <span class="target-names" th:text="${a.targetNames}">MV Alpha, MV Beta, MV Gamma</span>
+                        </th:block>
                     </td>
                     <td th:attr="data-label=#{announcement.sentAt}">
                         <time th:replace="~{layout/parts :: localTime(${a.createdAt})}"></time>

@@ -2,11 +2,13 @@ package com.nereonix.nereonet_mvp.announcement;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -76,16 +78,20 @@ public class AnnouncementService {
 
     /**
      * One page of the Announcements list (P19), paginated in the database, then the recipient counts of that page's
-     * announcements only. With a shipId, only the ones sent to that ship or to all ships. The search is the title.
-     * Sort keys: sentAt (default, newest first), title, target (All ships first, then by ship name).
+     * announcements only. With a shipId, only the ones sent to all ships or with that ship among their targets (P28).
+     * The search is the title. Sort keys: sentAt (default, newest first), title, target (All ships first, then the
+     * ones to one ship by its name, then those to several ships, fewest first). The target ships of the page are read
+     * with one more query (Announcement.targetShips is read in batches).
      */
     @Transactional(readOnly = true)
     public Page<Row> findAll(Long shipId, ListQuery list) {
         Page<Announcement> page = listQueries.page(Announcement.class, list, (root, cb) -> {
             List<Predicate> where = new ArrayList<>();
             if (shipId != null) {
-                Join<Announcement, Ship> ship = root.join("ship", JoinType.LEFT);
-                where.add(cb.or(cb.isNull(ship.get("id")), cb.equal(ship.get("id"), shipId)));
+                // At most one joined row per announcement: the target with this id, if it is one.
+                Join<Announcement, Ship> target = root.join("targetShips", JoinType.LEFT);
+                target.on(cb.equal(target.get("id"), shipId));
+                where.add(cb.or(cb.isTrue(root.get("fleetWide")), cb.isNotNull(target.get("id"))));
             }
             if (list.getContains() != null) {
                 where.add(ListQueries.contains(cb, root.get("title"), list.getContains()));
@@ -95,8 +101,17 @@ public class AnnouncementService {
             Expression<Instant> sentAt = root.get("createdAt");
             return switch (list.getSort()) {
                 case "title" -> List.of(cb.lower(root.get("title")), sentAt);
-                case "target" -> List.of(cb.coalesce(cb.lower(root.join("ship", JoinType.LEFT).get("name")), ""),
-                        sentAt);
+                case "target" -> {
+                    // Joined only when it is the one target, so an announcement to several ships stays one row.
+                    Expression<Integer> targets = cb.size(root.<Set<Ship>>get("targetShips"));
+                    Join<Announcement, Ship> only = root.join("targetShips", JoinType.LEFT);
+                    only.on(cb.equal(targets, 1));
+                    Expression<Integer> kind = cb.<Integer>selectCase()
+                            .when(cb.isTrue(root.get("fleetWide")), 0)
+                            .when(cb.isNotNull(only.get("id")), 1)
+                            .otherwise(2);
+                    yield List.of(kind, cb.lower(only.get("name")), targets, sentAt);
+                }
                 default -> List.of(sentAt);
             };
         }, null);
@@ -126,63 +141,126 @@ public class AnnouncementService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
+    /**
+     * The recipients of one announcement, both lists grouped by ship (by ship name): acknowledged earliest first and
+     * not yet by name within a ship.
+     */
     @Transactional(readOnly = true)
     public Recipients findRecipients(Announcement announcement) {
         List<AnnouncementRecipient> all = recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(announcement);
+        Comparator<AnnouncementRecipient> byShip = Comparator.comparing((AnnouncementRecipient r) -> r.getShip().getName(),
+                String.CASE_INSENSITIVE_ORDER).thenComparing(r -> r.getShip().getId());
         return new Recipients(
                 all.stream().filter(r -> r.getAcknowledgedAt() != null)
-                        .sorted(Comparator.comparing(AnnouncementRecipient::getAcknowledgedAt)).toList(),
-                all.stream().filter(r -> r.getAcknowledgedAt() == null).toList());
+                        .sorted(byShip.thenComparing(AnnouncementRecipient::getAcknowledgedAt)).toList(),
+                all.stream().filter(r -> r.getAcknowledgedAt() == null).sorted(byShip).toList());
+    }
+
+    /** The acknowledgements of one ship's recipients (the detail page, P28). */
+    public record ShipAcknowledgements(Ship ship, int recipients, int acknowledged) {
+    }
+
+    /**
+     * The acknowledgements per ship, by ship name: every target ship, also one that had nobody on board, and every
+     * ship the recipients were on (for All ships, the active ships when it was sent that had crew).
+     */
+    public List<ShipAcknowledgements> acknowledgementsPerShip(Announcement announcement, Recipients recipients) {
+        Map<Long, Ship> ships = new LinkedHashMap<>();
+        Map<Long, int[]> counts = new LinkedHashMap<>();
+        announcement.getTargetShips().forEach(s -> ships.put(s.getId(), s));
+        for (AnnouncementRecipient r : recipients.acknowledged()) {
+            ships.putIfAbsent(r.getShip().getId(), r.getShip());
+            counts.computeIfAbsent(r.getShip().getId(), id -> new int[2])[1]++;
+        }
+        for (AnnouncementRecipient r : recipients.pending()) {
+            ships.putIfAbsent(r.getShip().getId(), r.getShip());
+            counts.computeIfAbsent(r.getShip().getId(), id -> new int[2])[0]++;
+        }
+        return ships.values().stream()
+                .sorted(Comparator.comparing(Ship::getName, String.CASE_INSENSITIVE_ORDER).thenComparing(Ship::getId))
+                .map(s -> {
+                    int[] c = counts.getOrDefault(s.getId(), new int[2]);
+                    return new ShipAcknowledgements(s, c[0] + c[1], c[1]);
+                })
+                .toList();
     }
 
     /** How many people on one ship an announcement would go to (the review step, P10). */
     public record ShipRecipients(Ship ship, int people) {
     }
 
-    /** A sent announcement and the number of people it went to, counted when it was sent. */
-    public record Sent(Announcement announcement, int recipients) {
-    }
-
-    /** The ship, if it exists and is active: only active ships get announcements. */
-    @Transactional(readOnly = true)
-    public Optional<Ship> findActiveShip(Long shipId) {
-        return shipRepository.findById(shipId).filter(Ship::isActive);
+    /** A sent announcement, the number of people it went to (counted when it was sent) and on how many ships. */
+    public record Sent(Announcement announcement, int recipients, int ships) {
     }
 
     /**
-     * Who an announcement to this ship (null: the whole fleet) would go to if it were sent now, per ship by name: the
-     * same rule as create(). For the fleet every active ship is listed, also one with nobody on board.
+     * Where an announcement would go if it were sent now (P28). ships: the active ships, by name (every active ship
+     * for the fleet; the chosen ones that are still active otherwise). leftOut: chosen ships that are no longer active,
+     * by name; a chosen id with no ship at all is simply left out.
+     */
+    public record Targets(boolean fleet, List<Ship> ships, List<Ship> leftOut) {
+
+        public boolean isEmpty() {
+            return ships.isEmpty();
+        }
+
+        public List<Long> shipIds() {
+            return ships.stream().map(Ship::getId).toList();
+        }
+    }
+
+    /** The targets of an announcement to the whole fleet (shipIds ignored) or to these ships. */
+    @Transactional(readOnly = true)
+    public Targets targets(boolean fleet, Collection<Long> shipIds) {
+        if (fleet) {
+            return new Targets(true, findActiveShips(), List.of());
+        }
+        Comparator<Ship> byName = Comparator.comparing(Ship::getName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(Ship::getId);
+        List<Ship> chosen = shipRepository.findAllById(shipIds).stream().sorted(byName).toList();
+        return new Targets(false, chosen.stream().filter(Ship::isActive).toList(),
+                chosen.stream().filter(s -> !s.isActive()).toList());
+    }
+
+    /**
+     * Who an announcement to these targets would go to if it were sent now, per ship by name: the same rule as
+     * create(). Every target ship is listed, also one with nobody on board.
      */
     @Transactional(readOnly = true)
-    public List<ShipRecipients> recipientsPerShip(Long shipId) {
-        Ship ship = shipId == null ? null : activeShip(shipId);
-        Map<Long, Long> perShip = recipients(ship).stream()
+    public List<ShipRecipients> recipientsPerShip(Targets targets) {
+        Map<Long, Long> perShip = recipients(targets).stream()
                 .collect(Collectors.groupingBy(user -> user.getShip().getId(), Collectors.counting()));
-        List<Ship> ships = ship == null ? findActiveShips() : List.of(ship);
-        return ships.stream()
+        return targets.ships().stream()
                 .map(s -> new ShipRecipients(s, perShip.getOrDefault(s.getId(), 0L).intValue()))
                 .toList();
     }
 
     /**
-     * Sends an announcement to one active ship, or to the whole fleet when shipId is null. The recipients are fixed
-     * now: every enabled user with a ship role who is on that ship (on any active ship for the fleet), counted again
-     * here, whatever the review page showed. Each recipient gets an in-app notification, "Announcement · <title>",
-     * that opens the announcement (P27).
+     * Sends an announcement to the whole fleet (fleet true, shipIds ignored) or to the chosen ships that are still
+     * active (P28): the others are left out, and with none left it is a 400 (the controller checks first). The
+     * recipients are fixed now: every enabled user with a ship role who is on one of those ships (on any active ship
+     * for the fleet), counted again here, whatever the review page showed. Each recipient gets an in-app notification,
+     * "Announcement · <title>", that opens the announcement (P27). The audit entry lists the target ship ids.
      */
     @Transactional
-    public Sent create(String title, String body, Long shipId, String actorEmail) {
-        Ship ship = shipId == null ? null : activeShip(shipId);
+    public Sent create(String title, String body, boolean fleet, Collection<Long> shipIds, String actorEmail) {
+        Targets targets = targets(fleet, shipIds);
+        if (!fleet && targets.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active ship chosen");
+        }
 
         Announcement announcement = new Announcement();
         announcement.setTitle(title.strip());
         announcement.setBody(body.strip());
-        announcement.setShip(ship);
+        announcement.setFleetWide(fleet);
+        if (!fleet) {
+            announcement.getTargetShips().addAll(targets.ships());
+        }
         announcement.setCreatedBy(userRepository.findByEmail(actorEmail).orElseThrow());
         announcement.setCreatedAt(Instant.now());
         announcementRepository.save(announcement);
 
-        List<User> users = recipients(ship);
+        List<User> users = recipients(targets);
         for (User user : users) {
             AnnouncementRecipient recipient = new AnnouncementRecipient();
             recipient.setAnnouncement(announcement);
@@ -198,10 +276,14 @@ public class AnnouncementService {
                     "/ship/announcements/" + announcement.getId());
         }
 
-        auditService.record("ANNOUNCEMENT_CREATED", ship,
-                announcement.getTitle() + " (" + (ship == null ? "all ships" : ship.getName()) + ", "
-                        + users.size() + " recipients)");
-        return new Sent(announcement, users.size());
+        // The ship of the entry (the audit log's ship filter) only when there is exactly one.
+        Ship auditShip = !fleet && targets.ships().size() == 1 ? targets.ships().getFirst() : null;
+        String target = fleet ? "all ships"
+                : "ship ids " + targets.ships().stream().map(s -> s.getId().toString()).collect(Collectors.joining(", "))
+                        + ": " + announcement.getTargetNames();
+        auditService.record("ANNOUNCEMENT_CREATED", auditShip,
+                announcement.getTitle() + " (" + target + "; " + users.size() + " recipients)");
+        return new Sent(announcement, users.size(), targets.ships().size());
     }
 
     /** The announcements this ship user is a recipient of, newest first, each with their acknowledgement (P27). */
@@ -237,16 +319,12 @@ public class AnnouncementService {
         return true;
     }
 
-    // 400 for a ship that does not exist or is not active.
-    private Ship activeShip(Long shipId) {
-        return findActiveShip(shipId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such active ship"));
-    }
-
-    // Every enabled user with a ship role on this ship, or on any active ship when ship is null.
-    private List<User> recipients(Ship ship) {
-        return ship == null
-                ? userRepository.findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role.OFFICE_USER)
-                : userRepository.findAllByShipAndRoleNotAndEnabledTrue(ship, Role.OFFICE_USER);
+    // Every enabled user with a ship role on one of the target ships, or on any active ship for the fleet.
+    private List<User> recipients(Targets targets) {
+        if (targets.fleet()) {
+            return userRepository.findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role.OFFICE_USER);
+        }
+        return targets.isEmpty() ? List.of()
+                : userRepository.findAllByShipInAndRoleNotAndEnabledTrue(targets.ships(), Role.OFFICE_USER);
     }
 }

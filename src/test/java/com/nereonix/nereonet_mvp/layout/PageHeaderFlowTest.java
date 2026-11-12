@@ -133,7 +133,7 @@ class PageHeaderFlowTest {
         mockMvc.perform(post("/office/ships/{id}/items/new", id)
                 .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
         mockMvc.perform(post("/office/announcements/send")
-                .param("target", Long.toString(id)).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
+                .param("target", "ships").param("shipIds", Long.toString(id)).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
         long announcementId = announcementRepository.findAll().get(0).getId();
         ItemRequest request = new ItemRequest();
         request.setShip(ship);

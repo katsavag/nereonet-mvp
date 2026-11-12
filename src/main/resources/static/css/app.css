@@ -1498,7 +1498,8 @@ fieldset:disabled button.btn {
 /* Announcement review (P10): announcement/review.html, the step between the form and sending.
      - .review-stack: recipients, the preview and the actions, 24px apart, in the 720px form column.
      - .review-recipients: the people per ship; a muted IMO number after each name, so ships with similar names are
-       told apart; a Total row for All ships.
+       told apart; a Total row when there is more than one ship. Also the acknowledgements per ship on the
+       announcement's detail page (P28).
      - .review-label: the small heading above the preview, like a table header.
      - .announcement-preview: the title and message as the crew will see them (plain text, line breaks kept). */
 .review-stack {
@@ -1509,6 +1510,7 @@ fieldset:disabled button.btn {
     margin-left: var(--nn-space-2);
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
+    white-space: nowrap; /* "IMO 9074729" wraps as a whole on phones */
 }
 .review-recipients > tfoot > tr > * {
     padding: var(--nn-cell-padding-y) var(--nn-cell-padding-x);
@@ -1527,6 +1529,153 @@ fieldset:disabled button.btn {
     margin-bottom: var(--nn-space-3);
     font-size: var(--nn-font-title);
     font-weight: 700;
+}
+.review-left-out > ul {
+    margin: var(--nn-space-2) 0 0;
+    padding-left: 1.25rem;
+}
+
+/* Announcement target (P28): announcement/form.html, js/ship-picker.js.
+     - .target-option: a radio with its label and a one-line hint, the whole row a touch target; the chosen one has
+       the blue border and the checked radio (never the colour alone).
+     - .ship-picker: the Selected ships list under the second option: quick filters, the "2 of 5 selected" count with
+       Select all / Clear (.ship-picker-tools, shown by the script), then one row per ship (.ship-pick: checkbox, name,
+       then the IMO number, type and flag muted), two columns from 576px. From 768px the list scrolls inside its box
+       after about eight rows, so the title and message stay near; on phones the page scrolls.
+     - .target-names: the names of the ships of an announcement to several ships, in the Target column of the list:
+       on the phone card under "3 ships", on wider screens for screen readers only ("3 ships" has them as title). */
+:root { --nn-ship-picker-height: 26rem; }
+.target-choice {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.target-options {
+    display: grid;
+    gap: var(--nn-space-2);
+}
+.target-option,
+.ship-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    margin: 0;
+    padding: var(--nn-space-3);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-field);
+    cursor: pointer;
+}
+.target-option:hover,
+.ship-pick:hover { background: var(--nn-hover); }
+.target-option:has(:checked),
+.ship-pick:has(:checked) {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+}
+.target-option > .form-check-input,
+.ship-pick > .form-check-input {
+    flex-shrink: 0;
+    margin: 1px 0 0;
+}
+.target-option-text,
+.ship-pick-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+.target-option-label,
+.ship-pick-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.target-option-hint,
+.ship-pick-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.ship-picker {
+    margin: var(--nn-space-2) 0 0 var(--nn-space-5);
+    padding-left: var(--nn-space-3);
+    border-left: 2px solid var(--nn-divider);
+}
+.ship-picker[hidden] { display: none; }
+.ship-picker > fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.ship-picker-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--nn-space-3);
+    margin-bottom: var(--nn-space-3);
+}
+.ship-picker-tools[hidden] { display: none; }
+.ship-picker-tools > .filter-field { flex: 1 1 10rem; }
+.ship-picker-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    flex: 1 1 100%;
+}
+.ship-picker-count {
+    margin: 0 auto 0 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.ship-picker-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.ship-picker-list > li[hidden] { display: none; }
+.ship-picker-empty {
+    margin: var(--nn-space-2) 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.target-names {
+    display: block;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+@media (min-width: 576px) {
+    .ship-picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+    .ship-picker-list {
+        max-height: var(--nn-ship-picker-height);
+        overflow-y: auto;
+        /* Room for the focus ring of the rows at the edges. */
+        padding: var(--nn-focus-offset) calc(var(--nn-focus-width) + var(--nn-focus-offset));
+        padding-bottom: calc(var(--nn-focus-width) + var(--nn-focus-offset));
+    }
+    /* "3 ships" carries the names as its title; screen readers get them here. */
+    .target-names {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+}
+@media (max-width: 575.98px) {
+    .ship-picker { margin-left: var(--nn-space-3); }
 }
 
 /* ---------------------------------------------------------------------------------------------------------------

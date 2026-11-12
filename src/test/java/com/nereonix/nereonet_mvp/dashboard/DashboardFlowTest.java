@@ -192,6 +192,28 @@ class DashboardFlowTest {
                 "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
     }
 
+    // P28: an announcement to several ships is one item as before (counted per recipient); its context names the
+    // target as "2 ships" (one ship by its name).
+    @Test
+    void anAnnouncementToSelectedShipsIsOneItem() throws Exception {
+        Ship alpha = ship("MV Alpha");
+        Ship beta = ship("MV Beta");
+        User bosun = crew(alpha, "Bob Bosun", Rank.BOSUN);
+        User cook = crew(beta, "Chris Cook", Rank.COOK);
+        Announcement both = announcement("Port state control", alpha, days(-8), bosun, cook);
+        both.getTargetShips().add(beta);
+        announcementRepository.saveAndFlush(both);
+        Announcement one = announcement("Bunkering", beta, days(-9), cook);
+
+        String list = attentionList(html(get("/office")));
+        assertThat(ATTENTION_ROW.matcher(list).results().count()).isEqualTo(2);
+        assertThat(list).containsPattern("(?s)href=\"/office/announcements/" + both.getId() + "\">Port state control</a>"
+                        + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">2 ships</span>"
+                        + "\\s*· <span>2 of 2 not acknowledged</span>")
+                .containsPattern("(?s)href=\"/office/announcements/" + one.getId() + "\">Bunkering</a>"
+                        + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">MV Beta</span>");
+    }
+
     @Test
     void theSeededApprovedRequestsAreTwoRowsUntilExported() throws Exception {
         devData().run(null);
@@ -531,7 +553,11 @@ class DashboardFlowTest {
         Announcement announcement = new Announcement();
         announcement.setTitle(title);
         announcement.setBody("Please read.");
-        announcement.setShip(target);
+        if (target == null) {
+            announcement.setFleetWide(true);
+        } else {
+            announcement.getTargetShips().add(target);
+        }
         announcement.setCreatedAt(sentAt);
         announcementRepository.save(announcement);
         for (User user : recipients) {

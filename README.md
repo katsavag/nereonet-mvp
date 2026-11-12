@@ -126,10 +126,11 @@ Requirements: Java 25, Docker.
    on the Crew page with this ship preselected (it can still be changed; once sent, the user is on the Crew tab of the
    ship the invitation is for; the former page `/office/ships/{id}/invitations/new` now redirects to the tab with the
    form open, `?add=true`); an invitation's **Resend** and **Cancel invitation** return to the tab; **Add certificate** (`/certificates/new`) picks the
-   crew member from this ship's active crew only; **New announcement** opens the form with this ship preselected (the
-   target can still be changed) and returns to the tab once sent; a crew member's **⋯** menu returns to the Crew tab.
+   crew member from this ship's active crew only; **New announcement** opens the form with **Selected ships** chosen
+   and this ship ticked (the target can still be changed) and returns to the tab once sent; a crew member's **⋯** menu returns to the Crew tab.
    The counts: Crew, every user on the ship and its pending invitations; Certificates, expired or expiring within 90
-   days (what the tab's List view shows); Library, items not retired; Items, all; Announcements, sent to this ship or to all ships; Requests, approved.
+   days (what the tab's List view shows); Library, items not retired; Items, all; Announcements, sent to all ships or
+   with this ship among their targets (P28); Requests, approved.
 
    An inactive ship shows a banner on every tab: crew cannot be invited to it or moved to it, it gets no
    announcements and it is not on the Overview; its records stay as they are; **Activate** in the **⋯** menu undoes it.
@@ -373,31 +374,55 @@ Requirements: Java 25, Docker.
    `notification.type` and `notification.subject` are new nullable columns (Hibernate adds them on start).
 
 14. Announcements (signed in as an office user): **Announcements** in the sidebar (`/office/announcements`) lists every
-   announcement, newest first, with its target (All ships or a ship), date and e.g. "1 of 2 acknowledged".
-   Filter by ship to see the announcements sent to that ship or to all ships; search the title; sort by sent (the
-   default, newest first), title and target; 25 or 50 per page (paged in the database, the acknowledgement counts read
-   for that page only).
-   **New announcement** asks for the target (All ships or one active ship; nothing is preselected), a title and a
-   plain-text message. Announcements cannot be edited or deleted, so sending takes two steps (P10). Above the
-   **Review** and **Send** buttons both steps say, as a quiet info note, "Nereonix is not an emergency or safety
-   channel. In an emergency, follow the ship's safety procedures." (FR-GEN-008, P16):
-   - the form's button is **Review** (`POST /office/announcements/review`): an invalid form shows its errors; a valid
-     one shows the review page, which saves nothing: the target (as the eyebrow and as "Send to"), the number of people
-     per ship (every active ship for All ships, with a Total, and a warning when nobody would receive it) and the
-     title and message exactly as the crew will see them (plain text, line breaks kept). The page carries the form in
-     hidden fields;
-   - **Back to edit** (`POST /office/announcements/new`) shows the form again with the text as it was. An old form
-     page that still posts to that URL also just gets the form back: nothing is sent from it;
-   - **Send to 12 people** (`POST /office/announcements/send`) checks the form again (a ship deactivated meanwhile is
-     an error on the target), counts the recipients again and sends; the message says how many it went to
-     ("Announcement sent to 13 people.").
+   announcement, newest first, with its target, date and e.g. "1 of 2 acknowledged". The target (P28) is "All ships",
+   the ship's name (a link) for one ship, or "3 ships" with the names as its title (and, for screen readers, as hidden
+   text; on the phone card they show under it). Filter by ship to see the announcements sent to all ships or with that
+   ship among their targets; search the title; sort by sent (the default, newest first), title and target (All ships,
+   then one ship by name, then several ships, fewest first); 25 or 50 per page (paged in the database, the
+   acknowledgement counts read for that page only, and the target ships of the page with one more query).
+   **New announcement** asks for the target, a title and a plain-text message. The target (P28) is one of two options,
+   nothing preselected: **All ships** ("The whole active fleet: 5 ships") or **Selected ships**, a list of the active
+   ships to tick (name, IMO number, type and flag). With JavaScript (`js/ship-picker.js`) the list shows only while
+   Selected ships is chosen and has quick filters by type and by flag (each only when the active ships have more than
+   one), a live "2 of 5 selected" (and how many of those the filters hide), **Select all** (ticks the ships shown) and
+   **Clear** (unticks every ship); without it every active ship is listed and the ticks are ignored for All ships. One
+   ship is Selected ships with one box ticked. Announcements cannot be edited or deleted, so sending takes two steps
+   (P10). Above the **Review** and **Send** buttons both steps say, as a quiet info note, "Nereonix is not an
+   emergency or safety channel. In an emergency, follow the ship's safety procedures." (FR-GEN-008, P16):
+   - the form's button is **Review** (`POST /office/announcements/review`): an invalid form shows its errors (Selected
+     ships with no box ticked: "Tick at least one ship." on the target); a valid one shows the review page, which saves
+     nothing: the target (as the eyebrow and as "Send to": All ships, "MV Demo · IMO 9074729" or "3 ships"), the
+     chosen ships that were deactivated since the form was opened ("1 ship left out", named; they get nothing), the
+     number of people per ship (every active ship for All ships, the active chosen ones otherwise, with a Total for
+     more than one ship and a warning when nobody would receive it) and the title and message exactly as the crew
+     will see them (plain text, line breaks kept). The page carries the form in hidden fields, with the active chosen
+     ships only. With none of the chosen ships still active it is the form again, with "The ships you ticked are no
+     longer active." on the target;
+   - **Back to edit** (`POST /office/announcements/new`) shows the form again with the text and ticks as they were. An
+     old form page that still posts to that URL also just gets the form back: nothing is sent from it;
+   - **Send to 37 people on 3 ships** (`POST /office/announcements/send`) checks the form again, counts the recipients
+     again and sends; the message says how many it went to ("Announcement sent to 38 people on 3 ships."). A chosen
+     ship deactivated after the review page was shown sends nothing: the review page comes back naming it as left out,
+     to send without it; with no chosen ship still active it is the form with the error on the target.
 
-   The recipients are fixed when it is sent: every active user with a ship role on that ship
+   The recipients are fixed when it is sent: every active user with a ship role on one of the target ships
    (on every active ship for All ships). Someone who joins the ship later is not a recipient; someone who leaves the
    ship or is deactivated later stays in the list. Each recipient gets an in-app notification "Announcement · <title>"
-   (the subject is their ship) that opens the announcement on their own page (19). Opening an announcement shows its
-   text, "1 of 3 acknowledged" under the heading, and two lists: acknowledged (name, role, ship, time) and not yet
-   acknowledged. Announcements cannot be edited or deleted.
+   (the subject is their ship) that opens the announcement on their own page (19); there the eyebrow is All ships or
+   their own ship, never the other target ships. Opening an announcement shows its text, "1 of 3 acknowledged" under
+   the heading (with "3 ships" as the eyebrow for several ships), **Acknowledgements by ship** (every target ship and
+   every ship of the recipients, by name, "1 of 2 acknowledged" each or "Nobody on board when it was sent", and the
+   Total for more than one ship), and two lists, both grouped by ship: acknowledged (name, role, ship, time) and not
+   yet acknowledged. Announcements cannot be edited or deleted. The audit entry "Announcement sent" lists the target
+   ship ids and names ("Port state control (ship ids 3, 7: MV Alpha, MV Beta; 12 recipients)"), and has the ship
+   only when there is one.
+
+   Data model (P28): `announcement.fleet_wide` (true for All ships) and the join table `announcement_ship` (the
+   target ships; none for All ships) replace the nullable `announcement.ship_id`. `AnnouncementRecipient.ship` stays
+   the ship each recipient was on. On startup, while `announcement.ship_id` still exists,
+   `core/announcement/AnnouncementTargetMigration` moves the rows in one transaction (ship_id set: one
+   `announcement_ship` row; null: `fleet_wide = true`) and then drops the column, so existing announcements keep their
+   target and it runs once.
 
 15. Approved requests (signed in as an office user): **Requests** in the sidebar (`/office/requests`) lists the item
    requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at and number
@@ -750,7 +775,7 @@ The app makes no request to any other host: everything a page needs is served fr
     - the eyebrow, only for real context: the ship's name and IMO number on every ship-scoped page below the ship page
       ("MV Demo · IMO 9074729": item and library forms, request detail, announcement to one ship;
       `pageHeader(eyebrowShip=${ship})`, a link to the ship page for office users) and on the crew library pages;
-      "All ships" for a fleet announcement; the status code on the error page. The tabs of the ship page have the
+      "All ships" for a fleet announcement and "3 ships" for one to several ships (P28); the status code on the error page. The tabs of the ship page have the
       ship's name as their heading instead. There is no "Office portal" eyebrow;
     - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
       a card header as well. The export buttons on **Requests** (**Export selected**, **Export all not exported**,

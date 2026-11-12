@@ -25,17 +25,87 @@
                 <input th:if="${fromShip != null}" type="hidden" name="returnShipId" th:value="${fromShip.id}">
                 <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
                 <div class="form-grid">
-                    <!-- Full width, so the ship's name and IMO number are never cut off. -->
-                    <div>
-                        <label for="target" class="form-label" th:text="#{announcement.target}">Target</label>
-                        <select th:field="*{target}" class="form-select" th:errorclass="is-invalid" required data-draft-skip>
-                            <option value="" th:text="#{announcement.target.choose}">Choose…</option>
-                            <option th:value="${fleet}" th:text="#{announcement.target.fleet}">All ships</option>
-                            <option th:each="s : ${ships}" th:value="${s.id}"
-                                    th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-                        </select>
-                        <div class="invalid-feedback" th:errors="*{target}"></div>
-                    </div>
+                    <!-- The target (P28): All ships or Selected ships, nothing preselected. Selected ships is a list of
+                         the active ships to tick (name, IMO number, type and flag, never cut off). Without JavaScript
+                         the list is always shown and ignored for All ships; js/ship-picker.js shows it only for
+                         Selected ships and adds the quick filters (type, flag), Select all (the ships shown), Clear
+                         (every ship) and the "2 of 5 selected" count. The error summary links to the first radio. -->
+                    <fieldset class="target-choice" th:with="targetError=${#fields.hasErrors('target')}"
+                              th:attr="aria-describedby=${targetError} ? 'targetError'">
+                        <legend class="form-group-legend" th:text="#{announcement.target}">Send to</legend>
+                        <p th:if="${targetError}" id="targetError" class="invalid-feedback d-block mt-0 mb-2" th:errors="*{target}">Tick at least one ship.</p>
+                        <div class="target-options">
+                            <label class="target-option" for="target">
+                                <input type="radio" id="target" name="target" class="form-check-input" th:value="${fleet}"
+                                       th:checked="${form.target == fleet}" th:classappend="${targetError} ? 'is-invalid'"
+                                       aria-describedby="targetFleetHint" data-draft-skip>
+                                <span class="target-option-text">
+                                    <span class="target-option-label" th:text="#{announcement.target.fleet}">All ships</span>
+                                    <span class="target-option-hint" id="targetFleetHint"
+                                          th:text="#{announcement.target.fleetHint(${ships.size()})}">The whole active fleet: 5 ships.</span>
+                                </span>
+                            </label>
+                            <label class="target-option" for="targetShips">
+                                <input type="radio" id="targetShips" name="target" class="form-check-input" th:value="${selected}"
+                                       th:checked="${form.target == selected}" th:classappend="${targetError} ? 'is-invalid'"
+                                       aria-describedby="targetShipsHint" aria-controls="shipPicker" data-draft-skip>
+                                <span class="target-option-text">
+                                    <span class="target-option-label" th:text="#{announcement.target.selected}">Selected ships</span>
+                                    <span class="target-option-hint" id="targetShipsHint"
+                                          th:text="#{announcement.target.selectedHint}">Only the ships you tick.</span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="ship-picker" id="shipPicker" data-ship-picker
+                             th:data-count="#{announcement.ships.count('{count}', '{total}')}"
+                             th:data-count-hidden="#{announcement.ships.countHidden('{count}', '{total}', '{hidden}')}">
+                            <p th:if="${ships.isEmpty()}" class="form-text mt-0" th:text="#{announcement.ships.none}">There is no active ship to choose.</p>
+                            <fieldset th:unless="${ships.isEmpty()}">
+                                <legend class="visually-hidden" th:text="#{announcement.ships.label}">Ships to send to</legend>
+                                <!-- Hidden until js/ship-picker.js runs: none of it works without it. The filters have
+                                     no name, so they are never sent. -->
+                                <div class="ship-picker-tools" data-ship-picker-tools hidden>
+                                    <div th:if="${shipTypes.size() > 1}" class="filter-field">
+                                        <label for="shipPickerType" class="form-label" th:text="#{announcement.ships.filterType}">Type</label>
+                                        <select id="shipPickerType" class="form-select" data-ship-filter="type" data-draft-skip>
+                                            <option value="" th:text="#{announcement.ships.allTypes}">All types</option>
+                                            <option th:each="t : ${shipTypes}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Tanker</option>
+                                        </select>
+                                    </div>
+                                    <div th:if="${shipFlags.size() > 1}" class="filter-field">
+                                        <label for="shipPickerFlag" class="form-label" th:text="#{announcement.ships.filterFlag}">Flag</label>
+                                        <select id="shipPickerFlag" class="form-select" data-ship-filter="flag" data-draft-skip>
+                                            <option value="" th:text="#{announcement.ships.allFlags}">All flags</option>
+                                            <option th:each="f : ${shipFlags}" th:value="${f.key}" th:text="${f.value}">Greece (GR)</option>
+                                        </select>
+                                    </div>
+                                    <div class="ship-picker-bar">
+                                        <p class="ship-picker-count" data-ship-picker-count aria-live="polite"></p>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-ship-select-all
+                                                th:text="#{announcement.ships.selectAll}">Select all</button>
+                                        <button type="button" class="btn btn-ghost btn-sm" data-ship-clear
+                                                th:text="#{announcement.ships.clear}">Clear</button>
+                                    </div>
+                                </div>
+                                <ul class="ship-picker-list">
+                                    <li th:each="s : ${ships}" th:data-type="${s.type}" th:data-flag="${s.flag}">
+                                        <label class="ship-pick" th:for="${'shipId' + s.id}">
+                                            <input type="checkbox" name="shipIds" class="form-check-input" th:id="${'shipId' + s.id}"
+                                                   th:value="${s.id}" th:checked="${form.shipIds.contains(s.id)}" data-draft-skip>
+                                            <span class="ship-pick-text">
+                                                <span class="ship-pick-name" th:text="${s.name}">MV Demo</span>
+                                                <span class="ship-pick-meta"><span class="num" th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</span><th:block
+                                                        th:if="${s.type != null}"> · [[#{${'ship.type.' + s.type}}]]</th:block><th:block
+                                                        th:if="${s.flag != null}"> · [[${shipFlags[s.flag]}]]</th:block></span>
+                                            </span>
+                                        </label>
+                                    </li>
+                                </ul>
+                                <p class="ship-picker-empty" data-ship-picker-empty hidden
+                                   th:text="#{announcement.ships.noMatch}">No ship matches these filters.</p>
+                            </fieldset>
+                        </div>
+                    </fieldset>
                     <div>
                         <label for="title" class="form-label" th:text="#{announcement.title}">Title</label>
                         <input type="text" th:field="*{title}" class="form-control" th:errorclass="is-invalid"
