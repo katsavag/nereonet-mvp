@@ -35,6 +35,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByShipAndRoleNotAndEnabledTrue(Ship ship, Role role);
 
+    // Enabled users of one ship: Crew on board on the Master's home page.
+    long countByShipAndEnabledTrue(Ship ship);
+
     List<User> findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role role);
 
     // The crew of a chosen set of ships (an announcement to selected ships, P28).

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
+<body>
+<!-- The Master's home page (/ship as MASTER): what waits for them on board, as cards, and the latest orders sent.
+     English only, as every crew screen. Read only. Model: home (MasterHomeService.MasterHome).
+     Header: the ship's name and IMO number.
+     Cards: one link each, at least 72px high, with its label and number. A zero is quiet (muted number, no tint); a card
+     with something to do has the primary tint and "to do" in words for screen readers. Crew on board only informs, so it
+     is never tinted. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
+     Recent orders: the three most recently sent, newest first, each with its status, confirmed port and delivery date
+     (or "Not confirmed yet"), linking to the order; then All orders. -->
+<main class="master-home" th:with="h=${home}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${h.ship.name},
+            subtitle=#{ship.codeValue(${h.ship.imoNumber})})}"></header>
+
+    <section class="home-section" aria-labelledby="masterCardsTitle">
+        <h2 class="visually-hidden" id="masterCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
+        <ul class="master-cards">
+            <li th:each="c : ${h.cards}">
+                <a class="master-card" th:href="@{${c.url}}" th:classappend="${c.highlighted()} ? 'is-due'"
+                   th:attr="data-card=${c.key}">
+                    <span class="master-card-icon" aria-hidden="true"><svg
+                            th:replace="~{layout/parts :: navIcon(${c.icon})}"></svg></span>
+                    <span class="master-card-label" th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
+                    <span class="master-card-count num" th:text="${c.count}">1</span>
+                    <span th:if="${c.highlighted()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+
+    <section class="home-section" aria-labelledby="recentOrdersTitle">
+        <h2 class="home-section-title" id="recentOrdersTitle" th:text="#{masterhome.orders.heading}">Recent orders</h2>
+        <div class="card">
+            <p th:if="${h.recentOrders.isEmpty()}" class="card-body mb-0" th:text="#{order.past.empty.title}">No orders sent yet</p>
+            <ul th:unless="${h.recentOrders.isEmpty()}" class="list-group list-group-flush">
+                <li th:each="o : ${h.recentOrders}" class="list-group-item list-group-item-action approval-row">
+                    <div class="approval-row-main">
+                        <a class="approval-row-title stretched-link" th:href="@{/ship/orders/{id}(id=${o.id})}"
+                           th:text="#{order.number(${o.id})}">Order #12</a>
+                        <p class="approval-row-meta">
+                            <span th:if="${o.confirmedPort != null}" th:text="#{order.confirmedAt(${o.confirmedPort})}">Confirmed: Antwerp</span>
+                            <span th:if="${o.confirmedPort != null and o.deliveryDate != null}" aria-hidden="true">·</span>
+                            <span th:if="${o.deliveryDate != null}">[[#{order.deliveryDate}]] <time th:replace="~{layout/parts :: localDate(${o.deliveryDate})}"></time></span>
+                            <span th:if="${o.confirmedPort == null and o.deliveryDate == null}"
+                                  th:text="#{masterhome.orders.notConfirmed}">Not confirmed yet</span>
+                        </p>
+                    </div>
+                    <div class="approval-row-decision">
+                        <span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <p class="home-links">
+            <a class="btn btn-ghost" th:href="@{/ship/orders}" th:text="#{masterhome.orders.all}">All orders</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

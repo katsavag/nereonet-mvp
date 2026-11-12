@@ -11,17 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.library.AcknowledgementCounts;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
-import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// What the crew home page (/ship, P26) shows. Read only: nothing here changes anything.
+// What the crew home page (/ship, P26) shows to the Chief cook and Crew members (the Master has masterhome). Read only:
+// nothing here changes anything.
 @Service
 public class ShipHomeService {
 
@@ -31,15 +30,8 @@ public class ShipHomeService {
      * toRead: their Required library items not acknowledged in the current version and the announcements they have
      * not acknowledged (P27), together, oldest first.
      * certificates: their own certificates, soonest expiry first (so expired, then expiring soon).
-     * crewPending, crewCounts: the Master only (null for everyone else): the Required items not yet acknowledged by
-     * everyone on board, oldest first, and the counts per item.
      */
-    public record Home(User user, Ship ship, String photoKey, List<ToRead> toRead, List<Certificate> certificates,
-                       List<LibraryItem> crewPending, AcknowledgementCounts crewCounts) {
-
-        public boolean master() {
-            return crewPending != null;
-        }
+    public record Home(User user, Ship ship, String photoKey, List<ToRead> toRead, List<Certificate> certificates) {
     }
 
     private final UserRepository userRepository;
@@ -71,11 +63,6 @@ public class ShipHomeService {
                 .toList();
         List<Certificate> certificates = certificateRepository.findAllByUserIdOrderByExpiresOnAsc(user.getId());
         String photoKey = profileRepository.findByUserId(user.getId()).map(CrewProfile::getPhotoKey).orElse(null);
-        if (user.getRole() != Role.MASTER) {
-            return new Home(user, ship, photoKey, toRead, certificates, null, null);
-        }
-        AcknowledgementCounts counts = libraryService.acknowledgementCounts(ship);
-        List<LibraryItem> pending = required.stream().filter(item -> !counts.completeFor(item.getId())).toList();
-        return new Home(user, ship, photoKey, toRead, certificates, pending, counts);
+        return new Home(user, ship, photoKey, toRead, certificates);
     }
 }

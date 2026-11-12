@@ -18,6 +18,9 @@ public interface ShipOrderRepository extends JpaRepository<ShipOrder, Long> {
     // Past orders (P35): newest sent first.
     List<ShipOrder> findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(Long shipId, Collection<ShipOrderStatus> statuses);
 
+    // The Master's home page: the three most recently sent.
+    List<ShipOrder> findTop3ByShipIdAndStatusInOrderBySentAtDescIdDesc(Long shipId, Collection<ShipOrderStatus> statuses);
+
     // The office (P36): one order the ship has sent, and the checked ones of an export, newest sent first.
     Optional<ShipOrder> findByIdAndStatusIn(Long id, Collection<ShipOrderStatus> statuses);
 

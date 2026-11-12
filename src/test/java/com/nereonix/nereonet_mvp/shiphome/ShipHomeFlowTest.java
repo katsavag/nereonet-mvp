@@ -48,8 +48,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 /**
  * P26: the crew home page (/ship). Header with name, rank and ship; "To read" (Required items not acknowledged in the
  * current version, oldest first; "You are up to date." once done); the person's own certificates, expired and expiring
- * first; the Master's "Crew acknowledgements"; Sign out next to the name; the phone tab bar instead of the offcanvas
- * menu; no images and no script of its own. Seen as Master, Chief cook and Crew member.
+ * first; Sign out next to the name; the phone tab bar instead of the offcanvas menu; no images and no script of its
+ * own. Seen as Chief cook and Crew member; the Master has their own home page (MasterHomeFlowTest).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -58,8 +58,6 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 class ShipHomeFlowTest {
 
     private static final Pattern TO_READ = Pattern.compile("(?s)<section [^>]*aria-labelledby=\"toReadTitle\">.*?</section>");
-    private static final Pattern CREW_ACKS =
-            Pattern.compile("(?s)<section [^>]*aria-labelledby=\"crewAcknowledgementsTitle\">.*?</section>");
     private static final Pattern CERTIFICATES =
             Pattern.compile("(?s)<section [^>]*aria-labelledby=\"certificatesTitle\">.*?</section>");
     private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"tab-bar d-md-none\".*?</nav>");
@@ -122,8 +120,6 @@ class ShipHomeFlowTest {
         assertThat(toRead).contains("href=\"/ship/library/" + policy.getId() + "\"", "class=\"read-card-type\">Library<",
                         "Published", "href=\"/ship/library\"")
                 .doesNotContain("You are up to date.");
-        // Not the Master: no crew acknowledgements.
-        assertThat(html).doesNotContain("Crew acknowledgements", "crewAcknowledgementsTitle");
 
         mockMvc.perform(post("/ship/library/{id}/acknowledge", policy.getId()).with(user(new CurrentUser(cook))).with(csrf()))
                 .andExpect(redirectedUrl("/ship/library/" + policy.getId()));
@@ -186,33 +182,6 @@ class ShipHomeFlowTest {
                         "GMDSS", "in 20 days", "30 days", "Medical fitness", "Valid")
                 .contains("Contact the office to update a certificate.")
                 .doesNotContain("Food hygiene", "<form", "<input");
-        assertThat(html).doesNotContain("Crew acknowledgements");
-    }
-
-    @Test
-    void masterSeesWhoOnBoardHasNotAcknowledged() throws Exception {
-        LibraryItem drill = item(ship, "Fire drill procedure", true, Instant.now().minus(Duration.ofDays(10)));
-        itemRepository.flush();
-        // Everyone on board acknowledges the drill; only the cook the policy.
-        for (User u : List.of(master, cook, crew)) {
-            acknowledge(u, drill);
-        }
-        acknowledge(cook, policy);
-
-        String html = home(master);
-        assertThat(html).contains("<p class=\"page-subtitle\">Master</p>", "No certificates on record.");
-        assertThat(titles(section(TO_READ, html))).containsExactly("Drug and alcohol policy");
-
-        String acks = section(CREW_ACKS, html);
-        assertThat(acks).contains("Drug and alcohol policy", "1 of 3 acknowledged",
-                        "href=\"/ship/library/" + policy.getId() + "/acknowledgements\"")
-                .doesNotContain("Fire drill procedure");
-
-        acknowledge(master, policy);
-        acknowledge(crew, policy);
-        assertThat(section(CREW_ACKS, home(master)))
-                .contains("Everyone on board has acknowledged every required document.")
-                .doesNotContain("acknowledged</span>");
     }
 
     @Test

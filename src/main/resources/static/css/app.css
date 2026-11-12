@@ -3525,10 +3525,10 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* ---------------------------------------------------------------------------------------------------------------
    Crew home page (P26): shiphome/home.html.
      - .home-sign-out: "Not Demo Cook?" and Sign out, in the page header's actions next to the name (shared PCs).
-     - .home-section-title: the section headings (To read, Crew acknowledgements, My certificates), card-title size.
+     - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
+       home page), card-title size.
      - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
        date published, a chevron. .up-to-date: "You are up to date." in the ok pair with a tick.
-     - .crew-ack-row: the Master's rows, the title and the acknowledgement progress (core/library/parts :: progress).
      - .cert-row: a certificate, its type and expiry on the left, the expiry badge on the right.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
@@ -3646,26 +3646,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     height: 24px;
 }
 
-.crew-ack-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-2) var(--nn-space-4);
-}
-.crew-ack-title {
-    flex: 1 1 12rem;
-    min-width: 0;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-@media (max-width: 575.98px) {
-    .crew-ack-row .ack-progress {
-        flex-basis: 100%;
-        margin-left: 0;
-    }
-}
-
 .cert-row {
     display: flex;
     flex-wrap: wrap;
@@ -3688,6 +3668,72 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The Master's home page: masterhome/home.html. Its section titles and links are the crew home page's.
+     - .master-cards: one column on phones, two from 768px.
+     - .master-card: a whole card that is one link, at least 72px high: icon, label, the number on the right. Quiet by
+       default (muted number); .is-due (something to do) has the primary tint and a bold number.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-master-card-height: 4.5rem;   /* 72px */
+}
+
+.master-cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+@media (min-width: 768px) {
+    .master-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.master-card {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    height: 100%;
+    min-height: var(--nn-master-card-height);
+    padding: var(--nn-space-3) var(--nn-space-4);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+    color: var(--nn-text-secondary);
+    text-decoration: none;
+}
+.master-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
+.master-card:hover .master-card-label { text-decoration: underline; }
+.master-card-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--nn-text-secondary);
+}
+.master-card-icon > svg {
+    width: 24px;
+    height: 24px;
+}
+.master-card-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.master-card-count {
+    flex-shrink: 0;
+    font-size: var(--nn-font-title);
+    color: var(--nn-text-secondary);
+}
+.master-card.is-due {
+    background-color: var(--nn-primary-bg);
+    border-color: var(--nn-primary-border);
+    color: var(--nn-text);
+}
+.master-card.is-due .master-card-icon,
+.master-card.is-due .master-card-count { color: var(--nn-primary-text); }
+.master-card.is-due .master-card-count { font-weight: 700; }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Crew announcements (P27): announcement/ship-list.html and ship-detail.html.
