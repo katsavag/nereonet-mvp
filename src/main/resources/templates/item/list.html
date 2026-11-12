@@ -18,15 +18,6 @@
         </th:block>
     </div>
 
-    <!-- After an import (flash attributes from ItemImportController). -->
-    <div th:if="${importedCount != null}" class="alert alert-success" role="status">
-        <p class="mb-0" th:text="#{itemImport.added(${importedCount})}">12 items added.</p>
-        <p th:unless="${skippedNames.isEmpty()}" class="mt-1 mb-0">
-            <span th:text="#{itemImport.skipped(${skippedNames.size()})}">2 skipped because the ship already has them:</span>
-            <span th:text="${#strings.listJoin(skippedNames, ', ')}">Rice, Flour</span>
-        </p>
-    </div>
-
     <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{item.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">

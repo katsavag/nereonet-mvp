@@ -1,39 +1,15 @@
 package com.nereonix.nereonet_mvp.crewimport;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import com.nereonix.nereonet_mvp.core.importfile.ImportForm;
 
-// The review screen: every crew member from the uploaded file. Kept in the HTTP session until the import
-// is submitted, and the edited values are bound onto it (see CrewImportController).
-public class CrewImportForm implements Serializable {
+// A crew import in progress (P24): the uploaded file with its mapping, then every crew member from it on the review
+// screen. Kept in the HTTP session until the import is done or cancelled (see CrewImportController).
+public class CrewImportForm extends ImportForm<CrewImportRow> {
 
-    private List<CrewImportRow> rows = new ArrayList<>();
-
-    // P18: the file has the Role column of the template from before, which is ignored (the rank sets the role).
-    // Set when the file is read; not editable.
+    // P18: the file has a Role column (e.g. the template from before), which is ignored: the rank sets the role.
+    // Set when the rows are built; not editable.
     private boolean roleColumnIgnored;
-
-    public int getErrorCount() {
-        return (int) rows.stream().filter(row -> !row.isExcluded() && row.hasErrors()).count();
-    }
-
-    public int getExcludedCount() {
-        return (int) rows.stream().filter(CrewImportRow::isExcluded).count();
-    }
-
-    public List<CrewImportRow> getIncludedRows() {
-        return rows.stream().filter(row -> !row.isExcluded()).toList();
-    }
-
-    // Valid after CrewImportService.validate: something to import and no errors.
-    public boolean isReady() {
-        return getErrorCount() == 0 && !getIncludedRows().isEmpty();
-    }
 
     public boolean isRoleColumnIgnored() { return roleColumnIgnored; }
     public void setRoleColumnIgnored(boolean roleColumnIgnored) { this.roleColumnIgnored = roleColumnIgnored; }
-
-    public List<CrewImportRow> getRows() { return rows; }
-    public void setRows(List<CrewImportRow> rows) { this.rows = rows; }
 }

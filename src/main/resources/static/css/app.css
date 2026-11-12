@@ -1131,9 +1131,10 @@ fieldset:disabled button.btn {
     right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
 }
 
-/* Crew import review: give the inputs room, so the table scrolls sideways on phones instead of squashing them. */
+/* Import review tables (P24): give the inputs room, so the table scrolls sideways on phones instead of squashing them
+   (the name column has a fixed width instead, see "Import from a file"). */
 .import-table .form-control,
-.import-table .form-select { min-width: 12rem; }
+.import-table .form-select { min-width: var(--nn-import-field-width); }
 
 /* Plain text with its line breaks, e.g. an announcement body */
 .text-pre-line { white-space: pre-line; }
@@ -2157,8 +2158,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .view-switch-link:last-child { border-radius: 0 calc(var(--nn-radius-control) - 1px) calc(var(--nn-radius-control) - 1px) 0; }
 .view-switch-link:hover { background: var(--nn-hover); text-decoration: underline; }
 .view-switch-link > svg { flex-shrink: 0; }
-.view-switch-link:not([aria-current]) > svg { display: none; }
-.view-switch-link[aria-current] {
+.view-switch-link:not([aria-current]):not([aria-pressed="true"]) > svg { display: none; }
+.view-switch-link[aria-current],
+.view-switch-link[aria-pressed="true"] {
     background: var(--nn-primary-bg);
     color: var(--nn-primary-text);
     font-weight: 600;
@@ -2637,4 +2639,420 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
         justify-content: flex-start;
         text-align: left;
     }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Import from a file (P24): layout/parts :: importSteps, importRowHead, importSummary, importReviewActions;
+   importfile/*.html (upload, sheet, map, values, done); crewimport/review.html, item/import-review.html;
+   js/import-map.js.
+     - .import-steps: Upload, Map columns, Review, Done under the page header. A done step has a tick in a filled navy
+       circle, the current one its number in a primary-pair circle and a semibold label (aria-current="step"), the
+       next ones an outlined number in secondary text (6.6:1). A line joins the circles, navy once passed. The words
+       and the tick carry the state; the colour only repeats it.
+     - .import-template: the template, the easy path, as a quiet footer of the upload card.
+     - .import-sheets: the sheet choice, one bordered option per sheet; the whole option is the radio's label.
+     - .import-map: from 768px the field's label on the left and its select on the right; stacked below. The second
+       select of a two-column field (Full name: last name) follows the first.
+     - .import-preview: the first five rows, scrolling sideways inside their card. Each column header says where the
+       column goes ("To: Email", primary text) or "Not imported" (italic, secondary): words, not colour.
+     - .import-values: one line per value to match: the value as in the file (monospace), its field and row count,
+       then the select.
+     - .import-summary: the review's row filters (.view-switch buttons; the pressed one has the tick, aria-pressed),
+       the plan ("3 new, 1 update") and "Exclude all rows with errors". The error count is in the danger pair when
+       not zero; the label says "With errors" anyway.
+     - .import-table: the review table. The first two columns (.import-col-row: row number, action, Exclude;
+       .import-col-name) stay in place when the table scrolls sideways: sticky, on the surface colour, with a divider
+       on the name column's right edge. Each error message wraps under its field, inside its cell. An excluded row
+       (.is-excluded) is on the hover tint and says "Excluded" in its first cell; no opacity, so the sticky cells
+       stay opaque over the cells scrolling under them.
+     - .import-counts: the Done step's three counts.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-import-step-mark: 1.75rem;  /* the circles of the steps */
+    --nn-import-steps-width: 40rem;
+    --nn-import-row-width: 7.5rem;   /* the review's first column */
+    --nn-import-name-width: 14rem;   /* the review's name column */
+    --nn-import-field-width: 12rem;  /* every other review field */
+    --nn-import-label-width: 14rem;  /* the mapping step's field labels, from 768px */
+}
+@media (max-width: 575.98px) {
+    :root {
+        --nn-import-row-width: 6.5rem;
+        --nn-import-name-width: 9.5rem;
+    }
+}
+
+.import-steps {
+    max-width: var(--nn-import-steps-width);
+    margin-bottom: var(--nn-section-gap);
+}
+.import-steps-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.import-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nn-space-1);
+    padding: 0 var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-size: var(--nn-font-sm);
+    text-align: center;
+}
+/* The line from the previous circle to this one. */
+.import-step + .import-step::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--nn-import-step-mark) / 2 - 1px);
+    right: calc(50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
+    left: calc(-50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
+    height: 2px;
+    background: var(--nn-divider);
+}
+.import-step.is-done + .import-step::before { background: var(--nn-blue); }
+.import-step-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-import-step-mark);
+    height: var(--nn-import-step-mark);
+    border: 2px solid var(--nn-field-border);
+    border-radius: 50%;
+    background: var(--nn-surface);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.import-step-mark > svg { width: 14px; height: 14px; }
+.import-step-label { line-height: 1.3; }
+.import-step.is-done { color: var(--nn-text); }
+.import-step.is-done .import-step-mark {
+    border-color: var(--nn-blue);
+    background: var(--nn-blue);
+    color: #fff;
+}
+.import-step.is-current {
+    color: var(--nn-text);
+    font-weight: 600;
+}
+.import-step.is-current .import-step-mark {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+}
+
+/* Upload: the template as the easy path. */
+.import-template {
+    padding: var(--nn-space-4) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    background: transparent;
+}
+.import-template-title {
+    margin: 0 0 var(--nn-space-1);
+    font-size: var(--nn-font-body);
+    font-weight: 600;
+}
+.import-template-text {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+/* Upload: the sheet of a workbook. */
+.import-sheets {
+    display: grid;
+    gap: var(--nn-space-2);
+}
+.import-sheet {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-3);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-field);
+    cursor: pointer;
+}
+.import-sheet:hover { background: var(--nn-hover); }
+.import-sheet:has(:checked) {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+}
+.import-sheet > .form-check-input {
+    flex-shrink: 0;
+    margin: 1px 0 0;
+}
+.import-sheet-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+.import-sheet-name { font-weight: 600; overflow-wrap: anywhere; }
+.import-sheet-meta,
+.import-sheet-columns {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* Map columns. */
+.import-file-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--nn-space-2);
+    margin-bottom: var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.import-file-line > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+.import-file-line + .info-note { margin: calc(-1 * var(--nn-space-2)) 0 var(--nn-space-4); }
+.import-map-row {
+    padding: var(--nn-space-3) 0;
+    border-top: 1px solid var(--nn-divider);
+}
+.import-map-row:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+.import-map-row:last-child { padding-bottom: 0; }
+.import-map-select + .import-map-select { margin-top: var(--nn-space-3); }
+@media (min-width: 768px) {
+    .import-map-select {
+        display: grid;
+        grid-template-columns: var(--nn-import-label-width) minmax(0, 28rem);
+        column-gap: var(--nn-space-4);
+        align-items: center;
+    }
+    .import-map-select > .form-label {
+        grid-column: 1;
+        margin: 0;
+    }
+    .import-map-select > :not(.form-label) { grid-column: 2; }
+}
+.import-header-row { margin: var(--nn-space-3) 0; }
+.import-header-row-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+.import-header-row-control > .form-select {
+    flex: 1 1 16rem;
+    max-width: 32rem;
+}
+.import-ignored {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+}
+.import-preview { border-top: 1px solid var(--nn-divider); }
+.import-preview > .table { font-size: var(--nn-font-sm); }
+.import-preview > .table > :not(caption) > * > * { padding: var(--nn-space-2) var(--nn-space-3); }
+.import-preview > .table > :not(caption) > * > :first-child { padding-left: var(--nn-card-padding); }
+.import-preview > .table > :not(caption) > * > :last-child { padding-right: var(--nn-card-padding); }
+.import-preview th {
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+.import-preview td {
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.import-preview-row {
+    width: 1%;
+    color: var(--nn-text-secondary);
+}
+.import-preview-name { display: block; }
+.import-preview-letter {
+    margin-right: var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+.import-preview-target {
+    display: block;
+    font-size: var(--nn-font-help);
+    font-weight: 500;
+    color: var(--nn-primary-text);
+}
+.import-preview-target.is-ignored {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+
+/* Map values. */
+.import-values {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.import-value {
+    display: grid;
+    gap: var(--nn-space-2);
+    padding: var(--nn-space-3) 0;
+    border-top: 1px solid var(--nn-divider);
+}
+.import-value:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+.import-value:last-child { padding-bottom: 0; }
+@media (min-width: 576px) {
+    .import-value {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+        column-gap: var(--nn-space-4);
+        align-items: start;
+    }
+}
+.import-value-file {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+}
+.import-value-text {
+    font-family: var(--bs-font-monospace);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.import-value-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+/* Review: filters, plan, Exclude all rows with errors. */
+.import-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    margin-bottom: var(--nn-space-4);
+}
+.import-filter {
+    max-width: 100%;
+    margin-bottom: 0;
+}
+.import-filter > .view-switch-link {
+    padding: 0 var(--nn-space-3);
+    border: 0;
+    background: transparent;
+    white-space: nowrap;
+}
+.import-filter > .view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
+.import-filter > .view-switch-link[aria-pressed="true"] { background: var(--nn-primary-bg); }
+.import-filter-count {
+    min-width: 1.5rem;
+    padding: 0 6px;
+    border-radius: var(--nn-radius-badge);
+    background: var(--nn-neutral-bg);
+    color: var(--nn-neutral-text);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    text-align: center;
+}
+.import-filter-count.has-errors {
+    background: var(--nn-danger-bg);
+    color: var(--nn-danger-text);
+}
+.import-plan {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+/* Review: the table, its first two columns in place. */
+.import-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.import-table > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
+.import-table > tbody > tr:last-child > * { border-bottom: 0; }
+.import-table .import-col-row,
+.import-table .import-col-name {
+    position: sticky;
+    z-index: 1;
+    background-color: var(--nn-surface);
+    box-shadow: none;
+}
+.import-table > thead .import-col-row,
+.import-table > thead .import-col-name { z-index: 2; }
+.import-table .import-col-row {
+    left: 0;
+    min-width: var(--nn-import-row-width);
+    max-width: var(--nn-import-row-width);
+}
+.import-table .import-col-name {
+    left: var(--nn-import-row-width);
+    min-width: var(--nn-import-name-width);
+    max-width: var(--nn-import-name-width);
+}
+/* The divider on the name column's right edge; a pseudo-element, so it moves with the sticky cell. */
+.import-table .import-col-name::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--nn-divider);
+}
+.import-table .import-col-name .form-control { min-width: 0; }
+.import-table .invalid-feedback { white-space: normal; }
+.import-row-number {
+    display: block;
+    margin: var(--nn-space-1) 0;
+    font-weight: 600;
+}
+.import-exclude {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-touch-target);
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    cursor: pointer;
+}
+.import-exclude > .form-check-input {
+    flex-shrink: 0;
+    margin: 0;
+}
+.import-table > tbody > tr.is-excluded > td { background-color: var(--nn-hover); }
+.import-table > tbody > tr.is-excluded :is(.form-control, .form-select) { color: var(--nn-text-secondary); }
+.import-no-rows {
+    padding: var(--nn-space-5) var(--nn-card-padding);
+    color: var(--nn-text-secondary);
+}
+
+/* Done. */
+.import-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--nn-space-3);
+    margin: 0 0 var(--nn-space-3);
+}
+.import-count {
+    padding: var(--nn-space-3) var(--nn-space-4);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.import-count > dt {
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    color: var(--nn-text-secondary);
+}
+.import-count > dd {
+    margin: 0;
+    font-size: var(--nn-font-h1);
+    font-weight: 700;
+    line-height: 1.2;
 }

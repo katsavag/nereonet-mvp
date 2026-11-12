@@ -1,15 +1,14 @@
 package com.nereonix.nereonet_mvp.item;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -24,43 +23,50 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.importfile.ImportFlow;
+import com.nereonix.nereonet_mvp.core.importfile.ImportSteps;
+import com.nereonix.nereonet_mvp.core.security.CurrentUser;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.ship.ShipTab;
+
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// The uploaded rows live in the HTTP session as "itemImport" from the upload until the import is
-// submitted; the review form binds the edited values onto that object.
+// The import in progress lives in the HTTP session as "itemImport" from the upload until it is done or cancelled; the
+// steps are ImportSteps (P24): upload, sheet, map, values, review, done. The review form binds the edited values onto
+// its rows. An import belongs to the ship it was uploaded for: under another ship's URL every step leads back to that
+// ship's upload page, so rows never land on the wrong ship.
 @Controller
 @SessionAttributes("itemImport")
 public class ItemImportController {
-
-    private static final Logger log = LoggerFactory.getLogger(ItemImportController.class);
 
     private static final MediaType XLSX =
             MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     private final ItemImportService itemImportService;
     private final ItemService itemService;
+    private final ImportSteps steps;
 
-    public ItemImportController(ItemImportService itemImportService, ItemService itemService) {
+    public ItemImportController(ItemImportService itemImportService, ItemService itemService, ImportSteps steps) {
         this.itemImportService = itemImportService;
         this.itemService = itemService;
+        this.steps = steps;
     }
 
-    // Only the editable values; the row number, ship and errors come from the server.
+    // Only the editable values; the row number, ship, action and errors come from the server.
     @InitBinder("itemImport")
     void allowEditableFields(WebDataBinder binder) {
         binder.setAllowedFields("rows[*].name", "rows[*].unit", "rows[*].category", "rows[*].excluded");
     }
 
-    // Used only when there is no upload in the session (it expired or was already submitted).
-    // Its ship is null, so the review pages send the user back to the upload page.
+    // Used only when there is no import in the session (none started, it expired or it was done).
+    // Its ship is null, so every step leads back to the upload page.
     @ModelAttribute("itemImport")
-    ItemImportForm noUpload() {
+    ItemImportForm noImport() {
         return new ItemImportForm();
     }
 
     @GetMapping("/office/ships/{id}/items/import")
     public String importPage(@PathVariable Long id, Model model) {
-        model.addAttribute("ship", itemService.getShip(id));
-        return "item/import";
+        return steps.uploadPage(flow(id), model);
     }
 
     @GetMapping("/office/items/import/template")
@@ -74,56 +80,119 @@ public class ItemImportController {
 
     @PostMapping("/office/ships/{id}/items/import")
     public String upload(@PathVariable Long id, @RequestParam("file") MultipartFile file, Model model) {
-        model.addAttribute("ship", itemService.getShip(id));
-        Optional<ItemImportForm> form;
-        try (InputStream in = file.getInputStream()) {
-            form = itemImportService.read(id, file.getOriginalFilename(), in);
-        } catch (IOException e) {
-            // The reason only, never file contents.
-            log.info("Item import file {} could not be read: {}", file.getOriginalFilename(), e.getMessage());
-            model.addAttribute("unreadable", true);
-            return "item/import";
-        }
-        if (form.isEmpty()) {
-            model.addAttribute("notTemplate", true);
-            return "item/import";
-        }
-        // Stored in the session by @SessionAttributes, replacing an earlier upload.
-        model.addAttribute("itemImport", form.get());
-        return "redirect:/office/ships/" + id + "/items/import/review";
+        ImportFlow flow = flow(id);
+        // A new import, stored in the session by @SessionAttributes, replacing an earlier one.
+        ItemImportForm form = new ItemImportForm();
+        form.setShipId(id);
+        model.addAttribute("itemImport", form);
+        return steps.upload(flow, itemImportService, form, file, model);
+    }
+
+    @GetMapping("/office/ships/{id}/items/import/sheet")
+    public String sheetPage(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form, Model model) {
+        return forShip(id, form) ? steps.sheetPage(flow(id), form, model) : uploadAgain(id);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/sheet")
+    public String sheet(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                        @RequestParam int sheet) {
+        return forShip(id, form) ? steps.sheet(flow(id), itemImportService, form, sheet) : uploadAgain(id);
+    }
+
+    @GetMapping("/office/ships/{id}/items/import/map")
+    public String mapPage(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form, Model model) {
+        return forShip(id, form) ? steps.mapPage(flow(id), itemImportService, form, model) : uploadAgain(id);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/map/header")
+    public String header(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                         @RequestParam int header) {
+        return forShip(id, form) ? steps.header(flow(id), itemImportService, form, header) : uploadAgain(id);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/map")
+    public String map(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                      @RequestParam Map<String, String> params, Model model) {
+        return forShip(id, form) ? steps.map(flow(id), itemImportService, form, params, model) : uploadAgain(id);
+    }
+
+    @GetMapping("/office/ships/{id}/items/import/values")
+    public String valuesPage(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form, Model model) {
+        return forShip(id, form) ? steps.valuesPage(flow(id), itemImportService, form, model) : uploadAgain(id);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/values")
+    public String values(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                         @RequestParam Map<String, String> params) {
+        return forShip(id, form) ? steps.values(flow(id), itemImportService, form, params) : uploadAgain(id);
     }
 
     @GetMapping("/office/ships/{id}/items/import/review")
-    public String review(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form, Model model) {
-        if (!id.equals(form.getShipId())) {
-            return "redirect:/office/ships/" + id + "/items/import";
+    public String review(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                         @RequestParam(required = false) String show, Model model) {
+        if (!forShip(id, form)) {
+            return uploadAgain(id);
+        }
+        ImportFlow flow = flow(id);
+        String redirect = steps.reviewRedirect(flow, form);
+        if (redirect != null) {
+            return redirect;
         }
         itemImportService.validate(form);
-        model.addAttribute("ship", itemService.getShip(id));
+        steps.reviewModel(flow, form, show, model);
+        model.addAttribute("ship", flow.ship());
         return "item/import-review";
     }
 
-    // "Check again": the edited values are now in the session; the review page validates them.
+    // "Check again" and the row filters: the edited values are now in the session; the review page validates them.
     @PostMapping("/office/ships/{id}/items/import/check")
-    public String check(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form) {
-        return "redirect:/office/ships/" + id + "/items/import/review";
+    public String check(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                        @RequestParam(required = false) String show) {
+        return forShip(id, form) ? steps.check(flow(id), form, show) : uploadAgain(id);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/exclude-errors")
+    public String excludeErrors(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
+                                @RequestParam(required = false) String show) {
+        return forShip(id, form) ? steps.excludeErrors(flow(id), itemImportService, form, show) : uploadAgain(id);
     }
 
     @PostMapping("/office/ships/{id}/items/import/submit")
     public String submit(@PathVariable Long id, @ModelAttribute("itemImport") ItemImportForm form,
-                         SessionStatus sessionStatus, RedirectAttributes redirectAttributes) {
-        if (!id.equals(form.getShipId())) {
-            return "redirect:/office/ships/" + id + "/items/import";
+                         @AuthenticationPrincipal CurrentUser currentUser, SessionStatus sessionStatus,
+                         RedirectAttributes redirectAttributes) {
+        if (!forShip(id, form)) {
+            return uploadAgain(id);
         }
-        itemImportService.validate(form);
-        if (!form.isReady()) {
-            // The button is disabled then; this happens only if values were changed without "Check again".
-            return "redirect:/office/ships/" + id + "/items/import/review";
-        }
-        ItemImportService.Result result = itemImportService.importItems(form);
-        sessionStatus.setComplete();
-        redirectAttributes.addFlashAttribute("importedCount", result.added());
-        redirectAttributes.addFlashAttribute("skippedNames", result.skippedNames());
-        return "redirect:/office/ships/" + id + "/items";
+        return steps.submit(flow(id), itemImportService, form, currentUser.getUsername(), sessionStatus,
+                redirectAttributes);
+    }
+
+    @GetMapping("/office/ships/{id}/items/import/done")
+    public String done(@PathVariable Long id, Model model) {
+        return steps.donePage(flow(id), model);
+    }
+
+    @PostMapping("/office/ships/{id}/items/import/cancel")
+    public String cancel(@PathVariable Long id, SessionStatus sessionStatus, RedirectAttributes redirectAttributes) {
+        return steps.cancel(flow(id), sessionStatus, redirectAttributes);
+    }
+
+    // 404 if there is no such ship.
+    private ImportFlow flow(Long id) {
+        Ship ship = itemService.getShip(id);
+        String base = "/office/ships/" + id + "/items/import";
+        return new ImportFlow("itemImport", base, ShipTab.ITEMS.url(id), "/office/items/import/template", ship,
+                List.of(ImportFlow.Crumb.of("nav.ships", "/office/ships"),
+                        ImportFlow.Crumb.text(ship.getName(), ShipTab.OVERVIEW.url(id)),
+                        ImportFlow.Crumb.of("ship.tab.items", ShipTab.ITEMS.url(id))));
+    }
+
+    private static boolean forShip(Long id, ItemImportForm form) {
+        return id.equals(form.getShipId());
+    }
+
+    private static String uploadAgain(Long id) {
+        return "redirect:/office/ships/" + id + "/items/import";
     }
 }

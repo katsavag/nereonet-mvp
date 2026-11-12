@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!-- Step 2 of an import (P24): which column of the file holds which field. Each field has a select of the file's
+     columns, filled in with the best guess, or with the mapping saved for a file with the same column names. A field
+     that can come from two columns (Full name: first and last name) has a second, optional select. The preview shows
+     the first five rows with the field each column goes to; columns no field uses are ignored and listed.
+     js/import-map.js updates the preview's "To: ..." labels and the ignored list as the selects change; without it
+     they show the mapping the page opened with, and Continue checks the mapping as chosen.
+     Model: flow, upload (core/importfile/ImportUpload), map (core/importfile/ImportMapView, every text resolved). -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{importFile.map.title}, ~{::main})}">
+<body>
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{importFile.map.heading},
+            crumbs=~{layout/parts :: importCrumbs(true)}, eyebrowShip=${flow.ship()})}"></header>
+    <nav th:replace="~{layout/parts :: importSteps(2)}"></nav>
+
+    <!-- As the error summary of every form (P05): one link per field; js/forms.js moves focus here. -->
+    <div th:if="${!map.errors().isEmpty()}" class="alert alert-danger error-summary" tabindex="-1"
+         aria-labelledby="mapErrorsTitle">
+        <h2 class="error-summary-title" id="mapErrorsTitle"
+            th:text="#{importFile.map.error.summary(${map.errors().size()})}">The mapping has 2 problems</h2>
+        <ul>
+            <li th:each="e : ${map.errors()}"><a th:href="${'#column-' + e.key}" th:text="${e.value}">Choose the
+                column that holds it.</a></li>
+        </ul>
+    </div>
+
+    <p class="import-file-line">
+        <span th:text="#{importFile.map.file(${upload.filename})}">File: crew.xlsx</span>
+        <th:block th:if="${upload.workbookWithSheets}">
+            <span aria-hidden="true">·</span>
+            <span th:text="#{importFile.map.sheet(${upload.sheet().name()})}">Sheet: Crew</span>
+            <span aria-hidden="true">·</span>
+            <a th:href="@{${flow.path('/sheet')}}" th:text="#{importFile.map.changeSheet}">Choose another sheet</a>
+        </th:block>
+    </p>
+    <!-- The mapping saved last time for a file with these column names. -->
+    <th:block th:if="${upload.savedMappingAt != null}" th:with="savedOn=${@dates.utcDate(upload.savedMappingAt)}">
+        <p th:replace="~{layout/parts :: infoNote('savedMapping', #{importFile.map.saved(${savedOn})})}"></p>
+    </th:block>
+
+    <form th:action="@{${flow.path('/map')}}" method="post" novalidate data-import-map
+          th:attr="data-ignored-none=#{importFile.map.ignored.none}, data-target-none=#{importFile.map.ignored.target}">
+        <!-- Enter in the form continues: the first submit button is the form's default one. -->
+        <button type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true"
+                th:text="#{importFile.continue}">Continue</button>
+
+        <section class="card mb-4" aria-labelledby="mapFieldsTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h6 fw-bold mb-1" id="mapFieldsTitle" th:text="#{importFile.map.fields}">Fields</h2>
+                <p class="form-text mt-0 mb-3" th:text="#{importFile.map.fieldsHint}">For each field, choose the column
+                    of your file that holds it. Each column shows its letter, its name and its first value.</p>
+
+                <div class="import-map">
+                    <div th:each="r : ${map.rows()}" class="import-map-row">
+                        <div th:each="s, st : ${r.selects()}" class="import-map-select"
+                             th:classappend="${st.index > 0} ? 'is-second'">
+                            <label class="form-label" th:for="${'column-' + s.key()}">
+                                <th:block th:text="${s.label()}">Full name</th:block>
+                                <th:block th:if="${s.optional()}"><span th:replace="~{layout/parts :: optional}"></span></th:block>
+                            </label>
+                            <select class="form-select" th:id="${'column-' + s.key()}" th:name="${'column.' + s.key()}"
+                                    th:classappend="${s.error() != null} ? 'is-invalid'" data-import-column
+                                    th:attr="data-target=${s.target()},
+                                             aria-describedby=${s.hint() != null or s.error() != null}
+                                                 ? ${#strings.trim((s.hint() != null ? 'hint-' + s.key() + ' ' : '') + (s.error() != null ? 'error-' + s.key() : ''))}
+                                                 : null">
+                                <option value="" th:text="${st.index > 0} ? #{importFile.map.noLastName} : #{importFile.map.none}">Not in this file</option>
+                                <option th:each="c : ${map.columns()}" th:value="${c.index()}"
+                                        th:selected="${s.column() != null and s.column() == c.index()}"
+                                        th:text="${c.option()}">B · Email address · e.g. anna@example.com</option>
+                            </select>
+                            <p th:if="${s.hint() != null}" class="form-text mb-0" th:id="${'hint-' + s.key()}"
+                               th:text="${s.hint()}">One column with the whole name, or the first name here and the
+                                last name below.</p>
+                            <div th:if="${s.error() != null}" class="invalid-feedback" th:id="${'error-' + s.key()}"
+                                 th:text="${s.error()}">Choose the column that holds it.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card mb-4" aria-labelledby="mapPreviewTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h6 fw-bold mb-1" id="mapPreviewTitle"
+                    th:text="#{importFile.map.preview(${upload.preview().size()}, ${upload.dataRows().size()})}">First 5 of 12 rows</h2>
+                <!-- The row with the column names: another one when a title or notes come first. -->
+                <div class="import-header-row">
+                    <label for="header" class="form-label" th:text="#{importFile.map.headerRow}">Column names are in</label>
+                    <div class="import-header-row-control">
+                        <select id="header" name="header" class="form-select">
+                            <option th:each="o : ${map.headers()}" th:value="${o.value()}" th:selected="${o.selected()}"
+                                    th:text="${o.text()}">Row 1: Full name, Email, Rank</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-secondary" th:formaction="@{${flow.path('/map/header')}}"
+                                th:text="#{importFile.map.useRow}">Use this row</button>
+                    </div>
+                    <p class="form-text mb-0" th:text="#{importFile.map.useRowHint}">Using another row guesses the
+                        columns again.</p>
+                </div>
+                <p class="import-ignored">
+                    <span class="fw-semibold" th:text="#{importFile.map.ignored}">Not imported:</span>
+                    <span data-import-ignored th:text="${map.ignored()}">D · Nationality, E · Date of birth</span>
+                </p>
+            </div>
+            <div class="table-responsive import-preview">
+                <table class="table mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="import-preview-row" th:text="#{importFile.review.row}">Row</th>
+                        <th scope="col" th:each="c : ${map.columns()}">
+                            <span class="import-preview-name"><span class="import-preview-letter" th:text="${c.letter()}">B</span>
+                                <th:block th:text="${c.name()}">Email address</th:block></span>
+                            <span class="import-preview-target"
+                                  th:attr="data-column-target=${c.index()}, data-column-label=${c.label()}, data-column-has-data=${c.hasData()}"
+                                  th:classappend="${c.target() == null} ? 'is-ignored'"
+                                  th:text="${c.target() != null} ? ${c.target()} : #{importFile.map.ignored.target}">To: Email</span>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${upload.preview()}">
+                        <td class="num import-preview-row" th:text="${r.number()}">2</td>
+                        <td th:each="c : ${map.columns()}" th:text="${r.cell(c.index())}">anna@example.com</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" th:text="#{importFile.continue}">Continue</button>
+            <button type="submit" class="btn btn-ghost" th:formaction="@{${flow.path('/cancel')}}"
+                    th:data-busy-label="#{importFile.cancelling}" th:text="#{form.cancel}">Cancel</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

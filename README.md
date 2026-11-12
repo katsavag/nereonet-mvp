@@ -190,18 +190,44 @@ Requirements: Java 25, Docker.
    filtered), each linking to their page, which names the access they have now ("Access now: Master. Saving applies
    the access of the rank above."). Saving there applies the mapping.
 
-   **Import from file** (`/office/crew/import`) invites many crew members at once:
-   - **Download template** gives `crew-template.xlsx`: sheet "Crew" with the header row
-     `Full name | Email | Rank | Ship IMO`, and sheet "Instructions" (column meanings, the rank values with the access
-     each gives, active ships; in the page's language). Only this template is accepted, and the one from before P18
-     with a `Role` column after `Rank`: that column is ignored and the review page says so.
-   - Upload the filled-in file as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). A file whose first row is not
-     the template's header shows "This file does not follow the template".
-   - The review screen shows every row, editable, with errors highlighted (missing name or email, invalid,
-     existing or repeated email, missing or unknown rank, no active ship with that IMO number, more than one Master /
-     Chief cook per ship, shown on the rank). Under each rank its access in short ("Access: Master"). Exclude rows with the checkbox; **Check again** re-validates.
-     **Import and invite** (enabled when no included row has errors) sends one invitation email per row.
-     Nothing is saved and no email is sent before that.
+   **Import from file** (`/office/crew/import`) invites many crew members at once, from the file the crewing system
+   produces or from the template. Four steps, shown at the top of every page (**Upload**, **Map columns**,
+   **Review**, **Done**; the current one marked, `aria-current="step"`), with **Cancel** on each (it forgets the
+   upload and goes back to the crew list). Nothing is saved and no email is sent before **Import and invite** on
+   the Review step. The steps are shared with the item import (see 11 and "Import from a file" under Frontend assets):
+   - **Upload**: any `.xlsx`, `.xls` or `.csv` (UTF-8, or Windows-1252 when it is not valid UTF-8; `,` or `;`, whichever
+     the first lines use), with any column names in any order; the column names need not be in the first row. A
+     workbook with more than one visible sheet asks which sheet holds the rows (the one whose columns look most like
+     the fields is chosen already). The easy path stays: **Download template** gives `crew-template.xlsx` (sheet
+     "Crew" with `Full name | Email | Rank | Ship IMO`, sheet "Instructions" with the rank values, the access each
+     gives and the active ships, in the page's language). A file with exactly the template's columns skips the
+     mapping and goes straight to Review.
+   - **Map columns**: for each field (Full name, Email, Rank, Ship) a list of the file's columns ("C · Seafarer ·
+     e.g. Stavros Pelagidis"), filled in with the best guess from the column names (crewing-system names such as
+     Seafarer, Position, Vessel IMO No., E-mail address; also Greek ones), and a preview of the first five rows with
+     the field each column goes to. Full name can come from two columns (first name and last name: "Given name" +
+     "Surname" are paired by themselves). Columns no field uses are ignored and listed under "Not imported". If a
+     title or notes come before the column names, **Column names are in** picks another row (among the first 20).
+     **Continue** is blocked, with the reason next to the field and in the error summary, while a required field
+     has no column or one column is used twice.
+   - **Match values**: each distinct rank not written as in Nereonet ("C/E", "Ch. Eng.", "2/O", "Bosun" is exact)
+     is asked once, with a suggestion selected (short forms and abbreviations); the answer applies to every row with
+     that value. "Decide per row on the review" leaves it for the Review step. The ship is matched by IMO number
+     ("9074729" or "IMO 9074729") or by the exact name (ignoring case) of one active ship.
+   - The confirmed column and value mapping is saved when the import is done (table `import_mapping`, per kind,
+     keyed by the file's column names in any order) and filled in again next time a file with the same column names
+     is uploaded ("Filled in from the mapping saved on 12 Nov 2026."). A template file saves none.
+   - **Review**: every row, editable, with errors highlighted and the message next to the field (missing name or
+     email, invalid, existing or repeated email, missing or unknown rank, no active ship with that IMO number, more
+     than one Master / Chief cook per ship, shown on the rank). Under each rank its access in short ("Access:
+     Master"). Each row says what it will do (New), and above the table "Will import: 3 new, …". Filter chips **All**,
+     **With errors**, **Excluded** (with counts; they keep edits made before they are pressed); **Exclude all rows
+     with errors** in one action; exclude single rows with the checkbox; **Check again** re-validates; **Change
+     column mapping** goes back. The row number and name columns stay in place when the table scrolls sideways. A
+     file with a `Role` column (the template from before P18) is accepted: that column is ignored and the review
+     page says so. **Import and invite** (enabled when no included row has errors) sends one invitation email per
+     row.
+   - **Done**: how many were invited and skipped (excluded), with a link to the crew list.
    - To try it on the dev database: upload [`samples/crew-sample.xlsx`](samples/crew-sample.xlsx), 10 invented crew
      members (example.com emails) for the demo ship `MV Demo` (IMO 9074729): one Master, one Chief cook and eight crew
      members. Regenerate it with `./mvnw test -Dtest=CrewSampleFileGenerator -DgenerateSample=true`.
@@ -232,14 +258,21 @@ Requirements: Java 25, Docker.
    ("The crew of MV Demo cannot request Basmati rice until it is activated again."). The list is searchable (name and
    category), filterable by status (Active, Inactive) and category, sortable by name (the default), unit,
    category and status, 25 or 50 per page (paged in the database).
-   **Import** (`/office/ships/{id}/items/import`) adds many items at once:
-   - **Download template** gives `items-template.xlsx` with the header row `Name | Unit | Category`. Only this header is accepted.
-   - Upload it as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). The review screen shows every row, editable, with
-     errors highlighted (missing name or unit, value too long, name repeated in the file). Rows whose name the ship
-     already has are marked and skipped. Exclude rows with the checkbox; **Check again** re-validates.
-   - **Import items** saves the new items; the item list then shows how many were added and which names were skipped.
-     Nothing is saved before that.
-   To try it, save this as `items.csv` and upload it twice (the second time all three are skipped):
+   **Import** (`/office/ships/{id}/items/import`) adds and updates many items at once, from the file the purchasing
+   system produces or from the template, in the same four steps as the crew import (see 8): **Upload** (`.xlsx`,
+   `.xls` or `.csv`, any columns; **Download template** gives `items-template.xlsx` with `Name | Unit | Category`,
+   which skips the mapping), **Map columns** (Name, Unit, and the optional Category; guesses such as Description,
+   UoM, Product group), **Review**, **Done**. There are no values to match. The mapping is saved and suggested again
+   as for crew, for every ship (it describes the purchasing system's file, not the ship).
+   - **Review**: every row, editable. A name the ship does not have (ignoring case) is **New**; a name it has
+     **Updates** that item's unit and category, or is **No change** (skipped) when they are the same. The rows that
+     add or update are checked (missing name or unit, value too long, name repeated in the file). Filters, **Exclude
+     all rows with errors** and the sticky first columns as for crew.
+   - **Import items** saves the new items and the updates; **Done** shows how many were added, updated and skipped,
+     with a link to the ship's items. Nothing is saved before that. An import started for one ship is never continued
+     or saved for another: its steps lead back to that ship's upload.
+   To try it, save this as `items.csv` and upload it twice (the second time all three are "No change"; change a unit
+   to see an update):
 
    ```
    Name,Unit,Category
@@ -579,7 +612,8 @@ The app makes no request to any other host: everything a page needs is served fr
   - phones (below 768 px): `.data-table-stack` turns each row into a stacked card: the name as its title (with
     the checkbox before it and the actions after it), two or three key fields as label and value (`data-label`),
     the status badge; less important columns (`.stack-hide`) are left out, so there is no sideways scrolling.
-    The audit log and the import review tables keep their columns and scroll sideways.
+    The audit log and the import review tables keep their columns and scroll sideways (the import review keeps
+    its row number and name columns in place, P24).
 
   - forms (P05): one pattern on every form (ship, crew, invitation, certificate, item, announcement, library new, edit
     and particulars, registration, crew and item import), in the "Forms" section of `app.css`:

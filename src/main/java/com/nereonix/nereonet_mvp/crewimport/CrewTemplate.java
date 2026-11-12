@@ -19,11 +19,10 @@ import com.nereonix.nereonet_mvp.core.user.Rank;
 // and sheet "Instructions". Used for the download and for samples/crew-sample.xlsx.
 public final class CrewTemplate {
 
-    // The file format, so never translated. Uploaded files must have exactly these columns, in this order.
-    // There is no Role column: the rank sets the role (P18).
+    // The file format, so never translated. A file with exactly these columns, in this order, needs no column mapping
+    // (P24); any other file is mapped on the import's Map columns step. There is no Role column: the rank sets the
+    // role (P18); a Role column in a file is ignored.
     public static final List<String> HEADERS = List.of("Full name", "Email", "Rank", "Ship IMO");
-    // The template from before P18. Still accepted; its Role column is ignored (CrewImportService.read).
-    static final List<String> HEADERS_WITH_ROLE = List.of("Full name", "Email", "Rank", "Role", "Ship IMO");
     private static final int[] COLUMN_WIDTHS = {28, 34, 24, 12};
 
     private CrewTemplate() {

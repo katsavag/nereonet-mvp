@@ -2,12 +2,10 @@ package com.nereonix.nereonet_mvp.crewimport;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -16,8 +14,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
-import com.nereonix.nereonet_mvp.core.importfile.TableFile;
-import com.nereonix.nereonet_mvp.core.importfile.TableFileReader;
+import com.nereonix.nereonet_mvp.core.importfile.ImportAction;
+import com.nereonix.nereonet_mvp.core.importfile.ImportField;
+import com.nereonix.nereonet_mvp.core.importfile.ImportMappingService;
+import com.nereonix.nereonet_mvp.core.importfile.ImportNames;
+import com.nereonix.nereonet_mvp.core.importfile.ImportResult;
+import com.nereonix.nereonet_mvp.core.importfile.ImportSheet;
+import com.nereonix.nereonet_mvp.core.importfile.ImportTarget;
+import com.nereonix.nereonet_mvp.core.importfile.ImportUpload;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationService;
 import com.nereonix.nereonet_mvp.core.ship.ImoNumber;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -30,29 +34,73 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 import jakarta.validation.Validator;
 
-// Crew list import: read the uploaded template, validate every row, then invite the included rows.
-// Nothing is saved and no email is sent before importAndInvite. Never log file contents.
+// Crew list import (P24): map the columns of any crew file (the template, or a crewing system's export), validate
+// every row, then invite the included rows. Every row is a new crew member (an invitation); an email that already has
+// a user is an error. Nothing is saved and no email is sent before importRows. Never log file contents.
 @Service
-public class CrewImportService {
+public class CrewImportService implements ImportTarget<CrewImportForm> {
+
+    static final String FULL_NAME = "fullName";
+    static final String EMAIL = "email";
+    static final String RANK = "rank";
+    static final String SHIP = "shipImo";
+
+    // Column names as crewing systems and spreadsheets write them, normalized (ImportNames.normalize), most likely
+    // first. The template's own names come first.
+    private static final List<ImportField> FIELDS = List.of(
+            ImportField.of(FULL_NAME, "user.fullName", true,
+                            List.of("full name", "seafarer name", "crew name", "employee name", "seaman name",
+                                    "name and surname", "name surname", "seafarer", "seaman", "employee",
+                                    "crew member", "ονοματεπωνυμο"))
+                    .withTwoColumns(
+                            List.of("first name", "given name", "given names", "forename", "first names", "name",
+                                    "ονομα"),
+                            List.of("last name", "surname", "family name", "επωνυμο")),
+            ImportField.of(EMAIL, "user.email", true,
+                    List.of("email", "e mail", "email address", "e mail address", "mail", "personal email",
+                            "email personal", "ηλεκτρονικο ταχυδρομειο")),
+            ImportField.of(RANK, "user.rank", true,
+                    List.of("rank", "position", "capacity", "rank position", "job title", "duty", "title", "βαθμος",
+                            "ειδικοτητα", "θεση")).withValues(RankMatcher.INSTANCE),
+            ImportField.of(SHIP, "crewImport.field.ship", true,
+                    List.of("ship imo", "imo", "imo number", "imo no", "vessel imo", "imo nr", "ship imo number",
+                            "vessel imo number", "ship", "vessel", "vessel name", "ship name", "πλοιο")));
 
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
     private final UserService userService;
     private final InvitationService invitationService;
     private final AuditService auditService;
+    private final ImportMappingService mappingService;
     private final MessageSource messageSource;
     private final Validator validator;
 
     public CrewImportService(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                              InvitationService invitationService, AuditService auditService,
-                             MessageSource messageSource, Validator validator) {
+                             ImportMappingService mappingService, MessageSource messageSource, Validator validator) {
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.invitationService = invitationService;
         this.auditService = auditService;
+        this.mappingService = mappingService;
         this.messageSource = messageSource;
         this.validator = validator;
+    }
+
+    @Override
+    public String kind() {
+        return "crew";
+    }
+
+    @Override
+    public List<ImportField> fields() {
+        return FIELDS;
+    }
+
+    @Override
+    public List<String> templateHeader() {
+        return CrewTemplate.HEADERS;
     }
 
     /** The blank template, with the instructions in the given language. */
@@ -64,33 +112,38 @@ public class CrewImportService {
     }
 
     /**
-     * Reads an uploaded .xlsx or .csv file. Empty if its header row is not the template's
-     * (ignoring case and surrounding spaces). The template from before P18, with a Role column, is accepted too: that
-     * column is ignored, the rank sets the role, and the form says so (roleColumnIgnored).
-     * Throws IOException if the file cannot be read.
+     * One row per data row of the file, with the mapped columns. The rank is the matched rank (exact, or as chosen in
+     * the value mapping); the ship is matched by IMO number or by exact name (ignoring case) of one active ship.
      */
-    public Optional<CrewImportForm> read(String filename, InputStream in) throws IOException {
-        TableFile file = TableFileReader.read(filename, in);
-        boolean withRole = file.hasHeader(CrewTemplate.HEADERS_WITH_ROLE);
-        if (!withRole && !file.hasHeader(CrewTemplate.HEADERS)) {
-            return Optional.empty();
-        }
-        int shipColumn = withRole ? 4 : 3;
-        CrewImportForm form = new CrewImportForm();
-        form.setRoleColumnIgnored(withRole);
-        for (TableFile.Row fileRow : file.rows()) {
+    @Override
+    @Transactional(readOnly = true)
+    public void buildRows(CrewImportForm form) {
+        ImportUpload upload = form.getUpload();
+        List<Ship> ships = findActiveShips();
+        List<CrewImportRow> rows = new ArrayList<>();
+        for (ImportSheet.Row fileRow : upload.dataRows()) {
             CrewImportRow row = new CrewImportRow();
             row.setRowNumber(fileRow.number());
-            row.setFullName(fileRow.cell(0));
-            row.setEmail(fileRow.cell(1));
-            row.setRank(canonical(fileRow.cell(2), Arrays.stream(Rank.values()).map(Rank::name).toList()));
-            row.setShipImo(ImoNumber.normalize(fileRow.cell(shipColumn)));
-            form.getRows().add(row);
+            row.setFullName(upload.value(fileRow, field(FULL_NAME)));
+            row.setEmail(upload.value(fileRow, field(EMAIL)));
+            row.setRank(upload.matchedValue(fileRow, field(RANK)));
+            row.setShipImo(shipImo(upload.value(fileRow, field(SHIP)), ships));
+            rows.add(row);
         }
-        return Optional.of(form);
+        // P18: a Role column (the template from before) is ignored; the review page says so.
+        List<String> header = upload.header();
+        boolean roleIgnored = false;
+        for (int i = 0; i < header.size(); i++) {
+            if (ImportNames.normalize(header.get(i)).equals("role") && !upload.getColumns().containsValue(i)) {
+                roleIgnored = true;
+            }
+        }
+        form.setRoleColumnIgnored(roleIgnored);
+        form.rowsBuilt(rows);
     }
 
-    /** Checks every included row and sets its errors. Excluded rows get no errors. */
+    /** Checks every included row and sets its errors. Excluded rows get none. Every row creates an invitation. */
+    @Override
     @Transactional(readOnly = true)
     public void validate(CrewImportForm form) {
         Map<String, Ship> ships = findActiveShips().stream()
@@ -105,6 +158,7 @@ public class CrewImportService {
 
         for (CrewImportRow row : form.getRows()) {
             row.getErrors().clear();
+            row.setAction(ImportAction.CREATE);
             if (row.isExcluded()) {
                 continue;
             }
@@ -158,11 +212,13 @@ public class CrewImportService {
     }
 
     /**
-     * Validates again and invites every included row (one email each). Returns the number of invitations.
-     * Throws IllegalStateException if a row has errors: the review screen only allows this when there are none.
+     * Validates again, invites every included row (one email each) and saves the confirmed mapping (not for a file
+     * made from the template, which needs none). Throws IllegalStateException if a row has errors: the review screen
+     * only allows this when there are none.
      */
+    @Override
     @Transactional
-    public int importAndInvite(CrewImportForm form, String actorEmail) {
+    public ImportResult importRows(CrewImportForm form, String actorEmail) {
         validate(form);
         if (!form.isReady()) {
             throw new IllegalStateException("The crew import has errors or no rows to import");
@@ -176,10 +232,13 @@ public class CrewImportService {
             invitationService.invite(row.getEmail(), row.getFullName(), rank.role(),
                     ships.get(row.getShipImo()).getId(), rank, actorEmail);
         }
+        if (!form.getUpload().isTemplate()) {
+            mappingService.save(kind(), form.getUpload());
+        }
         // Counts only, never file contents.
         auditService.record("CREW_IMPORTED", null, included.size() + " invited of " + form.getRows().size()
                 + " rows (" + form.getExcludedCount() + " excluded)");
-        return included.size();
+        return new ImportResult(included.size(), 0, form.getExcludedCount());
     }
 
     @Transactional(readOnly = true)
@@ -187,10 +246,23 @@ public class CrewImportService {
         return shipRepository.findAllByOrderByNameAsc().stream().filter(Ship::isActive).toList();
     }
 
-    // "Chief cook", "chief_cook" or "CHIEF COOK" -> "CHIEF_COOK" if that is one of names, else the value unchanged.
-    private static String canonical(String value, List<String> names) {
-        String key = value.strip().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
-        return names.contains(key) ? key : value;
+    // The IMO number of the active ship the value names: by IMO number ("IMO 907 4729"), or by its exact name when
+    // only one active ship has it. Otherwise the value as in the file (an IMO number without spaces).
+    static String shipImo(String value, List<Ship> ships) {
+        String imo = ImoNumber.normalize(value);
+        if (ships.stream().anyMatch(ship -> ship.getImoNumber().equals(imo))) {
+            return imo;
+        }
+        List<Ship> named = ships.stream().filter(ship -> ship.getName().strip().equalsIgnoreCase(value.strip()))
+                .toList();
+        if (named.size() == 1) {
+            return named.getFirst().getImoNumber();
+        }
+        return imo.matches("[0-9]*") ? imo : value.strip();
+    }
+
+    private static ImportField field(String key) {
+        return FIELDS.stream().filter(field -> field.key().equals(key)).findFirst().orElseThrow();
     }
 
     private static String normalizeEmail(String email) {

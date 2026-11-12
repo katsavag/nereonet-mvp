@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Step 2 of an import, continued (P24): each distinct value of a matched field (the rank) that is not written
+     exactly as one of its choices ("C/E", "Ch. Eng.", "2/O"), asked about once. The answer applies to every row with
+     that value. The suggestion (or the choice saved for a file with the same column names) is selected; "Decide per
+     row" leaves the value as it is, to correct on the review screen.
+     Model: flow, upload, questions (core/importfile/ImportSteps.ValueQuestion). -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{importFile.values.title}, ~{::main})}">
+<body>
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{importFile.values.heading},
+            crumbs=~{layout/parts :: importCrumbs(true)}, eyebrowShip=${flow.ship()})}"></header>
+    <nav th:replace="~{layout/parts :: importSteps(2)}"></nav>
+
+    <form th:action="@{${flow.path('/values')}}" method="post">
+        <section class="card form-box mb-4" aria-labelledby="valuesTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h6 fw-bold mb-1" id="valuesTitle" th:text="#{importFile.values.subtitle(${questions.size()})}">
+                    2 values to match</h2>
+                <p class="form-text mt-0 mb-3" th:text="#{importFile.values.hint}">These values are not written as in
+                    Nereonet. Choose what each one means; the answer applies to every row with it.</p>
+                <ul class="import-values">
+                    <li th:each="q : ${questions}" class="import-value"
+                        th:with="label=#{${q.field().labelKey()}}">
+                        <label class="import-value-file" th:for="${'value-' + q.index()}">
+                            <span class="import-value-text" th:text="${q.value()}">C/E</span>
+                            <span class="import-value-meta"
+                                  th:text="#{importFile.values.meta(${label}, ${q.rows()})}">Rank · 3 rows</span>
+                        </label>
+                        <div class="import-value-choice">
+                            <select class="form-select" th:id="${'value-' + q.index()}" th:name="${'value.' + q.index()}"
+                                    th:attr="aria-describedby=${q.saved() or q.suggested()} ? ${'valueNote-' + q.index()} : null">
+                                <option value="" th:text="#{importFile.values.perRow}">Decide per row on the review</option>
+                                <th:block th:each="g : ${q.field().values().choices()}">
+                                    <optgroup th:if="${g.labelKey() != null}" th:label="#{${g.labelKey()}}">
+                                        <option th:each="c : ${g.choices()}" th:value="${c.value()}"
+                                                th:selected="${c.value() == q.chosen()}" th:text="#{${c.labelKey()}}">Chief Engineer</option>
+                                    </optgroup>
+                                    <th:block th:if="${g.labelKey() == null}">
+                                        <option th:each="c : ${g.choices()}" th:value="${c.value()}"
+                                                th:selected="${c.value() == q.chosen()}" th:text="#{${c.labelKey()}}">Chief Engineer</option>
+                                    </th:block>
+                                </th:block>
+                            </select>
+                            <p th:if="${q.saved()}" class="form-text mb-0" th:id="${'valueNote-' + q.index()}"
+                               th:text="#{importFile.values.saved}">As saved for files with these columns.</p>
+                            <p th:if="${q.suggested()}" class="form-text mb-0" th:id="${'valueNote-' + q.index()}"
+                               th:text="#{importFile.values.suggested}">Suggested. Check it, or choose another.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" th:text="#{importFile.continue}">Continue</button>
+            <a class="btn btn-outline-secondary" th:href="@{${flow.path('/map')}}" th:text="#{importFile.backToColumns}">Back to columns</a>
+            <button type="submit" class="btn btn-ghost" th:formaction="@{${flow.path('/cancel')}}"
+                    th:data-busy-label="#{importFile.cancelling}" th:text="#{form.cancel}">Cancel</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

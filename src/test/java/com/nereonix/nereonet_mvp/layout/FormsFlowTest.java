@@ -217,8 +217,8 @@ class FormsFlowTest {
                 Map.entry(library + "/new", "Add item"),
                 Map.entry(library + "/" + itemId + "/edit", "Publish"),
                 Map.entry(library + "/particulars", "Save"),
-                Map.entry("/office/crew/import", "Upload and review"),
-                Map.entry("/office/ships/" + ship.getId() + "/items/import", "Upload and review"));
+                Map.entry("/office/crew/import", "Upload and continue"),
+                Map.entry("/office/ships/" + ship.getId() + "/items/import", "Upload and continue"));
         for (var entry : primaryByPage.entrySet()) {
             Matcher actions = FORM_ACTIONS.matcher(page(entry.getKey()));
             assertThat(actions.find()).as("form actions on " + entry.getKey()).isTrue();
@@ -275,7 +275,7 @@ class FormsFlowTest {
         assertThat(library).contains("PDF, DOCX or XLSX, at most 10 MB.", "data-max-size=\"10485760\"",
                 "data-file-info=\"fileInfo\"", "<p id=\"fileInfo\" class=\"form-file-info\" aria-live=\"polite\" hidden>");
         for (String page : List.of("/office/crew/import", "/office/ships/" + ship.getId() + "/items/import")) {
-            assertThat(page(page)).as(page).contains("XLSX or CSV, at most 10 MB.", "data-file-info=\"fileInfo\"");
+            assertThat(page(page)).as(page).contains("XLSX, XLS or CSV, at most 10 MB.", "data-file-info=\"fileInfo\"");
         }
     }
 

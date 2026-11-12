@@ -689,5 +689,110 @@
     </div>
 </th:block>
 
+<!-- Import from a file (P24): the crew and the item import share their steps (core/importfile/ImportSteps) and
+     these parts. Every page of an import has the model attribute "flow" (core/importfile/ImportFlow: the import's
+     texts under flow.messagePrefix, its URLs, its ship and breadcrumbs) and "step" (1 to 4). The shared pages are
+     templates/importfile/*.html; the review pages are crewimport/review.html and item/import-review.html. The pattern:
+     app.css, section "Import from a file". -->
+
+<!-- The breadcrumbs of an import page: the import's own (Crew, or Ships › MV Demo › Items), then the import's upload
+     page when withImport. Use: crumbs=~{layout/parts :: importCrumbs(true)} in pageHeader. -->
+<th:block th:fragment="importCrumbs(withImport)">
+    <th:block th:each="c : ${flow.crumbs()}">
+        <li th:replace="~{layout/parts :: crumb(${c.labelKey() != null} ? #{${c.labelKey()}} : ${c.text()}, ${c.url()})}"></li>
+    </th:block>
+    <th:block th:if="${withImport}">
+        <li th:replace="~{layout/parts :: crumb(#{${flow.key('title')}}, ${flow.basePath()})}"></li>
+    </th:block>
+</th:block>
+
+<!-- The four steps, under the page header: Upload, Map columns, Review, Done. Done steps have a tick, the current one
+     is semibold with aria-current="step" and "Step 2 of 4" for screen readers; the colour only repeats it.
+     Use: <nav th:replace="~{layout/parts :: importSteps(${step})}"></nav> -->
+<nav th:fragment="importSteps(step)" class="import-steps" th:attr="aria-label=#{importFile.steps.label}">
+    <ol class="import-steps-list">
+        <li th:each="s : ${ {1, 2, 3, 4} }" class="import-step"
+            th:classappend="${s < step} ? 'is-done' : (${s == step} ? 'is-current' : '')"
+            th:attr="aria-current=${s == step} ? 'step' : null">
+            <span class="import-step-mark" aria-hidden="true">
+                <svg th:if="${s < step}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                     stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+                <th:block th:unless="${s < step}" th:text="${s}">1</th:block>
+            </span>
+            <span class="import-step-label">
+                <span class="visually-hidden" th:text="#{importFile.steps.position(${s}, 4)}">Step 1 of 4:</span>
+                <th:block th:text="#{${'importFile.step.' + s}}">Upload</th:block>
+                <span th:if="${s < step}" class="visually-hidden" th:text="#{importFile.steps.done}">(done)</span>
+            </span>
+        </li>
+    </ol>
+</nav>
+
+<!-- What importing a row does, on the review screen: New, Update, No change (skipped) or Excluded. -->
+<th:block th:fragment="importAction(row)"
+          th:with="tone=${row.excluded} ? 'neutral' : (${row.action.name() == 'CREATE'} ? 'primary' : (${row.action.name() == 'UPDATE'} ? 'info' : 'neutral')),
+                   key=${row.excluded} ? 'EXCLUDED' : ${row.action.name()}">
+    <span th:replace="~{layout/parts :: status(${tone}, #{${'importFile.action.' + key}})}"></span>
+</th:block>
+
+<!-- The first cell of a review row: the row's number in the file, what importing it does, and Exclude. It stays in
+     place, with the name cell after it (.import-col-name), when the table scrolls sideways. Inside the review form
+     (th:object set); index: the row's index in the form. -->
+<td th:fragment="importRowHead(row, index)" class="import-col-row">
+    <span class="import-row-number num" th:text="${row.rowNumber}">2</span>
+    <th:block th:replace="~{layout/parts :: importAction(${row})}"></th:block>
+    <label class="import-exclude">
+        <input type="checkbox" class="form-check-input" th:field="*{rows[__${index}__].excluded}"
+               th:attr="aria-label=#{importFile.review.excludeRow(${row.rowNumber})}">
+        <span th:text="#{importFile.review.exclude}" aria-hidden="true">Exclude</span>
+    </label>
+</td>
+
+<!-- Above the review table, inside the review form: the row filters (All, With errors, Excluded, each with its
+     count; they keep the edits, as Check again does), what the import will do, and "Exclude all rows with errors".
+     form: the ImportForm; show: the current filter (null for all). -->
+<div th:fragment="importSummary(form, show)" class="import-summary">
+    <div class="view-switch import-filter" role="group" th:attr="aria-label=#{importFile.review.filter}">
+        <button th:each="f : ${ {'all', 'errors', 'excluded'} }" type="submit" class="view-switch-link"
+                th:formaction="@{${flow.path('/check')}}" name="show" th:value="${f}"
+                th:with="current=${f == 'all' ? show == null : f == show},
+                         count=${f == 'all' ? form.rows.size() : (f == 'errors' ? form.errorCount : form.excludedCount)}"
+                th:attr="aria-pressed=${current} ? 'true' : 'false', data-busy-label=#{importFile.review.filtering}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+            <span th:text="#{${'importFile.review.show.' + f}}">All</span>
+            <span class="import-filter-count num" th:classappend="${f == 'errors' and count > 0} ? 'has-errors'"
+                  th:text="${count}">10</span>
+        </button>
+    </div>
+    <p class="import-plan" th:text="#{importFile.review.plan(${form.createCount}, ${form.updateCount}, ${form.unchangedCount})}">
+        8 new, 2 updates, 1 without changes.</p>
+    <button th:if="${form.errorCount > 0}" type="submit" class="btn btn-outline-secondary btn-sm import-exclude-errors"
+            th:formaction="@{${flow.path('/exclude-errors')}}" name="show" th:value="${show}"
+            th:text="#{importFile.review.excludeErrors(${form.errorCount})}">Exclude the 2 rows with errors</button>
+</div>
+
+<!-- A filter with no rows: "No rows with errors." across the table. columns: the table's number of columns. -->
+<tr th:fragment="importNoRows(form, show, columns)"
+    th:if="${(show == 'errors' and form.errorCount == 0) or (show == 'excluded' and form.excludedCount == 0)}">
+    <td class="import-no-rows" th:attr="colspan=${columns}" th:text="#{${'importFile.review.none.' + show}}">No rows with errors.</td>
+</tr>
+
+<!-- The review's actions: the import (enabled when no included row has errors and a row changes something), Check
+     again and Cancel. submitLabel: the import button's text; submitHint: why it is disabled. -->
+<th:block th:fragment="importReviewActions(form, show, submitLabel, submitHint)">
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" th:formaction="@{${flow.path('/submit')}}"
+                th:disabled="${!form.ready}" th:attr="aria-describedby=${form.ready} ? null : 'submitHint'"
+                th:text="${submitLabel}">Import and invite</button>
+        <button type="submit" class="btn btn-outline-secondary" name="show" th:value="${show}"
+                th:text="#{importFile.review.check}">Check again</button>
+        <button type="submit" class="btn btn-ghost" th:formaction="@{${flow.path('/cancel')}}"
+                th:data-busy-label="#{importFile.cancelling}" th:text="#{form.cancel}">Cancel</button>
+    </div>
+    <p th:unless="${form.ready}" id="submitHint" class="form-text mt-2 mb-0" th:text="${submitHint}">
+        Import and invite is available when no included row has errors.</p>
+</th:block>
+
 </body>
 </html>
