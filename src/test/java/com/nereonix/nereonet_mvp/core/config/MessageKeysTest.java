@@ -126,7 +126,35 @@ class MessageKeysTest {
             "mycrew.only.title",
             "mycrew.only.text",
             "mycrew.nothingYet",
-            "mycrew.back");
+            "mycrew.back",
+            // The Master's approvals and the request notification (P33). "New item" is on the office's request page
+            // too, so it is in Greek.
+            "nav.approvals",
+            "nav.count.approvals",
+            "approval.title",
+            "approval.hint.waiting",
+            "approval.hint.decided",
+            "approval.tabs",
+            "approval.tab.waiting",
+            "approval.tab.decided",
+            "approval.empty.waiting.title",
+            "approval.empty.waiting.text",
+            "approval.empty.decided.title",
+            "approval.empty.decided.text",
+            "approval.personRole",
+            "approval.lineCount",
+            "approval.requestedBy",
+            "approval.requestedAt",
+            "approval.status",
+            "approval.decided",
+            "approval.reason",
+            "approval.lines",
+            "approval.unit.none",
+            "request.status.PENDING",
+            "request.status.APPROVED",
+            "request.status.REJECTED",
+            "request.status.CANCELLED",
+            "request.notification.submitted");
 
     @Test
     void everyOfficeKeyIsInGreek() throws IOException {

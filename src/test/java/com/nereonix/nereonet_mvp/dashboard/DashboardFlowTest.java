@@ -59,6 +59,7 @@ import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
 import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
+import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -104,6 +105,7 @@ class DashboardFlowTest {
     @Autowired LibraryItemVersionRepository versionRepository;
     @Autowired LibraryAcknowledgementRepository acknowledgementRepository;
     @Autowired CrewProfileRepository profileRepository;
+    @Autowired RequestService requestService;
 
     @MockitoBean
     MailService mailService;
@@ -608,6 +610,6 @@ class DashboardFlowTest {
 
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                lineRepository, libraryItemRepository, versionRepository, profileRepository);
+                lineRepository, libraryItemRepository, versionRepository, profileRepository, requestService);
     }
 }

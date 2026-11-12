@@ -10,7 +10,9 @@ public enum NotificationType {
     /** A library document to read. */
     LIBRARY("library"),
     /** An announcement from the office, sent to each recipient when it is sent (P27). */
-    ANNOUNCEMENT("announcements");
+    ANNOUNCEMENT("announcements"),
+    /** An item request waiting for the Master (P33), sent when it is submitted. */
+    REQUEST("approvals");
 
     private final String icon;
 

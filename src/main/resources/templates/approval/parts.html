@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- Parts of the Master's approvals (P33). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- A request's status as a badge: Waiting for the master (warning), Approved (ok), Declined (danger), Cancelled
+     (neutral). The words carry the state, the colour repeats it.
+     Use: <span th:replace="~{approval/parts :: statusBadge(${request.status})}"></span> -->
+<span th:fragment="statusBadge(status)"
+      th:replace="~{layout/parts :: status(${status.name() == 'PENDING'} ? 'warning' : (${status.name() == 'APPROVED'} ? 'ok'
+              : (${status.name() == 'REJECTED'} ? 'danger' : 'neutral')), #{${status.labelKey()}})}"></span>
+
+<!-- Who asked: "Demo Cook · Chief cook", or "Deleted user" when the account is gone. -->
+<th:block th:fragment="person(user)"><th:block th:if="${user != null}"
+        th:text="#{approval.personRole(${user.fullName}, #{${'role.' + user.role}})}">Demo Cook · Chief cook</th:block><th:block
+        th:if="${user == null}" th:text="#{audit.deletedUser}">Deleted user</th:block></th:block>
+
+</body>
+</html>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{more.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/layout :: layout(#{more.title}, ~{::main})}">
 <body>
 <!-- More (P31): the fifth tab of the crew's phone tab bar, an ordinary page (works without JavaScript). Who is signed
-     in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then My profile,
-     My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
+     in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then (the Master
+     only, P33) Approvals with the number waiting, My profile, My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
      Model: me (User), ship, profile (CrewProfile). -->
 <main class="more-page"
       th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null">
@@ -21,6 +21,19 @@
 
     <nav class="more-links" th:attr="aria-label=#{more.title}">
         <ul class="profile-rows">
+            <!-- The Master's approvals (P33), with the number waiting for them. -->
+            <li class="profile-row-item" sec:authorize="hasRole('MASTER')">
+                <a class="profile-row" th:href="@{/ship/approvals}">
+                    <svg th:replace="~{layout/parts :: navIcon('approvals')}"></svg>
+                    <span class="profile-row-main"><span class="profile-row-title" th:text="#{nav.approvals}">Approvals</span></span>
+                    <th:block th:if="${approvalsWaiting != null and approvalsWaiting > 0}">
+                        <span class="more-count num" aria-hidden="true" th:text="${approvalsWaiting > 99} ? '99+' : ${approvalsWaiting}">2</span>
+                        <span class="visually-hidden" th:text="${#messages.msg('nav.count.approvals', approvalsWaiting)}">2 waiting for you</span>
+                    </th:block>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
             <li class="profile-row-item">
                 <a class="profile-row" th:href="@{/ship/profile}">
                     <svg th:replace="~{layout/parts :: navIcon('profile')}"></svg>

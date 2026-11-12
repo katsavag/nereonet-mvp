@@ -30,7 +30,8 @@ Requirements: Java 25, Docker.
    and a demo ship (`MV Demo`, IMO 9074729). While there are no item requests it also creates two approved
    requests on the first ship (by name), with three demo items and, when the ship has no active Master / Chief cook,
    the users `master.demo@example.com` and `cook.demo@example.com` (password `crew123`). Since P31 the first ship
-   also gets three more crew members with sample profiles for My crew (see 20).
+   also gets three more crew members with sample profiles for My crew (see 20), and since P33, while it has none, two
+   requests waiting for its Master (see 21).
    While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
    "Drug and alcohol policy" (Company policies, required).
 
@@ -478,8 +479,9 @@ Requirements: Java 25, Docker.
    these two add an **Exported** column: when, in UTC, and by whom ("12 Nov 2026 · 10:32 UTC", "by John Doe", or
    "Not yet"). Search the number (`#12`), the people, the ship name or IMO number; sort by approved at, number, ship,
    requested by and approved by; 25 or 50 per page (paged in the database). Click a request (anywhere on its row but
-   the checkbox; its number is the link for the keyboard) to see its items (`/office/requests/{id}`). Creating and
-   approving requests on board come later; the dev profile seeds two (see 3).
+   the checkbox; its number is the link for the keyboard) to see its items (`/office/requests/{id}`). The Master sees
+   the requests waiting for them on board (21); creating and approving them there come later. The dev profile seeds
+   two approved (see 3) and two waiting (see 21).
 
    Exporting (P21), three clicks at most:
    - **Select** rows with their checkboxes, or all rows of the page with the checkbox in the table header (on phones,
@@ -733,6 +735,35 @@ Requirements: Java 25, Docker.
    - To try it: as `cook.demo@example.com` / `crew123`, **More** (phone) or **My profile** (sidebar): add two
      languages and a photo; then **My crew** shows the cook's photo with "· you", and Nikos Pappas's page shows his
      profile. As `office@example.com`, Crew → Demo Cook shows the Profile card.
+
+21. Approvals (P33, the Master only): the item requests of the Master's own ship, waiting for their decision.
+   `approval/ApprovalController` and `ApprovalService`, `templates/approval/`; English only, as every crew screen.
+   `/ship/approvals/**` is for MASTER only (`SecurityConfig`): the Chief cook and crew members get 403. A request of
+   another ship is a 404.
+   - **Where**: **Approvals** in the sidebar under On board, with the number waiting as a pill; on phones it is the
+     first row of **More** (`/ship/more`), with the same number, and the More tab carries it as a badge.
+   - **List** (`/ship/approvals`): two tabs (ordinary links). **Waiting** (the default, with its count): PENDING
+     requests, oldest first. **Decided** (`?tab=decided`): approved and declined, newest decision first, each with
+     "Approved" or "Declined" and the date. Each row is one link: who asked ("Demo Cook · Chief cook"), the request
+     number, when (UTC) and the number of items.
+   - **A request** (`/ship/approvals/{id}`): who asked, when, its status ("Waiting for the master", "Approved",
+     "Declined", "Cancelled"), who decided and when, and for a declined one the reason; then its lines in one card per
+     category (Provisions, then Personal items): name, quantity and unit. A line for an item not in the ship's list
+     yet has a **New item** badge (also on the office's request page, 15; such a line is under Provisions, as only
+     the Chief cook asks for new items, and the CSV has the name and unit given).
+   - **Submitting** (`core/request/RequestService.submit`, for the Chief cook's and crew pages that come later): saves
+     the request as PENDING with its lines (each line has either an item of the ship or a new item name, optionally
+     with a unit; quantity above zero), records "Request submitted" in the audit log (`Request #12, 3 lines`, by the
+     person who asked) and notifies the enabled Master of the ship: "New request to approve", linking to the request.
+   - Existing databases: Hibernate never changes a column it created, so on startup
+     `core/request/RequestSchemaMigration` drops the old not null on `request_line.item_id` and re-creates the check
+     constraints `item_request_status_check` and `notification_type_check` from the enums (the new `CANCELLED` and
+     `REQUEST`). It runs on every startup and changes nothing once done.
+   - Dev data: while the first ship has no PENDING request, two are submitted for its Master: one from the Chief cook
+     (Basmati rice, Olive oil, Eggs) and, 18 hours later, one from Maria Santos (Shower gel, a personal item, and
+     Eggs, as in the cook's request). The Master gets their two notifications.
+   - To try it: as `master.demo@example.com` / `crew123`, **Approvals** shows the two requests under Waiting; open
+     Maria Santos's to see Provisions and Personal items. As `cook.demo@example.com`, `/ship/approvals` is a 403.
 
 Run the tests (H2 in memory, no Docker needed):
 

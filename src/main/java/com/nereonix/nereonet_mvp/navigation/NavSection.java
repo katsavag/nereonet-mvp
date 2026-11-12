@@ -24,6 +24,8 @@ public enum NavSection {
     // Ship. Home is /ship itself only (P26), see of().
     HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
+    // The Master's approvals (P33). On phones it is under More, so More is its tab.
+    APPROVALS("approvals", List.of("/ship/approvals")),
     // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of My profile, My crew and Sign
     // out; it has no sidebar entry.
     PROFILE("profile", List.of("/ship/profile")),
@@ -44,9 +46,9 @@ public enum NavSection {
     }
 
     /** The phone tab (P26) that is active on this section's pages: More for My profile, My crew and More itself
-     *  (P31); every other section is its own tab. The office has no tab bar. */
+     *  (P31) and for Approvals (P33); every other section is its own tab. The office has no tab bar. */
     public String tab() {
-        return this == PROFILE || this == MORE || this == CREW ? MORE.key : key;
+        return this == PROFILE || this == MORE || this == CREW || this == APPROVALS ? MORE.key : key;
     }
 
     /**

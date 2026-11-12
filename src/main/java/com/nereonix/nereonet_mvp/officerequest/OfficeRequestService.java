@@ -233,8 +233,8 @@ public class OfficeRequestService {
                             request.getId(),
                             request.getDecidedAt().truncatedTo(ChronoUnit.SECONDS), // e.g. 2026-11-11T09:30:00Z
                             request.getDecidedBy() == null ? "" : request.getDecidedBy().getFullName(),
-                            line.getItem().getName(),
-                            line.getItem().getUnit(),
+                            line.getName(), // a new item (P33): the name and unit the Chief cook gave
+                            line.getUnit() == null ? "" : line.getUnit(),
                             line.getQuantity().stripTrailingZeros().toPlainString());
                 }
             }
