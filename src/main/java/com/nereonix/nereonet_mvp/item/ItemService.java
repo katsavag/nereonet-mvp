@@ -1,8 +1,10 @@
 package com.nereonix.nereonet_mvp.item;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,8 +13,12 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+
+import jakarta.persistence.criteria.Predicate;
 
 // Galley items of a ship. Items are never deleted, only deactivated.
 @Service
@@ -21,11 +27,14 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final ShipRepository shipRepository;
     private final AuditService auditService;
+    private final ListQueries listQueries;
 
-    public ItemService(ItemRepository itemRepository, ShipRepository shipRepository, AuditService auditService) {
+    public ItemService(ItemRepository itemRepository, ShipRepository shipRepository, AuditService auditService,
+                       ListQueries listQueries) {
         this.itemRepository = itemRepository;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
+        this.listQueries = listQueries;
     }
 
     // 404 if there is no such ship.
@@ -41,9 +50,42 @@ public class ItemService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
+    /**
+     * One page of the ship's Items tab (P19), paginated in the database. active: true, false or null (both);
+     * category: one category exactly, or null; the search is the name or the category. Sort keys: name (default),
+     * unit, category, status (active first).
+     */
     @Transactional(readOnly = true)
-    public List<Item> findItems(Long shipId) {
-        return itemRepository.findAllByShipIdOrderByNameAsc(shipId);
+    public Page<Item> findItems(Long shipId, Boolean active, String category, ListQuery list) {
+        return listQueries.page(Item.class, list, (root, cb) -> {
+            List<Predicate> where = new ArrayList<>();
+            where.add(cb.equal(root.get("ship").get("id"), shipId));
+            if (active != null) {
+                where.add(cb.equal(root.get("active"), active));
+            }
+            if (category != null) {
+                where.add(cb.equal(root.get("category"), category));
+            }
+            String q = list.getContains();
+            if (q != null) {
+                where.add(cb.or(ListQueries.contains(cb, root.get("name"), q),
+                        ListQueries.contains(cb, root.get("category"), q)));
+            }
+            return where;
+        }, (root, cb) -> switch (list.getSort()) {
+            case "unit" -> List.of(cb.lower(root.get("unit")), cb.lower(root.get("name")));
+            case "category" -> List.of(cb.lower(root.get("category")), cb.lower(root.get("name")));
+            // Active before inactive when ascending.
+            case "status" -> List.of(cb.<Integer>selectCase().when(cb.isTrue(root.get("active")), 0).otherwise(1),
+                    cb.lower(root.get("name")));
+            default -> List.of(cb.lower(root.get("name")));
+        }, null);
+    }
+
+    /** The categories the ship's items use, for the Category filter. */
+    @Transactional(readOnly = true)
+    public List<String> findCategories(Long shipId) {
+        return itemRepository.findCategories(shipId);
     }
 
     /** Saves a new, active item. Throws ItemNameTakenException if the ship has an item with this name. */

@@ -19,7 +19,7 @@
         </div>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.size()}, subtitle=#{announcement.list.hint}, actions=~{::pageActions})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.list.heading}, count=${rows.totalElements}, subtitle=#{announcement.list.hint}, actions=~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <a class="btn btn-primary" th:href="@{/office/announcements/new}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -27,36 +27,28 @@
             </a>
         </th:block>
     </header>
-
-    <!-- Filter by ship: that ship's announcements and the ones to all ships. -->
-    <form class="row g-2 align-items-end mb-4" th:action="@{/office/announcements}" method="get">
-        <div class="col-12 col-md-5">
-            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
-            <select id="filterShipId" name="shipId" class="form-select">
-                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
-                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
-                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-ghost" th:href="@{/office/announcements}" th:text="#{crew.filter.clear}">Clear</a>
-        </div>
-    </form>
     </th:block>
 
-    <div class="card">
-        <p th:if="${rows.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{announcement.list.empty}">No announcements yet.</p>
+    <!-- Search, filters and chips (P19). Filter by ship: that ship's announcements and the ones to all ships. The ship's
+         tab has no ship filter. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{announcement.search}, ${onShip} ? null : ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div>
+        </th:block>
+    </div>
 
-        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
-        <div th:unless="${rows.isEmpty()}" class="table-responsive">
+    <div class="card">
+        <th:block th:replace="~{layout/parts :: listEmpty(${rows}, ${list}, #{announcement.list.empty})}"></th:block>
+
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones; table-sticky:
+             the header stays visible while the page scrolls. -->
+        <div th:unless="${rows.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{announcement.title}">Title</th>
-                    <th scope="col" th:text="#{announcement.target}">Target</th>
-                    <th scope="col" th:text="#{announcement.sentAt}">Sent</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'title', #{announcement.title})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'target', #{announcement.target})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'sentAt', #{announcement.sentAt})}"></th>
                     <th scope="col" th:text="#{announcement.acknowledgements}">Acknowledged</th>
                 </tr>
                 </thead>
@@ -78,6 +70,7 @@
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${rows}, ${list})}"></nav>
     </div>
 </main>
 </body>

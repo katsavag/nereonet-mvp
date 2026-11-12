@@ -215,7 +215,7 @@ class ShipPageFlowTest {
                 // The Crew tab's Add crew member modal has the ship field, preselected (P17).
                 assertThat(html).as("no ship field on " + url).doesNotContain("name=\"shipId\"");
             }
-            assertThat(html).as("no ship column on " + url).doesNotContain("<th scope=\"col\">Ship</th>");
+            assertThat(html).as("no ship column on " + url).doesNotContain("<th scope=\"col\">Ship</th>", "sort=ship");
             assertThat(html).as("only this ship on " + url).doesNotContain("Elsa Where", "Elsewhere cert");
             // Other ships only as choices of the Crew tab's Add crew member modal (P17).
             assertThat(html.replaceAll("<option [^>]*>[^<]*</option>", "")).as("only this ship on " + url)
@@ -225,7 +225,7 @@ class ShipPageFlowTest {
         for (String url : List.of("/office/crew", "/office/certificates", "/office/announcements", "/office/requests")) {
             assertThat(html(get(url))).as("ship filter on " + url).contains("id=\"filterShipId\"");
         }
-        assertThat(html(get("/office/crew"))).contains("<th scope=\"col\">Ship</th>", "Elsa Where");
+        assertThat(html(get("/office/crew"))).contains("href=\"/office/crew?sort=ship&amp;dir=asc\"", "Elsa Where");
     }
 
     // P17: the Crew tab has the Crew page's Add crew member modal with the ship preselected; the former invitation

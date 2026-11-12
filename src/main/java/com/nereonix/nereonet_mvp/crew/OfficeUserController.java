@@ -15,6 +15,9 @@ import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.invitation.EmailAlreadyRegisteredException;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationService;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
@@ -32,6 +35,9 @@ public class OfficeUserController {
 
     private static final String LIST = "redirect:/office/users";
 
+    // The columns that sort (P19), the default first.
+    private static final ListSort[] SORTS = {ListSort.asc("name"), ListSort.asc("email"), ListSort.asc("status")};
+
     private final CrewService crewService;
     private final InvitationService invitationService;
     private final ConfirmPages confirmPages;
@@ -43,11 +49,13 @@ public class OfficeUserController {
         this.confirmPages = confirmPages;
     }
 
-    // The invite form is a modal on the list page.
+    // The invite form is a modal on the list page. status: the Status filter (CrewStatus key); listRequest: search,
+    // sort and page (P19).
     @GetMapping("/office/users")
-    public String list(Model model) {
+    public String list(@RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                       Model model) {
         model.addAttribute("form", new OfficeInvitationForm());
-        return showList(model);
+        return showList(CrewStatus.of(status).orElse(null), listRequest, model);
     }
 
     // Old bookmarks and links in sent emails.
@@ -62,7 +70,7 @@ public class OfficeUserController {
                          @AuthenticationPrincipal CurrentUser user, Model model,
                          RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
-            return showList(model);
+            return showList(null, ListRequest.EMPTY, model);
         }
         Invitation invitation;
         try {
@@ -70,7 +78,7 @@ public class OfficeUserController {
                     user.getUsername());
         } catch (EmailAlreadyRegisteredException e) {
             result.rejectValue("email", "invitation.error.userExists");
-            return showList(model);
+            return showList(null, ListRequest.EMPTY, model);
         }
         // "Invitation sent to <address>.": there is no "Repeat email" field, so the office sees where it went.
         redirectAttributes.addFlashAttribute("successMessage", "invitation.sent");
@@ -84,11 +92,12 @@ public class OfficeUserController {
     @PostMapping("/office/invitations/{id}/resend")
     public String resend(@PathVariable Long id, @RequestParam(required = false) String returnTo,
                          @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
-                         @RequestParam(required = false) String status, RedirectAttributes redirectAttributes) {
+                         @RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                         RedirectAttributes redirectAttributes) {
         boolean done = invitationService.resend(id);
         redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
                 done ? "invitation.resent" : "invitation.error.notPending");
-        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status).url();
+        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status, listRequest).url();
     }
 
     // The confirmation page: where Cancel leads when js/confirm.js did not load (P10). It keeps where to return to, as
@@ -97,9 +106,10 @@ public class OfficeUserController {
     @GetMapping("/office/invitations/{id}/cancel")
     public String confirmCancel(@PathVariable Long id, @RequestParam(required = false) String returnTo,
                                 @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
-                                @RequestParam(required = false) String status, Model model,
+                                @RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                                Model model,
                                 RedirectAttributes redirectAttributes) {
-        CrewListReturn back = CrewListReturn.of(returnTo, tab, shipId, status);
+        CrewListReturn back = CrewListReturn.of(returnTo, tab, shipId, status, listRequest);
         Invitation invitation = invitationService.findPending(id).orElse(null);
         if (invitation == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "invitation.error.notPending");
@@ -128,16 +138,23 @@ public class OfficeUserController {
     @PostMapping("/office/invitations/{id}/cancel")
     public String cancel(@PathVariable Long id, @RequestParam(required = false) String returnTo,
                          @RequestParam(required = false) String tab, @RequestParam(required = false) Long shipId,
-                         @RequestParam(required = false) String status, RedirectAttributes redirectAttributes) {
+                         @RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                         RedirectAttributes redirectAttributes) {
         boolean done = invitationService.cancel(id);
         redirectAttributes.addFlashAttribute(done ? "successMessage" : "errorMessage",
                 done ? "invitation.cancelled" : "invitation.error.notPending");
-        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status).url();
+        return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status, listRequest).url();
     }
 
-    private String showList(Model model) {
-        model.addAttribute("users", crewService.findOfficeUsers());
-        model.addAttribute("invited", invitationService.findPendingOfficeInvitations());
+    // Model: list (ListQuery), people (one page of PeopleQueries.Row), the status filter.
+    private String showList(CrewStatus status, ListRequest request, Model model) {
+        ListQuery list = CrewStatus.filter(ListQuery.of("/office/users", request, SORTS), status);
+        model.addAttribute("list", list);
+        model.addAttribute("people", crewService.findOfficeUsers(status, list));
+        model.addAttribute("status", status == null ? null : status.key());
+        model.addAttribute("statuses", CrewStatus.values());
+        // Resend and Cancel on an invitation come back here, as it is.
+        model.addAttribute("listParams", CrewListReturn.officeUsers(status, list.getRequest()).params());
         return "crew/office-users";
     }
 }

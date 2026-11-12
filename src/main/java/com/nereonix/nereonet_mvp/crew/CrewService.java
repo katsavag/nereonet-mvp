@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationService;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -36,11 +38,12 @@ public class CrewService {
     private final AuditService auditService;
     private final AuditRepository auditRepository;
     private final CertificateRepository certificateRepository;
+    private final PeopleQueries peopleQueries;
 
     public CrewService(UserRepository userRepository, ShipRepository shipRepository, UserService userService,
                        InvitationRepository invitationRepository, InvitationService invitationService,
                        AuditService auditService, AuditRepository auditRepository,
-                       CertificateRepository certificateRepository) {
+                       CertificateRepository certificateRepository, PeopleQueries peopleQueries) {
         this.userRepository = userRepository;
         this.shipRepository = shipRepository;
         this.userService = userService;
@@ -49,59 +52,30 @@ public class CrewService {
         this.auditService = auditService;
         this.auditRepository = auditRepository;
         this.certificateRepository = certificateRepository;
+        this.peopleQueries = peopleQueries;
     }
 
-    /** Users with a ship role, all ships or one ship (shipId may be null). */
+    /**
+     * One page of the Crew list (P19): users with a ship role and PENDING crew invitations (shown as "Invited" or
+     * "Invitation expired"), searched by name or email, filtered by ship and status (CrewStatus: enabled users for
+     * ACTIVE, the others for INACTIVE, invitations before and after their expiry for INVITED and EXPIRED; shipId and
+     * status may be null) and sorted, all in the database (PeopleQueries).
+     */
     @Transactional(readOnly = true)
-    public List<User> findCrew(Long shipId) {
-        if (shipId == null) {
-            return userRepository.findAllByRoleNotOrderByFullNameAsc(Role.OFFICE_USER);
-        }
-        return shipRepository.findById(shipId)
-                .map(userRepository::findAllByShipOrderByFullNameAsc)
-                .orElse(List.of());
+    public Page<PeopleQueries.Row> findCrew(Long shipId, CrewStatus status, ListQuery list) {
+        return peopleQueries.page(false, shipId, status, list);
     }
 
-    /** PENDING invitations for ship roles, all ships or one ship (shipId may be null). Shown as "Invited". */
+    /** P18's "Rank needs review" notice: the users of the Crew list as filtered (every page, not only this one). */
     @Transactional(readOnly = true)
-    public List<Invitation> findInvited(Long shipId) {
-        if (shipId == null) {
-            return invitationRepository.findAllByStatusAndRoleNotOrderByFullNameAsc(Invitation.Status.PENDING,
-                    Role.OFFICE_USER);
-        }
-        return shipRepository.findById(shipId)
-                .map(ship -> invitationRepository.findAllByStatusAndShipOrderByFullNameAsc(Invitation.Status.PENDING,
-                        ship))
-                .orElse(List.of());
+    public List<User> findRankNeedsReview(Long shipId, CrewStatus status, ListQuery list) {
+        return peopleQueries.rankNeedsReview(shipId, status, list);
     }
 
-    /** findCrew with the Crew list's Status filter (P17): enabled users for ACTIVE, the others for INACTIVE, none for
-     *  the invitation statuses; every user when status is null. */
+    /** One page of Office users: office users and pending office invitations, the same way (P19). */
     @Transactional(readOnly = true)
-    public List<User> findCrew(Long shipId, CrewStatus status) {
-        if (status == null) {
-            return findCrew(shipId);
-        }
-        if (!status.users()) {
-            return List.of();
-        }
-        boolean enabled = status == CrewStatus.ACTIVE;
-        return findCrew(shipId).stream().filter(user -> user.isEnabled() == enabled).toList();
-    }
-
-    /** findInvited with the Status filter: not yet expired for INVITED, past expiry for EXPIRED, none for the user
-     *  statuses; every pending invitation when status is null. */
-    @Transactional(readOnly = true)
-    public List<Invitation> findInvited(Long shipId, CrewStatus status) {
-        if (status == null) {
-            return findInvited(shipId);
-        }
-        if (status.users()) {
-            return List.of();
-        }
-        Invitation.DisplayStatus wanted = status == CrewStatus.EXPIRED
-                ? Invitation.DisplayStatus.EXPIRED : Invitation.DisplayStatus.PENDING;
-        return findInvited(shipId).stream().filter(invitation -> invitation.getDisplayStatus() == wanted).toList();
+    public Page<PeopleQueries.Row> findOfficeUsers(CrewStatus status, ListQuery list) {
+        return peopleQueries.page(true, null, status, list);
     }
 
     /**
@@ -112,12 +86,6 @@ public class CrewService {
     public Invitation addCrewMember(String fullName, String email, Rank rank, Long shipId, String actorEmail) {
         // Records INVITATION_SENT in the audit log.
         return invitationService.invite(email, fullName, rank.role(), shipId, rank, actorEmail);
-    }
-
-
-    @Transactional(readOnly = true)
-    public List<User> findOfficeUsers() {
-        return userRepository.findAllByRoleOrderByFullNameAsc(Role.OFFICE_USER);
     }
 
     // For the crew list filter: crew can still be on an inactive ship.

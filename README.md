@@ -164,12 +164,15 @@ Requirements: Java 25, Docker.
    default), so the message never tells a stranger that an email has an account.
 
 8. Crew (signed in as an office user): **Crew** in the sidebar (`/office/crew`) lists every user with a ship role
-   and every pending crew invitation, filterable by ship and by **Status**: Active, Invited, Invitation expired,
+   and every pending crew invitation in one list, searchable (name or email) and filterable by ship and by **Status**: Active, Invited, Invitation expired,
    Inactive (query parameters, so other pages can link to a filtered list: `/office/crew?status=expired`,
-   `?shipId=1&status=invited`; an unknown value shows every status). An invitation shows its status with its date,
+   `?shipId=1&status=invited`; an unknown value shows every status), sortable by name (the default), email, rank, ship
+   and status, 25 or 50 per page (see "lists: search, sort and pages (P19)" below; users and invitations are paged together
+   in the database, one native SQL `UNION ALL` in `crew/PeopleQueries`). The ship's **Crew** tab is the same list for
+   that ship, without the ship filter. An invitation shows its status with its date,
    "Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has **Resend** (one
    click, also when expired: new link, new expiry date, new email) and, in the row's **⋯** menu, **Cancel invitation**
-   (asks first, see 6); both come back to the list with its filters (P17). **Add crew member** opens a pop-up form
+   (asks first, see 6); both come back to the list as it was: search, filters, sort and page (P17, P19). **Add crew member** opens a pop-up form
    (full name, email, rank, active ship; no role, see 6) that sends an invitation email (see Mailpit) and names the address in
    its success message;
    the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank
@@ -198,7 +201,8 @@ Requirements: Java 25, Docker.
      members. Regenerate it with `./mvnw test -Dtest=CrewSampleFileGenerator -DgenerateSample=true`.
 
 9. Office users (signed in as an office user): **Office users** in the sidebar (`/office/users`) lists the office users
-   and the pending office invitations together, with **Invite office user** (see 6).
+   and the pending office invitations together, with **Invite office user** (see 6). Search (name or email), a
+   **Status** filter, sorting by name, email and status and pages as on Crew (paged in the database the same way).
    Any user, crew or office, can be deactivated (they can no longer sign in) and activated again, from the **⋯** menu
    at the end of their row (here and on **Crew**). **Deactivate** asks first ("Deactivate Jane Doe? Jane Doe will not be
    able to sign in until activated again."; a session that is already open is not ended). A deactivated user can also
@@ -209,7 +213,8 @@ Requirements: Java 25, Docker.
    You cannot deactivate or delete yourself.
 
 10. Audit log (signed in as an office user): **Audit log** in the sidebar (`/office/audit`). Lists who did what and
-   when, newest first, 50 rows per page, filterable by ship and date range (UTC days). Recorded so far: ship added,
+   when, newest first, 25 or 50 rows per page (paged in the database), searchable (who did it, by name or email, and
+   the details), filterable by ship and date range (UTC days), sortable by when, who, action and ship. Recorded so far: ship added,
    edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted; password reset (the user, by their email; see 17);
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
    certificate reminder sent (by "System"); announcement sent; requests exported (count and ids).
@@ -218,7 +223,9 @@ Requirements: Java 25, Docker.
 11. Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see 5).
    Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`) and an optional category.
    **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted. Deactivate asks first
-   ("The crew of MV Demo cannot request Basmati rice until it is activated again.").
+   ("The crew of MV Demo cannot request Basmati rice until it is activated again."). The list is searchable (name and
+   category), filterable by status (Active, Inactive) and category, sortable by name (the default), unit,
+   category and status, 25 or 50 per page (paged in the database).
    **Import** (`/office/ships/{id}/items/import`) adds many items at once:
    - **Download template** gives `items-template.xlsx` with the header row `Name | Unit | Category`. Only this header is accepted.
    - Upload it as `.xlsx` (first sheet) or `.csv` (UTF-8, `,` or `;`). The review screen shows every row, editable, with
@@ -239,7 +246,10 @@ Requirements: Java 25, Docker.
    **Certificates** card lists their certificates (type, optional number, expiry date) with **Add certificate**,
    **Edit** and, in the row's **⋯** menu, **Delete** (after the confirmation "Delete STCW Basic Safety?").
    **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
-   expires within 90 days or has expired, soonest first, filterable by ship, with a badge: Expired, 30, 60 or 90 days.
+   expires within 90 days or has expired, soonest first, with a badge: Expired, 30, 60 or 90 days. Searchable (type,
+   number, crew member), filterable by ship and by **Status** (`?due=expired`, `30`, `60`, `90`: the badge steps),
+   sortable by expiry, type, crew member, ship and number, 25 or 50 per page (paged in the database). The ship's
+   **Certificates** tab is the same list for that ship.
 
    A daily job (06:00 UTC; change it with `CERTIFICATE_REMINDER_CRON`, a Spring cron such as `0 0 6 * * *`) reminds
    about certificates of active users that expire within 90, 60 or 30 days: the crew member gets an email and an in-app
@@ -254,7 +264,9 @@ Requirements: Java 25, Docker.
 
 14. Announcements (signed in as an office user): **Announcements** in the sidebar (`/office/announcements`) lists every
    announcement, newest first, with its target (All ships or a ship), date and e.g. "1 of 2 acknowledged".
-   Filter by ship to see the announcements sent to that ship or to all ships.
+   Filter by ship to see the announcements sent to that ship or to all ships; search the title; sort by sent (the
+   default, newest first), title and target; 25 or 50 per page (paged in the database, the acknowledgement counts read
+   for that page only).
    **New announcement** asks for the target (All ships or one active ship; nothing is preselected), a title and a
    plain-text message. Announcements cannot be edited or deleted, so sending takes two steps (P10). Above the
    **Review** and **Send** buttons both steps say, as a quiet info note, "Nereonix is not an emergency or safety
@@ -278,7 +290,9 @@ Requirements: Java 25, Docker.
 
 15. Approved requests (signed in as an office user): **Requests** in the sidebar (`/office/requests`) lists the item
    requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at, number of
-   lines and an "Exported" mark. Filter by ship and "Not exported yet". Click a request to see its items
+   lines and an "Exported" mark. Filter by ship and "Not exported yet"; search the number (`#12`), the people, the ship
+   name or IMO number; sort by approved at, number, ship, requested by and approved by; 25 or 50 per page (paged in
+   the database). Click a request to see its items
    (`/office/requests/{id}`). Creating and approving requests on board come later; the dev profile seeds two (see 3).
 
    Check one or more requests and click **Export CSV** to download `approved-requests-<date>.csv` (UTF-8 with BOM,
@@ -400,8 +414,9 @@ The app makes no request to any other host: everything a page needs is served fr
     40 px (44 px on phones), also the small ones. Four levels: `btn-primary` (filled navy, at most one per view and
     one per modal), `btn-outline-secondary` (secondary: surface, visible border, navy text), `btn-ghost`
     (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog,
-    on a confirmation page or in a row's overflow menu, never directly in a row). Filter forms use secondary **Filter** and tertiary
-    **Clear**. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
+    on a confirmation page or in a row's overflow menu, never directly in a row). Filter bars apply on change (see
+    "lists: search, sort and pages (P19)"); without JavaScript they show a secondary **Apply**, and **Clear all** is a
+    tertiary link. Disabled buttons are 50% opaque with a not-allowed cursor; the reason is in the text next to them;
   - page header actions sit in `.page-actions` (the `actions` slot of `layout/parts :: pageHeader`) with a 16 px icon
     before the label (`layout/parts :: icon`: plus, upload, download); on phones they stack full width;
   - lists (P04): one table style, `.data-table`, on every office list (ships, crew, office users, invitations,
@@ -415,6 +430,25 @@ The app makes no request to any other host: everything a page needs is served fr
     on the tab instead; list cards have no header of their own. Email addresses never break: they are cut with an ellipsis and the
     full address is in the title attribute (`layout/parts :: email`). Status badges are a dot plus text in the
     status colours (`layout/parts :: status`, tones ok, warning, danger, info, primary, neutral);
+  - lists: search, sort and pages (P19): every office list (Crew, Office users, Certificates, Items, Requests,
+    Announcements, Audit log, and the same lists in the ship tabs) has one filter bar (`layout/parts :: filterBar`:
+    search field, the list's filters, `shipFilter` for the ship). It is a GET form, so the whole state is in the URL
+    (`?q=…&shipId=…&status=…&sort=…&dir=…&size=…&page=…`, in that order, only what is set) and every list URL reloads
+    to the same result and can be bookmarked or linked to. With `static/js/list-filter.js` a filter applies as soon as
+    it changes and the search on Enter or after a 400 ms pause; focus comes back to the field after the reload.
+    Without JavaScript an **Apply** button is shown. Active filters are chips (`list.search.chip` first), each with a
+    remove link, and **Clear all** (it keeps the sort and page size). Sortable column headers are links
+    (`layout/parts :: sortHeader`) with `aria-sort` and a direction arrow: the first click sorts the column
+    (ascending, dates newest first), the next one reverses it. The server sorts; an unknown sort key falls back to the
+    list's default. Pages: 25 rows, or 50 (`size=50`), with "1 to 25 of 412", **Previous** and **Next**
+    (`layout/parts :: pager`, shown when there is more than one page of 25; a disabled link has no `href`); changing
+    the search, a filter, the sort or the size goes back to page 1, a page past the end shows the last page. Every
+    list is counted and paged in the database (`core/list/ListQueries`: a JPA Criteria count plus a `LIMIT`/`OFFSET`
+    query with the id as tie-breaker; Crew and Office users: a native `UNION ALL` of users and pending invitations in
+    `crew/PeopleQueries`). The list state is read by `core/list/ListQuery` (from the `ListRequest` record), which
+    also builds every link. From 1200 px the table header stays visible while the page scrolls (`.table-sticky`; below
+    that wide tables scroll sideways and phone lists are stacked cards). A filtered list with no rows says "No results
+    for these filters" with **Clear all** (`layout/parts :: listEmpty`), not the first-use empty text;
   - row actions: at most one visible tertiary button (e.g. **Edit** on a ship, **Resend** on an invitation) and a
     **⋯** "more" menu (`layout/parts :: rowMenu`) named after the record for screen readers ("More actions: MV
     Demo"), holding the rest; destructive entries (deactivate, delete, cancel) come last, after a divider, in red,

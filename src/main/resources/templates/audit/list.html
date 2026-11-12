@@ -4,45 +4,35 @@
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{audit.heading}, count=${entries.totalElements})}"></header>
 
-    <!-- Filters. A GET form, so the filtered page can be bookmarked. Submitting starts again at page 1. -->
-    <form class="row g-2 align-items-end mb-4" th:action="@{/office/audit}" th:object="${filter}" method="get">
-        <div class="col-12 col-md-4">
-            <label for="shipId" class="form-label fw-semibold small" th:text="#{audit.ship}">Ship</label>
-            <select th:field="*{shipId}" class="form-select">
-                <option value="" th:text="#{audit.filter.allShips}">All ships</option>
-                <option th:each="s : ${ships}" th:value="${s.id}"
-                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-            </select>
-        </div>
-        <div class="col-6 col-md-3">
-            <label for="from" class="form-label fw-semibold small" th:text="#{audit.filter.from}">From</label>
-            <input type="date" th:field="*{from}" class="form-control">
-        </div>
-        <div class="col-6 col-md-3">
-            <label for="to" class="form-label fw-semibold small" th:text="#{audit.filter.to}">To</label>
-            <input type="date" th:field="*{to}" class="form-control">
-        </div>
-        <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{audit.filter.apply}">Filter</button>
-            <a class="btn btn-ghost" th:href="@{/office/audit}" th:text="#{audit.filter.clear}">Clear</a>
-        </div>
-    </form>
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{audit.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div th:replace="~{layout/parts :: shipFilter(${ships}, ${filter.shipId})}"></div>
+            <div class="filter-field filter-field-date">
+                <label for="from" class="form-label" th:text="#{audit.filter.from}">From (UTC)</label>
+                <input type="date" id="from" name="from" th:value="${filter.from}" class="form-control">
+            </div>
+            <div class="filter-field filter-field-date">
+                <label for="to" class="form-label" th:text="#{audit.filter.to}">To (UTC)</label>
+                <input type="date" id="to" name="to" th:value="${filter.to}" class="form-control">
+            </div>
+        </th:block>
+    </div>
 
     <div class="card">
-        <p th:if="${entries.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{audit.empty}">No entries.</p>
+        <th:block th:replace="~{layout/parts :: listEmpty(${entries}, ${list}, #{audit.empty})}"></th:block>
 
         <!-- data-table: the shared list style. The audit log keeps its columns on phones and scrolls sideways.
              Every row is one line, so all rows have the same height; long values are cut with an ellipsis and
-             shown in full in the title attribute. -->
-        <div th:unless="${entries.isEmpty()}" class="table-responsive">
+             shown in full in the title attribute. table-sticky: the header stays visible while the page scrolls. -->
+        <div th:unless="${entries.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{audit.when}">When</th>
-                    <th scope="col" th:text="#{audit.who}">Who</th>
-                    <th scope="col" th:text="#{audit.action}">Action</th>
-                    <th scope="col" th:text="#{audit.ship}">Ship</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'when', #{audit.when})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'who', #{audit.who})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'action', #{audit.action})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{audit.ship})}"></th>
                     <th scope="col" th:text="#{audit.details}">Details</th>
                 </tr>
                 </thead>
@@ -79,22 +69,7 @@
                 </tbody>
             </table>
         </div>
-
-        <!-- 50 rows per page. The links keep the filters. -->
-        <div th:if="${entries.totalPages > 1}"
-             class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3">
-            <!-- On the first or last page the link is disabled: no href, so it cannot be followed. -->
-            <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.first} ? 'disabled'"
-               th:attr="aria-disabled=${entries.first} ? 'true' : null"
-               th:href="${entries.first} ? null : @{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number - 1})}"
-               th:text="#{audit.previous}">Previous</a>
-            <span class="small text-body-secondary"
-                  th:text="#{audit.pageOf(${entries.number + 1}, ${entries.totalPages})}">Page 1 of 2</span>
-            <a class="btn btn-outline-secondary btn-sm" th:classappend="${entries.last} ? 'disabled'"
-               th:attr="aria-disabled=${entries.last} ? 'true' : null"
-               th:href="${entries.last} ? null : @{/office/audit(shipId=${filter.shipId},from=${filter.from},to=${filter.to},page=${entries.number + 1})}"
-               th:text="#{audit.next}">Next</a>
-        </div>
+        <nav th:replace="~{layout/parts :: pager(${entries}, ${list})}"></nav>
     </div>
 </main>
 </body>

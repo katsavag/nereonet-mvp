@@ -19,40 +19,40 @@
         <p class="tab-hint" th:text="#{certificate.list.hint}">Certificates that expire within 90 days ...</p>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.size()}, subtitle=#{certificate.list.hint})}"></header>
-
-    <!-- Filter by ship. A GET form, so the filtered page can be bookmarked. -->
-    <form class="row g-2 align-items-end mb-4" th:action="@{/office/certificates}" method="get">
-        <div class="col-12 col-md-5">
-            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
-            <select id="filterShipId" name="shipId" class="form-select">
-                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
-                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
-                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-ghost" th:href="@{/office/certificates}" th:text="#{crew.filter.clear}">Clear</a>
-        </div>
-    </form>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.totalElements}, subtitle=#{certificate.list.hint})}"></header>
     </th:block>
 
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. The ship's tab has no
+         ship filter. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{certificate.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <th:block th:unless="${onShip}"><div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div></th:block>
+            <div class="filter-field">
+                <label for="filterDue" class="form-label" th:text="#{certificate.status}">Status</label>
+                <select id="filterDue" name="due" class="form-select">
+                    <option value="" th:text="#{certificate.filter.allDue}">All, within 90 days</option>
+                    <option th:each="d : ${dues}" th:value="${d.key()}" th:selected="${d.key() == due}"
+                            th:text="#{${'certificate.filter.due.' + d.key()}}">Expired</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+
     <div class="card">
-        <p th:if="${certificates.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{certificate.list.empty}">No certificates expire within 90 days.</p>
+        <th:block th:replace="~{layout/parts :: listEmpty(${certificates}, ${list}, #{certificate.list.empty})}"></th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
-             stack-hide: not shown there. Soonest expiry first. -->
-        <div th:unless="${certificates.isEmpty()}" class="table-responsive">
+             stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls. Soonest
+             expiry first unless sorted otherwise (P19). -->
+        <div th:unless="${certificates.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{certificate.type}">Type</th>
-                    <th scope="col" th:text="#{certificate.crewMember}">Crew member</th>
-                    <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
-                    <th scope="col" th:text="#{certificate.number}">Number</th>
-                    <th scope="col" th:text="#{certificate.expiresOn}">Expires on</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'type', #{certificate.type})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'crewMember', #{certificate.crewMember})}"></th>
+                    <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'number', #{certificate.number})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'expiresOn', #{certificate.expiresOn})}"></th>
                     <th scope="col" th:text="#{certificate.status}">Status</th>
                 </tr>
                 </thead>
@@ -81,6 +81,7 @@
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${certificates}, ${list})}"></nav>
     </div>
 </main>
 </body>

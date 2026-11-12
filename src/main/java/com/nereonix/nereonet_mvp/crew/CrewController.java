@@ -16,6 +16,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.invitation.EmailAlreadyRegisteredException;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -40,25 +44,33 @@ public class CrewController {
         this.confirmPages = confirmPages;
     }
 
+    // The Crew list's columns that sort (P19), the default first; the Crew tab has no Ship column.
+    private static final ListSort[] FLEET_SORTS =
+            {ListSort.asc("name"), ListSort.asc("email"), ListSort.asc("rank"), ListSort.asc("ship"), ListSort.asc("status")};
+    private static final ListSort[] TAB_SORTS =
+            {ListSort.asc("name"), ListSort.asc("email"), ListSort.asc("rank"), ListSort.asc("status")};
+
     // The "Add crew member" form is a modal on the list page. status: the Status filter (CrewStatus key); an unknown
-    // value shows every status.
+    // value shows every status. listRequest: search, sort and page (P19, core/list/ListQuery).
     @GetMapping("/office/crew")
     public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
-                       Model model) {
+                       @ModelAttribute ListRequest listRequest, Model model) {
         model.addAttribute("addForm", new AddCrewForm());
-        return showList(shipId, CrewStatus.of(status).orElse(null), model);
+        return showList(shipId, CrewStatus.of(status).orElse(null), listRequest, model);
     }
 
-    // The Crew tab of the ship page: the same list for one ship, without the ship filters and column. Add crew member
+    // The Crew tab of the ship page: the same list for one ship, without the ship filter and column. Add crew member
     // opens the same modal as on the Crew page with this ship preselected; ?add=true opens it on load (where the
     // former invitation page, /office/ships/{id}/invitations/new, now leads).
     @GetMapping("/office/ships/{id}/crew")
-    public String shipCrew(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean add, Model model) {
+    public String shipCrew(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean add,
+                           @RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                           Model model) {
         AddCrewForm form = new AddCrewForm();
         form.setShipId(id);
         model.addAttribute("addForm", form);
         model.addAttribute("openAdd", add);
-        return showShipCrew(id, model);
+        return showShipCrew(id, CrewStatus.of(status).orElse(null), listRequest, model);
     }
 
     // On errors the list page is shown again and the modal reopens with the errors.
@@ -68,7 +80,7 @@ public class CrewController {
                       RedirectAttributes redirectAttributes) {
         Invitation invitation = invite(form, result, currentUser);
         if (invitation == null) {
-            return showList(null, null, model);
+            return showList(null, null, ListRequest.EMPTY, model);
         }
         sent(invitation, redirectAttributes);
         return "redirect:/office/crew";
@@ -83,7 +95,7 @@ public class CrewController {
         shipFrame.ship(id);
         Invitation invitation = invite(form, result, currentUser);
         if (invitation == null) {
-            return showShipCrew(id, model);
+            return showShipCrew(id, null, ListRequest.EMPTY, model);
         }
         sent(invitation, redirectAttributes);
         return "redirect:" + ShipTab.CREW.url(invitation.getShip().getId());
@@ -222,26 +234,32 @@ public class CrewController {
         return page.crumbText(user.getFullName(), "/office/crew/" + user.getId() + "/edit");
     }
 
-    private String showList(Long shipId, CrewStatus status, Model model) {
-        List<User> crew = crewService.findCrew(shipId, status);
-        model.addAttribute("crew", crew);
+    // Model: list (ListQuery), people (one page of PeopleQueries.Row), the filters' options and values.
+    private String showList(Long shipId, CrewStatus status, ListRequest request, Model model) {
+        List<Ship> ships = crewService.findAllShips();
+        ListQuery list = CrewStatus.filter(ListQuery.of("/office/crew", request, FLEET_SORTS).filterShip(shipId, ships),
+                status);
+        model.addAttribute("list", list);
+        model.addAttribute("people", crewService.findCrew(shipId, status, list));
         // P18: the "Rank needs review" notice, for the crew members in the list as filtered.
-        model.addAttribute("rankNeedsReview", crew.stream().filter(User::rankNeedsReview).toList());
-        model.addAttribute("invited", crewService.findInvited(shipId, status));
-        model.addAttribute("ships", crewService.findAllShips());
+        model.addAttribute("rankNeedsReview", crewService.findRankNeedsReview(shipId, status, list));
+        model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
         model.addAttribute("status", status == null ? null : status.key());
         model.addAttribute("statuses", CrewStatus.values());
-        // Resend and Cancel on an invitation come back here, filters kept.
-        model.addAttribute("listParams", CrewListReturn.fleet(shipId, status).params());
+        // Resend and Cancel on an invitation come back here, as it is.
+        model.addAttribute("listParams", CrewListReturn.fleet(shipId, status, list.getRequest()).params());
         return showAddForm(model);
     }
 
-    private String showShipCrew(Long shipId, Model model) {
+    private String showShipCrew(Long shipId, CrewStatus status, ListRequest request, Model model) {
         shipFrame.show(model, shipFrame.ship(shipId), ShipTab.CREW);
-        model.addAttribute("crew", crewService.findCrew(shipId));
-        model.addAttribute("invited", crewService.findInvited(shipId));
-        model.addAttribute("listParams", CrewListReturn.shipTab(shipId).params());
+        ListQuery list = CrewStatus.filter(ListQuery.of(ShipTab.CREW.url(shipId), request, TAB_SORTS), status);
+        model.addAttribute("list", list);
+        model.addAttribute("people", crewService.findCrew(shipId, status, list));
+        model.addAttribute("status", status == null ? null : status.key());
+        model.addAttribute("statuses", CrewStatus.values());
+        model.addAttribute("listParams", CrewListReturn.shipTab(shipId, status, list.getRequest()).params());
         return showAddForm(model);
     }
 

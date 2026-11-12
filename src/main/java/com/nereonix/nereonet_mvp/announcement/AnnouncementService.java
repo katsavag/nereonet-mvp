@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.announcement;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +21,18 @@ import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientReposito
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRepository;
 import com.nereonix.nereonet_mvp.core.announcement.RecipientCount;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
+
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 
 // Announcements sent by the office. There is no edit or delete: an announcement is the proof of what
 // the crew confirmed.
@@ -35,15 +44,17 @@ public class AnnouncementService {
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final ListQueries listQueries;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                AnnouncementRecipientRepository recipientRepository, ShipRepository shipRepository,
-                               UserRepository userRepository, AuditService auditService) {
+                               UserRepository userRepository, AuditService auditService, ListQueries listQueries) {
         this.announcementRepository = announcementRepository;
         this.recipientRepository = recipientRepository;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.listQueries = listQueries;
     }
 
     /** An announcement with its recipient counts, for the list. */
@@ -54,20 +65,39 @@ public class AnnouncementService {
     public record Recipients(List<AnnouncementRecipient> acknowledged, List<AnnouncementRecipient> pending) {
     }
 
-    /** Newest first. With a shipId, only the ones sent to that ship or to all ships. */
+    /**
+     * One page of the Announcements list (P19), paginated in the database, then the recipient counts of that page's
+     * announcements only. With a shipId, only the ones sent to that ship or to all ships. The search is the title.
+     * Sort keys: sentAt (default, newest first), title, target (All ships first, then by ship name).
+     */
     @Transactional(readOnly = true)
-    public List<Row> findAll(Long shipId) {
-        Map<Long, RecipientCount> counts = recipientRepository.countAll().stream()
-                .collect(Collectors.toMap(RecipientCount::announcementId, Function.identity()));
-        List<Announcement> announcements = shipId == null
-                ? announcementRepository.findAllByOrderByCreatedAtDescIdDesc()
-                : announcementRepository.findAllForShip(shipId);
-        return announcements.stream()
-                .map(a -> {
-                    RecipientCount count = counts.get(a.getId());
-                    return count == null ? new Row(a, 0, 0) : new Row(a, count.recipients(), count.acknowledged());
-                })
-                .toList();
+    public Page<Row> findAll(Long shipId, ListQuery list) {
+        Page<Announcement> page = listQueries.page(Announcement.class, list, (root, cb) -> {
+            List<Predicate> where = new ArrayList<>();
+            if (shipId != null) {
+                Join<Announcement, Ship> ship = root.join("ship", JoinType.LEFT);
+                where.add(cb.or(cb.isNull(ship.get("id")), cb.equal(ship.get("id"), shipId)));
+            }
+            if (list.getContains() != null) {
+                where.add(ListQueries.contains(cb, root.get("title"), list.getContains()));
+            }
+            return where;
+        }, (root, cb) -> {
+            Expression<Instant> sentAt = root.get("createdAt");
+            return switch (list.getSort()) {
+                case "title" -> List.of(cb.lower(root.get("title")), sentAt);
+                case "target" -> List.of(cb.coalesce(cb.lower(root.join("ship", JoinType.LEFT).get("name")), ""),
+                        sentAt);
+                default -> List.of(sentAt);
+            };
+        }, null);
+        Map<Long, RecipientCount> counts = page.isEmpty() ? Map.of()
+                : recipientRepository.countFor(page.map(Announcement::getId).getContent()).stream()
+                        .collect(Collectors.toMap(RecipientCount::announcementId, Function.identity()));
+        return page.map(a -> {
+            RecipientCount count = counts.get(a.getId());
+            return count == null ? new Row(a, 0, 0) : new Row(a, count.recipients(), count.acknowledged());
+        });
     }
 
     @Transactional(readOnly = true)

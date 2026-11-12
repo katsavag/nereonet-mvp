@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.announcement.Announcement;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
@@ -37,19 +40,29 @@ public class AnnouncementController {
         this.shipFrame = shipFrame;
     }
 
+    // The columns that sort (P19), the default first.
+    private static final ListSort[] SORTS = {ListSort.desc("sentAt"), ListSort.asc("title"), ListSort.asc("target")};
+
+    // listRequest: search, sort and page (P19).
     @GetMapping("/office/announcements")
-    public String list(@RequestParam(required = false) Long shipId, Model model) {
-        model.addAttribute("rows", announcementService.findAll(shipId));
-        model.addAttribute("ships", announcementService.findAllShips());
+    public String list(@RequestParam(required = false) Long shipId, @ModelAttribute ListRequest listRequest,
+                       Model model) {
+        List<Ship> ships = announcementService.findAllShips();
+        ListQuery list = ListQuery.of("/office/announcements", listRequest, SORTS).filterShip(shipId, ships);
+        model.addAttribute("list", list);
+        model.addAttribute("rows", announcementService.findAll(shipId, list));
+        model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
         return "announcement/list";
     }
 
     // The same list for one ship (its announcements and those to all ships), without the ship filter.
     @GetMapping("/office/ships/{id}/announcements")
-    public String shipList(@PathVariable Long id, Model model) {
+    public String shipList(@PathVariable Long id, @ModelAttribute ListRequest listRequest, Model model) {
         shipFrame.show(model, shipFrame.ship(id), ShipTab.ANNOUNCEMENTS);
-        model.addAttribute("rows", announcementService.findAll(id));
+        ListQuery list = ListQuery.of(ShipTab.ANNOUNCEMENTS.url(id), listRequest, SORTS);
+        model.addAttribute("list", list);
+        model.addAttribute("rows", announcementService.findAll(id, list));
         return "announcement/list";
     }
 

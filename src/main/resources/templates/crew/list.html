@@ -3,9 +3,9 @@
       th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.crew} : #{crew.list.title}, ~{::main})}">
 <body>
 <!-- Also the Crew tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
-     header, the ship fixed (no filters, no ship column), and actions for this ship that come back to the tab.
+     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab.
      Invitation rows (P17) show their status with its date and have Resend and, in the menu, Cancel invitation; both
-     come back to this list with its filters (listParams, crew/CrewListReturn). -->
+     come back to this list as it was: search, filters, sort and page (listParams, crew/CrewListReturn, P19). -->
 <main th:with="onShip=${shipTab != null}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{ship/parts :: header}"></th:block>
@@ -20,7 +20,7 @@
         </div>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{crew.list.heading}, count=${crew.size() + invited.size()}, actions=~{::pageActions})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{crew.list.heading}, count=${people.totalElements}, actions=~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
@@ -33,58 +33,51 @@
         </th:block>
     </header>
 
-    <!-- Filter by ship and status. A GET form, so the filtered page can be bookmarked and linked to
-         (/office/crew?status=expired). -->
-    <form class="row g-2 align-items-end mb-4" th:action="@{/office/crew}" method="get">
-        <div class="col-12 col-md-5">
-            <label for="filterShipId" class="form-label fw-semibold small" th:text="#{user.ship}">Ship</label>
-            <select id="filterShipId" name="shipId" class="form-select">
-                <option value="" th:text="#{crew.filter.allShips}">All ships</option>
-                <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
-                        th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-3">
-            <label for="filterStatus" class="form-label fw-semibold small" th:text="#{user.status}">Status</label>
-            <select id="filterStatus" name="status" class="form-select">
-                <option value="" th:text="#{crew.filter.allStatuses}">All statuses</option>
-                <option th:each="st : ${statuses}" th:value="${st.key()}" th:selected="${st.key() == status}"
-                        th:text="#{${'crew.filter.status.' + st.key()}}">Invitation expired</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-auto d-flex gap-2">
-            <button type="submit" class="btn btn-outline-secondary flex-grow-1" th:text="#{crew.filter.apply}">Filter</button>
-            <a class="btn btn-ghost" th:href="@{/office/crew}" th:text="#{crew.filter.clear}">Clear</a>
-        </div>
-    </form>
-
-    <!-- P18: the crew members in the list (as filtered) whose rank does not set the role they have, or who have no
-         rank. -->
-    <section th:replace="~{crew/parts :: rankReview(${rankNeedsReview})}"></section>
     </th:block>
 
+    <!-- Search, filters and chips (P19, layout/parts :: filterBar). A GET form, so the filtered page can be bookmarked
+         and linked to (/office/crew?status=expired). The Crew tab has no ship filter. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{crew.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <th:block th:unless="${onShip}"><div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div></th:block>
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{user.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{crew.filter.allStatuses}">All statuses</option>
+                    <option th:each="st : ${statuses}" th:value="${st.key()}" th:selected="${st.key() == status}"
+                            th:text="#{${'crew.filter.status.' + st.key()}}">Invitation expired</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+
+    <!-- P18: the crew members in the list (as filtered, every page) whose rank does not set the role they have, or
+         who have no rank. -->
+    <th:block th:unless="${onShip}"><section th:replace="~{crew/parts :: rankReview(${rankNeedsReview})}"></section></th:block>
+
     <div class="card">
-        <p th:if="${crew.isEmpty() and invited.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{crew.list.empty}">No crew members found.</p>
+        <th:block th:replace="~{layout/parts :: listEmpty(${people}, ${list}, #{crew.list.empty})}"></th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
-             stack-hide: not shown there. -->
-        <div th:unless="${crew.isEmpty() and invited.isEmpty()}" class="table-responsive">
+             stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls.
+             One page of users and pending invitations together, sorted on the server (P19). -->
+        <div th:unless="${people.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{user.fullName}">Full name</th>
-                    <th scope="col" th:text="#{user.email}">Email</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'email', #{user.email})}"></th>
                     <!-- The rank, and a badge for the roles with their own access (P18: there is no Role column). -->
-                    <th scope="col" th:text="#{user.rank}">Rank</th>
-                    <th th:unless="${onShip}" scope="col" th:text="#{user.ship}">Ship</th>
-                    <th scope="col" th:text="#{user.status}">Status</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'rank', #{user.rank})}"></th>
+                    <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'status', #{user.status})}"></th>
                     <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Pending invitations: no account yet, so no page, nothing to edit or deactivate; Resend and Cancel. -->
-                <tr th:each="inv : ${invited}">
+                <th:block th:each="row : ${people}">
+                <!-- A pending invitation: no account yet, so no page, nothing to edit or deactivate; Resend and Cancel. -->
+                <tr th:if="${row.invitation() != null}" th:with="inv=${row.invitation()}">
                     <td class="cell-primary" th:text="${inv.fullName}">Jane Doe</td>
                     <td th:attr="data-label=#{user.email}">
                         <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
@@ -101,7 +94,8 @@
                         <div th:replace="~{crew/parts :: invitationActions(${inv})}"></div>
                     </td>
                 </tr>
-                <tr th:each="u : ${crew}" th:classappend="${!u.enabled} ? 'text-body-secondary'">
+                <tr th:if="${row.user() != null}" th:with="u=${row.user()}"
+                    th:classappend="${!u.enabled} ? 'text-body-secondary'">
                     <td class="cell-primary">
                         <a th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
                     </td>
@@ -122,9 +116,11 @@
                         </div>
                     </td>
                 </tr>
+                </th:block>
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${people}, ${list})}"></nav>
     </div>
 
     <!-- Add crew member: sends an invitation. Full screen on phones. Four fields: there is no role, the rank sets it

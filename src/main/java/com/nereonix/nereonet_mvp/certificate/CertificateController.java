@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.certificate;
 
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -12,6 +14,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
@@ -37,22 +42,47 @@ public class CertificateController {
         this.confirmPages = confirmPages;
     }
 
+    // The columns that sort (P19), the default first; the ship's tab has no Ship column.
+    private static final ListSort[] FLEET_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
+            ListSort.asc("crewMember"), ListSort.asc("ship"), ListSort.asc("number")};
+    private static final ListSort[] TAB_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
+            ListSort.asc("crewMember"), ListSort.asc("number")};
+
+    // due: the Status filter (CertificateDue key); listRequest: search, sort and page (P19).
     @GetMapping("/office/certificates")
-    public String expiring(@RequestParam(required = false) Long shipId, Model model) {
-        model.addAttribute("certificates", certificateService.findExpiring(shipId));
-        model.addAttribute("ships", certificateService.findAllShips());
+    public String expiring(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String due,
+                           @ModelAttribute ListRequest listRequest, Model model) {
+        List<Ship> ships = certificateService.findAllShips();
+        CertificateDue step = CertificateDue.of(due).orElse(null);
+        ListQuery list = withDue(ListQuery.of("/office/certificates", listRequest, FLEET_SORTS)
+                .filterShip(shipId, ships), step);
+        model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
-        model.addAttribute("today", certificateService.today());
-        return "certificate/list";
+        return showList(shipId, step, list, model);
     }
 
     // The same list for one ship, without the ship filter and column.
     @GetMapping("/office/ships/{id}/certificates")
-    public String shipCertificates(@PathVariable Long id, Model model) {
+    public String shipCertificates(@PathVariable Long id, @RequestParam(required = false) String due,
+                                   @ModelAttribute ListRequest listRequest, Model model) {
         shipFrame.show(model, shipFrame.ship(id), ShipTab.CERTIFICATES);
-        model.addAttribute("certificates", certificateService.findExpiring(id));
+        CertificateDue step = CertificateDue.of(due).orElse(null);
+        return showList(id, step, withDue(ListQuery.of(ShipTab.CERTIFICATES.url(id), listRequest, TAB_SORTS), step),
+                model);
+    }
+
+    private String showList(Long shipId, CertificateDue due, ListQuery list, Model model) {
+        model.addAttribute("list", list);
+        model.addAttribute("certificates", certificateService.findExpiring(shipId, due, list));
+        model.addAttribute("due", due == null ? null : due.key());
+        model.addAttribute("dues", CertificateDue.values());
         model.addAttribute("today", certificateService.today());
         return "certificate/list";
+    }
+
+    private static ListQuery withDue(ListQuery list, CertificateDue due) {
+        return due == null ? list
+                : list.filterKey("due", due.key(), "certificate.status", "certificate.filter.due." + due.key());
     }
 
     @GetMapping("/office/ships/{id}/certificates/new")

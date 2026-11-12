@@ -27,19 +27,41 @@
         </p>
     </div>
 
-    <div class="card">
-        <p th:if="${items.isEmpty()}" class="card-body text-body-secondary mb-0"
-           th:text="#{item.list.empty}">No items yet.</p>
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{item.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{item.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{item.filter.allStatuses}">All statuses</option>
+                    <option value="active" th:selected="${status == 'active'}" th:text="#{item.status.active}">Active</option>
+                    <option value="inactive" th:selected="${status == 'inactive'}" th:text="#{item.status.inactive}">Inactive</option>
+                </select>
+            </div>
+            <div th:unless="${categories.isEmpty()}" class="filter-field">
+                <label for="filterCategory" class="form-label" th:text="#{item.category}">Category</label>
+                <select id="filterCategory" name="category" class="form-select">
+                    <option value="" th:text="#{item.filter.allCategories}">All categories</option>
+                    <option th:each="c : ${categories}" th:value="${c}" th:selected="${c == category}"
+                            th:text="${c}">Dry goods</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
 
-        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones. -->
-        <div th:unless="${items.isEmpty()}" class="table-responsive">
+    <div class="card">
+        <th:block th:replace="~{layout/parts :: listEmpty(${items}, ${list}, #{item.list.empty})}"></th:block>
+
+        <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones; table-sticky:
+             the header stays visible while the page scrolls. -->
+        <div th:unless="${items.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{item.name}">Name</th>
-                    <th scope="col" th:text="#{item.unit}">Unit</th>
-                    <th scope="col" th:text="#{item.category}">Category</th>
-                    <th scope="col" th:text="#{item.status}">Status</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{item.name})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'unit', #{item.unit})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'category', #{item.category})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'status', #{item.status})}"></th>
                     <th scope="col"><span class="visually-hidden" th:text="#{item.actions}">Actions</span></th>
                 </tr>
                 </thead>
@@ -83,6 +105,7 @@
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${items}, ${list})}"></nav>
     </div>
 </main>
 </body>

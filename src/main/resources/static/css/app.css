@@ -1897,3 +1897,210 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .rank-review-detail { flex-basis: 100%; }
     .rank-review-detail > [aria-hidden="true"]:first-child { display: none; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Lists: search, filters, sort and pages (P19): layout/parts :: filterBar, shipFilter, sortHeader, pager,
+   listEmpty; js/list-filter.js.
+     - .list-controls: the filter bar and its chips, 24px above the list card (--nn-section-gap).
+     - .filter-bar: the search (the widest field) then the list's filters (.filter-field), one row from 768px, each
+       field stacked full width on phones; Apply only without JavaScript.
+     - .filter-chips: "Active filters:" and one chip per active search or filter, in the primary pair (8:1), with a
+       cross; the whole chip is the link that removes it (32px look, 40px / 44px touch target), then Clear all.
+     - .sort-link: a column header that sorts. The sorted column (aria-sort) is in body text with an arrow up or
+       down; the others keep the header colour (6.6:1) and a quiet up-and-down mark. Shape, not colour, tells the
+       direction.
+     - .table-sticky: from 1200px the header row stays at the top of the window while the page scrolls (the list
+       then has room for every column, so its card no longer scrolls sideways). Below 1200px the table may scroll
+       sideways inside its card, which a sticky header cannot follow; phones stack the rows and have no header.
+     - .pager: "1 to 25 of 412", the page size and Previous / Next, under the table, on the card padding.
+     - .list-empty: "No results for these filters" and Clear all, distinct from a list's first-use text.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-filter-width: 14rem;        /* a filter select */
+    --nn-search-width: 22rem;        /* the search field */
+}
+
+.list-controls { margin-bottom: var(--nn-section-gap); }
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--nn-space-3) var(--nn-space-4);
+}
+.filter-field {
+    flex: 0 1 var(--nn-filter-width);
+    min-width: 0;
+}
+.filter-field-search { flex: 0 1 var(--nn-search-width); }
+.filter-field-date { flex-basis: 11rem; }
+.filter-field-apply { flex: 0 0 auto; }
+.filter-field-apply[hidden] { display: none; }
+/* A checkbox filter sits on the line of the fields next to it. */
+.filter-field-check {
+    display: flex;
+    align-items: center;
+    flex-basis: auto;
+    min-height: var(--nn-btn-height);
+}
+.filter-field-check .form-check { margin-bottom: 0; }
+@media (max-width: 767.98px) {
+    .filter-field,
+    .filter-field-search { flex: 1 1 100%; }
+    .filter-field-apply .btn { width: 100%; }
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-3);
+}
+.filter-chips-label {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.filter-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.filter-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: var(--nn-btn-height-sm);
+    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
+    border: 1px solid var(--nn-primary-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+}
+.filter-chip:hover { border-color: var(--nn-blue); }
+.filter-chip:hover .filter-chip-text { text-decoration: underline; }
+.filter-chip-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.filter-chip svg {
+    flex-shrink: 0;
+    width: var(--nn-icon-size);
+    height: var(--nn-icon-size);
+}
+/* Tap area, as for the buttons. */
+.filter-chip::before {
+    content: "";
+    position: absolute;
+    top: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    bottom: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    left: 0;
+    right: 0;
+}
+
+.data-table > thead > tr > th.sortable { padding-block: 0; }
+.sort-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-1);
+    min-height: var(--nn-touch-target);
+    color: inherit;
+    text-decoration: none;
+}
+.sort-link:hover { text-decoration: underline; }
+.data-table > thead > tr > th[aria-sort] { color: var(--nn-text); }
+.sort-icon {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+}
+.data-table > thead > tr > th.num .sort-link { flex-direction: row-reverse; }
+
+@media (min-width: 1200px) {
+    .card > .table-sticky { overflow: visible; }
+    .table-sticky > .data-table > thead > tr > th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom-width: 0;
+        box-shadow: inset 0 -1px 0 var(--nn-divider);
+    }
+    /* The card's rounded corners, now that the table is no longer clipped by its scroll box. */
+    .card > .table-sticky:first-child > .data-table > thead > tr > th:first-child {
+        border-top-left-radius: var(--bs-card-inner-border-radius);
+    }
+    .card > .table-sticky:first-child > .data-table > thead > tr > th:last-child {
+        border-top-right-radius: var(--bs-card-inner-border-radius);
+    }
+}
+
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3) var(--nn-space-5);
+    padding: var(--nn-space-3) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-sm);
+}
+.pager-range {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.pager-size {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-left: auto;
+    color: var(--nn-text-secondary);
+}
+.pager-size-list {
+    display: flex;
+    gap: var(--nn-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.pager-size-current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-btn-height-sm);
+    min-height: var(--nn-btn-height-sm);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    color: var(--nn-text);
+    font-weight: 600;
+}
+.pager-nav {
+    display: flex;
+    gap: var(--nn-space-2);
+}
+@media (max-width: 575.98px) {
+    .pager-size { margin-left: 0; }
+    .pager-nav { flex: 1 1 100%; }
+    .pager-nav .btn { flex: 1 1 0; }
+}
+
+.list-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3);
+}
+.list-empty-title {
+    margin: 0;
+    font-weight: 600;
+}

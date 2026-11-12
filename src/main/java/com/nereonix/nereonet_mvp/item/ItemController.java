@@ -7,10 +7,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
@@ -31,11 +35,28 @@ public class ItemController {
         this.confirmPages = confirmPages;
     }
 
-    // The ship page's Items tab.
+    // The columns that sort (P19), the default first.
+    private static final ListSort[] SORTS =
+            {ListSort.asc("name"), ListSort.asc("unit"), ListSort.asc("category"), ListSort.asc("status")};
+
+    // The ship page's Items tab. status: active or inactive (anything else: both); category: one category;
+    // listRequest: search, sort and page (P19).
     @GetMapping("/office/ships/{id}/items")
-    public String list(@PathVariable Long id, Model model) {
+    public String list(@PathVariable Long id, @RequestParam(required = false) String status,
+                       @RequestParam(required = false) String category, @ModelAttribute ListRequest listRequest,
+                       Model model) {
         shipFrame.show(model, itemService.getShip(id), ShipTab.ITEMS);
-        model.addAttribute("items", itemService.findItems(id));
+        Boolean active = "active".equals(status) ? Boolean.TRUE : "inactive".equals(status) ? Boolean.FALSE : null;
+        String statusKey = active == null ? null : status;
+        String chosenCategory = category == null || category.isBlank() ? null : category;
+        ListQuery list = ListQuery.of(ShipTab.ITEMS.url(id), listRequest, SORTS)
+                .filterKey("status", statusKey, "item.status", statusKey == null ? null : "item.status." + statusKey)
+                .filter("category", chosenCategory, "item.category", chosenCategory);
+        model.addAttribute("list", list);
+        model.addAttribute("items", itemService.findItems(id, active, chosenCategory, list));
+        model.addAttribute("status", statusKey);
+        model.addAttribute("category", chosenCategory);
+        model.addAttribute("categories", itemService.findCategories(id));
         return "item/list";
     }
 

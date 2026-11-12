@@ -448,6 +448,124 @@
     </th:block>
 </th:block>
 
+<!-- Lists (P19): search, filters, sort and pages, the same on every office list. The state is a
+     core/list/ListQuery, model attribute "list": it builds every link below, all in the URL, so a list can be
+     reloaded, bookmarked and linked to. The rows are one Spring Page, queried in the database. The pattern: app.css,
+     section "Lists: search, filters, sort and pages". -->
+
+<!-- The filter bar above a list: a search field, then the list's filters, as a GET form. js/list-filter.js applies a
+     filter as soon as it changes and the search on Enter and after a 400 ms pause, and hides Apply; without the
+     script Apply sends the form (Enter in the search too). Sort and page size go along as hidden fields; the page
+     does not, so a new search or filter starts at page 1. Under the form, the active search and filters as chips,
+     each a link that removes it, and Clear all.
+       list         the ListQuery
+       searchLabel  what the search looks in, as the field's label: "Search name or email"
+       filters      the list's filter fields, ~{::listFilters}, each in a div.filter-field (shipFilter for the
+                    ship), or null
+     Use: <div th:replace="~{layout/parts :: filterBar(${list}, #{crew.search}, ~{::listFilters})}">
+              <th:block th:fragment="listFilters">...</th:block></div> -->
+<div th:fragment="filterBar(list, searchLabel, filters)" class="list-controls">
+    <form class="filter-bar" th:action="@{${list.path}}" method="get" role="search" data-list-filter
+          th:attr="aria-label=#{list.filters.label}">
+        <div class="filter-field filter-field-search">
+            <label for="listSearch" class="form-label" th:text="${searchLabel}">Search name or email</label>
+            <input type="search" id="listSearch" name="q" class="form-control" th:value="${list.q}"
+                   autocomplete="off" spellcheck="false" maxlength="100" data-list-search>
+        </div>
+        <th:block th:if="${filters != null}"><th:block th:replace="${filters}"></th:block></th:block>
+        <div class="filter-field filter-field-apply" data-list-apply>
+            <button type="submit" class="btn btn-outline-secondary" th:text="#{list.apply}">Apply</button>
+        </div>
+        <input th:each="h : ${list.hidden}" type="hidden" th:name="${h.key}" th:value="${h.value}">
+    </form>
+    <div th:if="${list.filtered}" class="filter-chips">
+        <span class="filter-chips-label" id="filterChipsLabel" th:text="#{list.chips.label}">Active filters</span>
+        <ul class="filter-chip-list" aria-labelledby="filterChipsLabel">
+            <li th:each="c : ${list.chips}"
+                th:with="value=${c.value() != null} ? ${c.value()} : (${c.valueKey() != null} ? ${#messages.msg(c.valueKey())} : null),
+                         text=${value == null} ? ${#messages.msg(c.labelKey())} : ${#messages.msg('list.chip', #messages.msg(c.labelKey()), value)},
+                         url=${c.removeUrl()}">
+                <a class="filter-chip" th:href="@{${url}}" th:attr="aria-label=#{list.chip.remove(${text})}">
+                    <span class="filter-chip-text" th:text="${text}">Ship: MV Demo</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                         stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17"/></svg>
+                </a>
+            </li>
+        </ul>
+        <a class="btn btn-ghost btn-sm" th:with="url=${list.clearUrl}" th:href="@{${url}}"
+           th:text="#{list.clearAll}">Clear all</a>
+    </div>
+</div>
+
+<!-- The ship filter of a fleet list, inside filterBar's filters: every ship, active or not, "MV Demo · IMO 9074729".
+     ships: the ships; shipId: the chosen one, or null. -->
+<div th:fragment="shipFilter(ships, shipId)" class="filter-field">
+    <label for="filterShipId" class="form-label" th:text="#{list.filter.ship}">Ship</label>
+    <select id="filterShipId" name="shipId" class="form-select">
+        <option value="" th:text="#{crew.filter.allShips}">All ships</option>
+        <option th:each="s : ${ships}" th:value="${s.id}" th:selected="${s.id == shipId}"
+                th:text="${s.name} + ' · ' + #{ship.codeValue(${s.imoNumber})}">MV Demo · IMO 9074729</option>
+    </select>
+</div>
+
+<!-- A column header that sorts: a link that sorts by this column (page 1), and again the other way round; the
+     sorted column has aria-sort and an arrow up (ascending) or down (descending), the others a quiet up-and-down
+     mark. The shape tells the direction, not the colour.
+     Use: <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th> -->
+<th th:fragment="sortHeader(list, key, label)" scope="col" class="sortable"
+    th:with="ariaSort=${list.ariaSort(key)}, url=${list.sortUrl(key)}" th:attr="aria-sort=${ariaSort}">
+    <a class="sort-link" th:href="@{${url}}">
+        <span th:text="${label}">Full name</span>
+        <svg class="sort-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path th:if="${ariaSort == 'ascending'}" d="M8 13V3M4 7l4-4 4 4"/>
+            <path th:if="${ariaSort == 'descending'}" d="M8 3v10M4 9l4 4 4-4"/>
+            <path th:if="${ariaSort == null}" d="M5 6l3-3 3 3M5 10l3 3 3-3"/>
+        </svg>
+    </a>
+</th>
+
+<!-- The pager at the end of a list card: "1 to 25 of 412", the page size (25 or 50; a new size starts at page 1) and
+     Previous / Next, which keep the search, filters and sort. Shown when there are more rows than the smallest page.
+     rows: the Spring Page; list: the ListQuery.
+     Use: <nav th:replace="~{layout/parts :: pager(${people}, ${list})}"></nav> -->
+<nav th:fragment="pager(rows, list)" th:if="${list.pagerShown(rows)}" class="pager"
+     th:attr="aria-label=#{list.pager.label}">
+    <p class="pager-range" th:text="#{list.pager.range(${list.first(rows)}, ${list.last(rows)}, ${rows.totalElements})}">1 to 25 of 412</p>
+    <div class="pager-size">
+        <span class="pager-size-label" id="pagerSizeLabel" th:text="#{list.pager.perPage}">Per page</span>
+        <ul class="pager-size-list" aria-labelledby="pagerSizeLabel">
+            <li th:each="n : ${list.sizes}">
+                <span th:if="${n == rows.size}" class="pager-size-current num" aria-current="true" th:text="${n}">25</span>
+                <a th:unless="${n == rows.size}" class="btn btn-ghost btn-sm num" th:with="url=${list.sizeUrl(n)}"
+                   th:href="@{${url}}" th:text="${n}">50</a>
+            </li>
+        </ul>
+    </div>
+    <div class="pager-nav">
+        <!-- On the first or last page the link is disabled: no href, so it cannot be followed. -->
+        <a class="btn btn-outline-secondary btn-sm" th:classappend="${rows.first} ? 'disabled'"
+           th:attr="aria-disabled=${rows.first} ? 'true' : null, href=${rows.first} ? null : @{${list.pageUrl(rows.number - 1)}}"
+           rel="prev" th:text="#{list.pager.previous}">Previous</a>
+        <a class="btn btn-outline-secondary btn-sm" th:classappend="${rows.last} ? 'disabled'"
+           th:attr="aria-disabled=${rows.last} ? 'true' : null, href=${rows.last} ? null : @{${list.pageUrl(rows.number + 1)}}"
+           rel="next" th:text="#{list.pager.next}">Next</a>
+    </div>
+</nav>
+
+<!-- An empty list card. With a search or a filter set, "No results for these filters" and Clear all; otherwise the
+     list's own first-use text (emptyText: "No items yet."). rows: the Spring Page; list: the ListQuery.
+     Use: <th:block th:replace="~{layout/parts :: listEmpty(${items}, ${list}, #{item.list.empty})}"></th:block> -->
+<th:block th:fragment="listEmpty(rows, list, emptyText)">
+    <div th:if="${rows.totalElements == 0 and list.filtered}" class="card-body list-empty">
+        <p class="list-empty-title" th:text="#{list.noResults}">No results for these filters</p>
+        <a class="btn btn-outline-secondary" th:with="url=${list.clearUrl}" th:href="@{${url}}"
+           th:text="#{list.clearAll}">Clear all</a>
+    </div>
+    <p th:if="${rows.totalElements == 0 and !list.filtered}" class="card-body text-body-secondary mb-0"
+       th:text="${emptyText}">No items yet.</p>
+</th:block>
+
 <!-- Form parts (P05). The pattern: app.css, section "Forms". -->
 
 <!-- "(optional)" after the label of a field that may stay empty. No asterisks on required fields.

@@ -1,5 +1,6 @@
 package com.nereonix.nereonet_mvp.core.announcement;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,10 +11,10 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
 
     List<AnnouncementRecipient> findAllByAnnouncementOrderByUserFullNameAsc(Announcement announcement);
 
-    // One row per announcement that has recipients.
+    // One row per announcement among these ids that has recipients: the page of the Announcements list (P19).
     @Query("""
             select new com.nereonix.nereonet_mvp.core.announcement.RecipientCount(
                 r.announcement.id, count(r), count(r.acknowledgedAt))
-            from AnnouncementRecipient r group by r.announcement.id""")
-    List<RecipientCount> countAll();
+            from AnnouncementRecipient r where r.announcement.id in :announcementIds group by r.announcement.id""")
+    List<RecipientCount> countFor(Collection<Long> announcementIds);
 }
