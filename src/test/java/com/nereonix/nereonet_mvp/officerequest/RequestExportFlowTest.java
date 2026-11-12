@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
@@ -339,6 +340,7 @@ class RequestExportFlowTest {
         item.setShip(ship);
         item.setName(name);
         item.setUnit(unit);
+        item.setCategory(ItemCategory.PROVISIONS);
         item.setCreatedAt(Instant.now());
         return itemRepository.save(item);
     }

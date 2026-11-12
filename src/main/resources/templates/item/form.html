@@ -35,13 +35,29 @@
                         </div>
                     </div>
                     <div class="field-half">
-                        <label for="category" class="form-label">[[#{item.category}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                        <input type="text" th:field="*{category}" class="form-control" th:errorclass="is-invalid"
-                               autocomplete="off" aria-describedby="categoryHint categoryCounter">
+                        <label for="category" class="form-label" th:text="#{item.category}">Category</label>
+                        <select th:field="*{category}" class="form-select" th:errorclass="is-invalid"
+                                aria-describedby="categoryHint" required>
+                            <option value="" th:text="#{item.categoryChoose}">Choose a category</option>
+                            <option th:each="c : ${categories}" th:value="${c.name()}"
+                                    th:text="#{${c.labelKey()}}">Provisions</option>
+                        </select>
                         <div class="invalid-feedback" th:errors="*{category}"></div>
                         <div class="form-meta">
-                            <div id="categoryHint" class="form-text" th:text="#{item.categoryHint}">For example Dry goods.</div>
-                            <div th:replace="~{layout/parts :: counter(${form}, 'category', 'category')}"></div>
+                            <div id="categoryHint" class="form-text" th:text="#{item.categoryHint}">Provisions: food and drink for the meals. Personal items: what the crew buy for themselves.</div>
+                        </div>
+                    </div>
+                    <!-- Shown only while Category is Provisions (js/forms.js, data-shown-for); without the script it
+                         stays visible, and ItemService does not save the place of a personal item. -->
+                    <div class="field-half" data-shown-for="category" data-shown-value="PROVISIONS"
+                         th:hidden="${form.category != null and form.category.name() != 'PROVISIONS'}">
+                        <label for="place" class="form-label">[[#{item.place}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" th:field="*{place}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="placeHint placeCounter">
+                        <div class="invalid-feedback" th:errors="*{place}"></div>
+                        <div class="form-meta">
+                            <div id="placeHint" class="form-text" th:text="#{item.placeHint}">For example Dry store or Cold room.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'place', 'place')}"></div>
                         </div>
                     </div>
                 </div>

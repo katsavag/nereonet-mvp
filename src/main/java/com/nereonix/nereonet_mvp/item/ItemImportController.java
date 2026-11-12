@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.item;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.http.ContentDisposition;
@@ -54,7 +55,8 @@ public class ItemImportController {
     // Only the editable values; the row number, ship, action and errors come from the server.
     @InitBinder("itemImport")
     void allowEditableFields(WebDataBinder binder) {
-        binder.setAllowedFields("rows[*].name", "rows[*].unit", "rows[*].category", "rows[*].excluded");
+        binder.setAllowedFields("rows[*].name", "rows[*].unit", "rows[*].category", "rows[*].place",
+                "rows[*].excluded");
     }
 
     // Used only when there is no import in the session (none started, it expired or it was done).
@@ -70,12 +72,12 @@ public class ItemImportController {
     }
 
     @GetMapping("/office/items/import/template")
-    public ResponseEntity<byte[]> template() throws IOException {
+    public ResponseEntity<byte[]> template(Locale locale) throws IOException {
         return ResponseEntity.ok()
                 .contentType(XLSX)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename("items-template.xlsx").build().toString())
-                .body(itemImportService.template());
+                .body(itemImportService.template(locale));
     }
 
     @PostMapping("/office/ships/{id}/items/import")

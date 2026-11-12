@@ -126,7 +126,8 @@ class ConfirmFlowTest {
         invitation = invitationRepository.findAll().stream()
                 .filter(i -> i.getEmail().equals("olga@example.com")).findFirst().orElseThrow();
         mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
-                .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
+                .param("name", "Basmati rice").param("unit", "kg")
+                .param("category", "PROVISIONS").with(csrf()));
         item = itemRepository.findAll().getFirst();
         mockMvc.perform(post("/office/ships/{id}/library/new", ship.getId()).with(csrf())
                 .param("title", "Galley rules").param("category", "SHIP_RULES").param("versionLabel", "1")

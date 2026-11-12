@@ -79,7 +79,8 @@ class ButtonHierarchyFlowTest {
         certificate.setCreatedAt(Instant.now());
         certificateRepository.save(certificate);
         mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
-                .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
+                .param("name", "Basmati rice").param("unit", "kg")
+                .param("category", "PROVISIONS").with(csrf()));
         mockMvc.perform(post("/office/invitations")
                 .param("fullName", "New Office").param("email", "new.office@example.com").with(csrf()));
 

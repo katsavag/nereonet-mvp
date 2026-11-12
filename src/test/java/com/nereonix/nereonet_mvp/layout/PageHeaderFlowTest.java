@@ -131,7 +131,8 @@ class PageHeaderFlowTest {
         certificate.setCreatedAt(Instant.now());
         certificateRepository.save(certificate);
         mockMvc.perform(post("/office/ships/{id}/items/new", id)
-                .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
+                .param("name", "Basmati rice").param("unit", "kg")
+                .param("category", "PROVISIONS").with(csrf()));
         mockMvc.perform(post("/office/announcements/send")
                 .param("target", "ships").param("shipIds", Long.toString(id)).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
         long announcementId = announcementRepository.findAll().get(0).getId();
@@ -225,7 +226,7 @@ class PageHeaderFlowTest {
                 List.of("Crew", "Import crew", "Review crew import"), null),
                 html(get("/office/crew/import/review").session(crewImport)), true);
         MockHttpSession itemImport = new MockHttpSession();
-        mockMvc.perform(multipart("/office/ships/{id}/items/import", id).file(csv("Name,Unit,Category\nOlive oil,lt,Oils\n"))
+        mockMvc.perform(multipart("/office/ships/{id}/items/import", id).file(csv("Name,Unit,Category,Place\nOlive oil,lt,Provisions,Dry store\n"))
                 .session(itemImport).with(csrf()));
         assertPageHeader(new Page("/office/ships/" + id + "/items/import/review", null, "Review item import",
                 List.of("Ships", "MV Demo", "Items", "Import items", "Review item import"), SHIP_CONTEXT),

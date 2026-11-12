@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!-- Step 3 of the item import (P24): every item from the file, editable. The row filters, the plan and "Exclude all
      rows with errors" are layout/parts :: importSummary; the first two columns (row, name) stay in place when the
-     table scrolls sideways. Each row says what it does: a new item, an update of the item with that name (unit and
-     category), or no change (skipped). -->
+     table scrolls sideways. Each row says what it does: a new item, an update of the item with that name (unit,
+     category and place), or no change (skipped). Category is the file's text: Provisions or Personal items. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{itemImport.review.title}, ~{::main})}">
 <body>
 <main>
@@ -35,6 +35,7 @@
                         <th scope="col" class="import-col-name" th:text="#{item.name}">Name</th>
                         <th scope="col" th:text="#{item.unit}">Unit</th>
                         <th scope="col" th:text="#{item.category}">Category</th>
+                        <th scope="col" th:text="#{item.place}">Place</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -62,8 +63,15 @@
                             <div class="invalid-feedback" th:if="${row.errors['category']}"
                                  th:text="#{${row.errors['category']}}"></div>
                         </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].place}"
+                                   th:classappend="${row.errors['place']} ? 'is-invalid'" autocomplete="off"
+                                   th:attr="aria-label=#{importFile.review.cell(#{item.place}, ${row.rowNumber})}">
+                            <div class="invalid-feedback" th:if="${row.errors['place']}"
+                                 th:text="#{${row.errors['place']}}"></div>
+                        </td>
                     </tr>
-                    <tr th:replace="~{layout/parts :: importNoRows(${itemImport}, ${show}, 4)}"></tr>
+                    <tr th:replace="~{layout/parts :: importNoRows(${itemImport}, ${show}, 5)}"></tr>
                     </tbody>
                 </table>
             </div>

@@ -30,12 +30,12 @@
                     <option value="inactive" th:selected="${status == 'inactive'}" th:text="#{item.status.inactive}">Inactive</option>
                 </select>
             </div>
-            <div th:unless="${categories.isEmpty()}" class="filter-field">
+            <div class="filter-field">
                 <label for="filterCategory" class="form-label" th:text="#{item.category}">Category</label>
                 <select id="filterCategory" name="category" class="form-select">
                     <option value="" th:text="#{item.filter.allCategories}">All categories</option>
-                    <option th:each="c : ${categories}" th:value="${c}" th:selected="${c == category}"
-                            th:text="${c}">Dry goods</option>
+                    <option th:each="c : ${categories}" th:value="${c.name()}" th:selected="${c == category}"
+                            th:text="#{${c.labelKey()}}">Provisions</option>
                 </select>
             </div>
         </th:block>
@@ -54,6 +54,7 @@
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{item.name})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'unit', #{item.unit})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'category', #{item.category})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'place', #{item.place})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'status', #{item.status})}"></th>
                     <th scope="col"><span class="visually-hidden" th:text="#{item.actions}">Actions</span></th>
                 </tr>
@@ -65,7 +66,8 @@
                            th:text="${i.name}">Rice</a>
                     </td>
                     <td th:attr="data-label=#{item.unit}" th:text="${i.unit}">kg</td>
-                    <td th:attr="data-label=#{item.category}" th:text="${i.category} ?: '—'">Dry goods</td>
+                    <td th:attr="data-label=#{item.category}" th:text="#{${i.category.labelKey()}}">Provisions</td>
+                    <td th:attr="data-label=#{item.place}" th:text="${i.place} ?: '—'">Dry store</td>
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status(${i.active} ? 'ok' : 'neutral', ${i.active} ? #{item.status.active} : #{item.status.inactive})}">Active</span>
                     </td>

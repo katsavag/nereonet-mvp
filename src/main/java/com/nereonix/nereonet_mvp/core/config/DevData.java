@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
@@ -159,9 +160,9 @@ public class DevData implements ApplicationRunner {
     private void createApprovedRequests(Ship ship) {
         User master = crewUser(ship, Role.MASTER, "master.demo@example.com", "Demo Master");
         User cook = crewUser(ship, Role.CHIEF_COOK, "cook.demo@example.com", "Demo Cook");
-        Item rice = item(ship, "Basmati rice", "kg", "Dry goods");
-        Item oil = item(ship, "Olive oil", "lt", "Oils");
-        Item eggs = item(ship, "Eggs", "pcs", "Fresh");
+        Item rice = item(ship, "Basmati rice", "kg", "Dry store");
+        Item oil = item(ship, "Olive oil", "lt", "Dry store");
+        Item eggs = item(ship, "Eggs", "pcs", "Cold room");
 
         Instant now = Instant.now();
         ItemRequest first = request(ship, cook, master, now.minus(Duration.ofDays(3)), now.minus(Duration.ofDays(2)));
@@ -185,8 +186,8 @@ public class DevData implements ApplicationRunner {
                 });
     }
 
-    // The ship's item with this name, or a new one.
-    private Item item(Ship ship, String name, String unit, String category) {
+    // The ship's item with this name, or a new provisions item stored in this place.
+    private Item item(Ship ship, String name, String unit, String place) {
         return itemRepository.findAllByShipIdOrderByNameAsc(ship.getId()).stream()
                 .filter(item -> item.getName().equalsIgnoreCase(name))
                 .findFirst()
@@ -195,7 +196,8 @@ public class DevData implements ApplicationRunner {
                     item.setShip(ship);
                     item.setName(name);
                     item.setUnit(unit);
-                    item.setCategory(category);
+                    item.setCategory(ItemCategory.PROVISIONS);
+                    item.setPlace(place);
                     item.setCreatedAt(Instant.now());
                     return itemRepository.save(item);
                 });

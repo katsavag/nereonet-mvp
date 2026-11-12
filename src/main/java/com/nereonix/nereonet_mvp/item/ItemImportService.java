@@ -15,6 +15,7 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,22 +28,26 @@ import com.nereonix.nereonet_mvp.core.importfile.ImportSheet;
 import com.nereonix.nereonet_mvp.core.importfile.ImportTarget;
 import com.nereonix.nereonet_mvp.core.importfile.ImportUpload;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
 // Item list import for one ship (P24): map the columns of any item file (the template, or a purchasing system's
 // export), validate every row, then save. A name the ship does not have is a new item; a name it has (ignoring case)
-// updates that item's unit and category, or is skipped when they are the same. Nothing is saved before importRows.
+// updates that item's unit, category and place, or is skipped when they are the same. The category must be
+// "Provisions" or "Personal items" (ignoring case); the place is kept for provisions only. Nothing is saved before
+// importRows.
 // Never log file contents.
 @Service
 public class ItemImportService implements ImportTarget<ItemImportForm> {
 
     // The template's columns. The file format, so never translated.
-    static final List<String> HEADERS = List.of("Name", "Unit", "Category");
+    static final List<String> HEADERS = List.of("Name", "Unit", "Category", "Place");
 
     static final String NAME = "name";
     static final String UNIT = "unit";
     static final String CATEGORY = "category";
+    static final String PLACE = "place";
 
     // Column names as purchasing systems and spreadsheets write them, normalized (ImportNames.normalize), most likely
     // first.
@@ -54,21 +59,26 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
             ImportField.of(UNIT, "item.unit", true,
                     List.of("unit", "uom", "unit of measure", "unit of measurement", "units", "measure", "μοναδα",
                             "μοναδα μετρησης", "μ μ")),
-            ImportField.of(CATEGORY, "item.category", false,
+            ImportField.of(CATEGORY, "item.category", true,
                     List.of("category", "item category", "group", "item group", "product group", "type", "class",
-                            "κατηγορια", "ομαδα")));
+                            "κατηγορια", "ομαδα")),
+            ImportField.of(PLACE, "item.place", false,
+                    List.of("place", "storage place", "storage", "store", "storage location", "location", "stowage",
+                            "θεση", "αποθηκη", "χωρος αποθηκευσης")));
 
     private final ItemRepository itemRepository;
     private final ItemService itemService;
     private final AuditService auditService;
     private final ImportMappingService mappingService;
+    private final MessageSource messageSource;
 
     public ItemImportService(ItemRepository itemRepository, ItemService itemService, AuditService auditService,
-                             ImportMappingService mappingService) {
+                             ImportMappingService mappingService, MessageSource messageSource) {
         this.itemRepository = itemRepository;
         this.itemService = itemService;
         this.auditService = auditService;
         this.mappingService = mappingService;
+        this.messageSource = messageSource;
     }
 
     @Override
@@ -86,20 +96,39 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
         return HEADERS;
     }
 
-    /** The blank template: sheet "Items" with the header row. */
-    public byte[] template() throws IOException {
+    /** The blank template: sheet "Items" with the header row, and sheet "Instructions" in the given language. */
+    public byte[] template(Locale locale) throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Font boldFont = workbook.createFont();
             boldFont.setBold(true);
             CellStyle bold = workbook.createCellStyle();
             bold.setFont(boldFont);
             Sheet sheet = workbook.createSheet("Items");
-            Row header = sheet.createRow(0);
-            int[] widths = {32, 10, 24};
+            addRow(sheet, HEADERS, bold);
+            int[] widths = {32, 10, 18, 20};
             for (int i = 0; i < HEADERS.size(); i++) {
-                header.createCell(i).setCellValue(HEADERS.get(i));
-                header.getCell(i).setCellStyle(bold);
                 sheet.setColumnWidth(i, widths[i] * 256);
+            }
+
+            Sheet help = workbook.createSheet("Instructions");
+            help.setColumnWidth(0, 20 * 256);
+            help.setColumnWidth(1, 90 * 256);
+            addRow(help, List.of(text("itemImport.template.title", locale)), bold);
+            addRow(help, List.of(text("itemImport.template.intro", locale)), null);
+            addRow(help, List.of(), null);
+            addRow(help, List.of(text("itemImport.template.column", locale),
+                    text("itemImport.template.meaning", locale)), bold);
+            for (String column : HEADERS) {
+                addRow(help, List.of(column, text("itemImport.template." + column.toLowerCase(Locale.ROOT), locale)),
+                        null);
+            }
+            addRow(help, List.of(), null);
+            // The two values of the Category column, with what each holds.
+            addRow(help, List.of(text("itemImport.template.categories", locale)), bold);
+            addRow(help, List.of(text("itemImport.template.value", locale),
+                    text("itemImport.template.meaning", locale)), bold);
+            for (ItemCategory category : ItemCategory.values()) {
+                addRow(help, List.of(category.fileValue(), text(category.labelKey() + ".hint", locale)), null);
             }
             workbook.write(out);
             return out.toByteArray();
@@ -116,6 +145,7 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
             row.setName(upload.value(fileRow, field(NAME)));
             row.setUnit(upload.value(fileRow, field(UNIT)));
             row.setCategory(upload.value(fileRow, field(CATEGORY)));
+            row.setPlace(upload.value(fileRow, field(PLACE)));
             rows.add(row);
         }
         form.rowsBuilt(rows);
@@ -132,7 +162,8 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
             if (item == null) {
                 row.setAction(ImportAction.CREATE);
             } else if (item.getUnit().equals(row.getUnit())
-                    && Objects.equals(item.getCategory(), category(row.getCategory()))) {
+                    && item.getCategory() == ItemCategory.fromFileValue(row.getCategory())
+                    && Objects.equals(item.getPlace(), place(row))) {
                 row.setAction(ImportAction.UNCHANGED);
             } else {
                 row.setAction(ImportAction.UPDATE);
@@ -156,8 +187,13 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
             } else if (row.getUnit().length() > Item.UNIT_MAX_LENGTH) {
                 errors.put("unit", "item.error.tooLong");
             }
-            if (row.getCategory().length() > Item.CATEGORY_MAX_LENGTH) {
-                errors.put("category", "item.error.tooLong");
+            if (row.getCategory().isEmpty()) {
+                errors.put("category", "item.error.categoryRequired");
+            } else if (ItemCategory.fromFileValue(row.getCategory()) == null) {
+                errors.put("category", "itemImport.error.categoryInvalid");
+            }
+            if (place(row) != null && place(row).length() > Item.PLACE_MAX_LENGTH) {
+                errors.put("place", "item.error.tooLong");
             }
         }
     }
@@ -180,13 +216,15 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
         int updated = 0;
         for (ItemImportRow row : changingRows(form)) {
             if (row.getAction() == ImportAction.CREATE) {
-                itemRepository.save(ItemService.newItem(ship, row.getName(), row.getUnit(), row.getCategory()));
+                itemRepository.save(ItemService.newItem(ship, row.getName(), row.getUnit(),
+                        ItemCategory.fromFileValue(row.getCategory()), row.getPlace()));
                 created++;
             } else {
-                // The name stays as the ship has it; only the unit and the category change.
+                // The name stays as the ship has it; only the unit, the category and the place change.
                 Item item = existing.get(key(row.getName()));
                 item.setUnit(row.getUnit());
-                item.setCategory(category(row.getCategory()));
+                item.setCategory(ItemCategory.fromFileValue(row.getCategory()));
+                item.setPlace(place(row));
                 updated++;
             }
         }
@@ -215,9 +253,24 @@ public class ItemImportService implements ImportTarget<ItemImportForm> {
         return FIELDS.stream().filter(field -> field.key().equals(key)).findFirst().orElseThrow();
     }
 
-    // As the item stores it: null when empty.
-    private static String category(String category) {
-        return category.isBlank() ? null : category.strip();
+    // The row's place as the item would store it: null when empty or when the row is not a provisions item.
+    private static String place(ItemImportRow row) {
+        return ItemService.place(ItemCategory.fromFileValue(row.getCategory()), row.getPlace());
+    }
+
+    // Adds a row after the last one. style may be null.
+    private static void addRow(Sheet sheet, List<String> values, CellStyle style) {
+        Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
+        for (int i = 0; i < values.size(); i++) {
+            row.createCell(i).setCellValue(values.get(i));
+            if (style != null) {
+                row.getCell(i).setCellStyle(style);
+            }
+        }
+    }
+
+    private String text(String key, Locale locale) {
+        return messageSource.getMessage(key, null, locale);
     }
 
     // Names are unique per ship, ignoring case.

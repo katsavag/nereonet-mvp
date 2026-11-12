@@ -7,6 +7,8 @@
 //    field and scroll its label into view, and start with the field's label ("Title: Too long.").
 //  - input[type=file][data-file-info]: the chosen file's name and size, and a warning when it is larger than
 //    data-max-size (bytes; text in data-too-large).
+//  - [data-shown-for]: a field shown only while the select with that id has the value data-shown-value (the item
+//    form's Place, for Provisions). Without this script the field stays visible.
 (function () {
     'use strict';
 
@@ -124,5 +126,15 @@
         }
         select.addEventListener('change', () => showAccess(select, hint));
         showAccess(select, hint); // a rank kept by the browser after going back
+    });
+
+    document.querySelectorAll('[data-shown-for]').forEach(field => {
+        const select = document.getElementById(field.dataset.shownFor);
+        if (!select) {
+            return;
+        }
+        const update = () => { field.hidden = select.value !== field.dataset.shownValue; };
+        select.addEventListener('change', update);
+        update(); // a value kept by the browser after going back
     });
 })();

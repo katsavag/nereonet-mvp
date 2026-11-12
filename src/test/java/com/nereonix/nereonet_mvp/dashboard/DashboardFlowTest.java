@@ -44,6 +44,7 @@ import com.nereonix.nereonet_mvp.core.config.DevData;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryAcknowledgement;
 import com.nereonix.nereonet_mvp.core.library.LibraryAcknowledgementRepository;
@@ -527,6 +528,7 @@ class DashboardFlowTest {
         item.setShip(ship);
         item.setName("Rice " + UUID.randomUUID());
         item.setUnit("kg");
+        item.setCategory(ItemCategory.PROVISIONS);
         item.setCreatedAt(Instant.now());
         itemRepository.save(item);
         RequestLine line = new RequestLine();

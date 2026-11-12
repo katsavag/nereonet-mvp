@@ -178,7 +178,8 @@ class ShipPageFlowTest {
                 .param("fullName", "New Member").param("email", "new.member@example.com")
                 .param("rank", "ABLE_SEAMAN").param("shipId", demo.getId().toString()).with(csrf()));
         mockMvc.perform(post("/office/ships/{id}/items/new", demo.getId())
-                .param("name", "Basmati rice").param("unit", "kg").with(csrf()));
+                .param("name", "Basmati rice").param("unit", "kg")
+                .param("category", "PROVISIONS").with(csrf()));
         mockMvc.perform(post("/office/announcements/send")
                 .param("target", "fleet").param("title", "Fleet notice").param("body", "Hello").with(csrf()));
 

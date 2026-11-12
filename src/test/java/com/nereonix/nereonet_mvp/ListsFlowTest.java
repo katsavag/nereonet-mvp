@@ -30,6 +30,7 @@ import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
@@ -146,15 +147,16 @@ class ListsFlowTest {
 
     @Test
     void items_searchFilterSortAndPages() throws Exception {
-        // MV Alpha: "Item 01" ... "Item 26" (Dry), "Eggs" (Fresh), "Old flour" (Dry, inactive). MV Beta: "Coffee".
-        IntStream.rangeClosed(1, 26).forEach(i -> item(alpha, String.format("Item %02d", i), "Dry", true));
-        item(alpha, "Eggs", "Fresh", true);
-        item(alpha, "Old flour", "Dry", false);
-        item(beta, "Coffee", "Dry", true);
+        // MV Alpha: "Item 01" ... "Item 26" (Provisions), "Eggs" (Personal items), "Old flour" (Provisions, inactive).
+        // MV Beta: "Coffee".
+        IntStream.rangeClosed(1, 26).forEach(i -> item(alpha, String.format("Item %02d", i), ItemCategory.PROVISIONS, true));
+        item(alpha, "Eggs", ItemCategory.PERSONAL_ITEMS, true);
+        item(alpha, "Old flour", ItemCategory.PROVISIONS, false);
+        item(beta, "Coffee", ItemCategory.PROVISIONS, true);
         String tab = "/office/ships/" + alpha.getId() + "/items";
 
         assertThat(names(html(get(tab).param("q", "EGG")))).containsExactly("Eggs");
-        assertThat(names(html(get(tab).param("category", "Fresh")))).containsExactly("Eggs");
+        assertThat(names(html(get(tab).param("category", "PERSONAL_ITEMS")))).containsExactly("Eggs");
         assertThat(names(html(get(tab).param("status", "inactive")))).containsExactly("Old flour");
         assertThat(names(html(get(tab).param("sort", "name").param("dir", "desc"))))
                 .startsWith("Old flour", "Item 26");
@@ -280,7 +282,7 @@ class ListsFlowTest {
         certificateRepository.save(certificate);
     }
 
-    private void item(Ship ship, String name, String category, boolean active) {
+    private void item(Ship ship, String name, ItemCategory category, boolean active) {
         Item item = new Item();
         item.setShip(ship);
         item.setName(name);

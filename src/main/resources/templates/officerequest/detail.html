@@ -48,7 +48,7 @@
                 <tbody>
                 <tr th:each="line : ${request.lines}">
                     <td class="fw-semibold" th:text="${line.item.name}">Basmati rice</td>
-                    <td th:text="${line.item.category} ?: '—'">Dry goods</td>
+                    <td th:text="#{${line.item.category.labelKey()}}">Provisions</td>
                     <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
                     <td th:text="${line.item.unit}">kg</td>
                 </tr>

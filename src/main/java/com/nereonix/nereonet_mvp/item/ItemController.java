@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.list.ListSort;
@@ -37,9 +38,11 @@ public class ItemController {
 
     // The columns that sort (P19), the default first.
     private static final ListSort[] SORTS =
-            {ListSort.asc("name"), ListSort.asc("unit"), ListSort.asc("category"), ListSort.asc("status")};
+            {ListSort.asc("name"), ListSort.asc("unit"), ListSort.asc("category"), ListSort.asc("place"),
+                    ListSort.asc("status")};
 
-    // The ship page's Items tab. status: active or inactive (anything else: both); category: one category;
+    // The ship page's Items tab. status: active or inactive (anything else: both); category: PROVISIONS or
+    // PERSONAL_ITEMS (anything else: both);
     // listRequest: search, sort and page (P19).
     @GetMapping("/office/ships/{id}/items")
     public String list(@PathVariable Long id, @RequestParam(required = false) String status,
@@ -48,15 +51,16 @@ public class ItemController {
         shipFrame.show(model, itemService.getShip(id), ShipTab.ITEMS);
         Boolean active = "active".equals(status) ? Boolean.TRUE : "inactive".equals(status) ? Boolean.FALSE : null;
         String statusKey = active == null ? null : status;
-        String chosenCategory = category == null || category.isBlank() ? null : category;
+        ItemCategory chosenCategory = ItemCategory.fromName(category);
         ListQuery list = ListQuery.of(ShipTab.ITEMS.url(id), listRequest, SORTS)
                 .filterKey("status", statusKey, "item.status", statusKey == null ? null : "item.status." + statusKey)
-                .filter("category", chosenCategory, "item.category", chosenCategory);
+                .filterKey("category", chosenCategory, "item.category",
+                        chosenCategory == null ? null : chosenCategory.labelKey());
         model.addAttribute("list", list);
         model.addAttribute("items", itemService.findItems(id, active, chosenCategory, list));
         model.addAttribute("status", statusKey);
         model.addAttribute("category", chosenCategory);
-        model.addAttribute("categories", itemService.findCategories(id));
+        model.addAttribute("categories", ItemCategory.values());
         return "item/list";
     }
 
@@ -73,7 +77,7 @@ public class ItemController {
             return showForm(id, null, model);
         }
         try {
-            itemService.create(id, form.getName(), form.getUnit(), form.getCategory());
+            itemService.create(id, form.getName(), form.getUnit(), form.getCategory(), form.getPlace());
         } catch (ItemNameTakenException e) {
             result.rejectValue("name", "item.error.nameTaken");
             return showForm(id, null, model);
@@ -98,7 +102,7 @@ public class ItemController {
             return showForm(id, item, model);
         }
         try {
-            itemService.update(id, itemId, form.getName(), form.getUnit(), form.getCategory());
+            itemService.update(id, itemId, form.getName(), form.getUnit(), form.getCategory(), form.getPlace());
         } catch (ItemNameTakenException e) {
             result.rejectValue("name", "item.error.nameTaken");
             return showForm(id, item, model);
@@ -142,6 +146,7 @@ public class ItemController {
     private String showForm(Long shipId, Item item, Model model) {
         model.addAttribute("ship", itemService.getShip(shipId));
         model.addAttribute("item", item);
+        model.addAttribute("categories", ItemCategory.values());
         return "item/form";
     }
 }
