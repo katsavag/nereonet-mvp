@@ -11,8 +11,10 @@
   bar (closed with its X, a tap outside, Esc or choosing an entry); ship crew have the bottom tab bar instead (P26,
   layout/parts :: tabBar) and no menu button. Office pages have "EN | ΕΛ" at the right of the top bar at every width
   (P29); crew pages are English only.
-  Not logged in: the page's <main> fills the screen and brings its own container (the sign-in, registration and
-  error pages use layout/parts :: authFrame, P13).
+  Not logged in: the page's <main> fills the screen and brings its own container (signed-out error pages use
+  layout/parts :: authFrame, P13). The sign-in, registration and password reset pages use layout/auth instead, which
+  never shows the signed-in frame (P30): someone still signed in who opens an invitation or reset link sees that page
+  alone, not inside the sidebar and top bar.
   Messages: add a flash attribute "successMessage" or "errorMessage"
   holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved"); for a message
   with arguments add "successArgs", an Object[] (see layout/parts :: flash).
@@ -26,7 +28,8 @@
 -->
 <html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:lang="${#locale.language}">
-<head>
+<!-- head(title) and scripts are shared with layout/auth (P30). -->
+<head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title} + ' · ' + #{app.name}">Ships · Nereonet</title>
@@ -176,6 +179,7 @@
 <!-- "No connection." (P15): empty and invisible until js/save.js sees the browser go offline. -->
 <div th:replace="~{layout/parts :: offlineBanner}"></div>
 
+<th:block th:fragment="scripts">
 <script th:src="@{/vendor/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/local-time.js}"></script>
 <script th:src="@{/js/row-menu.js}"></script>
@@ -191,5 +195,6 @@
 <script th:src="@{/js/import-map.js}"></script>
 <script th:src="@{/js/ship-picker.js}"></script>
 <script th:src="@{/js/sidebar.js}"></script>
+</th:block>
 </body>
 </html>

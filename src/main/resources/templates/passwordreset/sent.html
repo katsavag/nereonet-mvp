@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.sent.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{passwordReset.sent.title}, ~{::main})}">
 <body>
 <!-- After /password/forgot (P14). Byte for byte the same page for every address, known or not: it names no address
      and has no form (so no CSRF token). -->

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--
+  The layout of the signed-out pages (P30): sign-in, registration (and its invalid link page) and password reset.
+  Pages use it like this:
+    <html th:replace="~{layout/auth :: layout(#{login.title}, ~{::main})}">
+  and their <main> is layout/parts :: authFrame. Unlike layout/layout it never shows the signed-in frame: someone still
+  signed in (for example the office user who has just sent an invitation) who opens an invitation or reset link sees
+  the page alone, not inside the sidebar and top bar with a second brand and a second "EN | ΕΛ". The registration page
+  tells them who is signed in (registration/register.html). Head and scripts come from layout/layout.
+-->
+<html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}">
+<head th:replace="~{layout/layout :: head(${title})}"></head>
+<body th:data-local-time="#{time.local('{time}')}">
+
+<div th:if="${successMessage != null or errorMessage != null}" class="container pt-3">
+    <th:block th:replace="~{layout/parts :: flash}"></th:block>
+</div>
+<main th:replace="${content}"></main>
+
+<!-- "No connection." (P15): empty and invisible until js/save.js sees the browser go offline. -->
+<div th:replace="~{layout/parts :: offlineBanner}"></div>
+
+<th:block th:replace="~{layout/layout :: scripts}"></th:block>
+</body>
+</html>

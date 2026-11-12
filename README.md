@@ -179,9 +179,22 @@ Requirements: Java 25, Docker.
      of the office user who sends (or resends) them. The password reset email (17) uses the same template.
      In dev, `/dev/email/invitation` (office: `?office`, Greek: `&lang=el`) and `/dev/email/password-reset` show
      the HTML with sample data (`dev/DevEmailPreviewController`, dev profile only, signed in).
+   - Landing in the inbox, not in spam (P30). The app does its part: the sender has a name, "Nereonix
+     <noreply@…>" (`MAIL_FROM_NAME`, default "Nereonix"; a name written in `MAIL_FROM` itself wins); the Message-ID
+     ends in the sender's domain, not the computer's name (`spring.mail.properties.mail.from`); the inbox preview line
+     is hidden with `display:none` only, never as text in the background colour or 1 px high; there is a plain-text
+     part and no remote image. Most of the decision is not in the email, though:
+     - a new Gmail address that suddenly sends invitation emails with a link to `http://localhost:8080` looks like
+       phishing to Gmail. In development, mark the first one **Not spam** and add the sender to the recipient's
+       contacts; Gmail learns from that;
+     - for real use send from the company's own domain (for example `noreply@crew.example.com`) through Google
+       Workspace or a transactional mail service, with SPF, DKIM and DMARC set up in its DNS, and use an `https`
+       `APP_BASE_URL` on the same domain, so the links match the sender.
 
 7. Registration: open the `/register?token=...` link from the invitation email (signed out, e.g. in a
-   private window) and set a password. The page says what the person is joining: "You are joining MV Demo as Second
+   private window) and set a password. Opened while someone is still signed in (for example the office user who
+   has just sent the invitation, P30), the page shows on its own, never inside the sidebar and top bar, with "You are
+   signed in as John Doe. Creating this account signs you out and signs you in to the new account." The page says what the person is joining: "You are joining MV Demo as Second
    Officer." (the invitation's rank, or its role without a rank: "as Master", "as a crew member") or "You are joining
    Nereonet as an office user.". **Create account** signs the new user in at once and opens their home page
    (`/office` or `/ship`) with "Your account is ready. You are signed in."; there is no trip through the sign-in
@@ -663,11 +676,11 @@ The app makes no request to any other host: everything a page needs is served fr
   Licence: `fonts/LICENSE-Inter.txt` (SIL OFL 1.1).
 - `img/brand/` (P29), the Nereonix brand: `favicon-32.png` (the browser tab) and `apple-touch-icon.png` (180 px, home
   screen), both linked from `layout/layout.html`; `nereonix-mark-192.png`, the mark shown at 32 px by
-  `layout/parts :: brand` (mark, "Nereonix" as text, optional tagline; in the sidebar, the phone bar of the sign-in
-  pages and the crew home) with `alt=""` since the name is text next to it; `nereonix-logo-on-dark-600.png`
-  (600×422), the logo on the navy panel of the sign-in, registration and reset pages, at most 280 px wide,
-  `alt="Nereonix"` (phones get the mark instead, through `<picture>`, and never download it), and the inline logo of
-  the emails; `nereonix-mark-512.png`, the large mark, kept as source and not linked. Every `<img>` has its
+  `layout/parts :: brand` (mark, "Nereonix" as text, optional tagline; in the sidebar, the sign-in panel and its
+  phone bar, and the crew home) with `alt=""` since the name is text next to it. The PNG is square with empty space
+  around the drawing; on the sign-in panel (80 px box, P30) negative margins take that space out, so the drawing sits
+  next to the name. `nereonix-logo-on-dark-600.png` (600×422), the inline logo of the emails (since P30 no page uses
+  it); `nereonix-mark-512.png`, the large mark, kept as source and not linked. Every `<img>` has its
   `width` and `height`. Replace a file under the same name; the content hash changes its URL.
 - `css/app.css`: the only custom stylesheet. It defines the design tokens (`--nn-*` CSS variables) once in `:root`
   and maps Bootstrap's variables and components onto them; templates carry no inline styles. The comment at the
@@ -926,9 +939,14 @@ The app makes no request to any other host: everything a page needs is served fr
   - sign-in and registration (P13): a first-time seafarer on a phone gets in without help (see 7 for the flow and
     the messages):
     - one signed-out frame, `layout/parts :: authFrame` (sign-in, registration, invalid link, signed-out error
-      pages): the navy brand panel on the left from 768 px (5/12 of the width, 4/12 from 1400 px) with the Nereonix
-      logo (at most 280 px, centred) and one line, "Office and ship portal"; the form card at most 420 px, centred
-      (P29). On phones the panel collapses to a 64 px bar with the mark and "Nereonix", so the form starts above the
+      pages): the narrow navy brand panel on the left from 768 px (P30: 320 px, growing with the window to at most
+      416 px, `--nn-auth-panel-width`) with the brand at its top left (`layout/parts :: brand`: the mark and
+      "Nereonix" as text) and the organisation at its bottom left: "Organisation" / "Εταιρεία", the company's name
+      and its code, from `ORGANISATION_NAME` and `ORGANISATION_CODE` (`core/config/Organisation`; nothing is shown
+      while the name is empty). The form card is at most 420 px, centred (P29). The sign-in, registration and reset
+      pages use `layout/auth` instead of `layout/layout` (P30), so they never show the signed-in frame around them,
+      even to someone who is still signed in. On phones the panel collapses to a 64 px bar with the mark and
+      "Nereonix" (no organisation), so the form starts above the
       fold (at 390 × 844 the **Continue** button ends at about 480 px). **EN | ΕΛ** (sign-in, registration, reset)
       is at the top right of the form side, a 40 px (44 px on phones) touch target;
     - password fields (sign-in, both registration fields) have **Show** / **Hide** inside the field on the right
@@ -1022,6 +1040,9 @@ Set these environment variables:
 | `MAIL_USERNAME` | SMTP login, e.g. the Gmail address |
 | `MAIL_PASSWORD` | SMTP password; for Gmail an App Password (needs 2-step verification), not the account password |
 | `MAIL_FROM` | system sender address; for Gmail the account address or one of its aliases |
+| `MAIL_FROM_NAME` | optional; the sender name the inbox shows, default `Nereonix` |
+| `ORGANISATION_NAME` | optional; the company's name at the bottom of the sign-in panel, e.g. `Nereonix Bulk Carriers`; nothing is shown when empty |
+| `ORGANISATION_CODE` | optional; a short code under the name, e.g. `NEREONIX` |
 | `APP_BASE_URL` | public URL used in email links, no trailing slash, e.g. `https://nereonet.example.com` |
 | `CERTIFICATE_REMINDER_CRON` | optional; when the certificate reminder job runs (UTC), default `0 0 6 * * *` |
 | `LIBRARY_STORAGE_DIR` | folder for library files, created if missing, e.g. `/var/lib/nereonet/library`; back it up with the database |

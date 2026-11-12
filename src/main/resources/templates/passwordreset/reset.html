@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.reset.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{passwordReset.reset.title}, ~{::main})}">
 <body>
 <!-- Password reset (P14), from the emailed link: the new password with the rules, show / hide and checklist of
      registration (layout/parts :: newPasswordFields). The language switch keeps the token. -->

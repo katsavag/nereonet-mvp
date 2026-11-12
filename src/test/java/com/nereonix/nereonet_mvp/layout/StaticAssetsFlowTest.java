@@ -49,9 +49,9 @@ class StaticAssetsFlowTest {
                 .anyMatch(u -> u.startsWith("/js/local-time-"))
                 .anyMatch(u -> u.startsWith("/img/brand/favicon-32-"))
                 .anyMatch(u -> u.startsWith("/img/brand/apple-touch-icon-"))
-                // P29: the sign-in panel's logo, and the mark of the phone bar.
-                .anyMatch(u -> u.startsWith("/img/brand/nereonix-logo-on-dark-600-"))
-                .anyMatch(u -> u.startsWith("/img/brand/nereonix-mark-192-"));
+                // P30: the mark of the sign-in panel; the large logo (49 KB) is only for emails now.
+                .anyMatch(u -> u.startsWith("/img/brand/nereonix-mark-192-"))
+                .noneMatch(u -> u.startsWith("/img/brand/nereonix-logo-on-dark-600-"));
 
         // Signed out: the sign-in page must be fully styled, so every asset (hashed URL included) is public.
         for (String asset : assets) {

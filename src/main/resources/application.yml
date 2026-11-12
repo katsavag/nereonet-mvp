@@ -21,6 +21,8 @@ spring:
       mail.smtp.starttls.enable: true
       # Never fall back to plain text.
       mail.smtp.starttls.required: true
+      # The sender's address: the Message-ID of every email ends in its domain, not in this computer's name (P30).
+      mail.from: ${app.mail.from}
   messages:
     basename: messages
     fallback-to-system-locale: false
@@ -54,6 +56,13 @@ app:
   base-url: ${APP_BASE_URL}
   mail:
     from: ${MAIL_FROM}
+    # The name the inbox shows next to the sender's address (P30).
+    from-name: ${MAIL_FROM_NAME:Nereonix}
+  # Optional: the company this installation serves, shown at the bottom of the sign-in panel (P30), e.g.
+  # "Nereonix Bulk Carriers" and "NEREONIX". Not shown when the name is empty.
+  organisation:
+    name: ${ORGANISATION_NAME:}
+    code: ${ORGANISATION_CODE:}
   invitation:
     valid-days: 7
     # At least 32 characters (HS256).

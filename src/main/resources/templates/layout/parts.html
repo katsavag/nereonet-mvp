@@ -5,7 +5,7 @@
 
 <!-- The brand on navy (P29): the Nereonix mark (32px), "Nereonix" as text and a tagline (or null for none). The mark's
      alt is empty: the word next to it names the app. The sidebar (its rail shows the mark only, the words stay for
-     screen readers) and the sign-in bar on phones. On light surfaces never use the full logo (its wordmark is white).
+     screen readers) and the sign-in panel (larger from 768px, P30). On light surfaces never use the full logo (its wordmark is white).
      Lazy: where the sidebar is hidden (a crew member's phone, P26) the mark is never fetched. -->
 <div th:fragment="brand(tagline)" class="brand">
     <img class="brand-mark" th:src="@{/img/brand/nereonix-mark-192.png}" width="32" height="32" alt="" loading="lazy">
@@ -50,32 +50,29 @@
 
 <!-- The signed-out frame (sign-in, registration, invalid link, signed-out error pages): the navy brand panel and the
      form column. From 768px the panel is a column on the left; on phones it collapses to a 64px header bar, so the
-     form starts above the fold (P13). P29: the panel is 5/12 of the width from 768px and 4/12 from 1400px, with the
-     full logo (at most 280px wide) and one line under it, centred; the phone bar has the mark and "Nereonix"; the
-     form is a card (at most 420px) centred on the other side, with "EN | ΕΛ" at its top right. Named parameters:
+     form starts above the fold (P13). P30: from 768px the panel is narrow (320px, up to 416px on wide screens, see
+     app.css), with the brand (the mark and "Nereonix") at its top left and the organisation (app.organisation.name
+     and .code, core/config/Organisation) at its bottom left, when set; the phone bar has the brand only. The form is
+     a card (at most 420px) centred on the other side, with "EN | ΕΛ" at its top right. The sign-in, registration and
+     reset pages put this frame in layout/auth (P30), so it never sits inside the signed-in frame. Named parameters:
        content  the column's content, ~{::authContent}, defined inside the host element
        lang     true: the English / Greek switch above the content
        token    the invitation token the switch keeps (registration), or leave it out
      Use: <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
               <th:block th:fragment="authContent">...</th:block></main> -->
-<main th:fragment="authFrame" class="auth-frame row g-0 min-vh-100 align-content-start align-content-md-stretch">
-    <div class="auth-brand col-md-5 col-xxl-4 bg-navy bg-grid">
-        <!-- Phones: the 64px bar. -->
-        <div class="auth-brand-bar">
-            <div th:replace="~{layout/parts :: brand(null)}"></div>
-        </div>
-        <!-- From 768px: the full logo. On phones the picture asks for the mark of the bar above instead (already
-             loaded), so a slow link never fetches the large logo just to hide it. -->
-        <div class="auth-brand-logo">
-            <picture>
-                <source media="(max-width: 767.98px)" th:srcset="@{/img/brand/nereonix-mark-192.png}">
-                <img class="auth-logo" th:src="@{/img/brand/nereonix-logo-on-dark-600.png}" width="600" height="422"
-                     th:alt="#{brand.name}">
-            </picture>
-            <p class="auth-brand-line" th:text="#{login.tagline}">Office and ship portal</p>
-        </div>
+<main th:fragment="authFrame" class="auth-frame">
+    <div class="auth-brand bg-navy bg-grid">
+        <!-- The same brand as the sidebar, larger from 768px (app.css). -->
+        <div th:replace="~{layout/parts :: brand(null)}"></div>
+        <!-- The company: label, name and code, one per line. Only when a name is set; not on phones. -->
+        <p th:if="${@organisation.name() != null}" class="auth-organisation">
+            <span class="auth-organisation-label" th:text="#{auth.organisation}">Organisation</span>
+            <span class="auth-organisation-name" th:text="${@organisation.name()}">Nereonix Bulk Carriers</span>
+            <span th:if="${@organisation.code() != null}" class="auth-organisation-code"
+                  th:text="${@organisation.code()}">NEREONIX</span>
+        </p>
     </div>
-    <div class="auth-panel col-md-7 col-xxl-8">
+    <div class="auth-panel">
         <div th:if="${lang}" class="auth-lang">
             <div th:replace="~{layout/parts :: langSwitch(${token})}"></div>
         </div>

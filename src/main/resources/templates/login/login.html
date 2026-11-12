@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{login.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{login.title}, ~{::main})}">
 <body>
 <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">
     <th:block th:fragment="authContent">

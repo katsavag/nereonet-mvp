@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.core.env.Environment;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
@@ -60,6 +61,9 @@ class InvitationEmailTest {
     @Autowired
     ShipRepository shipRepository;
 
+    @Autowired
+    Environment environment;
+
     @MockitoBean
     JavaMailSender mailSender;
 
@@ -87,6 +91,9 @@ class InvitationEmailTest {
 
         Email email = sent();
         assertThat(email.subject).isEqualTo("You are invited to Nereonet");
+        // P30: a sender name, not a bare address; the Message-ID on the sender's domain (session property mail.from).
+        assertThat(email.from).isEqualTo("Nereonix <noreply@nereonet.local>");
+        assertThat(environment.getProperty("spring.mail.properties.mail.from")).isEqualTo("noreply@nereonet.local");
         assertThat(email.root).startsWith("multipart/related");
         assertThat(email.alternative).startsWith("multipart/alternative");
         assertThat(email.alternativeParts).as("two alternative parts: text, then HTML").hasSize(2);
@@ -99,7 +106,9 @@ class InvitationEmailTest {
         assertThat(email.logoDisposition).isEqualTo(Part.INLINE);
         assertThat(email.logoBytes).isGreaterThan(1000);
         assertThat(email.html).contains("src=\"cid:nereonix-logo\"", "width=\"80\" height=\"56\" alt=\"\"")
-                .doesNotContain("src=\"http");
+                .doesNotContain("src=\"http")
+                // P30: the preheader is hidden with display:none only, no text in the background colour or 1px high.
+                .doesNotContain("font-size:1px", "opacity:0", "max-height:0;overflow:hidden;opacity");
 
         // The accept link in both parts, the same link.
         Matcher inText = LINK.matcher(email.text);
@@ -158,6 +167,7 @@ class InvitationEmailTest {
         MimeMessage message = new MimeMessage(null, new ByteArrayInputStream(bytes.toByteArray()));
 
         Email email = new Email();
+        email.from = MimeUtility.decodeText(message.getHeader("From", null));
         email.subject = MimeUtility.decodeText(message.getHeader("Subject", null));
         email.root = message.getContentType();
         Multipart related = (Multipart) message.getContent();
@@ -190,6 +200,7 @@ class InvitationEmailTest {
     }
 
     private static final class Email {
+        String from;
         String subject;
         String root;
         String alternative;

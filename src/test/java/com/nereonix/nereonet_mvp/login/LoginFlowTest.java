@@ -10,12 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,7 +90,7 @@ class LoginFlowTest {
     void passwordFieldHasToggleAndCapsLockHint() throws Exception {
         String html = page("/login").replaceAll("\\s+", " ");
 
-        assertThat(html).contains("class=\"auth-frame ", "class=\"auth-brand ", "class=\"login-box w-100\"",
+        assertThat(html).contains("class=\"auth-frame\"", "class=\"auth-brand ", "class=\"login-box w-100\"",
                         "/js/password", "<div class=\"password-field\">")
                 .containsPattern("<button type=\"button\" class=\"password-toggle\" hidden data-password-toggle=\"password\""
                         + "[^>]*aria-controls=\"password\" aria-label=\"Show password\"[^>]*>Show</button>")
@@ -96,6 +98,31 @@ class LoginFlowTest {
                         + " data-caps-lock-for=\"password\" data-text=\"Caps Lock is on.\"></p>")
                 // the language switch is still there, without a token
                 .contains("href=\"?lang=el\"");
+    }
+
+    // P30: the panel has the brand (mark and "Nereonix" as text) and, only when app.organisation.name is set, the
+    // organisation; not set here.
+    @Test
+    void signInPanelHasTheBrandAndNoOrganisationWhenNoneIsSet() throws Exception {
+        String html = page("/login").replaceAll("\\s+", " ");
+        assertThat(html).containsPattern("<div class=\"auth-brand bg-navy bg-grid\">( <!--[^>]*-->)? <div class=\"brand\">")
+                .contains("<div class=\"brand-name\">Nereonix</div>")
+                .doesNotContain("auth-organisation", "Organisation");
+    }
+
+    @Nested
+    @TestPropertySource(properties = {"app.organisation.name=Nereonix Bulk Carriers", "app.organisation.code=NEREONIX"})
+    class WithOrganisation {
+
+        @Test
+        void signInPanelShowsTheOrganisationInEitherLanguage() throws Exception {
+            assertThat(page("/login").replaceAll("\\s+", " ")).contains("<p class=\"auth-organisation\">"
+                    + " <span class=\"auth-organisation-label\">Organisation</span>"
+                    + " <span class=\"auth-organisation-name\">Nereonix Bulk Carriers</span>"
+                    + " <span class=\"auth-organisation-code\">NEREONIX</span> </p>");
+            assertThat(page("/password/forgot?lang=el")).contains("<span class=\"auth-organisation-label\">Εταιρεία</span>",
+                    "Nereonix Bulk Carriers");
+        }
     }
 
     private String page(String url) throws Exception {

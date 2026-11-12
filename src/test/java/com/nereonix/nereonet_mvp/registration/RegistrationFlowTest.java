@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.registration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -171,6 +173,42 @@ class RegistrationFlowTest {
                         .param("password", "short").param("confirmPassword", "short").with(csrf()))
                 .andExpect(view().name("registration/register"))
                 .andExpect(content().string(Matchers.containsString("The password must be 8 to 72 characters.")));
+    }
+
+    // P30: the office user who sent an invitation opens its link in the same browser. The form shows on its own (no
+    // sidebar, top bar, second brand or second language switch around it), says who is signed in, and creating the
+    // account switches the browser to the new account.
+    @Test
+    @WithUserDetails("office@example.com") // seeded by BootstrapData as "John Doe"
+    void signedInUserOpensAnInvitationLinkWithoutTheSignedInFrame() throws Exception {
+        String token = tokenService.create(invitation("second.officer@example.com", Role.CREW_MEMBER, ship(), null));
+
+        String html = page("/register?token=" + token);
+        assertThat(html).contains("class=\"auth-frame\"",
+                        "You are signed in as John Doe. Creating this account signs you out and signs you in to the new account.")
+                .doesNotContain("class=\"sidebar", "class=\"topbar", "id=\"notificationBell\"", "class=\"tab-bar");
+        assertThat(html.split("class=\"lang-switch\"", -1)).as("one language switch").hasSize(2);
+        assertThat(html.split("class=\"brand\"", -1)).as("one brand").hasSize(2);
+
+        // Signed out, the same page has no such notice.
+        assertThat(mockMvc.perform(get("/register").param("token", token).with(anonymous()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .doesNotContain("You are signed in as");
+
+        mockMvc.perform(post("/register").param("token", token)
+                        .param("password", "secret123").param("confirmPassword", "secret123").with(csrf()))
+                .andExpect(redirectedUrl("/ship"));
+        assertThat(userRepository.findByEmail("second.officer@example.com")).isPresent();
+    }
+
+    // P30: the sign-in and password reset pages also never sit inside the signed-in frame.
+    @Test
+    @WithUserDetails("office@example.com")
+    void signedOutPagesNeverShowTheSignedInFrame() throws Exception {
+        for (String url : new String[] {"/login", "/password/forgot", "/register?token=not-a-token"}) {
+            assertThat(page(url)).as(url).contains("class=\"auth-frame\"")
+                    .doesNotContain("class=\"sidebar", "class=\"topbar", "You are signed in as");
+        }
     }
 
     // P13: the two causes, and no office contact while app.support-contact is not set.

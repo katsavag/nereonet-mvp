@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{registration.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/auth :: layout(#{registration.title}, ~{::main})}">
 <body>
 <!-- Same frame as the sign-in page. The language switch keeps the token, so switching stays on this invitation. -->
 <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true, token=${form.token})}">
@@ -9,6 +10,12 @@
                 subtitle=${invitation.ship == null} ? #{registration.joining.office}
                     : #{registration.joining.ship(${invitation.ship.name},
                         ${invitation.rank != null} ? #{${'rank.' + invitation.rank}} : #{${'registration.joining.role.' + invitation.role}})})}"></header>
+
+        <!-- P30: someone still signed in (often the office user who sent the invitation and opened the link to check
+             it) is told who, since creating the account switches the browser to the new account. -->
+        <div sec:authorize="isAuthenticated()" class="alert alert-warning" role="status"
+             th:text="#{registration.signedInAs(${#authentication.principal.fullName})}">You are signed in as Maria
+            Papadopoulou. Creating this account signs you out and signs you in to the new account.</div>
 
         <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
             <input type="hidden" th:field="*{token}">

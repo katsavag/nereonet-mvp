@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.invalid.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{passwordReset.invalid.title}, ~{::main})}">
 <body>
 <!-- A reset link that was used already, is older than 60 minutes, or is not a reset link (P14): say why, and the way
      to a new one. -->

@@ -151,7 +151,7 @@ class LanguageSwitchFlowTest {
     void signedOutPagesHaveItTopRightOfTheFormAndCrewPagesHaveNone() throws Exception {
         for (String page : List.of("/login", "/password/forgot")) {
             String html = html(get(page).with(anonymous()));
-            assertThat(html).as(page).containsPattern("(?s)<div class=\"auth-panel [^\"]*\">\\s*<div class=\"auth-lang\">\\s*"
+            assertThat(html).as(page).containsPattern("(?s)<div class=\"auth-panel\">\\s*<div class=\"auth-lang\">\\s*"
                     + "<div class=\"lang-switch\" role=\"group\" aria-label=\"Language\">");
             assertThat(anchor(html, "English")).as(page).contains("aria-current=\"true\"");
         }

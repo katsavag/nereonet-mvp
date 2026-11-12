@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{passwordReset.forgot.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{passwordReset.forgot.title}, ~{::main})}">
 <body>
 <!-- Forgot password (P14): one email field. Whatever the address, the answer is /password/forgot/sent. -->
 <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true)}">

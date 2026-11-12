@@ -1712,9 +1712,11 @@ fieldset:disabled button.btn {
      - .auth-frame: the signed-out frame (sign-in, registration, invalid link, signed-out error pages). From 768px
        the navy brand panel (.auth-brand) is a column on the left; on phones it collapses to a 64px header bar, so
        the form starts above the fold (at 390 x 844 the sign-in button is in view without scrolling).
-       P29: the panel is 5/12 of the width from 768px and 4/12 from 1400px, with the full logo (at most 280px) and one
-       line, centred; the phone bar has the mark and "Nereonix"; from 768px the form is a card (at most 420px), centred
-       both ways on its side.
+       P30: from 768px the panel is narrow (--nn-auth-panel-width: 320px, growing with the window up to 416px), with
+       the brand (layout/parts :: brand, the mark at 56px) at its top left and the organisation (.auth-organisation:
+       a spaced-out label, the name, the code; 6.9:1 and white on the navy) at its bottom left. The phone bar has the
+       brand at its sidebar size and no organisation. From 768px the form is a card (at most 420px), centred both ways
+       on its side.
      - .password-field: a password input with "Show" / "Hide" inside it on the right (.password-toggle, navy text
        9:1 on the field, a touch target as tall as the field). The input makes room only once the script has shown
        the button (.has-toggle).
@@ -1726,39 +1728,31 @@ fieldset:disabled button.btn {
 :root {
     --nn-auth-bar-height: 64px;
     --nn-auth-card-width: 26.25rem;  /* 420px */
-    --nn-auth-logo-width: 17.5rem;   /* 280px */
+    --nn-auth-panel-width: clamp(20rem, 28vw, 26rem); /* 320px at 768px, 403px at 1440px, at most 416px */
+    --nn-auth-mark-size: 80px;       /* the PNG's box; the drawing in it is 55 x 43px */
     --nn-password-toggle-room: 6.5rem; /* the widest label, "Απόκρυψη", and its padding */
 }
 
-.auth-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-}
-.auth-brand-bar { display: none; }
-.auth-brand-logo {
+.auth-frame {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+}
+/* Phones: the 64px bar with the brand. */
+.auth-brand {
+    display: flex;
+    flex: none;
     align-items: center;
-    gap: var(--nn-space-4);
-    width: 100%;
-    text-align: center;
+    height: var(--nn-auth-bar-height);
+    padding: 0 var(--nn-gutter);
 }
-.auth-logo {
-    display: block;
-    width: 100%;
-    max-width: var(--nn-auth-logo-width);
-    height: auto;
-}
-.auth-brand-line {
-    margin: 0;
-    color: var(--nn-sidebar-text);
-}
+.auth-organisation { display: none; }
 .auth-panel {
     display: flex;
     flex-direction: column;
-    padding: var(--nn-space-4);
+    flex-grow: 1;
+    min-width: 0;
+    padding: var(--nn-space-2) var(--nn-space-4) var(--nn-space-4);
 }
 .auth-lang {
     display: flex;
@@ -1771,6 +1765,59 @@ fieldset:disabled button.btn {
 }
 .auth-body > .login-box { padding: var(--nn-space-5) 0; }
 @media (min-width: 768px) {
+    .auth-frame { flex-direction: row; }
+    /* The narrow panel: the brand at the top left, the organisation at the bottom left. */
+    .auth-brand {
+        flex: 0 0 var(--nn-auth-panel-width);
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--nn-space-6);
+        height: auto;
+        padding: 3rem 2.5rem;
+    }
+    .auth-brand .brand { gap: var(--nn-space-4); }
+    /* The mark's PNG is square with empty space around the drawing (23% above, 24% below, 31% on the right):
+       negative margins take it out of the layout, so the drawing (55 x 43px here) sits right next to the name. */
+    .auth-brand .brand-mark {
+        width: var(--nn-auth-mark-size);
+        height: var(--nn-auth-mark-size);
+        margin: calc(var(--nn-auth-mark-size) * -.23) calc(var(--nn-auth-mark-size) * -.31)
+                calc(var(--nn-auth-mark-size) * -.24) 0;
+    }
+    .auth-brand .brand-name {
+        font-size: 2rem;
+        letter-spacing: -.01em;
+    }
+    .auth-organisation {
+        display: flex;
+        flex-direction: column;
+        gap: var(--nn-space-2);
+        max-width: 100%;
+        margin: 0;
+    }
+    .auth-organisation-label,
+    .auth-organisation-code {
+        font-family: var(--bs-font-monospace);
+        color: var(--nn-sidebar-muted);
+    }
+    .auth-organisation-label {
+        font-size: var(--nn-font-xs);
+        letter-spacing: .2em;
+        text-transform: uppercase;
+    }
+    .auth-organisation-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.3;
+        color: #fff;
+        overflow-wrap: anywhere;
+    }
+    .auth-organisation-code {
+        font-size: var(--nn-font-sm);
+        letter-spacing: .12em;
+        overflow-wrap: anywhere;
+    }
     .auth-panel { padding: var(--nn-space-5); }
     .auth-body { align-items: center; }
     .auth-body > .login-box {
@@ -1782,16 +1829,6 @@ fieldset:disabled button.btn {
     }
 }
 @media (max-width: 767.98px) {
-    .auth-brand {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        height: var(--nn-auth-bar-height);
-        padding: 0 var(--nn-gutter);
-    }
-    .auth-brand-bar { display: block; }
-    .auth-brand-logo { display: none; }
-    .auth-panel { padding-top: var(--nn-space-2); }
     .auth-body > .login-box { padding-top: var(--nn-space-4); }
 }
 

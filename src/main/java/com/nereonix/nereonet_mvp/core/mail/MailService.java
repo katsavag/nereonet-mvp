@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.core.mail;
 
+import java.io.UnsupportedEncodingException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,9 +14,17 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-// Sends emails from the system address (app.mail.from): plain text, or plain text with an HTML version (P29).
+/**
+ * Sends emails from the system address (app.mail.from): plain text, or plain text with an HTML version (P29).
+ * <p>
+ * P30: the sender has a display name (app.mail.from-name, "Nereonix" by default), so the inbox shows a name rather
+ * than a bare address, which mail filters also count against a message. The Message-ID uses the sender's domain
+ * (spring.mail.properties.mail.from in application.yml) rather than this computer's name.
+ */
 @Service
 public class MailService {
 
@@ -26,16 +36,17 @@ public class MailService {
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
 
     private final JavaMailSender mailSender;
-    private final String from;
+    private final InternetAddress from;
 
-    public MailService(JavaMailSender mailSender, @Value("${app.mail.from}") String from) {
+    public MailService(JavaMailSender mailSender, @Value("${app.mail.from}") String from,
+                       @Value("${app.mail.from-name:Nereonix}") String fromName) {
         this.mailSender = mailSender;
-        this.from = from;
+        this.from = sender(from, fromName);
     }
 
     public void send(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
+        message.setFrom(from.toString());
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text);
@@ -64,5 +75,21 @@ public class MailService {
         }
         mailSender.send(message);
         log.info("Email sent to {}: {}", to, subject);
+    }
+
+    /**
+     * "Nereonix &lt;noreply@example.com&gt;"; the address alone when the name is blank. A name written in
+     * app.mail.from itself ("Crewing &lt;crewing@example.com&gt;") is kept.
+     */
+    static InternetAddress sender(String address, String name) {
+        try {
+            InternetAddress sender = new InternetAddress(address, true);
+            if (sender.getPersonal() == null && name != null && !name.isBlank()) {
+                sender.setPersonal(name.strip(), "UTF-8");
+            }
+            return sender;
+        } catch (AddressException | UnsupportedEncodingException e) {
+            throw new IllegalStateException("app.mail.from is not a valid email address", e);
+        }
     }
 }
