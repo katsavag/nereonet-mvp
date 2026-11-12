@@ -4074,3 +4074,328 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .card-grid-3 > .card-grid-wide { grid-column: auto; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   My profile and My crew (P31): profile/*.html, mycrew/*.html, crew/parts :: profileRow, crewmateRow,
+   layout/parts :: personAvatar and pageHeader's media; js/profile.js (Languages and Photo pages only). The office's
+   Profile card on the crew member's page (crew/edit.html, .profile-fields).
+     - .person-avatar: a round picture, the profile photo (the 96px square, cover) or the initials in the primary pair
+       (blue on its tint, 8:1). -sm 40px in list rows, -lg 64px in page headers (.page-header-media).
+     - .profile-rows: a card of full-width link rows (.profile-row, at least 56px, the whole row is the link): the
+       field's name, its value or "Not given" (secondary colour; the words say it), a chevron. A long bio is cut after
+       two lines here; its page has all of it. The More page uses the same rows with the sidebar's icons.
+     - .crew-group: My crew, one per department, its heading with the count, then a card of .crewmate-row (56px):
+       picture, name ("· you" on one's own row) and rank.
+     - .crewmate-body: one crewmate; with a photo (.photo-large, at most 240px wide) the photo sits beside the fields
+       from 768px and above them on phones.
+     - Languages: the chosen ones (.language-list, Move up, Move down, Remove in each row), the search
+       (.language-search-row: the field and Find), all languages in a scroll box (.language-results-box, 20rem high,
+       focusable so it scrolls from the keyboard) with Add or "Added" in each row.
+   The crew's own pages are at most --nn-read-measure wide, as their announcements.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-avatar-sm: 2.5rem;          /* 40px */
+    --nn-avatar-lg: 4rem;            /* 64px */
+    --nn-row-height: 3.5rem;         /* 56px */
+    --nn-photo-width: 15rem;         /* 240px */
+    --nn-language-box: 20rem;        /* 320px */
+}
+
+.person-avatar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-avatar-sm);
+    height: var(--nn-avatar-sm);
+    overflow: hidden;
+    border-radius: 50%;
+    background-color: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    line-height: 1;
+}
+.person-avatar > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.person-avatar-lg {
+    width: var(--nn-avatar-lg);
+    height: var(--nn-avatar-lg);
+    font-size: 1.25rem;
+}
+.page-header-media {
+    flex: none;
+    align-self: center;
+}
+/* Next to a 64px picture the name keeps its line on a 360px phone. */
+.page-header-media ~ .page-heading { flex-basis: 10rem; }
+
+.profile-page,
+.more-page,
+.mycrew-page,
+.crewmate-page { max-width: var(--nn-read-measure); }
+.profile-page > .info-note { margin-bottom: var(--nn-space-4); }
+
+.profile-rows,
+.crewmate-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+}
+.profile-row-item + .profile-row-item,
+.crewmate-item + .crewmate-item { border-top: 1px solid var(--nn-divider); }
+.profile-row,
+.crewmate-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-row-height);
+    padding: var(--nn-space-3) var(--nn-space-4);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.profile-row:hover,
+.crewmate-row:hover {
+    color: var(--nn-text);
+    background-color: var(--nn-hover);
+}
+.profile-row:hover :is(.profile-row-label, .profile-row-title),
+.crewmate-row:hover .crewmate-name { text-decoration: underline; }
+/* The card clips its corners, so the ring goes inside the row. */
+.profile-row:focus-visible,
+.crewmate-row:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width) - var(--nn-focus-offset)); }
+.profile-row > .sidebar-icon {
+    flex: none;
+    color: var(--nn-blue);
+}
+.profile-row-main,
+.crewmate-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+.profile-row-label,
+.profile-row-title,
+.crewmate-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.profile-row-value {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+}
+.profile-row-value.is-empty { color: var(--nn-text-secondary); }
+.profile-row-chevron {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--nn-text-secondary);
+}
+
+/* More: who is signed in, the links, Sign out (full width on phones). */
+.more-user {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    margin-bottom: var(--nn-section-gap);
+}
+.more-user-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin: 0;
+}
+.more-user-label {
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.more-user-name {
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.more-user-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.more-links { margin-bottom: var(--nn-section-gap); }
+@media (max-width: 575.98px) {
+    .more-sign-out { width: 100%; }
+}
+
+/* My crew */
+.crew-group + .crew-group { margin-top: var(--nn-section-gap); }
+.crew-group-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+.crewmate-you {
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+.crewmate-rank {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* A crewmate */
+.photo-large {
+    display: block;
+    width: 100%;
+    max-width: var(--nn-photo-width);
+    height: auto;
+    border-radius: var(--nn-radius-card);
+    background-color: var(--nn-hover);
+}
+.crewmate-body.has-photo {
+    display: grid;
+    gap: var(--nn-space-4);
+}
+@media (min-width: 768px) {
+    .crewmate-body.has-photo {
+        grid-template-columns: var(--nn-photo-width) minmax(0, 1fr);
+        gap: var(--nn-section-gap);
+        align-items: start;
+    }
+    /* Beside the photo the fields stack: label above value. */
+    .crewmate-body.has-photo .static-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+    .crewmate-body.has-photo .static-fields > dd { margin-bottom: var(--nn-space-3); }
+}
+.crewmate-nothing { color: var(--nn-text-secondary); }
+.crewmate-back { margin: var(--nn-space-4) 0 0; }
+
+/* Photo page */
+.photo-current { margin-bottom: var(--nn-section-gap); }
+.photo-none {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    color: var(--nn-text-secondary);
+}
+.photo-preview { margin: var(--nn-space-3) 0 0; }
+.photo-preview > img {
+    display: block;
+    width: 100%;
+    max-width: var(--nn-photo-width);
+    height: auto;
+    border-radius: var(--nn-radius-card);
+}
+.photo-delete {
+    margin-top: var(--nn-section-gap);
+    padding-top: var(--nn-space-4);
+    border-top: 1px solid var(--nn-divider);
+}
+
+/* Languages */
+.language-section + .language-section { margin-top: var(--nn-section-gap); }
+.language-section-title {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.language-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.language-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-row-height);
+    padding: var(--nn-space-2) var(--nn-space-3);
+}
+.language-row + .language-row { border-top: 1px solid var(--nn-divider); }
+.language-name {
+    flex: 1 1 8rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.language-row .language-name { font-weight: 600; }
+.language-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+.language-search-row {
+    display: flex;
+    gap: var(--nn-space-2);
+}
+.language-search-row > .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.language-result-count {
+    margin: var(--nn-space-3) 0 var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.language-results-box {
+    max-height: var(--nn-language-box);
+    overflow-y: auto;
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.language-results {
+    margin: 0;
+    padding: var(--nn-space-1) 0;
+    list-style: none;
+}
+.language-result {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-1) var(--nn-space-3);
+}
+.language-added {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-1);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-ok-text);
+}
+.language-no-results {
+    margin: 0;
+    padding: var(--nn-space-3);
+    color: var(--nn-text-secondary);
+}
+.language-save { margin-top: var(--nn-section-gap); }
+
+/* The office's Profile card: the photo as a 64px square. */
+.profile-fields-photo {
+    display: block;
+    width: var(--nn-avatar-lg);
+    height: var(--nn-avatar-lg);
+    border-radius: var(--nn-radius-control);
+    object-fit: cover;
+}
+/* Its label at the top of the picture, not at its bottom edge (the rows align on the text baseline). */
+.profile-fields > dt:first-child { align-self: start; }

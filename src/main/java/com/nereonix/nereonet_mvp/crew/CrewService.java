@@ -18,6 +18,7 @@ import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationService;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.profile.ProfileService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -39,11 +40,13 @@ public class CrewService {
     private final AuditRepository auditRepository;
     private final CertificateRepository certificateRepository;
     private final PeopleQueries peopleQueries;
+    private final ProfileService profileService;
 
     public CrewService(UserRepository userRepository, ShipRepository shipRepository, UserService userService,
                        InvitationRepository invitationRepository, InvitationService invitationService,
                        AuditService auditService, AuditRepository auditRepository,
-                       CertificateRepository certificateRepository, PeopleQueries peopleQueries) {
+                       CertificateRepository certificateRepository, PeopleQueries peopleQueries,
+                       ProfileService profileService) {
         this.userRepository = userRepository;
         this.shipRepository = shipRepository;
         this.userService = userService;
@@ -53,6 +56,7 @@ public class CrewService {
         this.auditRepository = auditRepository;
         this.certificateRepository = certificateRepository;
         this.peopleQueries = peopleQueries;
+        this.profileService = profileService;
     }
 
     /**
@@ -173,7 +177,8 @@ public class CrewService {
 
     /**
      * Deletes a deactivated user, crew or office, and every invitation for their email, so they can be
-     * invited again. Their certificates, notifications and announcement recipient rows are deleted by the database (cascade);
+     * invited again. Their certificates, notifications, announcement recipient rows and profile (P31) are deleted by the
+     * database (cascade), their profile photo files once this has committed;
      * announcements they sent stay, with no sender. Their audit entries stay (shown as "Deleted user"); invitations they sent stay, with
      * no sender. A user cannot delete themselves. Returns the deleted user.
      */
@@ -187,6 +192,7 @@ public class CrewService {
         invitationRepository.deleteByEmail(user.getEmail());
         invitationRepository.clearInvitedBy(user);
         auditRepository.detachActor(user.getId());
+        profileService.deletePhotoFilesOf(user);
         userRepository.delete(user);
         auditService.record("USER_DELETED", user.getShip(), user.getEmail() + " (" + user.getRole() + ")");
         return user;

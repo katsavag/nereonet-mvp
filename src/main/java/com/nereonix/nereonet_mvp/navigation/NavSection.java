@@ -4,14 +4,16 @@ import java.util.List;
 
 /**
  * The sidebar entry a URL belongs to. A page below an entry keeps it active: /office/crew/12/edit is CREW,
- * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew').
+ * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew'); tab() is the crew's
+ * phone tab bar entry (navTab == 'more'), the same except for the entries under More (P31).
  */
 public enum NavSection {
 
     // Office, Operations
     OVERVIEW("overview", List.of()),           // /office itself only, see of()
     SHIPS("ships", List.of("/office/ships")),
-    CREW("crew", List.of("/office/crew")),
+    // The office's Crew and, for the crew, My crew (P31): the same entry key and icon.
+    CREW("crew", List.of("/office/crew", "/ship/crew")),
     CERTIFICATES("certificates", List.of("/office/certificates")),
     // The office list and, for the crew, their own announcements (P27): the same entry key and icon.
     ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/announcements")),
@@ -22,6 +24,10 @@ public enum NavSection {
     // Ship. Home is /ship itself only (P26), see of().
     HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
+    // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of My profile, My crew and Sign
+    // out; it has no sidebar entry.
+    PROFILE("profile", List.of("/ship/profile")),
+    MORE("more", List.of("/ship/more")),
     // Account, everyone
     NOTIFICATIONS("notifications", List.of("/notifications"));
 
@@ -35,6 +41,12 @@ public enum NavSection {
 
     public String key() {
         return key;
+    }
+
+    /** The phone tab (P26) that is active on this section's pages: More for My profile, My crew and More itself
+     *  (P31); every other section is its own tab. The office has no tab bar. */
+    public String tab() {
+        return this == PROFILE || this == MORE || this == CREW ? MORE.key : key;
     }
 
     /**

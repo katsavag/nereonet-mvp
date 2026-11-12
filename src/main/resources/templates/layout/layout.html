@@ -91,17 +91,21 @@
                         </ul>
                     </th:block>
                     <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), Announcements (P27)
-                         between Home and Library in both. -->
+                         between Home and Library in both. My crew and My profile (P31) are under the tab bar's More. -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
                             <li th:replace="~{layout/parts :: navItem('home', '/ship', #{nav.home}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('announcements', '/ship/announcements', #{nav.announcements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
+                            <li th:replace="~{layout/parts :: navItem('crew', '/ship/crew', #{nav.myCrew}, null, null)}"></li>
                         </ul>
                     </th:block>
                     <p class="nav-group-label" id="navGroupAccount" th:text="#{nav.group.account}">Account</p>
                     <ul class="nav flex-column" aria-labelledby="navGroupAccount">
+                        <th:block sec:authorize="!hasRole('OFFICE_USER')">
+                            <li th:replace="~{layout/parts :: navItem('profile', '/ship/profile', #{nav.profile}, null, null)}"></li>
+                        </th:block>
                         <li th:replace="~{layout/parts :: navItem('notifications', '/notifications', #{nav.notifications},
                                 ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
                     </ul>
@@ -159,7 +163,8 @@
             <main th:replace="${content}"></main>
         </div>
     </div>
-    <!-- Ship crew on phones (P26): Home, Announcements, Library and Notifications at the bottom of the screen. -->
+    <!-- Ship crew on phones (P26): Home, Announcements, Library, Notifications and More (P31) at the bottom of the
+         screen. -->
     <th:block sec:authorize="!hasRole('OFFICE_USER')">
         <nav th:replace="~{layout/parts :: tabBar}"></nav>
     </th:block>

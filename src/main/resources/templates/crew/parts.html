@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Fragments for the crew and office user lists. -->
+<!-- Fragments for the crew and office user lists, and for the crew's own My profile and My crew (P31, below). -->
 
 <!-- P18: the rank sets the role, the office never picks one. -->
 
@@ -56,6 +56,40 @@
         </li>
     </ul>
 </section>
+
+<!-- My profile and My crew (P31): the crew's own pages (profile/*.html, mycrew/*.html). English only. -->
+
+<!-- One field of My profile: the whole row is one link to the field's page, at least 56px high: the field's name, its
+     value under it ("Not given" in the secondary colour when empty) and a chevron. value: text, or null when empty.
+     Use: <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio})}"></li> -->
+<li th:fragment="profileRow(url, label, value)" class="profile-row-item">
+    <a class="profile-row" th:href="@{${url}}">
+        <span class="profile-row-main">
+            <span class="profile-row-label" th:text="${label}">Bio</span>
+            <span th:if="${value != null}" class="profile-row-value" th:text="${value}">Cook from Piraeus.</span>
+            <span th:unless="${value != null}" class="profile-row-value is-empty" th:text="#{profile.notGiven}">Not given</span>
+        </span>
+        <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+    </a>
+</li>
+
+<!-- One person of My crew (P31): the whole row is one link to their page, at least 56px high: their picture (photo or
+     initials), name and rank ("Rank not set" without one); the signed-in person's row says "· you" after the name.
+     p: a mycrew/CrewmateView. -->
+<li th:fragment="crewmateRow(p)" class="crewmate-item">
+    <a class="crewmate-row" th:href="@{/ship/crew/{id}(id=${p.id})}">
+        <span th:replace="~{layout/parts :: personAvatar(${p.initials()}, ${p.photoUrl(96)}, 'sm')}"></span>
+        <span class="crewmate-main">
+            <span class="crewmate-name"><th:block th:text="${p.fullName}">Maria Santos</th:block><span
+                    th:if="${p.you}" class="crewmate-you"> <span aria-hidden="true">·</span> <th:block
+                    th:text="#{mycrew.you}">you</th:block></span></span>
+            <span class="crewmate-rank" th:text="${p.rank != null} ? #{${'rank.' + p.rank}} : #{department.none}">Able Seaman</span>
+        </span>
+        <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+    </a>
+</li>
 
 <span th:fragment="status(enabled)"
       th:replace="~{layout/parts :: status(${enabled} ? 'ok' : 'neutral', ${enabled} ? #{user.status.active} : #{user.status.inactive})}">Active</span>

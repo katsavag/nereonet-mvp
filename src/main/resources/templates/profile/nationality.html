@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.field.nationality}, ~{::main})}">
+<body>
+<!-- My profile, Nationality (P31): one list of countries (ship/Countries, as a ship's flag), "Not given" first. -->
+<main class="form-page">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{profile.field.nationality}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{profile.title}, '/ship/profile')}"></li>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:action="@{/ship/profile/nationality}" th:object="${form}" method="post" novalidate>
+                <div>
+                    <label for="nationality" class="form-label" th:text="#{profile.nationality.label}">Your nationality</label>
+                    <select th:field="*{nationality}" class="form-select"
+                            th:classappend="${#fields.hasErrors('nationalityValid')} ? 'is-invalid'">
+                        <option value="" th:text="#{profile.notGiven}">Not given</option>
+                        <option th:each="country : ${countries}" th:value="${country.key}" th:text="${country.value}">Greece (GR)</option>
+                    </select>
+                    <div class="invalid-feedback" th:errors="*{nationalityValid}"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+                    <a class="btn btn-ghost" th:href="@{/ship/profile}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -2,14 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
 <body>
 <!-- The crew home page (P26): what this person is asked to read and whether their certificates are in order, in one
-     phone screen. English only, as every crew screen. Read only except Sign out. No images, no script of its own.
+     phone screen. English only, as every crew screen. Read only except Sign out. No images (but the person's own
+     profile photo, P31), no script of its own.
      Phones: one column (To read, Crew acknowledgements for the Master, My certificates); from 992px To read and the
      Master's card on the left, the certificates on the right.
      The header says who is signed in, their rank and ship; on a shared PC "Not Demo Cook? Sign out" sits next to the
-     name. -->
-<main class="crew-home" th:with="u=${home.user}, today=${@dates.today()}">
+     name. P31: the person's profile photo (96px version) or initials before the name. -->
+<main class="crew-home" th:with="u=${home.user}, today=${@dates.today()},
+        photo=${home.photoKey != null} ? ${'/ship/crew/' + u.id + '/photo/' + home.photoKey + '/96'} : null">
     <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
-            subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}, actions=~{::pageActions})}">
+            subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}, actions=~{::pageActions},
+            media=~{::pageMedia})}">
+        <th:block th:fragment="pageMedia">
+            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+        </th:block>
         <th:block th:fragment="pageActions">
             <div class="home-sign-out">
                 <span class="home-sign-out-name" th:text="#{home.notYou(${u.fullName})}">Not Demo Cook?</span>

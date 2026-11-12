@@ -187,7 +187,8 @@
 <!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
      sidebar has the same entries (layout/layout.html, group On board). Fixed at the bottom of the screen, above the
      safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each entry is
-     tabItem. Announcements (P27) sits between Home and Library, here and in the sidebar. -->
+     tabItem. Announcements (P27) sits between Home and Library, here and in the sidebar. More (P31) is last: a link to
+     a page (/ship/more) listing My profile, My crew and Sign out, which the sidebar shows directly from 768px. -->
 <nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}">
     <ul class="tab-bar-list">
         <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
@@ -195,15 +196,17 @@
         <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
         <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
                 ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
+        <li th:replace="~{layout/parts :: tabItem('more', '/ship/more', #{nav.more}, null, null)}"></li>
     </ul>
 </nav>
 
 <!-- One tab of the tab bar (P26), with the same parameters as navItem: the icon over the label, the active one (the
-     section from the URL, as in the sidebar) in navy and semibold with a bar on its top edge and aria-current="page".
+     tab of the URL's section, navTab from navigation/NavigationAdvice: the section itself, or More for My profile and
+     My crew, P31) in navy and semibold with a bar on its top edge and aria-current="page".
      count: a badge on the icon, hidden when null or zero, "99+" above 99; countLabel the same in words.
      data-nav: for js/notifications.js, which updates the count after Mark as read. -->
 <li th:fragment="tabItem(section, url, label, count, countLabel)" class="tab-bar-item" th:data-nav="${section}"
-    th:with="active=${navSection == section}">
+    th:with="active=${navTab == section}">
     <a class="tab-bar-link" th:classappend="${active} ? 'active'" th:href="@{${url}}" th:aria-current="${active} ? 'page'">
         <span class="tab-bar-icon">
             <svg th:replace="~{layout/parts :: navIcon(${section})}"></svg>
@@ -272,7 +275,20 @@
     <th:block th:if="${name == 'library'}"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/></th:block>
     <th:block th:if="${name == 'notifications'}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></th:block>
     <th:block th:if="${name == 'items'}"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4z"/><path d="M3.5 8 12 12l8.5-4M12 12v8"/></th:block>
+    <th:block th:if="${name == 'profile'}"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6 6 0 0 1 11 0"/></th:block>
+    <th:block th:if="${name == 'more'}"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></th:block>
 </svg>
+
+<!-- A person's round picture (P31): their profile photo (the 96px version, a square from the middle of the photo), or
+     their initials on the primary tint without one. Decorative (the name is always next to it): alt="" and hidden from
+     screen readers. Lazy, so a long crew list loads the photos as they scroll into view.
+       initials  "DC"; photo  the photo's URL (@{...}) or null; size  'sm' (40px, list rows) or 'lg' (64px, headers)
+     Use: <span th:replace="~{layout/parts :: personAvatar(${p.initials()}, ${p.photoUrl(96)}, 'sm')}"></span> -->
+<span th:fragment="personAvatar(initials, photo, size)" class="person-avatar" th:classappend="'person-avatar-' + ${size}"
+      aria-hidden="true">
+    <img th:if="${photo != null}" th:src="@{${photo}}" alt="" width="96" height="96" loading="lazy" decoding="async">
+    <th:block th:unless="${photo != null}" th:text="${initials}">DC</th:block>
+</span>
 
 <!-- Dates and times (P11). Office and ship read the same time for the same event: every time is shown in UTC and
      says so, in one format in both languages (month names in the page language), from the @dates bean
@@ -458,6 +474,8 @@
        count        a number shown after the heading, muted
        subtitle     text; subtitleParts instead when the line has markup (e.g. a localTime), ~{::pageSubtitle}
        actions      a fragment of buttons, ~{::pageActions}
+       media        a picture before the heading, ~{::pageMedia}: the person's personAvatar on the crew's own pages
+                    (P31: Home, My profile, More)
      Define the fragments inside the host element (they are replaced with it):
        <header th:replace="~{layout/parts :: pageHeader(heading=#{item.list.heading}, count=${items.size()},
                             crumbs=~{::pageCrumbs}, actions=~{::pageActions})}">
@@ -475,6 +493,10 @@
         </ol>
     </nav>
     <div class="page-header-row">
+        <!-- th:if on a wrapper: th:insert runs before th:if on the same element. -->
+        <th:block th:if="${media != null}">
+            <div class="page-header-media" th:insert="${media}"></div>
+        </th:block>
         <div class="page-heading">
             <p th:if="${eyebrow != null}" class="eyebrow" th:text="${eyebrow}">MV Demo · IMO 9074729</p>
             <th:block th:if="${eyebrow == null and eyebrowShip != null}"

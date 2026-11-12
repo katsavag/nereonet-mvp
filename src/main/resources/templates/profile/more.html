@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{more.title}, ~{::main})}">
+<body>
+<!-- More (P31): the fifth tab of the crew's phone tab bar, an ordinary page (works without JavaScript). Who is signed
+     in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then My profile,
+     My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
+     Model: me (User), ship, profile (CrewProfile). -->
+<main class="more-page"
+      th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{more.title})}"></header>
+
+    <section class="more-user" aria-labelledby="moreUserName">
+        <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+        <p class="more-user-text">
+            <span class="more-user-label" th:text="#{more.signedInAs}">Signed in as</span>
+            <span class="more-user-name" id="moreUserName" th:text="${me.fullName}">Demo Cook</span>
+            <span class="more-user-meta"
+                  th:text="(${me.rank != null} ? #{${'rank.' + me.rank}} : #{department.none}) + ' · ' + ${ship.name}">Chief Cook · MV Demo</span>
+        </p>
+    </section>
+
+    <nav class="more-links" th:attr="aria-label=#{more.title}">
+        <ul class="profile-rows">
+            <li class="profile-row-item">
+                <a class="profile-row" th:href="@{/ship/profile}">
+                    <svg th:replace="~{layout/parts :: navIcon('profile')}"></svg>
+                    <span class="profile-row-main"><span class="profile-row-title" th:text="#{nav.profile}">My profile</span></span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+            <li class="profile-row-item">
+                <a class="profile-row" th:href="@{/ship/crew}">
+                    <svg th:replace="~{layout/parts :: navIcon('crew')}"></svg>
+                    <span class="profile-row-main"><span class="profile-row-title" th:text="#{nav.myCrew}">My crew</span></span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary more-sign-out')}"></form>
+</main>
+</body>
+</html>

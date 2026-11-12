@@ -10,7 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // ISO 3166 country codes for the flag field, shown as "Greece (GR)". Names come from the JDK.
-// Public for labels() only: the flag filter of the announcement form's ship list (P28).
+// Public for labels(): the flag filter of the announcement form's ship list (P28); and for isCode() and nameOf(): a crew
+// member's nationality (P31).
 public final class Countries {
 
     private static final Set<String> CODES = Set.of(Locale.getISOCountries());
@@ -38,6 +39,16 @@ public final class Countries {
         Matcher matcher = CODE_AT_END.matcher(value);
         String code = (matcher.find() ? matcher.group(1) : value).toUpperCase(Locale.ROOT);
         return CODES.contains(code) ? code : null;
+    }
+
+    // A known ISO 3166 code, exactly as stored ("GR"). A crew member's nationality (P31).
+    public static boolean isCode(String code) {
+        return code != null && CODES.contains(code);
+    }
+
+    // "GR" -> "Greece" in the given language; null for null or an unknown code. A crew member's nationality (P31).
+    public static String nameOf(String code, Locale locale) {
+        return isCode(code) ? name(code, locale) : null;
     }
 
     // An empty field is fine (flag is optional); anything else must be a known country.

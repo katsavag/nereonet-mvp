@@ -29,7 +29,8 @@ Requirements: Java 25, Docker.
    On first start the dev profile creates an office user (`office@example.com` / `office123`)
    and a demo ship (`MV Demo`, IMO 9074729). While there are no item requests it also creates two approved
    requests on the first ship (by name), with three demo items and, when the ship has no active Master / Chief cook,
-   the users `master.demo@example.com` and `cook.demo@example.com` (password `crew123`).
+   the users `master.demo@example.com` and `cook.demo@example.com` (password `crew123`). Since P31 the first ship
+   also gets three more crew members with sample profiles for My crew (see 20).
    While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
    "Drug and alcohol policy" (Company policies, required).
 
@@ -228,7 +229,9 @@ Requirements: Java 25, Docker.
    Chief cook ("Master access"). Users from before P18 whose rank does not set the role they have, or who have no
    rank, keep their role: they are listed in a **Rank needs review** notice above the list (for the list as
    filtered), each linking to their page, which names the access they have now ("Access now: Master. Saving applies
-   the access of the rank above."). Saving there applies the mapping.
+   the access of the rank above."). Saving there applies the mapping. Under the form a **Profile** card (P31) shows,
+   read only, what the crew member has filled in about themselves (photo, languages, nationality, bio; "Not given"
+   where empty): only they can change it (see 20). Deleting a crew member also deletes their photo files.
 
    **Import from file** (`/office/crew/import`) invites many crew members at once, from the file the crewing system
    produces or from the template. Four steps, shown at the top of every page (**Upload**, **Map columns**,
@@ -601,7 +604,8 @@ Requirements: Java 25, Docker.
    PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeService`, `templates/shiphome/home.html`
    (it replaces the placeholder `login/ship.html`).
    - **Header**: the ship's name and IMO number as the eyebrow, the person's name as the heading and their rank under
-     it (the role when no rank is set). Next to the name: "Not Demo Cook?" and **Sign out**, one tap from Home, so
+     it (the role when no rank is set), and before the name their profile photo or initials (P31, see 20). Next to
+     the name: "Not Demo Cook?" and **Sign out**, one tap from Home, so
      the next person on a shared PC sees whose session it is.
    - **To read**: the Required library items of the person's ship that they have not acknowledged in the current
      version and the announcements they have not acknowledged (P27, see 19), together, oldest first, with their number
@@ -619,13 +623,15 @@ Requirements: Java 25, Docker.
      acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
    - From 992 px To read (and the Master's card) and the certificates sit side by side.
    - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
-     :: tabBar`) with **Home**, **Announcements** (P27), **Library** and **Notifications** (the unread count as a badge on the icon, in words
+     :: tabBar`) with **Home**, **Announcements** (P27), **Library**, **Notifications** and **More** (P31: My profile,
+     My crew and Sign out, see 20) (the Notifications unread count as a badge on the icon, in words
      for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
      one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
      the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
-     Announcements, Library; Account: Notifications). The page keeps room for the bar, and the offline banner and the
+     Announcements, Library and, since P31, My crew; Account: Notifications and My profile). The page keeps room for the bar, and the offline banner and the
      pinned **I have read this** sit above it.
-   - The page loads no images and no script of its own (only the layout's shared files). Measured with the dev data
+   - The page loads no script of its own (only the layout's shared files) and no images, except since P31 the
+     person's own 96 px photo when they have added one (about 2 KB, cached for a year). Measured with the dev data
      as `cook.demo@example.com` (Chrome, 390 px): the HTML is 19.6 KB; with an empty cache the whole page transfers
      569 KB (Bootstrap CSS 232 KB and JS 81 KB, `app.css` 126 KB, the shared scripts 61 KB, the Latin font subset
      49 KB). Those files carry a content hash and are cached for a year, so every later visit transfers only the
@@ -656,6 +662,61 @@ Requirements: Java 25, Docker.
    - To try it: as `office@example.com` send an announcement to MV Demo (14). As `cook.demo@example.com` /
      `crew123`: **Notifications** has "Announcement · <title>"; open it, press **I have read this**. As the office, the
      announcement's page shows "1 of 2 acknowledged" with Demo Cook and the time under Acknowledged.
+
+20. My profile and My crew (P31, any ship user): a seafarer adds a little about themselves, and sees who is on board.
+   `profile/ProfileController`, `mycrew/MyCrewController`, `core/profile/` (the `crew_profile` table, `ProfileService`,
+   the photo handling), `templates/profile/` and `templates/mycrew/`; English only, as every crew screen. Every field
+   is optional, and what a person fills in is seen by everyone on board the same ship now and by the office.
+   - **Where**: on phones the tab bar's fifth tab is **More** (`/ship/more`): who is signed in, **My profile**, **My
+     crew** and **Sign out**. From 768 px the sidebar has **My crew** under On board and **My profile** under Account.
+     The person's photo (or initials) is next to their name on Home (18) and on My profile.
+   - **My profile** (`/ship/profile`): the office's details as the header (name, "rank · ship", read only), "Your
+     crewmates and the office can see what you fill in.", then four full-width rows, each its own page with **Save**
+     and **Cancel** (Save comes back with "Saved."; nothing is stored or audited when nothing changed):
+     - **Languages** (up to 5, ISO 639-1, in the person's order): the chosen ones with **Move up**, **Move down** and
+       **Remove**, and every language (English names) with **Add**. These are links that only change the page's
+       working list (`?languages=el,en`); nothing is saved before **Save**. **Find** searches on the server (a GET
+       form; accents do not matter, "bokmal" finds Norwegian Bokmål); with `js/profile.js` the list filters as you
+       type.
+     - **Nationality**: one country from a list (ISO 3166 codes, English names), or "Not given".
+     - **Bio**: plain text, at most 280 characters, line breaks kept, with the shared character counter and draft
+       keeping (P05).
+     - **Photo**: JPEG or PNG, at most 5 MB (said before choosing). With `js/profile.js` the browser first makes it at
+       most 800 px on its longest side and shows a preview, so a phone photo is ~100 KB over the satellite link;
+       without the script the original is sent. Either way the server reads it (the EXIF orientation applied), makes a
+       512 px version (longest side) and a 96 px square, and writes new JPEGs with no metadata at all (no EXIF, no
+       GPS); the upload itself is never stored. Files: `<app.library.storage-dir>/profile-photos/<uuid>-512.jpg` and
+       `-96.jpg` (back them up with the library). **Delete my profile photo** asks first and goes back to the
+       initials ("Your photo is deleted."). A replaced or deleted photo's files are removed after the change is
+       committed, and so are a deleted crew member's (8).
+     Each change is in the audit log (10): "Profile languages changed" (`en, el`), "Profile nationality changed",
+     "Profile bio changed" (its length, not the text), "Profile photo added" (`384x512 JPEG`), "Profile photo
+     deleted".
+   - **My crew** (`/ship/crew`): the ship as the eyebrow, "Crew on board · 6", then one card per department (Deck,
+     Engine, Galley, then "Rank not set") with its count: each person is one full-width link (56 px) with their photo
+     or initials, name and rank, in rank order then by name; the signed-in person's own row says "· you". Only
+     enabled users with a crew role on that ship now: never invited people (they are invitations, not users), the
+     deactivated, other ships or the office. Alone on board: "You're the only one on board in Nereonet so far."
+   - **A crewmate** (`/ship/crew/{id}`): name, "rank · department", the 512 px photo and what they shared; with
+     nothing: "Nikos hasn't added anything to their profile yet." **Back to My crew** at the end.
+   - Never on these pages: email addresses, join or sign-off dates, certificates. Anyone not on board the person's
+     ship now (another ship, deactivated, an office user, no such id) is a 404, not a 403, and so is their photo
+     (`/ship/crew/{id}/photo/{key}/{96|512}`, and only with the person's current key). Photos are sent with
+     `Cache-Control: max-age=31536000, private, immutable`: a new photo has a new key, so a cached one is never
+     stale, and shared caches never keep them.
+   - **The office** sees the same four fields read only in a **Profile** card on the crew member's page (8), with
+     the photo (`/office/crew/{id}/photo/...`), languages and country names in the page language.
+   - My crew is one query for the people and their profiles (`mycrew/CrewmateQueries`, a left join), so the page
+     makes the same number of queries for 3 people or 30 (`MyCrewFlowTest` checks it). Rows load the 96 px photos
+     lazily (about 2 KB each). The My crew pages load no script of their own; `js/profile.js` is only on the
+     Languages and Photo pages (deferred), and every form works without it.
+   - Dev data: when they are missing, the first ship also gets `engineer.demo@example.com` (Nikos Pappas, Chief
+     Engineer, a full profile), `ab.demo@example.com` (Maria Santos, Able Seaman) and `steward.demo@example.com`
+     (Arjun Mehta, Steward, nothing filled in), password `crew123`; the demo Master and Chief cook get their ranks if
+     they have none.
+   - To try it: as `cook.demo@example.com` / `crew123`, **More** (phone) or **My profile** (sidebar): add two
+     languages and a photo; then **My crew** shows the cook's photo with "· you", and Nikos Pappas's page shows his
+     profile. As `office@example.com`, Crew → Demo Cook shows the Profile card.
 
 Run the tests (H2 in memory, no Docker needed):
 

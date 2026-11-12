@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{nav.myCrew}, ~{::main})}">
+<body>
+<!-- My crew (P31): who is on board the signed-in person's ship now (active users with a crew role; never invited or
+     deactivated people, nor other ships), grouped by department (Deck, Engine, Galley, then "Rank not set"), then by
+     rank order, then by name. Each row is one link to the person's page (crew/parts :: crewmateRow); the signed-in
+     person's row says "· you". Read only, English only, no script of its own. Built from mycrew/CrewmateView only, so
+     no email, date or certificate can reach this page. Model: crew (MyCrewService.MyCrew). -->
+<main class="mycrew-page">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{mycrew.heading}, count=${crew.count},
+            eyebrowShip=${crew.ship})}"></header>
+
+    <th:block th:if="${crew.count <= 1}">
+        <div class="card">
+            <div th:replace="~{layout/parts :: emptyState(icon='crew', title=#{mycrew.only.title},
+                    text=#{mycrew.only.text}, action=null)}"></div>
+        </div>
+    </th:block>
+
+    <th:block th:if="${crew.count > 1}">
+        <section th:each="g, it : ${crew.groups}" class="crew-group"
+                 th:with="groupId=${'crewGroup' + it.index}" th:attr="aria-labelledby=${groupId}">
+            <h2 class="crew-group-title" th:id="${groupId}">
+                <span th:text="${g.department != null} ? #{${'department.' + g.department}} : #{department.none}">Deck</span>
+                <span class="title-count"><span aria-hidden="true">·</span> <span class="num"
+                        th:text="${g.people.size()}">5</span></span>
+            </h2>
+            <ul class="crewmate-list">
+                <!-- th:each on a wrapper: th:replace runs before th:each on the same element. -->
+                <th:block th:each="p : ${g.people}">
+                    <li th:replace="~{crew/parts :: crewmateRow(${p})}"></li>
+                </th:block>
+            </ul>
+        </section>
+    </th:block>
+</main>
+</body>
+</html>

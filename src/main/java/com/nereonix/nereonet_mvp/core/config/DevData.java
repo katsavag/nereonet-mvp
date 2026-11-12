@@ -3,6 +3,7 @@ package com.nereonix.nereonet_mvp.core.config;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,8 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemVersion;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemVersionRepository;
+import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
+import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
@@ -26,6 +29,7 @@ import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -33,7 +37,9 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 // Dev profile only: creates one demo ship if there are no ships yet, and two approved item requests
 // (with a demo Master, Chief cook and items when the ship has none) if there are no requests yet,
-// and two library items on that ship (one of them required) if its library is empty.
+// and two library items on that ship (one of them required) if its library is empty. P31: the demo Master and Chief
+// cook get their ranks if they have none, and three more crew members (two with a profile) are on board, so My crew
+// shows its departments.
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -50,11 +56,12 @@ public class DevData implements ApplicationRunner {
     private final RequestLineRepository lineRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final LibraryItemVersionRepository libraryVersionRepository;
+    private final CrewProfileRepository profileRepository;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    RequestLineRepository lineRepository, LibraryItemRepository libraryItemRepository,
-                   LibraryItemVersionRepository libraryVersionRepository) {
+                   LibraryItemVersionRepository libraryVersionRepository, CrewProfileRepository profileRepository) {
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -63,6 +70,7 @@ public class DevData implements ApplicationRunner {
         this.lineRepository = lineRepository;
         this.libraryItemRepository = libraryItemRepository;
         this.libraryVersionRepository = libraryVersionRepository;
+        this.profileRepository = profileRepository;
     }
 
     @Override
@@ -90,6 +98,42 @@ public class DevData implements ApplicationRunner {
                             + "Every crew member must read and acknowledge this policy.");
             log.info("Created 2 demo library items for ship {}", firstShip.getName());
         }
+        demoCrew(firstShip);
+    }
+
+    // P31: ranks for the demo Master and Chief cook (created without one before), and three crew members, each once.
+    private void demoCrew(Ship ship) {
+        demoRank("master.demo@example.com", Rank.MASTER);
+        demoRank("cook.demo@example.com", Rank.CHIEF_COOK);
+        crewMember(ship, "engineer.demo@example.com", "Nikos Pappas", Rank.CHIEF_ENGINEER, List.of("el", "en"), "GR",
+                "Twenty years at sea, the last ten on bulk carriers.\nAsk me about the purifiers.");
+        crewMember(ship, "ab.demo@example.com", "Maria Santos", Rank.ABLE_SEAMAN, List.of("tl", "en", "es"), "PH",
+                null);
+        crewMember(ship, "steward.demo@example.com", "Arjun Mehta", Rank.STEWARD, List.of(), null, null);
+    }
+
+    private void demoRank(String email, Rank rank) {
+        userRepository.findByEmail(email).filter(user -> user.getRank() == null).ifPresent(user -> {
+            user.setRank(rank);
+            log.info("Gave demo user {} the rank {}", email, rank);
+        });
+    }
+
+    // A crew member (password DEMO_CREW_PASSWORD) and, when anything is given, their profile.
+    private void crewMember(Ship ship, String email, String fullName, Rank rank, List<String> languages,
+                            String nationality, String bio) {
+        if (userRepository.existsByEmail(email)) {
+            return;
+        }
+        User user = userService.createUser(email, fullName, DEMO_CREW_PASSWORD, rank.role(), ship, rank);
+        if (!languages.isEmpty() || nationality != null || bio != null) {
+            CrewProfile profile = new CrewProfile(user);
+            profile.setLanguages(languages);
+            profile.setNationality(nationality);
+            profile.setBio(bio);
+            profileRepository.save(profile);
+        }
+        log.info("Created demo user {} ({})", email, rank);
     }
 
     // A library item with one text version.

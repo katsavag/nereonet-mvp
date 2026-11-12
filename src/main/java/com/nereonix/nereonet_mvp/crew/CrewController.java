@@ -2,6 +2,8 @@ package com.nereonix.nereonet_mvp.crew;
 
 import java.util.List;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,6 +21,8 @@ import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.list.ListSort;
+import com.nereonix.nereonet_mvp.core.profile.PhotoResponse;
+import com.nereonix.nereonet_mvp.core.profile.ProfileService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -37,11 +41,14 @@ public class CrewController {
     private final CrewService crewService;
     private final ShipFrame shipFrame;
     private final ConfirmPages confirmPages;
+    private final ProfileService profileService;
 
-    public CrewController(CrewService crewService, ShipFrame shipFrame, ConfirmPages confirmPages) {
+    public CrewController(CrewService crewService, ShipFrame shipFrame, ConfirmPages confirmPages,
+                          ProfileService profileService) {
         this.crewService = crewService;
         this.shipFrame = shipFrame;
         this.confirmPages = confirmPages;
+        this.profileService = profileService;
     }
 
     // The Crew list's columns that sort (P19), the default first; the Crew tab has no Ship column.
@@ -129,6 +136,13 @@ public class CrewController {
         User user = crewService.getCrewMember(id);
         model.addAttribute("form", EditCrewForm.of(user));
         return showEditForm(user, model);
+    }
+
+    // A crew member's profile photo (P31), for the Profile card of the edit page. size: 512 or 96; 404 for anything
+    // but their current photo.
+    @GetMapping("/office/crew/{id}/photo/{key}/{size}")
+    public ResponseEntity<Resource> photo(@PathVariable Long id, @PathVariable String key, @PathVariable String size) {
+        return PhotoResponse.of(profileService.photoForOffice(id, key, PhotoResponse.size(size)));
     }
 
     @PostMapping("/office/crew/{id}/edit")
@@ -276,6 +290,8 @@ public class CrewController {
         model.addAttribute("ships", crewService.findActiveShips());
         model.addAttribute("certificates", crewService.findCertificates(user.getId()));
         model.addAttribute("today", crewService.today());
+        // P31: what the crew member chose to share, read only.
+        model.addAttribute("profile", profileService.profileOf(user));
         return "crew/edit";
     }
 }

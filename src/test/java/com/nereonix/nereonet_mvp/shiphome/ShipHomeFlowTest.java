@@ -221,11 +221,12 @@ class ShipHomeFlowTest {
                 "/ship/library/" + policy.getId());
         String html = home(cook);
 
-        // The tab bar: Home (active), Announcements, Library, Notifications with the unread count, in words too.
+        // The tab bar: Home (active), Announcements, Library, Notifications with the unread count, in words too, and
+        // More (P31).
         String tabBar = section(TAB_BAR, html);
         assertThat(Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
                 .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/announcements", "/ship/library",
-                "/notifications");
+                "/notifications", "/ship/more");
         assertThat(tabBar).contains("aria-label=\"Main navigation\"",
                         "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">",
                         "<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>", "1 unread");

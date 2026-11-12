@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.title}, ~{::main})}">
+<body>
+<!-- My profile (P31): what the signed-in seafarer says about themselves. The header is the office's: their picture,
+     name and "rank · ship", read only. Then one line on who sees it, and the four optional fields as full-width rows,
+     each opening its own page (Save comes back here with "Saved."). English only, no script of its own.
+     Model: me (User), ship, profile (CrewProfile, empty before the first Save). -->
+<main class="profile-page"
+      th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null,
+               languageNames=${profile.languages.isEmpty()} ? null : ${@profileNames.languages(profile.languages, null)},
+               nationalityName=${@profileNames.country(profile.nationality, null)}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${me.fullName},
+            subtitle=(${me.rank != null} ? #{${'rank.' + me.rank}} : #{department.none}) + ' · ' + ${ship.name},
+            media=~{::pageMedia})}">
+        <th:block th:fragment="pageMedia">
+            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+        </th:block>
+    </header>
+
+    <p th:replace="~{layout/parts :: infoNote(null, #{profile.visibility})}"></p>
+
+    <section class="profile-section" aria-labelledby="profileFieldsTitle">
+        <h2 class="visually-hidden" id="profileFieldsTitle" th:text="#{profile.fields}">About you</h2>
+        <ul class="profile-rows">
+            <li th:replace="~{crew/parts :: profileRow('/ship/profile/languages', #{profile.field.languages},
+                    ${languageNames})}"></li>
+            <li th:replace="~{crew/parts :: profileRow('/ship/profile/nationality', #{profile.field.nationality},
+                    ${nationalityName})}"></li>
+            <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio})}"></li>
+            <li th:replace="~{crew/parts :: profileRow('/ship/profile/photo', #{profile.field.photo},
+                    ${profile.photoKey != null} ? #{profile.photo.set} : null)}"></li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

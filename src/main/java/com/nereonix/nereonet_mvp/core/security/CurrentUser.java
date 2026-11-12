@@ -44,6 +44,11 @@ public class CurrentUser extends User {
 
     // "Sofia Marinou" -> "SM"
     public String getInitials() {
+        return initialsOf(fullName);
+    }
+
+    // The same for anyone's name: the round picture of a person without a photo (P31).
+    public static String initialsOf(String fullName) {
         String[] parts = fullName.trim().split("\s+");
         if (parts[0].isEmpty()) {
             return "";

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${person.fullName}, ~{::main})}">
+<body>
+<!-- One crewmate (P31), as everyone on board sees them: name, rank and department (the office's), then their photo
+     (512px version), languages in their order, nationality and bio with its line breaks, each only when filled in;
+     with none of the four, "<First name> hasn't added anything to their profile yet." Read only, English only, no
+     script of its own. A person not on board the viewer's ship now is a 404 (MyCrewService). Model: person
+     (mycrew/CrewmateView, nothing else). -->
+<main class="crewmate-page" th:with="p=${person}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${p.fullName}, crumbs=~{::pageCrumbs},
+            subtitle=${p.rank != null} ? #{${'rank.' + p.rank}} + ' · ' + #{${'department.' + p.department()}} : #{department.none})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.myCrew}, '/ship/crew')}"></li>
+        </th:block>
+    </header>
+
+    <div class="card crewmate-card">
+        <div class="card-body crewmate-body" th:classappend="${p.photoKey != null} ? 'has-photo'">
+            <img th:if="${p.photoKey != null}" class="photo-large" th:src="@{${p.photoUrl(512)}}"
+                 th:alt="#{profile.photo.alt(${p.fullName})}" width="512" height="512">
+            <dl th:if="${!p.languages.isEmpty() or p.nationality != null or p.bio != null}" class="static-fields crewmate-fields">
+                <th:block th:unless="${p.languages.isEmpty()}">
+                    <dt th:text="#{profile.field.languages}">Languages</dt>
+                    <dd th:text="${#strings.listJoin(p.languageNames(), ', ')}">Tagalog, English</dd>
+                </th:block>
+                <th:block th:if="${p.nationality != null}">
+                    <dt th:text="#{profile.field.nationality}">Nationality</dt>
+                    <dd th:text="${p.nationalityName()}">Philippines</dd>
+                </th:block>
+                <th:block th:if="${p.bio != null}">
+                    <dt th:text="#{profile.field.bio}">Bio</dt>
+                    <dd class="text-break text-pre-line" th:text="${p.bio}">Twenty years at sea.</dd>
+                </th:block>
+            </dl>
+            <p th:unless="${p.hasProfile()}" class="crewmate-nothing mb-0"
+               th:text="#{mycrew.nothingYet(${p.firstName()})}">Arjun hasn't added anything to their profile yet.</p>
+        </div>
+    </div>
+
+    <p class="crewmate-back">
+        <a class="btn btn-ghost" th:href="@{/ship/crew}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 5-7 7 7 7"/></svg>
+            <span th:text="#{mycrew.back}">Back to My crew</span>
+        </a>
+    </p>
+</main>
+</body>
+</html>
