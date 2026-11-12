@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.core.library;
 
 import java.time.Instant;
+import java.util.Map;
 
 import org.hibernate.Length;
 import org.hibernate.annotations.OnDelete;
@@ -67,4 +68,21 @@ public class LibraryItemVersion {
     public boolean isFile() {
         return storagePath != null;
     }
+
+    /** A PDF opens in the browser (inline); DOCX and XLSX are always downloaded (P22). */
+    public boolean isPdf() {
+        return PDF.equals(fileContentType);
+    }
+
+    /** "PDF", "DOCX" or "XLSX" for a file version, null for a text version. The content type was checked against the
+     *  file's extension on upload (LibraryItemForm), so it is one of these three. */
+    public String getFileType() {
+        return fileContentType == null ? null : FILE_TYPES.get(fileContentType);
+    }
+
+    private static final String PDF = "application/pdf";
+    private static final Map<String, String> FILE_TYPES = Map.of(
+            PDF, "PDF",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "DOCX",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "XLSX");
 }

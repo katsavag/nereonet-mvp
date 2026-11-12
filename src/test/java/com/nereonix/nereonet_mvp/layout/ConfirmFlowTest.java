@@ -159,7 +159,8 @@ class ConfirmFlowTest {
         actions.addAll(confirmForms(get("/office/users")));
         actions.addAll(confirmForms(get("/office/crew/" + crew.getId() + "/edit")));
         actions.addAll(confirmForms(get("/office/ships/" + ship.getId() + "/items")));
-        actions.addAll(confirmForms(get("/office/ships/" + ship.getId() + "/library/" + libraryItem.getId() + "/edit")));
+        // Retire is on the item's read view (P22), for the office as for the Master.
+        actions.addAll(confirmForms(get("/office/ships/" + ship.getId() + "/library/" + libraryItem.getId())));
         actions.addAll(confirmForms(get("/ship/library/" + libraryItem.getId()).with(user(new CurrentUser(master)))));
 
         assertThat(actions).contains(

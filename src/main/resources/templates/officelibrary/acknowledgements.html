@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{library.acknowledgements.heading}, ~{::main})}">
 <body>
-<main th:with="ship=${overview.item.ship}">
+<main th:with="ship=${overview.item.ship}, itemUrl=${'/office/ships/' + overview.item.ship.id + '/library/' + overview.item.id}">
     <header th:replace="~{core/library/parts :: acknowledgementsHeader(~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">
             <th:block th:replace="~{ship/parts :: crumbs(${ship}, 'library')}"></th:block>
+            <li th:replace="~{layout/parts :: crumb(${overview.item.title}, ${itemUrl})}"></li>
         </th:block>
     </header>
-    <th:block th:replace="~{core/library/parts :: acknowledgements}"></th:block>
+    <th:block th:replace="~{core/library/parts :: acknowledgements(${itemUrl + '/acknowledgements/remind'})}"></th:block>
 </main>
 </body>
 </html>

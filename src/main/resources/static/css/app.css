@@ -2297,3 +2297,201 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 @media (max-width: 767.98px) {
     .exported-by { align-items: flex-end; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Library reading and oversight (P22): core/library/parts.html, library/item.html, officelibrary/item.html.
+     - .library-row: one item of a ship's library: the type icon, then the title (a .stretched-link, so the whole row
+       opens the item), "Version 3 · 12 Oct 2026" and the Required badge; on the right (below on phones) the
+       acknowledgement progress, a link of its own above the stretched one.
+     - .ack-progress: "12 of 20 acknowledged" (underlined: a link not told apart by colour alone) over a 4px bar, a
+       touch target tall. The bar repeats the words; it turns green when everyone has acknowledged.
+     - .file-type: a 32 x 40 page with "PDF", "DOCX" or "XLSX" on a tag (lines for a text item). The tag's words say
+       the type; its colour pair only repeats it (PDF danger, DOCX info, XLSX ok, text neutral).
+     - .file-row: an item's file: icon, name and size, then Open PDF and Download (full width on phones).
+     - .ack-bar: "I have read this" after the content. On phones, while not yet acknowledged (.is-pinned), it sticks
+       to the bottom of the screen until the content ends (its parent .item-read ends with it), on the page colour
+       with a line above. Offline it lets go, so the offline banner never covers it.
+     - .version-history: the item's versions, newest first (Master and office).
+     - .ack-section-heading: "Not yet acknowledged (3)" with Send reminder on the right.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-file-type-width: 2rem;      /* 32px */
+    --nn-file-type-height: 2.5rem;   /* 40px */
+    --nn-progress-height: 4px;
+    --nn-progress-width: 13rem;      /* the progress column of a library row from 576px */
+}
+
+.library-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-3) var(--nn-space-4);
+    padding-block: var(--nn-space-3);
+}
+.library-row-main {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+.library-row-title {
+    font-weight: 600;
+    color: var(--nn-text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.library-row:hover .library-row-title,
+.library-row-title:focus-visible { text-decoration: underline; }
+.library-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--nn-space-1);
+    margin: 2px 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.library-row-badge { margin: var(--nn-space-2) 0 0; }
+
+.ack-progress {
+    position: relative;
+    z-index: 2;                      /* above the row's stretched title link */
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    flex: 0 0 var(--nn-progress-width);
+    min-height: var(--nn-touch-target);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    text-decoration: none;
+}
+.ack-progress-text {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.ack-progress-bar {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: var(--nn-progress-height);
+    border: 0;
+    border-radius: var(--nn-progress-height);
+    background: var(--nn-neutral-bg);
+    color: var(--nn-blue);           /* the filled part in old Edge */
+    overflow: hidden;
+}
+.ack-progress-bar::-webkit-progress-bar { background: var(--nn-neutral-bg); }
+.ack-progress-bar::-webkit-progress-value { background: var(--nn-blue); }
+.ack-progress-bar::-moz-progress-bar { background: var(--nn-blue); }
+.ack-progress.is-complete .ack-progress-bar { color: var(--nn-ok); }
+.ack-progress.is-complete .ack-progress-bar::-webkit-progress-value { background: var(--nn-ok); }
+.ack-progress.is-complete .ack-progress-bar::-moz-progress-bar { background: var(--nn-ok); }
+@media (max-width: 575.98px) {
+    /* Under the title, in line with it. */
+    .ack-progress {
+        flex-basis: calc(100% - var(--nn-file-type-width) - var(--nn-space-4));
+        margin-left: calc(var(--nn-file-type-width) + var(--nn-space-4));
+    }
+}
+
+.file-type {
+    --nn-file-tag-bg: var(--nn-neutral-bg);
+    --nn-file-tag-text: var(--nn-neutral-text);
+    position: relative;
+    flex-shrink: 0;
+    width: var(--nn-file-type-width);
+    height: var(--nn-file-type-height);
+}
+.file-type > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: var(--nn-surface);
+    stroke: var(--nn-neutral-text);  /* 7.6:1 on the surface */
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+.file-type-label {
+    position: absolute;
+    left: -4px;
+    bottom: 7px;
+    padding: 1px 3px;
+    background: var(--nn-file-tag-bg);
+    color: var(--nn-file-tag-text);  /* 6.5:1 or more on its tag */
+    box-shadow: inset 0 0 0 1px var(--nn-file-tag-text);
+    border-radius: 3px;
+    font-size: .625rem;              /* 10px */
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: .02em;
+}
+.file-type-pdf  { --nn-file-tag-bg: var(--nn-danger-bg); --nn-file-tag-text: var(--nn-danger-text); }
+.file-type-docx { --nn-file-tag-bg: var(--nn-info-bg); --nn-file-tag-text: var(--nn-info-text); }
+.file-type-xlsx { --nn-file-tag-bg: var(--nn-ok-bg); --nn-file-tag-text: var(--nn-ok-text); }
+
+.file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-3) var(--nn-space-4);
+}
+.file-row-name {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+.file-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+@media (max-width: 575.98px) {
+    .file-row-actions { flex-basis: 100%; }
+    .file-row-actions > .btn { flex: 1 1 auto; }
+}
+
+.ack-bar { margin-top: var(--nn-space-5); }
+@media (max-width: 575.98px) {
+    .ack-bar.is-pinned {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;               /* over the content, under the offline banner, offcanvas and dialogs */
+        margin-inline: calc(-1 * var(--nn-gutter));
+        padding: var(--nn-space-3) var(--nn-gutter) calc(var(--nn-space-3) + env(safe-area-inset-bottom, 0px));
+        background: var(--nn-page);
+        border-top: 1px solid var(--nn-divider);
+        box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
+    }
+    .ack-bar.is-pinned .btn { width: 100%; }
+    html.is-offline .ack-bar.is-pinned { position: static; }
+}
+
+.version-history { margin-top: var(--nn-section-gap); }
+.version-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-1) var(--nn-space-4);
+}
+.version-row-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+}
+.version-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.ack-section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    margin-bottom: var(--nn-space-2);
+}

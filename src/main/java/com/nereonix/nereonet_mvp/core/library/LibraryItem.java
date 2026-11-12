@@ -69,4 +69,8 @@ public class LibraryItem {
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
+
+    // When "Send reminder" last notified the crew who have not acknowledged (P22); null if never. At most once per
+    // LibraryService.REMINDER_INTERVAL.
+    private Instant lastReminderAt;
 }

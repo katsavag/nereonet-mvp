@@ -193,10 +193,12 @@ class PageHeaderFlowTest {
                 List.of("Ships", "MV Demo", "Library", "Add an item"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/particulars", null, "Edit ship particulars",
                 List.of("Ships", "MV Demo", "Library", "Edit ship particulars"), SHIP_CONTEXT);
+        add(pages, "/office/ships/" + id + "/library/" + item.getId(), null, "Drug and alcohol policy",
+                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/edit", null, "Publish new version",
-                List.of("Ships", "MV Demo", "Library", "Publish new version"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/acknowledgements", null, "Acknowledgements",
-                List.of("Ships", "MV Demo", "Library", "Acknowledgements"), SHIP_CONTEXT);
+                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy", "Acknowledgements"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId(), crew, "Drug and alcohol policy",
                 List.of("Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/ship/library/new", master, "Add an item", List.of("Library", "Add an item"), SHIP_CONTEXT);

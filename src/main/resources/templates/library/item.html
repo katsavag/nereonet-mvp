@@ -2,60 +2,42 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout/layout :: layout(${item.title}, ~{::main})}">
 <body>
-<main th:with="version=${item.currentVersion}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=${item.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle}, eyebrowShip=${item.ship}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
+<main th:with="toAcknowledge=${item.required and acknowledgement == null}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${item.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{core/library/parts :: itemSubtitle}, eyebrowShip=${item.ship}, actions=${#authorization.expression('hasRole(''MASTER'')')} ? ~{::pageActions} : null)}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{nav.library}, '/ship/library')}"></li>
-        </th:block>
-        <!-- The category, the version and when it was published. -->
-        <th:block th:fragment="pageSubtitle">
-            <span th:text="#{${'library.category.' + item.category}}">Ship rules</span>
-            ·
-            <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
-            ·
-            <time th:replace="~{layout/parts :: localTime(${version.publishedAt})}"></time>
         </th:block>
         <!-- Only the Master (the item is always of the user's own ship). -->
         <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary"
-               th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">Edit this item</a>
+               th:href="@{/ship/library/{id}/edit(id=${item.id})}" th:text="#{library.edit}">New version</a>
             <form th:replace="~{core/library/parts :: retire(${'/ship/library/' + item.id + '/retire'}, ${item})}"></form>
         </th:block>
     </header>
 
-    <!-- Text version: plain text, escaped by th:text. -->
-    <div th:unless="${version.file}" class="card">
-        <div class="card-body text-break text-pre-line" th:text="${version.text}">Text</div>
-    </div>
+    <!-- The content, then (Required item) the acknowledgement. The wrapper ends with the acknowledgement, so on phones
+         the pinned acknowledge button (.ack-bar.is-pinned) stays at the bottom of the screen while the content
+         scrolls and comes to rest right after it (P22). -->
+    <div class="item-read">
+        <th:block th:replace="~{core/library/parts :: itemContent(${'/ship/library/' + item.id + '/file'}, ${toAcknowledge})}"></th:block>
 
-    <!-- File version -->
-    <div th:if="${version.file}" class="card">
-        <div class="card-body d-flex flex-column flex-sm-row align-items-sm-center gap-3">
-            <div class="flex-grow-1 text-break">
-                <div class="fw-semibold" th:text="${version.fileName}">plan.pdf</div>
-                <div class="small text-body-secondary" th:with="size=${version.fileSize}"
-                     th:text="${size < 1024} ? #{library.file.bytes(${size})}
-                            : (${size < 1048576} ? #{library.file.kb(${#numbers.formatDecimal(size / 1024.0, 1, 1)})}
-                            : #{library.file.mb(${#numbers.formatDecimal(size / 1048576.0, 1, 1)})})">1.2 MB</div>
-            </div>
-            <!-- Secondary while "I have read this" is on the page: one primary button per view. -->
-            <a class="btn" th:classappend="${item.required and acknowledgement == null} ? 'btn-outline-secondary' : 'btn-primary'"
-               th:href="@{/ship/library/{id}/file(id=${item.id})}"
-               th:text="#{library.download}">Download</a>
+        <!-- Required item: acknowledge the current version. Never a condition for anything else. -->
+        <div th:if="${item.required}" class="ack-bar" th:classappend="${toAcknowledge} ? 'is-pinned'">
+            <form th:if="${toAcknowledge}" method="post"
+                  th:action="@{/ship/library/{id}/acknowledge(id=${item.id})}">
+                <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.acknowledge}">I have read this</button>
+            </form>
+            <p th:unless="${toAcknowledge}" class="alert alert-success mb-0">
+                <span th:text="#{library.acknowledged(${item.currentVersion.versionLabel})}">Acknowledged · Version 1 ·</span>
+                <time th:replace="~{layout/parts :: localTime(${acknowledgement.acknowledgedAt})}"></time>
+            </p>
         </div>
     </div>
 
-    <!-- Required item: acknowledge the current version. Never a condition for anything else. -->
-    <div th:if="${item.required}" class="mt-4">
-        <form th:unless="${acknowledgement}" method="post"
-              th:action="@{/ship/library/{id}/acknowledge(id=${item.id})}">
-            <button type="submit" class="btn btn-primary btn-lg" th:text="#{library.acknowledge}">I have read this</button>
-        </form>
-        <p th:if="${acknowledgement}" class="alert alert-success mb-0">
-            <span th:text="#{library.acknowledged(${version.versionLabel})}">Acknowledged · Version 1 ·</span>
-            <time th:replace="~{layout/parts :: localTime(${acknowledgement.acknowledgedAt})}"></time>
-        </p>
-    </div>
+    <!-- The Master only (versions is null for the other crew). -->
+    <th:block th:if="${versions != null}">
+        <section th:replace="~{core/library/parts :: versionHistory(${versions})}"></section>
+    </th:block>
 </main>
 </body>
 </html>

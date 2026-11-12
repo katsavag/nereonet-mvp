@@ -1,11 +1,6 @@
 package com.nereonix.nereonet_mvp.library;
 
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -15,14 +10,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
+import com.nereonix.nereonet_mvp.core.library.LibraryFileResponse;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemForm;
-import com.nereonix.nereonet_mvp.core.library.LibraryItemVersion;
+import com.nereonix.nereonet_mvp.core.library.LibraryReminders;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
 import com.nereonix.nereonet_mvp.core.library.ParticularsForm;
 import com.nereonix.nereonet_mvp.core.library.PublishVersionForm;
@@ -35,7 +32,7 @@ import jakarta.validation.Valid;
 
 // The library of the logged-in ship user's own ship (SecurityConfig: /ship/** is for ship roles,
 // /ship/library/new, /ship/library/particulars, /ship/library/{id}/edit, /ship/library/{id}/retire and
-// /ship/library/{id}/acknowledgements for the MASTER only).
+// /ship/library/{id}/acknowledgements (and its /remind) for the MASTER only).
 @Controller
 public class LibraryController {
 
@@ -121,6 +118,9 @@ public class LibraryController {
         model.addAttribute("item", item);
         model.addAttribute("acknowledgement",
                 libraryService.currentAcknowledgement(currentUser.getUsername(), item).orElse(null));
+        // Only the Master sees the version history (P22).
+        model.addAttribute("versions",
+                currentUser.getRole() == Role.MASTER ? libraryService.versions(item) : null);
         return "library/item";
     }
 
@@ -130,18 +130,41 @@ public class LibraryController {
         return "redirect:/ship/library/" + id;
     }
 
+    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it (P22).
     @GetMapping("/ship/library/{id}/file")
-    public ResponseEntity<Resource> file(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id) {
+    public ResponseEntity<Resource> file(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                                         @RequestParam(defaultValue = "false") boolean download) {
         LibraryItem item = libraryService.visibleItem(currentUser.getUsername(), id);
-        Resource file = libraryService.currentFile(item);
-        LibraryItemVersion version = item.getCurrentVersion();
-        MediaType type = version.getFileContentType() == null
-                ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(version.getFileContentType());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename(version.getFileName(), StandardCharsets.UTF_8).build().toString())
-                .contentType(type)
-                .body(file);
+        return LibraryFileResponse.of(item.getCurrentVersion(), libraryService.currentFile(item), download);
+    }
+
+    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load (P10). 404 when the item
+    // is not Required, as the overview.
+    @GetMapping("/ship/library/{id}/acknowledgements/remind")
+    public String confirmRemind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                                Model model) {
+        LibraryItem item = libraryService.acknowledgementOverview(
+                libraryService.visibleItem(currentUser.getUsername(), id)).item();
+        String itemUrl = "/ship/library/" + id;
+        return confirmPages.neutral()
+                .title("library.reminder.confirm.title", item.getTitle())
+                .body("library.reminder.confirm.body")
+                .confirmLabel("library.reminder.send")
+                .action(itemUrl + "/acknowledgements/remind", null)
+                .cancelUrl(itemUrl + "/acknowledgements")
+                .crumb("nav.library", "/ship/library")
+                .crumbText(item.getTitle(), itemUrl)
+                .crumb("library.acknowledgements.heading", itemUrl + "/acknowledgements")
+                .show(model);
+    }
+
+    // "Send reminder" on the acknowledgement overview (P22).
+    @PostMapping("/ship/library/{id}/acknowledgements/remind")
+    public String remind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                         RedirectAttributes redirectAttributes) {
+        LibraryReminders.send(libraryService, currentUser.getUsername(),
+                libraryService.visibleItem(currentUser.getUsername(), id), redirectAttributes);
+        return "redirect:/ship/library/" + id + "/acknowledgements";
     }
 
     @GetMapping("/ship/library/{id}/edit")
@@ -173,7 +196,7 @@ public class LibraryController {
         return "redirect:/ship/library/" + id;
     }
 
-    // The confirmation page: where Retire this item leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Retire leads when js/confirm.js did not load (P10).
     @GetMapping("/ship/library/{id}/retire")
     public String confirmRetire(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                 Model model) {

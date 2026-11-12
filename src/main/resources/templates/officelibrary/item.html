@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${item.title}, ~{::main})}">
+<body>
+<!-- The office's read view of a library item (P22): what the crew see, without "I have read this", then the version
+     history. New version and Retire are the page's actions; nothing here is a form to fill in. -->
+<main th:with="itemUrl=${'/office/ships/' + item.ship.id + '/library/' + item.id}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${item.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{core/library/parts :: itemSubtitle}, eyebrowShip=${item.ship}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{ship/parts :: crumbs(${item.ship}, 'library')}"></th:block>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-outline-secondary" th:href="@{${itemUrl + '/edit'}}" th:text="#{library.edit}">New version</a>
+            <form th:replace="~{core/library/parts :: retire(${itemUrl + '/retire'}, ${item})}"></form>
+        </th:block>
+    </header>
+
+    <div class="item-read">
+        <th:block th:replace="~{core/library/parts :: itemContent(${itemUrl + '/file'}, false)}"></th:block>
+    </div>
+
+    <section th:replace="~{core/library/parts :: versionHistory(${versions})}"></section>
+</main>
+</body>
+</html>

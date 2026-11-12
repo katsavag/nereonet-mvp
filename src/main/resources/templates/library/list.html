@@ -13,7 +13,7 @@
         </th:block>
     </header>
 
-    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, ${acknowledgedItemIds}, ${acknowledgementCounts}, ${#authorization.expression('hasRole(''MASTER'')')} ? '/ship/library/particulars' : null)}"></th:block>
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false,${acknowledgedItemIds}, ${acknowledgementCounts}, ${#authorization.expression('hasRole(''MASTER'')')} ? '/ship/library/particulars' : null)}"></th:block>
 </main>
 </body>
 </html>

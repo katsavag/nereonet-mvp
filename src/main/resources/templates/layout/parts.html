@@ -195,6 +195,12 @@
      Use: <time th:replace="~{layout/parts :: localDate(${c.expiresOn})}"></time> -->
 <time th:fragment="localDate(date)" class="text-nowrap" th:datetime="${date}" th:text="${@dates.date(date)}">21 Oct 2026</time>
 
+<!-- The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row, P22). Like
+     localTime, js/local-time.js adds the viewer's own date and time as a tooltip and as screen reader text.
+     Use: <time th:replace="~{layout/parts :: utcDate(${version.publishedAt})}"></time> -->
+<time th:fragment="utcDate(instant)" class="local-time text-nowrap" th:datetime="${@dates.iso(instant)}"
+      th:text="${@dates.utcDate(instant)}">21 Oct 2026</time>
+
 <!-- How far a date that drives action is from today, in whole UTC days, put after that date (.date-hint). The dot is
      decoration; the words carry the meaning.
      certificateHint(date): a certificate's expiry date (LocalDate): " · in 23 days", " · expires today",
@@ -221,7 +227,8 @@
 </svg>
 
 <!-- 16px icon before the label of a page header action, in the style of the sidebar icons.
-     name: 'plus' (add), 'upload' (import), 'download' (export), 'check' (the current view of a viewSwitch, P20).
+     name: 'plus' (add), 'upload' (import), 'download' (export, a library file), 'check' (the current view of a
+     viewSwitch, P20), 'external' (opens in a new tab: a library PDF, P22; say so in visually hidden text too).
      Use: <svg th:replace="~{layout/parts :: icon('plus')}"></svg><span th:text="#{...}">Add ship</span> -->
 <svg th:fragment="icon(name)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -229,6 +236,7 @@
     <th:block th:if="${name == 'upload'}"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
     <th:block th:if="${name == 'download'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
     <path th:if="${name == 'check'}" d="m4.5 12.5 5 5 10-11"/>
+    <th:block th:if="${name == 'external'}"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></th:block>
 </svg>
 
 <!-- The "more" menu at the end of a table or list row: every row action except the one visible next to it.

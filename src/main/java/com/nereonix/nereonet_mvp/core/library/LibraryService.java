@@ -3,6 +3,7 @@ package com.nereonix.nereonet_mvp.core.library;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -38,6 +39,9 @@ public class LibraryService {
 
     /** A ship can have at most this many items that are not retired. */
     public static final int MAX_ITEMS = 50;
+
+    /** "Send reminder" can be used at most once in this time per item (P22). */
+    public static final Duration REMINDER_INTERVAL = Duration.ofHours(24);
 
     private final LibraryItemRepository itemRepository;
     private final LibraryItemVersionRepository versionRepository;
@@ -296,7 +300,56 @@ public class LibraryService {
                 notAcknowledged.add(user);
             }
         }
-        return new AcknowledgementOverview(item, acknowledged, notAcknowledged);
+        return new AcknowledgementOverview(item, acknowledged, notAcknowledged, nextReminderAt(item, Instant.now()));
+    }
+
+    /**
+     * "Send reminder" on the acknowledgement overview (P22): notifies everyone of the crew (as in acknowledgementOverview)
+     * who has not acknowledged the current version of this Required item, except the actor, and records it in the
+     * audit log. At most once per REMINDER_INTERVAL per item. Returns how many were notified; 0 (and nothing recorded)
+     * when there is nobody to remind.
+     * @throws ReminderTooSoonException if the last reminder for this item was sent less than REMINDER_INTERVAL ago
+     */
+    @Transactional
+    public int sendReminder(String actorEmail, LibraryItem item) {
+        Instant now = Instant.now();
+        if (nextReminderAt(item, now) != null) {
+            throw new ReminderTooSoonException();
+        }
+        User actor = userRepository.findByEmail(actorEmail).orElseThrow();
+        List<User> recipients = acknowledgementOverview(item).notAcknowledged().stream()
+                .filter(user -> !user.getId().equals(actor.getId()))
+                .toList();
+        if (recipients.isEmpty()) {
+            return 0;
+        }
+        String text = messageSource.getMessage("library.notification.reminder", null, Locale.ENGLISH);
+        for (User user : recipients) {
+            notificationService.notify(user, text, "/ship/library/" + item.getId());
+        }
+        item.setLastReminderAt(now);
+        itemRepository.save(item);
+
+        auditService.record("LIBRARY_ACKNOWLEDGEMENT_REMINDER_SENT", item.getShip(), "\"" + item.getTitle()
+                + "\", version " + item.getCurrentVersion().getVersionLabel() + ", " + recipients.size()
+                + (recipients.size() == 1 ? " person" : " people"));
+        return recipients.size();
+    }
+
+    /** When the next reminder for this item may be sent, or null when it may be sent now. */
+    private static Instant nextReminderAt(LibraryItem item, Instant now) {
+        Instant last = item.getLastReminderAt();
+        if (last == null) {
+            return null;
+        }
+        Instant next = last.plus(REMINDER_INTERVAL);
+        return next.isAfter(now) ? next : null;
+    }
+
+    /** Every version of the item, newest first, for its version history (Master and office, P22). */
+    @Transactional(readOnly = true)
+    public List<LibraryItemVersion> versions(LibraryItem item) {
+        return versionRepository.findAllByItemOrderByPublishedAtDescIdDesc(item);
     }
 
     /** The file of the item's current version; 404 for a text version or a missing file. */

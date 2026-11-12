@@ -34,7 +34,8 @@ public class SecurityConfig {
                         .requestMatchers("/office/**").hasRole("OFFICE_USER")
                         .requestMatchers("/ship/library/new", "/ship/library/particulars",
                                 "/ship/library/*/edit", "/ship/library/*/retire",
-                                "/ship/library/*/acknowledgements").hasRole("MASTER")
+                                "/ship/library/*/acknowledgements",
+                                "/ship/library/*/acknowledgements/remind").hasRole("MASTER")
                         .requestMatchers("/ship/**").hasAnyRole("MASTER", "CHIEF_COOK", "CREW_MEMBER")
                         .anyRequest().authenticated())
                 .formLogin(form -> form

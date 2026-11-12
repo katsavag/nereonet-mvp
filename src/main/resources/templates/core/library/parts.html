@@ -3,14 +3,17 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Ship particulars and the items by category. linked: items open /ship/library/{id} (crew only);
-     otherwise (office) each item has an "Edit this item" link.
-     acknowledgedItemIds: for the crew, the ids of the items whose current version they acknowledged
-     (Required items get a badge); null for the office (no badge).
-     acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" next to each Required item,
-     linking to its acknowledgement overview; null for the other crew.
+<!-- Ship particulars and the items by category. office: false on the crew's page, where items open
+     /ship/library/{id}; true on the office's Library tab, where they open /office/ships/{shipId}/library/{id} (the
+     read view, P22).
+     Each item is one row (P22): the type icon, the title (the link; the whole row is its click area), version and
+     date published (UTC), and for a Required item a badge and, when acknowledgementCounts is given, the progress.
+     acknowledgedItemIds: for the crew, the ids of the items whose current version they acknowledged (the badge
+     says "Required · to acknowledge" or "Required · acknowledged"); null for the office (the badge says "Required").
+     acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" with a thin bar on each Required
+     item, linking to its acknowledgement overview; null for the other crew.
      particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them. -->
-<th:block th:fragment="content(ship, itemsByCategory, linked, acknowledgedItemIds, acknowledgementCounts, particularsUrl)">
+<th:block th:fragment="content(ship, itemsByCategory, office, acknowledgedItemIds, acknowledgementCounts, particularsUrl)">
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
@@ -19,8 +22,8 @@
                    th:text="#{library.particulars.edit}">Edit ship particulars</a>
             </div>
             <!-- The office links the name to the ship page; the crew have no such page. -->
-            <p th:if="${linked}" class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
-            <p th:unless="${linked}" class="fw-semibold mb-0 text-break"><a th:replace="~{layout/parts :: shipLink(${ship})}">MV Demo</a></p>
+            <p th:unless="${office}" class="fw-semibold mb-0 text-break" th:text="${ship.name}">MV Demo</p>
+            <p th:if="${office}" class="fw-semibold mb-0 text-break"><a th:replace="~{layout/parts :: shipLink(${ship})}">MV Demo</a></p>
             <p class="text-body-secondary small mb-0">
                 <span th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
                 <th:block th:if="${ship.flag}">
@@ -44,53 +47,129 @@
     <section th:each="entry : ${itemsByCategory}" class="mb-4">
         <h2 class="h6 fw-bold text-uppercase text-body-secondary mb-2"
             th:text="#{${'library.category.' + entry.key}}">Ship rules</h2>
-        <div class="list-group">
-            <th:block th:each="item : ${entry.value}"
-                      th:with="counted=${acknowledgementCounts != null and item.required}">
-                <a th:if="${linked and !counted}" th:href="@{/ship/library/{id}(id=${item.id})}"
-                   class="list-group-item list-group-item-action py-3">
-                    <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
-                </a>
-                <!-- The Master's Required items: the item link and the count link side by side (links cannot nest). -->
-                <div th:if="${linked and counted}"
-                     class="list-group-item py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <a class="text-reset text-decoration-none flex-grow-1" th:href="@{/ship/library/{id}(id=${item.id})}">
-                        <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
-                    </a>
-                    <a class="small fw-semibold" th:href="@{/ship/library/{id}/acknowledgements(id=${item.id})}"
-                       th:text="#{library.acknowledgements.count(${acknowledgementCounts.of(item.id)}, ${acknowledgementCounts.crew})}">12 of 20 acknowledged</a>
+        <!-- The title link is stretched over the row (Bootstrap .stretched-link); the progress link sits above it,
+             so the two links never nest. -->
+        <ul class="list-group library-list">
+            <li th:each="item : ${entry.value}" class="list-group-item list-group-item-action library-row"
+                th:with="version=${item.currentVersion},
+                         itemUrl=${office} ? ${'/office/ships/' + ship.id + '/library/' + item.id} : ${'/ship/library/' + item.id}">
+                <span th:replace="~{core/library/parts :: typeIcon(${version})}"></span>
+                <div class="library-row-main">
+                    <a class="library-row-title stretched-link" th:href="@{${itemUrl}}"
+                       th:text="${item.title}">Garbage management plan</a>
+                    <p class="library-row-meta">
+                        <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
+                        <span aria-hidden="true">·</span>
+                        <time th:replace="~{layout/parts :: utcDate(${version.publishedAt})}"></time>
+                    </p>
+                    <p th:if="${item.required}" class="library-row-badge">
+                        <th:block th:if="${acknowledgedItemIds == null}"><span
+                                th:replace="~{layout/parts :: status('neutral', #{library.required})}"></span></th:block>
+                        <th:block th:if="${acknowledgedItemIds != null and acknowledgedItemIds.contains(item.id)}"><span
+                                th:replace="~{layout/parts :: status('ok', #{library.required.acknowledged})}"></span></th:block>
+                        <th:block th:if="${acknowledgedItemIds != null and !acknowledgedItemIds.contains(item.id)}"><span
+                                th:replace="~{layout/parts :: status('warning', #{library.required.toAcknowledge})}"></span></th:block>
+                    </p>
                 </div>
-                <div th:unless="${linked}"
-                     class="list-group-item py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <div>
-                        <th:block th:replace="~{core/library/parts :: itemSummary(${item}, ${acknowledgedItemIds})}"></th:block>
-                        <a th:if="${counted}" class="d-inline-block small fw-semibold mt-1"
-                           th:href="@{/office/ships/{shipId}/library/{id}/acknowledgements(shipId=${ship.id}, id=${item.id})}"
-                           th:text="#{library.acknowledgements.count(${acknowledgementCounts.of(item.id)}, ${acknowledgementCounts.crew})}">12 of 20 acknowledged</a>
-                    </div>
-                    <a class="btn btn-ghost btn-sm"
-                       th:href="@{/office/ships/{shipId}/library/{id}/edit(shipId=${ship.id}, id=${item.id})}"
-                       th:text="#{library.edit}">Edit this item</a>
-                </div>
-            </th:block>
-        </div>
+                <th:block th:if="${acknowledgementCounts != null and item.required}">
+                    <a th:replace="~{core/library/parts :: progress(${acknowledgementCounts}, ${item.id}, ${itemUrl + '/acknowledgements'})}"></a>
+                </th:block>
+            </li>
+        </ul>
     </section>
 </th:block>
 
-<!-- Title, version and, for the crew, the acknowledgement badge of a Required item. -->
-<th:block th:fragment="itemSummary(item, acknowledgedItemIds)">
-    <div class="fw-semibold text-break" th:text="${item.title}">Garbage management plan</div>
-    <div class="small text-body-secondary"
-         th:text="#{library.version(${item.currentVersion.versionLabel})}">Version 1</div>
-    <th:block th:if="${acknowledgedItemIds != null and item.required}">
-        <span th:if="${acknowledgedItemIds.contains(item.id)}"
-              class="badge rounded-pill bg-success-subtle text-success-emphasis mt-2"
-              th:text="#{library.required.acknowledged}">Required · acknowledged</span>
-        <span th:unless="${acknowledgedItemIds.contains(item.id)}"
-              class="badge rounded-pill text-bg-warning mt-2"
-              th:text="#{library.required.toAcknowledge}">Required · to acknowledge</span>
-    </th:block>
+<!-- "12 of 20 acknowledged" over a thin bar (P22), linking to the item's acknowledgement overview. The words carry the
+     numbers; the bar only repeats them (hidden from screen readers) and turns green when everyone has acknowledged. -->
+<a th:fragment="progress(counts, itemId, url)" class="ack-progress"
+   th:classappend="${counts.completeFor(itemId)} ? 'is-complete'" th:href="@{${url}}">
+    <span class="ack-progress-text"
+          th:text="#{library.acknowledgements.count(${counts.of(itemId)}, ${counts.crew})}">12 of 20 acknowledged</span>
+    <progress class="ack-progress-bar" max="100" th:value="${counts.percentOf(itemId)}" aria-hidden="true">60</progress>
+</a>
+
+<!-- The type of a version (P22): a page with "PDF", "DOCX" or "XLSX" on it, or lines for a text version. The label
+     says the type; the colour only repeats it. Its accessible name is "PDF file" or "Text". -->
+<span th:fragment="typeIcon(version)" class="file-type"
+      th:classappend="${version.file} ? 'file-type-' + ${#strings.toLowerCase(version.fileType)} : 'file-type-text'"
+      role="img" th:aria-label="${version.file} ? #{library.fileType(${version.fileType})} : #{library.type.text}">
+    <svg viewBox="0 0 32 40" aria-hidden="true" focusable="false">
+        <path d="M5 1.5h16l7.5 7.5v27.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+        <path d="M21 1.5V9h7.5"/>
+        <path th:unless="${version.file}" d="M9 18h14M9 23h14M9 28h9"/>
+    </svg>
+    <span th:if="${version.file}" class="file-type-label" aria-hidden="true" th:text="${version.fileType}">PDF</span>
+</span>
+
+<!-- A file size: "830 B", "12.4 KB", "1.2 MB". -->
+<span th:fragment="fileSize(size)"
+      th:text="${size < 1024} ? #{library.file.bytes(${size})}
+             : (${size < 1048576} ? #{library.file.kb(${#numbers.formatDecimal(size / 1024.0, 1, 1)})}
+             : #{library.file.mb(${#numbers.formatDecimal(size / 1048576.0, 1, 1)})})">1.2 MB</span>
+
+<!-- The subtitle of an item's page: category, version and when it was published. Needs ${item}. -->
+<th:block th:fragment="itemSubtitle" th:with="version=${item.currentVersion}">
+    <span th:text="#{${'library.category.' + item.category}}">Ship rules</span>
+    ·
+    <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
+    ·
+    <time th:replace="~{layout/parts :: localTime(${version.publishedAt})}"></time>
 </th:block>
+
+<!-- What an item says, the same for the crew and the office (P22). Needs ${item}.
+     A text version: the text. A file version: one file row, the type icon, file name and size, and its actions:
+     a PDF has "Open PDF" (in a new tab, so this page stays in the tab's history and Back still works there) and
+     Download second; DOCX and XLSX have Download only.
+     fileUrl: the GET URL of the file (?download=true is added for Download).
+     quiet: true while another button on the page is the primary one ("I have read this"): the file actions step
+     down one level. -->
+<th:block th:fragment="itemContent(fileUrl, quiet)" th:with="version=${item.currentVersion}">
+    <div th:unless="${version.file}" class="card">
+        <div class="card-body text-break text-pre-line" th:text="${version.text}">Text</div>
+    </div>
+    <div th:if="${version.file}" class="card">
+        <div class="card-body file-row">
+            <span th:replace="~{core/library/parts :: typeIcon(${version})}"></span>
+            <div class="file-row-name">
+                <div class="fw-semibold text-break" th:text="${version.fileName}">plan.pdf</div>
+                <div class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${version.fileSize})}"></span></div>
+            </div>
+            <div class="file-row-actions">
+                <a th:if="${version.pdf}" class="btn" th:classappend="${quiet} ? 'btn-outline-secondary' : 'btn-primary'"
+                   th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                    <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+                    <span th:text="#{library.file.open}">Open PDF</span>
+                    <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                </a>
+                <a class="btn" th:href="@{${fileUrl}(download=true)}" download
+                   th:classappend="${version.pdf} ? (${quiet} ? 'btn-ghost' : 'btn-outline-secondary') : (${quiet} ? 'btn-outline-secondary' : 'btn-primary')">
+                    <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                    <span th:text="#{library.download}">Download</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<!-- Version history (P22, Master and office), read only, newest first: label, when published (UTC) and by whom. The
+     current version has a "Current" badge. Needs ${item}. -->
+<section th:fragment="versionHistory(versions)" class="version-history" aria-labelledby="versionHistoryTitle">
+    <h2 class="h6 fw-bold mb-2" id="versionHistoryTitle" th:text="#{library.history.heading}">Version history</h2>
+    <ol class="list-group">
+        <li th:each="v : ${versions}" class="list-group-item version-row">
+            <div class="version-row-label">
+                <span class="fw-semibold" th:text="#{library.version(${v.versionLabel})}">Version 2</span>
+                <th:block th:if="${v.id == item.currentVersion.id}"><span
+                        th:replace="~{layout/parts :: status('primary', #{library.history.current})}"></span></th:block>
+            </div>
+            <div class="version-row-meta">
+                <time th:replace="~{layout/parts :: localTime(${v.publishedAt})}"></time>
+                <span th:text="${v.publishedBy != null} ? #{library.history.publishedBy(${v.publishedBy.fullName})}
+                              : #{library.history.publisherDeleted}">by Jane Doe</span>
+            </div>
+        </li>
+    </ol>
+</section>
 
 <!-- Page header of the acknowledgement overview of a Required item: the item's title, its version and who is counted.
      Needs ${overview} (AcknowledgementOverview) and ${ship}. crumbs: the trail above this page (the crew's and the
@@ -101,8 +180,11 @@
                     subtitle=${overview.item.title} + ' · ' + #{library.version(${overview.item.currentVersion.versionLabel})} + ' · ' + #{library.acknowledgements.hint})}">
 </header>
 
-<!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not. Needs ${overview}. -->
-<th:block th:fragment="acknowledgements" th:with="item=${overview.item}">
+<!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not. Needs ${overview}.
+     reminderUrl: where "Send reminder" posts (P22). It notifies everyone not yet acknowledged, asks first (a neutral
+     confirmForm: a notification cannot be taken back) and can be used once per 24 hours per item; until then the
+     page says when the next one can be sent. Not shown when everyone has acknowledged. -->
+<th:block th:fragment="acknowledgements(reminderUrl)" th:with="item=${overview.item}">
 
     <section class="mb-4">
         <h2 class="h6 fw-bold mb-2"
@@ -122,8 +204,19 @@
     </section>
 
     <section>
-        <h2 class="h6 fw-bold mb-2"
-            th:text="#{library.acknowledgements.notYet(${overview.notAcknowledged.size()})}">Not yet acknowledged (1)</h2>
+        <div class="ack-section-heading">
+            <h2 class="h6 fw-bold mb-0"
+                th:text="#{library.acknowledgements.notYet(${overview.notAcknowledged.size()})}">Not yet acknowledged (1)</h2>
+            <th:block th:if="${!overview.notAcknowledged.isEmpty() and overview.nextReminderAt == null}">
+                <form th:replace="~{layout/parts :: confirmForm(action=${reminderUrl}, label=#{library.reminder.send},
+                        linkClass='btn btn-outline-secondary', title=#{library.reminder.confirm.title(${item.title})},
+                        body=#{library.reminder.confirm.body}, confirm=#{library.reminder.send}, tone='neutral')}"></form>
+            </th:block>
+        </div>
+        <p th:if="${overview.nextReminderAt != null}" class="small text-body-secondary mb-2">
+            <span th:text="#{library.reminder.next}">Reminder sent. The next one can be sent after</span>
+            <time th:replace="~{layout/parts :: localTime(${overview.nextReminderAt})}"></time>
+        </p>
         <p th:if="${overview.notAcknowledged.isEmpty()}" class="text-body-secondary"
            th:text="#{library.acknowledgements.allAcknowledged}">Everyone on board has acknowledged this version.</p>
         <ul th:unless="${overview.notAcknowledged.isEmpty()}" class="list-group">
@@ -135,7 +228,7 @@
     </section>
 </th:block>
 
-<!-- "Retire this item": asks first in the confirmation dialog (layout/parts :: confirmForm), then posts to action.
+<!-- "Retire": asks first in the confirmation dialog (layout/parts :: confirmForm), then posts to action.
      The trigger is secondary: danger buttons appear only inside a confirmation dialog or an overflow menu. -->
 <form th:fragment="retire(action, item)"
       th:replace="~{layout/parts :: confirmForm(action=${action}, label=#{library.retire}, linkClass='btn btn-outline-secondary',

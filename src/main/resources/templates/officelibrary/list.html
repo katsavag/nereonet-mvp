@@ -14,7 +14,7 @@
         </th:block>
     </div>
 
-    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, false, null, ${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'})}"></th:block>
+    <th:block th:replace="~{core/library/parts :: content(${ship}, ${itemsByCategory}, true, null,${acknowledgementCounts}, ${'/office/ships/' + ship.id + '/library/particulars'})}"></th:block>
 </main>
 </body>
 </html>

@@ -46,6 +46,11 @@ public class Dates {
         return date == null ? "" : DateTimeFormatter.ofPattern(DATE_PATTERN, locale()).format(date);
     }
 
+    /** The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row, P22); empty for null. */
+    public String utcDate(Instant instant) {
+        return instant == null ? "" : date(LocalDate.ofInstant(instant, ZoneOffset.UTC));
+    }
+
     /** "21 Oct 2026 · 12:40 UTC" in the page language; empty for null. */
     public String dateTime(Instant instant) {
         return instant == null ? ""

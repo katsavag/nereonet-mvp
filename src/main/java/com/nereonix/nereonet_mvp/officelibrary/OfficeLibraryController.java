@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.officelibrary;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -8,13 +10,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
+import com.nereonix.nereonet_mvp.core.library.LibraryFileResponse;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemForm;
+import com.nereonix.nereonet_mvp.core.library.LibraryReminders;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
 import com.nereonix.nereonet_mvp.core.library.ParticularsForm;
 import com.nereonix.nereonet_mvp.core.library.PublishVersionForm;
@@ -50,10 +55,58 @@ public class OfficeLibraryController {
         return "officelibrary/list";
     }
 
+    // The read view of an item (P22): what the crew see, without "I have read this", plus the version history,
+    // with New version and Retire as its actions.
+    @GetMapping("/office/ships/{shipId}/library/{id}")
+    public String item(@PathVariable Long shipId, @PathVariable Long id, Model model) {
+        LibraryItem item = libraryService.shipItem(shipId, id);
+        model.addAttribute("item", item);
+        model.addAttribute("versions", libraryService.versions(item));
+        return "officelibrary/item";
+    }
+
+    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it (P22).
+    @GetMapping("/office/ships/{shipId}/library/{id}/file")
+    public ResponseEntity<Resource> file(@PathVariable Long shipId, @PathVariable Long id,
+                                         @RequestParam(defaultValue = "false") boolean download) {
+        LibraryItem item = libraryService.shipItem(shipId, id);
+        return LibraryFileResponse.of(item.getCurrentVersion(), libraryService.currentFile(item), download);
+    }
+
     @GetMapping("/office/ships/{shipId}/library/{id}/acknowledgements")
     public String acknowledgements(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         model.addAttribute("overview", libraryService.acknowledgementOverview(libraryService.shipItem(shipId, id)));
         return "officelibrary/acknowledgements";
+    }
+
+    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load (P10). 404 when the item
+    // is not Required, as the overview.
+    @GetMapping("/office/ships/{shipId}/library/{id}/acknowledgements/remind")
+    public String confirmRemind(@PathVariable Long shipId, @PathVariable Long id, Model model) {
+        Ship ship = libraryService.ship(shipId);
+        LibraryItem item = libraryService.acknowledgementOverview(libraryService.shipItem(shipId, id)).item();
+        String itemUrl = itemUrl(shipId, id);
+        return confirmPages.neutral()
+                .title("library.reminder.confirm.title", item.getTitle())
+                .body("library.reminder.confirm.body")
+                .confirmLabel("library.reminder.send")
+                .action(itemUrl + "/acknowledgements/remind", null)
+                .cancelUrl(itemUrl + "/acknowledgements")
+                .crumb("nav.ships", "/office/ships")
+                .crumbText(ship.getName(), ShipTab.OVERVIEW.url(shipId))
+                .crumb("ship.tab.library", ShipTab.LIBRARY.url(shipId))
+                .crumbText(item.getTitle(), itemUrl)
+                .crumb("library.acknowledgements.heading", itemUrl + "/acknowledgements")
+                .show(model);
+    }
+
+    // "Send reminder" on the acknowledgement overview (P22).
+    @PostMapping("/office/ships/{shipId}/library/{id}/acknowledgements/remind")
+    public String remind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long shipId,
+                         @PathVariable Long id, RedirectAttributes redirectAttributes) {
+        LibraryReminders.send(libraryService, currentUser.getUsername(), libraryService.shipItem(shipId, id),
+                redirectAttributes);
+        return "redirect:" + itemUrl(shipId, id) + "/acknowledgements";
     }
 
     @GetMapping("/office/ships/{id}/library/new")
@@ -103,6 +156,7 @@ public class OfficeLibraryController {
         return "redirect:/office/ships/" + id + "/library";
     }
 
+    // "New version" (P22; was "Edit this item"): publish a new version. Cancel and Publish go back to the read view.
     @GetMapping("/office/ships/{shipId}/library/{id}/edit")
     public String editForm(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         LibraryItem item = libraryService.shipItem(shipId, id);
@@ -129,25 +183,24 @@ public class OfficeLibraryController {
             return "officelibrary/edit";
         }
         redirectAttributes.addFlashAttribute("successMessage", "library.published");
-        return "redirect:/office/ships/" + shipId + "/library";
+        return "redirect:" + itemUrl(shipId, id);
     }
 
-    // The confirmation page: where Retire this item leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Retire leads when js/confirm.js did not load (P10). Cancel goes back to the item.
     @GetMapping("/office/ships/{shipId}/library/{id}/retire")
     public String confirmRetire(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         Ship ship = libraryService.ship(shipId);
         LibraryItem item = libraryService.shipItem(shipId, id);
-        String editUrl = ShipTab.LIBRARY.url(shipId) + "/" + id + "/edit";
         return confirmPages.danger()
                 .title("library.retire.confirm.title", item.getTitle())
                 .body("library.retire.confirm.body", item.getTitle())
                 .confirmLabel("library.retire.submit")
-                .action(ShipTab.LIBRARY.url(shipId) + "/" + id + "/retire", null)
-                .cancelUrl(editUrl)
+                .action(itemUrl(shipId, id) + "/retire", null)
+                .cancelUrl(itemUrl(shipId, id))
                 .crumb("nav.ships", "/office/ships")
                 .crumbText(ship.getName(), ShipTab.OVERVIEW.url(shipId))
                 .crumb("ship.tab.library", ShipTab.LIBRARY.url(shipId))
-                .crumb("library.edit.heading", editUrl)
+                .crumbText(item.getTitle(), itemUrl(shipId, id))
                 .show(model);
     }
 
@@ -157,6 +210,11 @@ public class OfficeLibraryController {
         libraryService.retire(currentUser.getUsername(), libraryService.shipItem(shipId, id));
         redirectAttributes.addFlashAttribute("successMessage", "library.retired");
         return "redirect:/office/ships/" + shipId + "/library";
+    }
+
+    /** The item's read view, /office/ships/{shipId}/library/{id}. */
+    private static String itemUrl(Long shipId, Long id) {
+        return ShipTab.LIBRARY.url(shipId) + "/" + id;
     }
 
     private String showForm(Ship ship, Model model) {

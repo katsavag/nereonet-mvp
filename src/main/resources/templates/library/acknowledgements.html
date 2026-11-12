@@ -8,7 +8,7 @@
             <li th:replace="~{layout/parts :: crumb(${overview.item.title}, ${'/ship/library/' + overview.item.id})}"></li>
         </th:block>
     </header>
-    <th:block th:replace="~{core/library/parts :: acknowledgements}"></th:block>
+    <th:block th:replace="~{core/library/parts :: acknowledgements(${'/ship/library/' + overview.item.id + '/acknowledgements/remind'})}"></th:block>
 </main>
 </body>
 </html>
