@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${detail.request.id})}, ~{::main})}">
+<body>
+<!-- One request of the Master's ship (P33): who asked and when, its status (and who decided, when, and why it was
+     declined), then its lines by category (Provisions, then Personal items): name, quantity and unit. A line for an
+     item not in the ship's list yet has a "New item" badge. English only. A PENDING request has Approve and Decline
+     (P34): Approve posts at once; Decline opens a modal asking for the reason. Model: detail (ApprovalService.Detail),
+     declineForm (DeclineForm). -->
+<main th:with="request=${detail.request}, pending=${detail.request.status.name() == 'PENDING'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.number(${request.id})}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${request.ship}, actions=${pending} ? ~{::pageActions} : null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{approval.title},
+                    ${request.status.name() == 'PENDING'} ? '/ship/approvals' : '/ship/approvals?tab=decided')}"></li>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#declineModal"
+                    th:text="#{approval.decline}">Decline</button>
+            <form method="post" th:action="@{/ship/approvals/{id}/approve(id=${request.id})}" class="d-inline">
+                <button type="submit" class="btn btn-primary" th:text="#{approval.approve}">Approve</button>
+            </form>
+        </th:block>
+    </header>
+
+    <div class="card mb-4">
+        <dl class="card-body row mb-0">
+            <dt class="col-sm-4 col-lg-3" th:text="#{approval.requestedBy}">Asked by</dt>
+            <dd class="col-sm-8 col-lg-9"><th:block th:replace="~{approval/parts :: person(${request.requestedBy})}"></th:block></dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{approval.requestedAt}">Asked</dt>
+            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localTime(${request.createdAt})}"></time></dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{approval.status}">Status</dt>
+            <dd class="col-sm-8 col-lg-9" th:classappend="${request.decidedAt == null} ? 'mb-0'">
+                <span th:replace="~{approval/parts :: statusBadge(${request.status})}"></span>
+            </dd>
+            <th:block th:if="${request.decidedAt != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{approval.decided}">Decided</dt>
+                <dd class="col-sm-8 col-lg-9" th:classappend="${request.status.name() != 'REJECTED'} ? 'mb-0'">
+                    <span th:text="${request.decidedBy} ? ${request.decidedBy.fullName} : #{audit.deletedUser}">John Smith</span>
+                    · <time th:replace="~{layout/parts :: localTime(${request.decidedAt})}"></time>
+                </dd>
+            </th:block>
+            <th:block th:if="${request.status.name() == 'REJECTED'}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{approval.reason}">Reason</dt>
+                <dd class="col-sm-8 col-lg-9 mb-0 approval-reason" th:text="${request.rejectionReason}">Not needed this month.</dd>
+            </th:block>
+        </dl>
+    </div>
+
+    <section th:each="g, it : ${detail.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
+             th:attr="aria-labelledby=${groupId}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${g.lines.size()}">3</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                    <th scope="col" th:text="#{item.unit}">Unit</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="line : ${g.lines}">
+                    <td><span class="fw-semibold" th:text="${line.name}">Basmati rice</span>
+                        <th:block th:if="${line.newItem}"><span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></th:block></td>
+                    <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
+                    <td th:text="${line.unit} ?: #{approval.unit.none}">kg</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Decline: the reason is required and goes to the person who asked. Posted empty, the page comes back with the
+         modal open and the error. -->
+    <div th:if="${pending}" class="modal fade" id="declineModal" tabindex="-1" aria-labelledby="declineModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <form class="modal-content" th:action="@{/ship/approvals/{id}/decline(id=${request.id})}"
+                  th:object="${declineForm}" method="post" novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5 fw-bold" id="declineModalTitle" th:text="#{approval.decline.heading}">Decline this request</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            th:attr="aria-label=#{common.close}"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="reason" class="form-label" th:text="#{approval.reason}">Reason</label>
+                    <textarea th:field="*{reason}" class="form-control" th:errorclass="is-invalid" rows="4"
+                              aria-describedby="reasonHint reasonCounter" required></textarea>
+                    <div class="invalid-feedback" th:errors="*{reason}"></div>
+                    <div class="form-meta">
+                        <div id="reasonHint" class="form-text" th:text="#{approval.decline.hint}">The person who asked sees it.</div>
+                        <div th:replace="~{layout/parts :: counter(${declineForm}, 'reason', 'reason')}"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal" th:text="#{form.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-outline-danger" th:text="#{approval.decline}">Decline</button>
+                </div>
+                <script th:if="${#fields.hasAnyErrors()}">
+                    document.addEventListener('DOMContentLoaded',
+                        () => bootstrap.Modal.getOrCreateInstance('#declineModal').show());
+                </script>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

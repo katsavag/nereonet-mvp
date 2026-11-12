@@ -47,10 +47,12 @@
                 </thead>
                 <tbody>
                 <tr th:each="line : ${request.lines}">
-                    <td class="fw-semibold" th:text="${line.item.name}">Basmati rice</td>
-                    <td th:text="#{${line.item.category.labelKey()}}">Provisions</td>
+                    <!-- A new item (P33) is not in the ship's list: the name and unit the Chief cook gave, and a badge. -->
+                    <td><span class="fw-semibold" th:text="${line.name}">Basmati rice</span>
+                        <th:block th:if="${line.newItem}"><span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></th:block></td>
+                    <td th:text="#{${line.category.labelKey()}}">Provisions</td>
                     <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
-                    <td th:text="${line.item.unit}">kg</td>
+                    <td th:text="${line.unit}">kg</td>
                 </tr>
                 </tbody>
             </table>

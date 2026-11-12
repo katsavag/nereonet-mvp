@@ -15,6 +15,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *   navSection  the key of the active entry (NavSection.key()), from the URL; null when no entry matches.
  *   navTab      the crew's active phone tab (NavSection.tab(), P31: More for My profile and My crew); null the same way.
  *   navCounts   the office counters (NavCounts); null for crew and when signed out.
+ *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
+ *               everyone else.
  * The one place that decides both, so no controller sets them.
  */
 @ControllerAdvice
@@ -23,6 +25,7 @@ public class NavigationAdvice {
     static final String SECTION = "navSection";
     static final String COUNTS = "navCounts";
     static final String TAB = "navTab";
+    static final String APPROVALS_WAITING = "approvalsWaiting";
 
     private final NavigationService navigationService;
 
@@ -59,5 +62,13 @@ public class NavigationAdvice {
             return null;
         }
         return navigationService.officeCounts();
+    }
+
+    @ModelAttribute(APPROVALS_WAITING)
+    public Long approvalsWaiting(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null || currentUser.getRole() != Role.MASTER) {
+            return null;
+        }
+        return navigationService.approvalsWaiting(currentUser.getUsername());
     }
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{approval.title}, ~{::main})}">
+<body>
+<!-- The Master's approvals (P33): the item requests of their own ship, in two tabs (ordinary links, ?tab=decided).
+     Waiting: PENDING, oldest first. Decided: approved and declined, newest decision first, with the decision and its
+     date. Each row is one link (who asked, stretched over the row) to the request. English only, as every crew
+     screen. Model: approvals (ApprovalService.Approvals). -->
+<main th:with="a=${approvals}, waitingTab=${approvals.tab.name() == 'WAITING'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{approval.title}, eyebrowShip=${a.ship},
+            subtitle=${waitingTab} ? #{approval.hint.waiting} : #{approval.hint.decided})}"></header>
+
+    <nav th:replace="~{layout/parts :: viewSwitch(#{approval.tabs}, ~{::approvalTabs})}">
+        <th:block th:fragment="approvalTabs">
+            <a class="view-switch-link" th:href="@{/ship/approvals}" th:aria-current="${waitingTab} ? 'page'">
+                <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                <span th:text="#{approval.tab.waiting}">Waiting</span>
+                <span class="num" th:text="${a.waiting}">2</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/approvals(tab='decided')}" th:aria-current="${!waitingTab} ? 'page'">
+                <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                <span th:text="#{approval.tab.decided}">Decided</span>
+            </a>
+        </th:block>
+    </nav>
+
+    <div class="card">
+        <th:block th:if="${a.requests.isEmpty()}">
+            <div th:replace="~{layout/parts :: emptyState(icon='approvals',
+                    title=${waitingTab} ? #{approval.empty.waiting.title} : #{approval.empty.decided.title},
+                    text=${waitingTab} ? #{approval.empty.waiting.text} : #{approval.empty.decided.text}, action=null)}"></div>
+        </th:block>
+        <ul th:unless="${a.requests.isEmpty()}" class="list-group list-group-flush approval-list">
+            <li th:each="r : ${a.requests}" class="list-group-item list-group-item-action approval-row">
+                <div class="approval-row-main">
+                    <a class="approval-row-title stretched-link" th:href="@{/ship/approvals/{id}(id=${r.id})}"><th:block
+                            th:replace="~{approval/parts :: person(${r.requestedBy})}"></th:block></a>
+                    <p class="approval-row-meta">
+                        <span th:text="#{request.number(${r.id})}">Request #12</span>
+                        <span aria-hidden="true">·</span>
+                        <time th:replace="~{layout/parts :: localTime(${r.createdAt})}"></time>
+                        <span aria-hidden="true">·</span>
+                        <span th:text="#{approval.lineCount(${r.lines.size()})}">3 items</span>
+                    </p>
+                </div>
+                <div th:unless="${waitingTab}" class="approval-row-decision">
+                    <span th:replace="~{approval/parts :: statusBadge(${r.status})}"></span>
+                    <time th:replace="~{layout/parts :: utcDate(${r.decidedAt})}"></time>
+                </div>
+            </li>
+        </ul>
+    </div>
+</main>
+</body>
+</html>

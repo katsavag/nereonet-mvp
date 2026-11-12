@@ -27,6 +27,7 @@ import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
 import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
+import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -40,7 +41,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 // (with a demo Master, Chief cook and items when the ship has none) if there are no requests yet,
 // and two library items on that ship (one of them required) if its library is empty. P31: the demo Master and Chief
 // cook get their ranks if they have none, and three more crew members (two with a profile) are on board, so My crew
-// shows its departments.
+// shows its departments. P33: while that ship has no PENDING request, two waiting for its Master: one from the Chief
+// cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's request).
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -58,11 +60,13 @@ public class DevData implements ApplicationRunner {
     private final LibraryItemRepository libraryItemRepository;
     private final LibraryItemVersionRepository libraryVersionRepository;
     private final CrewProfileRepository profileRepository;
+    private final RequestService requestService;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    RequestLineRepository lineRepository, LibraryItemRepository libraryItemRepository,
-                   LibraryItemVersionRepository libraryVersionRepository, CrewProfileRepository profileRepository) {
+                   LibraryItemVersionRepository libraryVersionRepository, CrewProfileRepository profileRepository,
+                   RequestService requestService) {
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -72,6 +76,7 @@ public class DevData implements ApplicationRunner {
         this.libraryItemRepository = libraryItemRepository;
         this.libraryVersionRepository = libraryVersionRepository;
         this.profileRepository = profileRepository;
+        this.requestService = requestService;
     }
 
     @Override
@@ -100,6 +105,46 @@ public class DevData implements ApplicationRunner {
             log.info("Created 2 demo library items for ship {}", firstShip.getName());
         }
         demoCrew(firstShip);
+        if (requestRepository.countByStatusAndShipId(RequestStatus.PENDING, firstShip.getId()) == 0) {
+            createPendingRequests(firstShip);
+        }
+    }
+
+    // P33: submitted as the Chief cook and the crew would, so the Master also gets the two notifications.
+    private void createPendingRequests(Ship ship) {
+        User cook = crewUser(ship, Role.CHIEF_COOK, "cook.demo@example.com", "Demo Cook");
+        User crewMember = userRepository.findByEmail("ab.demo@example.com").orElseThrow();
+        Item rice = item(ship, "Basmati rice", "kg", ItemCategory.PROVISIONS, "Dry store");
+        Item oil = item(ship, "Olive oil", "lt", ItemCategory.PROVISIONS, "Dry store");
+        Item eggs = item(ship, "Eggs", "pcs", ItemCategory.PROVISIONS, "Cold room");
+        Item showerGel = item(ship, "Shower gel", "pcs", ItemCategory.PERSONAL_ITEMS, null);
+
+        ItemRequest fromCook = pendingRequest(ship, cook, Instant.now().minus(Duration.ofHours(20)));
+        fromCook.getLines().add(pendingLine(rice, "40"));
+        fromCook.getLines().add(pendingLine(oil, "12"));
+        fromCook.getLines().add(pendingLine(eggs, "180"));
+        requestService.submit(fromCook);
+
+        ItemRequest fromCrew = pendingRequest(ship, crewMember, Instant.now().minus(Duration.ofHours(2)));
+        fromCrew.getLines().add(pendingLine(showerGel, "2"));
+        fromCrew.getLines().add(pendingLine(eggs, "12"));
+        requestService.submit(fromCrew);
+        log.info("Created 2 pending demo requests for ship {}", ship.getName());
+    }
+
+    private static ItemRequest pendingRequest(Ship ship, User requestedBy, Instant createdAt) {
+        ItemRequest request = new ItemRequest();
+        request.setShip(ship);
+        request.setRequestedBy(requestedBy);
+        request.setCreatedAt(createdAt);
+        return request;
+    }
+
+    private static RequestLine pendingLine(Item item, String quantity) {
+        RequestLine line = new RequestLine();
+        line.setItem(item);
+        line.setQuantity(new BigDecimal(quantity));
+        return line;
     }
 
     // P31: ranks for the demo Master and Chief cook (created without one before), and three crew members, each once.
@@ -160,9 +205,9 @@ public class DevData implements ApplicationRunner {
     private void createApprovedRequests(Ship ship) {
         User master = crewUser(ship, Role.MASTER, "master.demo@example.com", "Demo Master");
         User cook = crewUser(ship, Role.CHIEF_COOK, "cook.demo@example.com", "Demo Cook");
-        Item rice = item(ship, "Basmati rice", "kg", "Dry store");
-        Item oil = item(ship, "Olive oil", "lt", "Dry store");
-        Item eggs = item(ship, "Eggs", "pcs", "Cold room");
+        Item rice = item(ship, "Basmati rice", "kg", ItemCategory.PROVISIONS, "Dry store");
+        Item oil = item(ship, "Olive oil", "lt", ItemCategory.PROVISIONS, "Dry store");
+        Item eggs = item(ship, "Eggs", "pcs", ItemCategory.PROVISIONS, "Cold room");
 
         Instant now = Instant.now();
         ItemRequest first = request(ship, cook, master, now.minus(Duration.ofDays(3)), now.minus(Duration.ofDays(2)));
@@ -186,8 +231,8 @@ public class DevData implements ApplicationRunner {
                 });
     }
 
-    // The ship's item with this name, or a new provisions item stored in this place.
-    private Item item(Ship ship, String name, String unit, String place) {
+    // The ship's item with this name, or a new item of this category (place: null for personal items).
+    private Item item(Ship ship, String name, String unit, ItemCategory category, String place) {
         return itemRepository.findAllByShipIdOrderByNameAsc(ship.getId()).stream()
                 .filter(item -> item.getName().equalsIgnoreCase(name))
                 .findFirst()
@@ -196,7 +241,7 @@ public class DevData implements ApplicationRunner {
                     item.setShip(ship);
                     item.setName(name);
                     item.setUnit(unit);
-                    item.setCategory(ItemCategory.PROVISIONS);
+                    item.setCategory(category);
                     item.setPlace(place);
                     item.setCreatedAt(Instant.now());
                     return itemRepository.save(item);

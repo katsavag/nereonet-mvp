@@ -196,7 +196,9 @@
         <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
         <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
                 ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
-        <li th:replace="~{layout/parts :: tabItem('more', '/ship/more', #{nav.more}, null, null)}"></li>
+        <!-- For the Master, More carries the number of requests waiting for them: Approvals is on the More page (P33). -->
+        <li th:replace="~{layout/parts :: tabItem('more', '/ship/more', #{nav.more},
+                ${approvalsWaiting}, #{nav.count.approvals(${approvalsWaiting ?: 0})})}"></li>
     </ul>
 </nav>
 
@@ -276,6 +278,7 @@
     <th:block th:if="${name == 'notifications'}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></th:block>
     <th:block th:if="${name == 'items'}"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4z"/><path d="M3.5 8 12 12l8.5-4M12 12v8"/></th:block>
     <th:block th:if="${name == 'profile'}"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6 6 0 0 1 11 0"/></th:block>
+    <th:block th:if="${name == 'approvals'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M8.5 13l2.5 2.5 4.5-5"/></th:block>
     <th:block th:if="${name == 'more'}"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></th:block>
 </svg>
 
@@ -719,7 +722,7 @@
      line of listEmpty ("No results for these filters"), which is left aligned, has no icon and offers Clear all.
      Named parameters:
        icon    a navIcon name: 'ships', 'crew', 'certificates', 'announcements', 'requests', 'users', 'audit',
-               'library', 'notifications', 'items'
+               'library', 'notifications', 'items', 'approvals'
        title   "No ships yet"
        text    one sentence: what the list is for and what to do first, "Add your first ship to invite its crew."
        action  the buttons, ~{::pageActions} (usually the page header's own, which the header then leaves out), or

@@ -31,4 +31,10 @@ public class NavigationService {
         return new NavCounts(certificateRepository.countByExpiresOnLessThanEqual(until),
                 requestRepository.countByStatusAndExportedAtIsNull(RequestStatus.APPROVED));
     }
+
+    /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */
+    @Transactional(readOnly = true)
+    public long approvalsWaiting(String email) {
+        return requestRepository.countByStatusOnShipOf(RequestStatus.PENDING, email);
+    }
 }
