@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
  *   navCounts   the office counters (NavCounts); null for crew and when signed out.
  *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
  *               everyone else.
+ *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
  * The one place that decides both, so no controller sets them.
  */
 @ControllerAdvice
@@ -26,6 +27,7 @@ public class NavigationAdvice {
     static final String COUNTS = "navCounts";
     static final String TAB = "navTab";
     static final String APPROVALS_WAITING = "approvalsWaiting";
+    static final String ORDER_LINES = "orderLines";
 
     private final NavigationService navigationService;
 
@@ -70,5 +72,13 @@ public class NavigationAdvice {
             return null;
         }
         return navigationService.approvalsWaiting(currentUser.getUsername());
+    }
+
+    @ModelAttribute(ORDER_LINES)
+    public Long orderLines(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null || currentUser.getRole() != Role.MASTER) {
+            return null;
+        }
+        return navigationService.orderLines(currentUser.getUsername());
     }
 }

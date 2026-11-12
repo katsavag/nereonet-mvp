@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!-- Parts of the Master's ship order (P35). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- An order's status as a badge: Collecting (neutral), Sent to office (info), Confirmed by office (ok), Received
+     (neutral). The words carry the state, the colour repeats it.
+     Use: <span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span> -->
+<span th:fragment="statusBadge(status)"
+      th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CONFIRMED'} ? 'ok'
+              : 'neutral'), #{${status.labelKey()}})}"></span>
+
+<!-- An order's lines by category (Provisions, then Personal items), each with who asked for it under the item's name.
+     editable: the OPEN order on /ship/order, where each line has its quantity in a small form (Save posts it at once)
+     and Remove; otherwise the quantity is text.
+     Use: <th:block th:replace="~{shiporder/parts :: lines(${view}, true)}"></th:block> -->
+<th:block th:fragment="lines(view, editable)">
+    <section th:each="g, it : ${view.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
+             th:attr="aria-labelledby=${groupId}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${g.lines.size()}">3</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                    <th scope="col" th:text="#{item.unit}">Unit</th>
+                    <th th:if="${editable}" scope="col"><span class="visually-hidden" th:text="#{order.line.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="v : ${g.lines}" th:with="line=${v.line}" th:id="${'line-' + line.id}">
+                    <td>
+                        <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
+                        <p th:if="${!#strings.isEmpty(v.askedBy)}" class="order-asked-by"><span class="visually-hidden"
+                                th:text="#{order.askedBy}">Asked by</span> <th:block th:text="${v.askedBy}">Chief Cook 6, A. Santos 4</th:block></p>
+                    </td>
+                    <td class="text-end">
+                        <form th:if="${editable}" class="order-qty-form" method="post"
+                              th:action="@{/ship/order/lines/{id}/quantity(id=${line.id})}">
+                            <label class="visually-hidden" th:for="${'quantity-' + line.id}"
+                                   th:text="#{order.quantity.label(${line.item.name})}">Quantity of Basmati rice</label>
+                            <input type="number" class="form-control form-control-sm font-monospace" name="quantity"
+                                   th:id="${'quantity-' + line.id}" min="0.001" step="any" required
+                                   th:value="${line.quantity.stripTrailingZeros().toPlainString()}">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{order.quantity.save}">Save</button>
+                        </form>
+                        <span th:unless="${editable}" class="font-monospace"
+                              th:text="${line.quantity.stripTrailingZeros().toPlainString()}">10</span>
+                    </td>
+                    <td th:text="${line.item.unit}">kg</td>
+                    <td th:if="${editable}" class="text-end">
+                        <form method="post" th:action="@{/ship/order/lines/{id}/remove(id=${line.id})}">
+                            <button type="submit" class="btn btn-ghost btn-sm text-danger"
+                                    th:attr="aria-label=#{order.line.remove.label(${line.item.name})}"
+                                    th:text="#{order.line.remove}">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</th:block>
+
+</body>
+</html>

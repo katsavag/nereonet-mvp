@@ -34,6 +34,19 @@
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
                 </a>
             </li>
+            <!-- The ship order (P35), with the number of lines in the OPEN order. -->
+            <li class="profile-row-item" sec:authorize="hasRole('MASTER')">
+                <a class="profile-row" th:href="@{/ship/order}">
+                    <svg th:replace="~{layout/parts :: navIcon('order')}"></svg>
+                    <span class="profile-row-main"><span class="profile-row-title" th:text="#{nav.order}">Ship order</span></span>
+                    <th:block th:if="${orderLines != null and orderLines > 0}">
+                        <span class="more-count num" aria-hidden="true" th:text="${orderLines > 99} ? '99+' : ${orderLines}">2</span>
+                        <span class="visually-hidden" th:text="${#messages.msg('nav.count.order', orderLines)}">2 lines</span>
+                    </th:block>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
             <li class="profile-row-item">
                 <a class="profile-row" th:href="@{/ship/profile}">
                     <svg th:replace="~{layout/parts :: navIcon('profile')}"></svg>

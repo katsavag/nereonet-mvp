@@ -27,12 +27,14 @@ import lombok.Setter;
 // The consolidated order of a ship (P34): the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
 // office confirms port and delivery date (CONFIRMED), and it is closed once delivered (CLOSED).
+// While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only (P35).
 @Entity
 @Getter
 @Setter
 public class ShipOrder {
 
     public static final int PORT_MAX_LENGTH = 100;
+    public static final int NOTE_MAX_LENGTH = 1000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,6 +52,10 @@ public class ShipOrder {
     private String requestedPort;
 
     private LocalDate neededBy;
+
+    // The Master's note to the office (P35), optional. Set when sending.
+    @Column(length = NOTE_MAX_LENGTH)
+    private String officeNote;
 
     // Null until SENT, or when the user was deleted.
     @ManyToOne

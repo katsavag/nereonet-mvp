@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 
@@ -18,10 +20,13 @@ public class NavigationService {
 
     private final CertificateRepository certificateRepository;
     private final ItemRequestRepository requestRepository;
+    private final ShipOrderLineRepository orderLineRepository;
 
-    public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository) {
+    public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
+                             ShipOrderLineRepository orderLineRepository) {
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
+        this.orderLineRepository = orderLineRepository;
     }
 
     @Transactional(readOnly = true)
@@ -36,5 +41,11 @@ public class NavigationService {
     @Transactional(readOnly = true)
     public long approvalsWaiting(String email) {
         return requestRepository.countByStatusOnShipOf(RequestStatus.PENDING, email);
+    }
+
+    /** The Master's counter of Ship order (P35): lines of the OPEN order of the ship of the user with this email. */
+    @Transactional(readOnly = true)
+    public long orderLines(String email) {
+        return orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email);
     }
 }

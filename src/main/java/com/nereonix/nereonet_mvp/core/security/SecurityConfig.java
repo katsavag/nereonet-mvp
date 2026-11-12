@@ -38,6 +38,9 @@ public class SecurityConfig {
                                 "/ship/library/*/acknowledgements/remind").hasRole("MASTER")
                         // The Master's approvals (P33).
                         .requestMatchers("/ship/approvals", "/ship/approvals/**").hasRole("MASTER")
+                        // The Master's ship order and past orders (P35).
+                        .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
+                                .hasRole("MASTER")
                         .requestMatchers("/ship/**").hasAnyRole("MASTER", "CHIEF_COOK", "CREW_MEMBER")
                         .anyRequest().authenticated())
                 .formLogin(form -> form

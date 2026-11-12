@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.title}, ~{::main})}">
+<body>
+<!-- The Master's ship order (P35): the OPEN order of their own ship, the approved requests added up by item. Each line
+     says who asked for it; its quantity can be changed and the line removed, each a small form that saves at once
+     (nobody is notified). Under the lines, "Send to office" with the requested port, the date needed by and an
+     optional note; after sending the order is read-only (/ship/orders/{id}). English only, as every crew screen.
+     Model: view (ShipOrderPageService.OrderView), sendForm (SendOrderForm), today (UTC). -->
+<main th:with="v=${view}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${v.ship},
+            subtitle=#{order.hint}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-outline-secondary" th:href="@{/ship/orders}" th:text="#{order.past.title}">Past orders</a>
+        </th:block>
+    </header>
+
+    <div th:if="${v.empty}" class="card">
+        <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.empty.title},
+                text=#{order.empty.text}, action=null)}"></div>
+    </div>
+
+    <th:block th:unless="${v.empty}">
+        <p class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span th:replace="~{shiporder/parts :: statusBadge(${v.order.status})}"></span>
+            <span class="small text-body-secondary" th:text="#{order.lineCount(${v.lineCount()})}">2 items</span>
+        </p>
+
+        <th:block th:replace="~{shiporder/parts :: lines(${v}, true)}"></th:block>
+
+        <!-- Send to office: port and date required, the date not before today (UTC). Posted with errors, the page
+             comes back with them. -->
+        <section class="card form-box" aria-labelledby="sendTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h5 fw-bold" id="sendTitle" th:text="#{order.send.heading}">Send to office</h2>
+                <p class="text-body-secondary small" th:text="#{order.send.hint}">After sending, the order can't be changed.</p>
+                <form th:object="${sendForm}" method="post" novalidate th:action="@{/ship/order/send}">
+                    <div th:replace="~{layout/parts :: errorSummary(${sendForm}, '')}"></div>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="requestedPort" class="form-label" th:text="#{order.requestedPort}">Requested port</label>
+                            <input type="text" th:field="*{requestedPort}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="requestedPortHint requestedPortCounter" required>
+                            <div class="invalid-feedback" th:errors="*{requestedPort}"></div>
+                            <div class="form-meta">
+                                <div id="requestedPortHint" class="form-text" th:text="#{order.requestedPort.hint}">For example Rotterdam.</div>
+                                <div th:replace="~{layout/parts :: counter(${sendForm}, 'requestedPort', 'requestedPort')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="neededBy" class="form-label" th:text="#{order.neededBy}">Needed by</label>
+                            <input type="date" th:field="*{neededBy}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${today}" required>
+                            <div class="invalid-feedback" th:errors="*{neededBy}"></div>
+                        </div>
+                        <div>
+                            <label for="officeNote" class="form-label">[[#{order.officeNote}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <textarea th:field="*{officeNote}" class="form-control" th:errorclass="is-invalid" rows="3"
+                                      aria-describedby="officeNoteCounter"></textarea>
+                            <div class="invalid-feedback" th:errors="*{officeNote}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${sendForm}, 'officeNote', 'officeNote')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" th:text="#{order.send}">Send to office</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </th:block>
+</main>
+</body>
+</html>

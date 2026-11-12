@@ -786,10 +786,37 @@ Requirements: Java 25, Docker.
      needed by, sent by/at, confirmed port, delivery date, confirmed by, exported at. A ship has at most one OPEN
      order: `addApprovedRequest` locks the ship's row, finds the OPEN order or creates it, and per request line adds
      the quantity to the order line of the same item (one line per item) or makes that line. Each request line keeps
-     a link to its order line (`RequestLine.shipOrderLine`), so the order can show who asked for what. There is no
-     page for the order yet.
+     a link to its order line (`RequestLine.shipOrderLine`), so the order can show who asked for what. Its page is
+     section 23.
    - To try it: as `master.demo@example.com`, open a waiting request and **Approve** it; open the other and
      **Decline** it with a reason. Both requesters see their notification.
+
+23. The ship order and "Send to office" (P35, the Master only). `core/order/ShipOrderService` (`changeQuantity`,
+   `removeLine`, `send`) and `shiporder/` (`ShipOrderController`, `ShipOrderPageService`, `SendOrderForm`).
+   - **Ship order** in the sidebar (on phones under More), with the number of lines in the OPEN order.
+   - **`/ship/order`**: the ship's OPEN order, its lines by category (Provisions, then Personal items), each with the
+     item name, quantity and unit and, under it, who asked for it: "Chief Cook 6, A. Santos 4" (the Master and the
+     Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
+     OPEN order, or with no lines: "Nothing to order yet. Approved requests are collected here."
+   - **Editing** (only while OPEN): each line's quantity is a small form with **Save**
+     (`POST /ship/order/lines/{id}/quantity`; above zero, at most 3 decimals, otherwise an error and nothing saved),
+     and **Remove** (`POST /ship/order/lines/{id}/remove`; the requests stay approved, their lines are unlinked). Each
+     saves at once; nobody is notified and nothing goes in the audit log.
+   - **Send to office**, under the lines: **Requested port** (required, up to 100 characters), **Needed by** (required,
+     not before today in UTC) and an optional **Note to the office** (up to 1000). `POST /ship/order/send`: only an
+     OPEN order with at least one line becomes SENT, with sent by and at; "Order sent to office" goes in the audit log
+     and every enabled office user gets a notification "New order from <ship name>" (no link yet: the office has no
+     order page). Then the order is read-only, on `/ship/orders/{id}`; the next approved request opens a new OPEN
+     order. Every change and the send lock the ship's row, as approvals do, so an approval never lands in an order
+     being sent.
+   - **`/ship/orders`**: the past orders (SENT, CONFIRMED, CLOSED), newest sent first, with status, requested port,
+     needed by and, once the office has set them, confirmed port and delivery date. `/ship/orders/{id}` shows one
+     with its lines (the OPEN one redirects to `/ship/order`).
+   - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Confirmed by office", CLOSED "Received".
+   - Another ship's line or order is a 404; the Chief cook and crew get 403. New column `ship_order.office_note`
+     (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
+   - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
+     and send it with port "Rotterdam"; `office@example.com` sees the notification.
 
 Run the tests (H2 in memory, no Docker needed):
 

@@ -92,7 +92,7 @@
                     </th:block>
                     <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), Announcements (P27)
                          between Home and Library in both. My crew and My profile (P31) are under the tab bar's More, and
-                         so is the Master's Approvals (P33). -->
+                         so are the Master's Approvals (P33) and Ship order (P35). -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
@@ -104,6 +104,9 @@
                             <th:block sec:authorize="hasRole('MASTER')">
                                 <li th:replace="~{layout/parts :: navItem('approvals', '/ship/approvals', #{nav.approvals},
                                         ${approvalsWaiting}, #{nav.count.approvals(${approvalsWaiting ?: 0})})}"></li>
+                                <!-- The ship order (P35), with the number of lines in the OPEN order. -->
+                                <li th:replace="~{layout/parts :: navItem('order', '/ship/order', #{nav.order},
+                                        ${orderLines}, #{nav.count.order(${orderLines ?: 0})})}"></li>
                             </th:block>
                         </ul>
                     </th:block>

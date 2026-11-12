@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.number(${view.order.id})}, ~{::main})}">
+<body>
+<!-- One past order of the Master's ship (P35), read-only: its status, who sent it and when, the requested port, needed
+     by date and note and, once the office has set them, the confirmed port and delivery date; then its lines by
+     category with who asked for each. English only. Model: view (ShipOrderPageService.OrderView). -->
+<main th:with="order=${view.order}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.number(${order.id})}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${view.ship})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
+        </th:block>
+    </header>
+
+    <div class="card mb-4">
+        <dl class="card-body row mb-0">
+            <dt class="col-sm-4 col-lg-3" th:text="#{order.status}">Status</dt>
+            <dd class="col-sm-8 col-lg-9"><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span></dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{order.sentBy}">Sent</dt>
+            <dd class="col-sm-8 col-lg-9">
+                <span th:text="${order.sentBy} ? ${order.sentBy.fullName} : #{audit.deletedUser}">Ship Master</span>
+                · <time th:replace="~{layout/parts :: localTime(${order.sentAt})}"></time>
+            </dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{order.requestedPort}">Requested port</dt>
+            <dd class="col-sm-8 col-lg-9" th:text="${order.requestedPort}">Rotterdam</dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{order.neededBy}">Needed by</dt>
+            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${order.neededBy})}"></time></dd>
+            <th:block th:if="${order.officeNote != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{order.officeNote}">Note to the office</dt>
+                <dd class="col-sm-8 col-lg-9 order-note" th:text="${order.officeNote}">Please deliver before noon.</dd>
+            </th:block>
+            <th:block th:if="${order.confirmedPort != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{order.confirmedPort}">Confirmed port</dt>
+                <dd class="col-sm-8 col-lg-9" th:text="${order.confirmedPort}">Antwerp</dd>
+            </th:block>
+            <th:block th:if="${order.deliveryDate != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{order.deliveryDate}">Delivery date</dt>
+                <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${order.deliveryDate})}"></time></dd>
+            </th:block>
+        </dl>
+    </div>
+
+    <th:block th:replace="~{shiporder/parts :: lines(${view}, false)}"></th:block>
+</main>
+</body>
+</html>

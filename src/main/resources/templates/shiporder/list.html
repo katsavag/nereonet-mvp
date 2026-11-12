@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.past.title}, ~{::main})}">
+<body>
+<!-- The ship's past orders (P35): sent, confirmed and received, newest sent first. Each row is one link (the order
+     number, stretched over the row) with its status, the requested port and date and, once the office has set them,
+     the confirmed port and delivery date. English only. Model: past (ShipOrderPageService.PastOrders). -->
+<main th:with="p=${past}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.past.title}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${p.ship}, subtitle=#{order.past.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+        </th:block>
+    </header>
+
+    <div class="card">
+        <th:block th:if="${p.orders.isEmpty()}">
+            <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.past.empty.title},
+                    text=#{order.past.empty.text}, action=null)}"></div>
+        </th:block>
+        <ul th:unless="${p.orders.isEmpty()}" class="list-group list-group-flush">
+            <li th:each="o : ${p.orders}" class="list-group-item list-group-item-action approval-row">
+                <div class="approval-row-main">
+                    <a class="approval-row-title stretched-link" th:href="@{/ship/orders/{id}(id=${o.id})}"
+                       th:text="#{order.number(${o.id})}">Order #12</a>
+                    <p class="approval-row-meta">
+                        <span th:text="#{order.requestedAt(${o.requestedPort})}">Requested: Rotterdam</span>
+                        <span aria-hidden="true">·</span>
+                        <span>[[#{order.neededBy}]] <time th:replace="~{layout/parts :: localDate(${o.neededBy})}"></time></span>
+                    </p>
+                    <p th:if="${o.confirmedPort != null or o.deliveryDate != null}" class="approval-row-meta">
+                        <span th:if="${o.confirmedPort != null}" th:text="#{order.confirmedAt(${o.confirmedPort})}">Confirmed: Antwerp</span>
+                        <span th:if="${o.confirmedPort != null and o.deliveryDate != null}" aria-hidden="true">·</span>
+                        <span th:if="${o.deliveryDate != null}">[[#{order.deliveryDate}]] <time th:replace="~{layout/parts :: localDate(${o.deliveryDate})}"></time></span>
+                    </p>
+                </div>
+                <div class="approval-row-decision">
+                    <span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span>
+                    <time th:replace="~{layout/parts :: utcDate(${o.sentAt})}"></time>
+                </div>
+            </li>
+        </ul>
+    </div>
+</main>
+</body>
+</html>

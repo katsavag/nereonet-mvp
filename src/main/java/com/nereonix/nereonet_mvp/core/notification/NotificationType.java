@@ -12,7 +12,9 @@ public enum NotificationType {
     /** An announcement from the office, sent to each recipient when it is sent (P27). */
     ANNOUNCEMENT("announcements"),
     /** An item request waiting for the Master (P33), sent when it is submitted. */
-    REQUEST("approvals");
+    REQUEST("approvals"),
+    /** A ship order sent to the office (P35), to every enabled office user. */
+    ORDER("requests");
 
     private final String icon;
 

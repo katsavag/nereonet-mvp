@@ -4452,3 +4452,26 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     line-height: 1.25rem;
     text-align: center;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The Master's ship order (P35): shiporder/order.html, detail.html and list.html (its rows are .approval-row).
+     - .order-asked-by: who asked for a line, under the item's name.
+     - .order-qty-form: a line's quantity and its Save button on one row; each saves at once.
+   --------------------------------------------------------------------------------------------------------------- */
+.order-asked-by {
+    margin: 2px 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.order-qty-form {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--nn-space-2);
+}
+.order-qty-form .form-control {
+    width: 7rem;
+    text-align: end;
+}
+.order-note { white-space: pre-line; overflow-wrap: anywhere; }
