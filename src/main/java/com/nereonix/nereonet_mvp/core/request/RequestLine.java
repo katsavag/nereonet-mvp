@@ -2,8 +2,12 @@ package com.nereonix.nereonet_mvp.core.request;
 
 import java.math.BigDecimal;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +47,12 @@ public class RequestLine {
 
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
+
+    // The ship order line this went into when the Master approved the request (P34), so the order can show who asked
+    // for what. Null until approved, and for a declined or cancelled request.
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private ShipOrderLine shipOrderLine;
 
     /** True when the line asks for an item that is not in the ship's list yet. */
     public boolean isNewItem() {

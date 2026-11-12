@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+
+import jakarta.persistence.LockModeType;
 
 
 public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> {
@@ -49,6 +52,12 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     List<ItemRequest> findAllByShipIdAndStatusInOrderByDecidedAtDescIdDesc(Long shipId, Collection<RequestStatus> statuses);
 
     Optional<ItemRequest> findByIdAndShipId(Long id, Long shipId);
+
+    // Approving or declining (P34): the row is locked until the decision is saved, so a second click, or a cancel at
+    // the same moment, waits and then sees the request is no longer PENDING.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from ItemRequest r where r.id = :id and r.ship.id = :shipId")
+    Optional<ItemRequest> findForDecision(Long id, Long shipId);
 
     // The Master's sidebar counter of Approvals: requests with this status on that user's ship, in one query.
     @Query("""

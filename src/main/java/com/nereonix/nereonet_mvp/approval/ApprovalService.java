@@ -14,6 +14,8 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
+import com.nereonix.nereonet_mvp.core.request.RequestService;
+import com.nereonix.nereonet_mvp.core.request.RequestService.Decision;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -39,10 +41,13 @@ public class ApprovalService {
 
     private final UserRepository userRepository;
     private final ItemRequestRepository requestRepository;
+    private final RequestService requestService;
 
-    public ApprovalService(UserRepository userRepository, ItemRequestRepository requestRepository) {
+    public ApprovalService(UserRepository userRepository, ItemRequestRepository requestRepository,
+                           RequestService requestService) {
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
+        this.requestService = requestService;
     }
 
     /** Waiting: PENDING, oldest first. Decided: APPROVED and REJECTED, newest decision first. */
@@ -73,6 +78,18 @@ public class ApprovalService {
                 .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue())))
                 .toList();
         return new Detail(request, groups);
+    }
+
+    /** The signed-in Master approves a request of their ship (RequestService.approve). */
+    @Transactional
+    public Decision approve(String email, Long id) {
+        return requestService.approve(userRepository.findByEmail(email).orElseThrow(), id);
+    }
+
+    /** The signed-in Master declines a request of their ship with a reason (RequestService.decline). */
+    @Transactional
+    public Decision decline(String email, Long id, String reason) {
+        return requestService.decline(userRepository.findByEmail(email).orElseThrow(), id, reason);
     }
 
     private Ship ship(String email) {

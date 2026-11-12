@@ -15,5 +15,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     boolean existsByShipIdAndNameIgnoreCase(Long shipId, String name);
 
+    // The name is unique per ship, ignoring case: approving a request links a new item name to it (P34).
+    Optional<Item> findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(Long shipId, String name);
+
     boolean existsByShipIdAndNameIgnoreCaseAndIdNot(Long shipId, String name, Long id);
 }
