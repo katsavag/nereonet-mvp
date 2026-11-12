@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // A request for galley items from a ship (by the Chief cook or a crew member), approved or rejected by the Master.
-// The office exports approved requests as CSV.
+// An approved request goes into the ship's order (P34), which the Master sends to the office (core/order).
 @Entity
 @Getter
 @Setter
@@ -63,14 +63,6 @@ public class ItemRequest {
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    // Last CSV export by the office. Null until exported; a request can be exported again.
-    private Instant exportedAt;
-
-    // The office user of the last export (P21). Null until exported, or when the user was deleted.
-    @ManyToOne
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private User exportedBy;
 
     @OneToMany(mappedBy = "request")
     @OrderBy("id")

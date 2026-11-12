@@ -18,8 +18,6 @@ import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.ImoNumber;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -39,13 +37,11 @@ public class ShipService {
     private final LibraryItemRepository libraryItemRepository;
     private final ItemRepository itemRepository;
     private final AnnouncementRepository announcementRepository;
-    private final ItemRequestRepository requestRepository;
 
     public ShipService(ShipRepository shipRepository, AuditService auditService, DashboardService dashboardService,
                        UserRepository userRepository, InvitationRepository invitationRepository,
                        CertificateRepository certificateRepository, LibraryItemRepository libraryItemRepository,
-                       ItemRepository itemRepository, AnnouncementRepository announcementRepository,
-                       ItemRequestRepository requestRepository) {
+                       ItemRepository itemRepository, AnnouncementRepository announcementRepository) {
         this.shipRepository = shipRepository;
         this.auditService = auditService;
         this.dashboardService = dashboardService;
@@ -55,7 +51,6 @@ public class ShipService {
         this.libraryItemRepository = libraryItemRepository;
         this.itemRepository = itemRepository;
         this.announcementRepository = announcementRepository;
-        this.requestRepository = requestRepository;
     }
 
     @Transactional(readOnly = true)
@@ -72,8 +67,7 @@ public class ShipService {
     /**
      * The numbers on the ship page's tabs, one count query each: what each tab lists (see ShipTabCounts). Crew: every
      * user on the ship and its pending invitations; Certificates: expired or expiring within 90 days, as on
-     * /office/certificates; Library: items not retired; Announcements: sent to this ship or to all ships;
-     * Requests: approved.
+     * /office/certificates; Library: items not retired; Announcements: sent to this ship or to all ships.
      */
     @Transactional(readOnly = true)
     public ShipTabCounts tabCounts(Ship ship) {
@@ -86,8 +80,7 @@ public class ShipService {
                 certificateRepository.countExpiringUntil(today.plusDays(Certificate.REMINDER_DAYS.getLast()), id),
                 libraryItemRepository.countByShipAndRetiredFalseAndCurrentVersionIsNotNull(ship),
                 itemRepository.countByShipId(id),
-                announcementRepository.countForShip(id),
-                requestRepository.countByStatusAndShipId(RequestStatus.APPROVED, id));
+                announcementRepository.countForShip(id));
     }
 
     /**

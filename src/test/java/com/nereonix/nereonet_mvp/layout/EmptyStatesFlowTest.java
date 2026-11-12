@@ -26,9 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -56,7 +53,6 @@ class EmptyStatesFlowTest {
     @Autowired ShipRepository shipRepository;
     @Autowired UserService userService;
     @Autowired CertificateRepository certificateRepository;
-    @Autowired ItemRequestRepository requestRepository;
 
     @MockitoBean
     MailService mailService;
@@ -73,7 +69,7 @@ class EmptyStatesFlowTest {
                         "href=\"/office/crew\"", "Go to Crew"),
                 List.of("/office/announcements", "No announcements yet", "Send news and instructions to all ships or to the ships they concern",
                         "href=\"/office/announcements/new\"", "New announcement"),
-                List.of("/office/requests", "No requests yet", "Galley requests approved on board appear here",
+                List.of("/office/orders", "No orders yet", "Orders appear here once a ship&#39;s master sends them.",
                         "href=\"/office/ships\"", "Go to Ships"),
                 List.of("/office/audit", "Nothing recorded yet", "start with the setup steps on the Overview",
                         "href=\"/office\"", "Go to Overview"),
@@ -110,8 +106,6 @@ class EmptyStatesFlowTest {
                 .contains("No documents yet", "href=\"" + tab + "/library/new\"", "Add an item");
         assertThat(emptyState(html(get(tab + "/announcements")), "announcements"))
                 .contains("href=\"/office/announcements/new?shipId=" + ship.getId() + "\"");
-        assertThat(emptyState(html(get(tab + "/requests")), "requests"))
-                .contains("No requests yet", "href=\"" + tab + "/items\"", "Go to galley items");
         assertThat(emptyState(html(get(tab)), "overview"))
                 .contains("No active crew on board", "href=\"" + tab + "/crew?add=true\"", "Add crew member");
         // Only the ship header's actions (Edit, more): the tab heading leaves out what the empty state shows.
@@ -145,25 +139,12 @@ class EmptyStatesFlowTest {
         certificate.setExpiresOn(LocalDate.now(ZoneOffset.UTC).plusDays(400));
         certificate.setCreatedAt(Instant.now());
         certificateRepository.save(certificate);
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(anna);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        request.setExportedAt(Instant.now());
-        requestRepository.save(request);
 
         String certificates = html(get("/office/certificates"));
         assertThat(emptyState(certificates, "certificates")).contains("No certificates expire within 90 days",
                 "Every certificate is valid for more than 90 days.", "href=\"/office/certificates?status=all\"",
                 "btn btn-outline-secondary", "Show all certificates");
         assertThat(certificates).contains("Export CSV"); // not first use: the header keeps its action
-
-        String requests = html(get("/office/requests"));
-        assertThat(emptyState(requests, "requests")).contains("Nothing left to export",
-                "Every approved request has been exported.", "href=\"/office/requests?exported=yes\"",
-                "Show exported requests");
 
         // A crew member without certificates: Add certificate moves from the card header into the empty state.
         String member = html(get("/office/crew/{id}/edit", anna.getId()));

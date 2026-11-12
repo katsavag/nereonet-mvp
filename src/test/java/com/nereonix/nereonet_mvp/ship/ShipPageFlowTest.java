@@ -33,9 +33,9 @@ import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
@@ -58,7 +58,7 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 class ShipPageFlowTest {
 
     private static final List<String> TABS = List.of("", "/crew", "/certificates", "/library", "/items",
-            "/announcements", "/requests");
+            "/announcements");
     private static final Pattern H1 = Pattern.compile("(?s)<h1 class=\"page-title\">\\s*<span>(.*?)</span>");
     private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"ship-tabs\"[^>]*>(.*?)</nav>");
     private static final Pattern TAB = Pattern.compile(
@@ -78,7 +78,7 @@ class ShipPageFlowTest {
     CertificateRepository certificateRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     @Autowired
     InvitationRepository invitationRepository;
@@ -172,8 +172,8 @@ class ShipPageFlowTest {
         certificate(cadet, "STCW Basic Safety", 20);   // open item: within 30 days
         certificate(cook, "Food hygiene", 80);         // on the Certificates tab only
         certificate(cook, "Medical fitness", -3);      // open item: expired
-        request(demo, null);                           // open item: approved, not exported
-        request(demo, Instant.now());                  // exported: Requests tab only
+        ShipOrder sent = order(demo, null);            // open item: sent, not exported
+        order(demo, Instant.now());                    // exported: not an open item
         mockMvc.perform(post("/office/ships/{id}/crew/new", demo.getId())
                 .param("fullName", "New Member").param("email", "new.member@example.com")
                 .param("rank", "ABLE_SEAMAN").param("shipId", demo.getId().toString()).with(csrf()));
@@ -185,14 +185,15 @@ class ShipPageFlowTest {
 
         String html = html(get("/office/ships/{id}", demo.getId()));
         assertThat(tabs(html)).containsExactly(
-                "Overview 3 active", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1", "Requests 2");
+                "Overview 3 active", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1");
         assertThat(html).contains("ship-tab-count num ship-tab-count-alert", "(3 open items)");
 
-        // The same rule as the fleet Overview's certificate and request columns.
+        // The same rule as the fleet Overview's certificate and order columns.
         DashboardService.FleetRow fleetRow = dashboardService.load().fleet().stream()
                 .filter(row -> row.ship().id().equals(demo.getId())).findFirst().orElseThrow();
-        assertThat(fleetRow.certificateIssues() + fleetRow.requestsNotExported()).isEqualTo(3);
-        assertThat(html).contains("Medical fitness", "STCW Basic Safety", "Not exported").doesNotContain("Food hygiene");
+        assertThat(fleetRow.certificateIssues() + fleetRow.ordersNotExported()).isEqualTo(3);
+        assertThat(html).contains("Medical fitness", "STCW Basic Safety", "Not exported").doesNotContain("Food hygiene")
+                .contains("href=\"/office/orders/" + sent.getId() + "\">Order #" + sent.getId() + "</a>");
 
         // Crew on board by department; the pending invitation is not on board.
         assertThat(html).containsSubsequence(">Deck<", "Anna Cadet", ">Galley<", "Chris Cook", ">Rank not set<",
@@ -205,10 +206,7 @@ class ShipPageFlowTest {
     void tabsListOnlyThisShipWithoutShipFilterOrColumn() throws Exception {
         certificate(cadet, "STCW Basic Safety", 20);
         certificate(elsewhere, "Elsewhere cert", 20);
-        request(demo, null);
-        request(other, null);
-
-        for (String tab : List.of("/crew", "/certificates", "/announcements", "/requests")) {
+        for (String tab : List.of("/crew", "/certificates", "/announcements")) {
             String url = "/office/ships/" + demo.getId() + tab;
             String html = html(get(url));
             assertThat(html).as("no ship filter on " + url).doesNotContain("id=\"filterShipId\"");
@@ -223,7 +221,7 @@ class ShipPageFlowTest {
                     .doesNotContain("MV Other");
         }
         // The fleet-wide pages keep their ship filter and column.
-        for (String url : List.of("/office/crew", "/office/certificates", "/office/announcements", "/office/requests")) {
+        for (String url : List.of("/office/crew", "/office/certificates", "/office/announcements", "/office/orders")) {
             assertThat(html(get(url))).as("ship filter on " + url).contains("id=\"filterShipId\"");
         }
         assertThat(html(get("/office/crew"))).contains("href=\"/office/crew?sort=ship&amp;dir=asc\"", "Elsa Where");
@@ -358,12 +356,12 @@ class ShipPageFlowTest {
     @Test
     void everyShipNameInTheOfficeLinksToTheShipPage() throws Exception {
         certificate(cadet, "STCW Basic Safety", 20);
-        request(demo, null);
+        order(demo, null);
         mockMvc.perform(post("/office/announcements/send").param("target", "ships").param("shipIds", demo.getId().toString())
                 .param("title", "Drill").param("body", "Friday").with(csrf()));
         String link = "<a class=\"ship-link\" href=\"/office/ships/" + demo.getId() + "\">MV Demo</a>";
         for (String url : List.of("/office", "/office/ships", "/office/crew", "/office/certificates",
-                "/office/announcements", "/office/requests", "/office/audit",
+                "/office/announcements", "/office/orders", "/office/audit",
                 "/office/ships/" + demo.getId() + "/library")) {
             assertThat(html(get(url))).as("ship link on " + url).contains(link);
         }
@@ -374,20 +372,10 @@ class ShipPageFlowTest {
     }
 
     @Test
-    void requestsTabExportWithNothingCheckedReturnsToTheTab() throws Exception {
-        request(demo, null);
-        String html = html(get("/office/ships/{id}/requests", demo.getId()));
-        assertThat(html).contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">",
-                "id=\"filterExported\"", "action=\"/office/ships/" + demo.getId() + "/requests\"");
-        mockMvc.perform(post("/office/requests/export").param("returnShipId", demo.getId().toString()).with(csrf()))
-                .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/requests"));
-    }
-
-    @Test
     void greekTabs() throws Exception {
         String html = html(get("/office/ships/{id}", demo.getId()).param("lang", "el"));
         assertThat(tabs(html)).extracting(t -> t.substring(0, t.indexOf(' ')))
-                .containsExactly("Επισκόπηση", "Πλήρωμα", "Πιστοποιητικά", "Βιβλιοθήκη", "Είδη", "Ανακοινώσεις", "Αιτήματα");
+                .containsExactly("Επισκόπηση", "Πλήρωμα", "Πιστοποιητικά", "Βιβλιοθήκη", "Είδη", "Ανακοινώσεις");
     }
 
     @Test
@@ -397,7 +385,7 @@ class ShipPageFlowTest {
                 "min-height: var(--nn-touch-target);");
         String js = Files.readString(Path.of("src/main/resources/static/js/ship-tabs.js"));
         assertThat(js).contains("[aria-current=\"page\"]", "scrollLeft");
-        assertThat(html(get("/office/ships/{id}/requests", demo.getId()))).containsPattern("/js/ship-tabs(-[0-9a-f]+)?\\.js");
+        assertThat(html(get("/office/ships/{id}/announcements", demo.getId()))).containsPattern("/js/ship-tabs(-[0-9a-f]+)?\\.js");
     }
 
     /** The ship header and the tab bar, with exactly the tab of url active. */
@@ -412,7 +400,7 @@ class ShipPageFlowTest {
         assertThat(html).as("Edit" + on).contains("href=\"/office/ships/" + ship.getId() + "/edit?tab=");
         assertThat(html).as("more menu" + on).contains("More actions: " + ship.getName());
         List<String> tabs = tabs(html);
-        assertThat(tabs).as("tabs" + on).hasSize(7);
+        assertThat(tabs).as("tabs" + on).hasSize(6);
         assertThat(tabs.stream().filter(t -> t.endsWith(" active")).toList()).as("one active tab" + on).hasSize(1);
         Matcher active = Pattern.compile("<a class=\"ship-tab active\" href=\"([^\"]+)\" aria-current=\"page\">").matcher(html);
         assertThat(active.find()).as("active tab" + on).isTrue();
@@ -449,16 +437,17 @@ class ShipPageFlowTest {
         certificateRepository.save(certificate);
     }
 
-    private void request(Ship ship, Instant exportedAt) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(cadet);
-        request.setDecidedBy(cadet);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        request.setExportedAt(exportedAt);
-        requestRepository.save(request);
+    // An order the ship has sent (without lines).
+    private ShipOrder order(Ship ship, Instant exportedAt) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(ShipOrderStatus.SENT);
+        order.setSentAt(Instant.now());
+        order.setRequestedPort("Rotterdam");
+        order.setNeededBy(LocalDate.now(ZoneOffset.UTC).plusDays(7));
+        order.setCreatedAt(Instant.now());
+        order.setExportedAt(exportedAt);
+        return orderRepository.save(order);
     }
 
     private String html(MockHttpServletRequestBuilder request) throws Exception {

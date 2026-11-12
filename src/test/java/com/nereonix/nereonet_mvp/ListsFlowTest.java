@@ -33,9 +33,9 @@ import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -43,7 +43,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P19 on Certificates, Items, Requests, Announcements and the Audit log, and the same lists in the ship tabs: a
+ * P19 on Certificates, Items, Orders (P36), Announcements and the Audit log, and the same lists in the ship tabs: a
  * search, one filter, a sort and page 2, each from the URL alone (Crew and Office users: crew/CrewListFlowTest).
  */
 @SpringBootTest
@@ -72,7 +72,7 @@ class ListsFlowTest {
     ItemRepository itemRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     @Autowired
     AnnouncementRepository announcementRepository;
@@ -168,38 +168,37 @@ class ListsFlowTest {
         assertThat(html(get(tab).param("q", "caviar"))).contains("No results for these filters");
     }
 
-    // Requests -------------------------------------------------------------------------------------------------------
+    // Orders (P36) ---------------------------------------------------------------------------------------------------
 
     @Test
-    void requests_searchFilterSortAndPages() throws Exception {
-        // MV Alpha: 26 approved requests, one a day; MV Beta: one approved and exported, one still waiting.
-        List<ItemRequest> alphaRequests = IntStream.range(0, 26)
-                .mapToObj(i -> request(alpha, jane, RequestStatus.APPROVED, START.plus(i, ChronoUnit.DAYS), false))
+    void orders_searchFilterAndPages() throws Exception {
+        // MV Alpha: 26 orders sent, one a day; MV Beta: one confirmed and exported, and one still OPEN (never listed).
+        List<ShipOrder> alphaOrders = IntStream.range(0, 26)
+                .mapToObj(i -> order(alpha, ShipOrderStatus.SENT, START.plus(i, ChronoUnit.DAYS), false))
                 .toList();
-        ItemRequest exported = request(beta, bob, RequestStatus.APPROVED, START.minus(1, ChronoUnit.DAYS), true);
-        request(beta, bob, RequestStatus.PENDING, START, false);
-        long firstId = alphaRequests.getFirst().getId();
+        ShipOrder exported = order(beta, ShipOrderStatus.CONFIRMED, START.minus(1, ChronoUnit.DAYS), true);
+        ShipOrder open = order(beta, ShipOrderStatus.OPEN, null, false);
+        long firstId = alphaOrders.getFirst().getId();
 
-        // Not exported yet is the default view (P21); Export status: Exported or All on request.
-        assertThat(names(html(get("/office/requests").param("q", "beta")))).isEmpty();
-        assertThat(names(html(get("/office/requests").param("q", "beta").param("exported", "all"))))
+        assertThat(names(html(get("/office/orders").param("q", "beta")))).containsExactly(number(exported.getId()));
+        assertThat(names(html(get("/office/orders").param("q", "#" + firstId)))).containsExactly(number(firstId));
+        assertThat(names(html(get("/office/orders").param("q", "#" + open.getId())))).isEmpty();
+        assertThat(names(html(get("/office/orders").param("status", "confirmed"))))
                 .containsExactly(number(exported.getId()));
-        assertThat(names(html(get("/office/requests").param("q", "#" + firstId)))).containsExactly(number(firstId));
-        assertThat(names(html(get("/office/requests")))).hasSize(25).doesNotContain(number(exported.getId()));
-        assertThat(names(html(get("/office/requests").param("exported", "yes")))).containsExactly(number(exported.getId()));
-        // Newest approval first; by number, lowest first when asked.
-        assertThat(names(html(get("/office/requests"))).getFirst()).isEqualTo(number(alphaRequests.getLast().getId()));
-        assertThat(names(html(get("/office/requests").param("sort", "number").param("dir", "asc"))).getFirst())
-                .isEqualTo(number(firstId));
+        assertThat(names(html(get("/office/orders").param("shipId", beta.getId().toString()))))
+                .containsExactly(number(exported.getId()));
+        String notExported = html(get("/office/orders").param("exported", "no"));
+        assertThat(names(notExported)).hasSize(25).doesNotContain(number(exported.getId()));
+        assertThat(notExported).contains("class=\"filter-chip\"", "Export status: Not exported yet");
+        // Newest sent first.
+        String first = html(get("/office/orders"));
+        assertThat(names(first).getFirst()).isEqualTo(number(alphaOrders.getLast().getId()));
+        assertThat(first).contains("1 to 25 of 27");
 
-        String second = html(get("/office/requests").param("exported", "all").param("page", "2"));
-        assertThat(names(second)).containsExactly(number(alphaRequests.get(0).getId()), number(exported.getId()));
+        String second = html(get("/office/orders").param("page", "2"));
+        assertThat(names(second)).containsExactly(number(firstId), number(exported.getId()));
         assertThat(second).contains("26 to 27 of 27");
-
-        String tab = "/office/ships/" + beta.getId() + "/requests";
-        assertThat(html(get(tab))).contains("Every approved request has been exported.");
-        assertThat(names(html(get(tab).param("exported", "all")))).containsExactly(number(exported.getId()));
-        assertThat(html(get(tab).param("q", "nobody"))).contains("No results for these filters");
+        assertThat(html(get("/office/orders").param("q", "nothing like it"))).contains("No results for these filters");
     }
 
     // Announcements --------------------------------------------------------------------------------------------------
@@ -262,7 +261,7 @@ class ListsFlowTest {
     }
 
     private static String number(long id) {
-        return "Request #" + id;
+        return "Order #" + id;
     }
 
     private Ship ship(String imoNumber, String name) {
@@ -293,20 +292,21 @@ class ListsFlowTest {
         itemRepository.save(item);
     }
 
-    private ItemRequest request(Ship ship, User by, RequestStatus status, Instant decidedAt, boolean exported) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(by);
-        request.setStatus(status);
-        request.setCreatedAt(decidedAt.minus(1, ChronoUnit.HOURS));
-        if (status == RequestStatus.APPROVED) {
-            request.setDecidedBy(by);
-            request.setDecidedAt(decidedAt);
+    // An order without lines (the list does not show them); sentAt null for an OPEN one.
+    private ShipOrder order(Ship ship, ShipOrderStatus status, Instant sentAt, boolean exported) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(status);
+        order.setCreatedAt(sentAt == null ? Instant.now() : sentAt.minus(1, ChronoUnit.DAYS));
+        if (sentAt != null) {
+            order.setSentAt(sentAt);
+            order.setRequestedPort("Rotterdam");
+            order.setNeededBy(LocalDate.ofInstant(sentAt, ZoneOffset.UTC).plusDays(7));
         }
         if (exported) {
-            request.setExportedAt(decidedAt);
+            order.setExportedAt(sentAt);
         }
-        return requestRepository.save(request);
+        return orderRepository.save(order);
     }
 
     private void announcement(String title, Ship ship, Instant sentAt) {

@@ -15,8 +15,7 @@ public enum ShipTab {
     CERTIFICATES("certificates", "/certificates"),
     LIBRARY("library", "/library"),
     ITEMS("items", "/items"),
-    ANNOUNCEMENTS("announcements", "/announcements"),
-    REQUESTS("requests", "/requests");
+    ANNOUNCEMENTS("announcements", "/announcements");
 
     private final String key;
     private final String segment;

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.list.title}, ~{::main})}">
+<body>
+<!-- The orders the ships have sent (P36): SENT, CONFIRMED and CLOSED, never OPEN; newest sent first. Filters: ship,
+     status and export status (?exported=no: not exported yet, the Overview's link). Export: check rows (the header
+     checkbox checks the page) and Export CSV, a POST that answers with the file and marks the orders exported; the
+     page stays as it is. Without JavaScript everything still submits; there is no select-all and no selection count,
+     and the button is never disabled (nothing checked: back with a message). A row opens its order (data-row-href);
+     its number stays the link for the keyboard and without the script. Model: list (ListQuery), orders (Page of
+     ShipOrder), ships, shipId, status, statuses, exported. -->
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.list.heading}, count=${orders.totalElements},
+            subtitle=#{officeorder.list.hint}, actions=${orders.isEmpty()} ? null : ~{::pageActions})}">
+        <!-- Submits the form below (form attribute). Disabled by js/list-rows.js while nothing is checked; the line
+             above the table (selectionCount) says why. -->
+        <th:block th:fragment="pageActions">
+            <button type="submit" form="exportForm" class="btn btn-primary" data-needs-selection
+                    aria-describedby="selectionCount">
+                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                <span th:text="#{officeorder.export}">Export CSV</span>
+            </button>
+        </th:block>
+    </header>
+
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{officeorder.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div>
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{officeorder.filter.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{officeorder.filter.status.all}">All</option>
+                    <option th:each="s : ${statuses}" th:with="value=${#strings.toLowerCase(s.name())}" th:value="${value}"
+                            th:selected="${value == status}" th:text="#{${'officeorder.status.' + s.name()}}">Sent</option>
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="filterExported" class="form-label" th:text="#{officeorder.filter.exported}">Export status</label>
+                <select id="filterExported" name="exported" class="form-select">
+                    <option value="" th:text="#{officeorder.filter.exported.all}">All</option>
+                    <option value="no" th:selected="${exported == 'no'}" th:text="#{officeorder.filter.exported.no}">Not exported yet</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+
+    <form id="exportForm" th:action="@{/office/orders/export}" method="post" data-selection data-file>
+        <div class="card">
+            <!-- Empty (P25): no ship has sent an order yet. The header's Export is not shown. -->
+            <th:block th:replace="~{layout/parts :: listEmpty(rows=${orders}, list=${list}, icon='orders',
+                    title=#{officeorder.list.empty.title}, text=#{officeorder.list.empty.text},
+                    action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
+
+            <!-- The selection line: how many are checked (a live region) and, on phones, where the table header is
+                 hidden, the select-all checkbox. Shown by js/list-rows.js only. -->
+            <div th:unless="${orders.isEmpty()}" class="list-selection" hidden data-selection-only>
+                <div class="form-check list-selection-all">
+                    <input class="form-check-input" type="checkbox" id="selectAllPhone" data-select-all>
+                    <label class="form-check-label" for="selectAllPhone" th:text="#{officeorder.selectAll.short}">Select all on this page</label>
+                </div>
+                <p id="selectionCount" class="list-selection-count" role="status" data-selection-count
+                   th:data-none="#{officeorder.selection.none}" th:data-one="#{officeorder.selection.one}"
+                   th:data-many="#{officeorder.selection.many('{count}')}" th:text="#{officeorder.selection.none}">Select the orders to export</p>
+            </div>
+
+            <div th:unless="${orders.isEmpty()}" class="table-responsive table-sticky">
+                <table class="table data-table data-table-stack align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="cell-select">
+                            <span class="visually-hidden" th:text="#{officeorder.select}">Select</span>
+                            <label class="select-target" hidden data-selection-only>
+                                <input class="form-check-input" type="checkbox" data-select-all
+                                       th:attr="aria-label=#{officeorder.selectAll}">
+                            </label>
+                        </th>
+                        <th scope="col" th:text="#{officeorder.order}">Order</th>
+                        <th scope="col" th:text="#{user.ship}">Ship</th>
+                        <th scope="col" th:text="#{officeorder.sentBy}">Sent by</th>
+                        <th scope="col" th:text="#{officeorder.sentAt}">Sent at</th>
+                        <th scope="col" th:text="#{officeorder.requestedPort}">Requested port</th>
+                        <th scope="col" th:text="#{officeorder.neededBy}">Needed by</th>
+                        <th scope="col" th:text="#{officeorder.status}">Status</th>
+                        <th scope="col" th:text="#{officeorder.exported}">Exported</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="o : ${orders}" th:data-row-href="@{/office/orders/{id}(id=${o.id})}">
+                        <td class="cell-select">
+                            <label class="select-target">
+                                <input class="form-check-input" type="checkbox" name="ids" th:value="${o.id}"
+                                       th:id="'select' + ${o.id}" data-select-row
+                                       th:attr="aria-label=#{officeorder.number(${o.id})}">
+                            </label>
+                        </td>
+                        <td class="cell-primary text-nowrap">
+                            <a th:href="@{/office/orders/{id}(id=${o.id})}" th:text="#{officeorder.number(${o.id})}">Order #12</a>
+                        </td>
+                        <td th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${o.ship})}">MV Demo</a></td>
+                        <td class="stack-hide" th:text="${o.sentBy} ? ${o.sentBy.fullName} : #{audit.deletedUser}">Jane Doe</td>
+                        <td th:attr="data-label=#{officeorder.sentAt}"><time th:replace="~{layout/parts :: localTime(${o.sentAt})}"></time></td>
+                        <td th:attr="data-label=#{officeorder.requestedPort}" th:text="${o.requestedPort}">Rotterdam</td>
+                        <td th:attr="data-label=#{officeorder.neededBy}"><time th:replace="~{layout/parts :: localDate(${o.neededBy})}"></time></td>
+                        <td th:attr="data-label=#{officeorder.status}"><span th:replace="~{officeorder/parts :: statusBadge(${o.status})}"></span></td>
+                        <td th:attr="data-label=#{officeorder.exported}"><th:block th:replace="~{officeorder/parts :: exported(${o})}"></th:block></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav th:replace="~{layout/parts :: pager(${orders}, ${list})}"></nav>
+        </div>
+    </form>
+</main>
+</body>
+</html>

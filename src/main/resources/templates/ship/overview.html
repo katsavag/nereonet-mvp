@@ -34,13 +34,13 @@
                         </div>
                         <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                     </li>
-                    <li th:each="r : ${overview.requests}" class="list-group-item open-item">
+                    <li th:each="o : ${overview.orders}" class="list-group-item open-item">
                         <div class="open-item-text">
-                            <a class="fw-semibold" th:href="@{/office/requests/{id}(id=${r.id})}"
-                               th:text="#{request.number(${r.id})}">Request #12</a>
+                            <a class="fw-semibold" th:href="@{/office/orders/{id}(id=${o.id})}"
+                               th:text="#{officeorder.number(${o.id})}">Order #12</a>
                             <div class="small text-body-secondary">
-                                <span th:text="#{request.approvedAt}">Approved at</span>
-                                <time th:replace="~{layout/parts :: localTime(${r.decidedAt})}"></time>
+                                <span th:text="#{officeorder.sentAt}">Sent at</span>
+                                <time th:replace="~{layout/parts :: localTime(${o.sentAt})}"></time>
                             </div>
                         </div>
                         <span th:replace="~{layout/parts :: status('warning', #{ship.overview.notExported})}">Not exported</span>

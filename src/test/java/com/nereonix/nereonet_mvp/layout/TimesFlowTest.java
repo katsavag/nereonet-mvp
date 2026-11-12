@@ -33,9 +33,9 @@ import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -72,7 +72,7 @@ class TimesFlowTest {
     CertificateRepository certificateRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     @Autowired
     InvitationRepository invitationRepository;
@@ -84,13 +84,13 @@ class TimesFlowTest {
     void timesAreShownInUtcWithTheZoneInBothLanguages() throws Exception {
         Ship ship = ship();
         User crew = crew(ship);
-        request(ship, crew, Instant.parse("2026-10-21T12:40:00Z"));
+        order(ship, crew, Instant.parse("2026-10-21T12:40:00Z"));
 
-        String english = html(get("/office/requests"));
+        String english = html(get("/office/orders"));
         assertThat(english).contains("datetime=\"2026-10-21T12:40:00Z\">21 Oct 2026 · 12:40 UTC</time>")
                 .contains("data-local-time=\"Your time: {time}\"");
 
-        String greek = html(get("/office/requests").param("lang", "el"));
+        String greek = html(get("/office/orders").param("lang", "el"));
         assertThat(greek).contains("datetime=\"2026-10-21T12:40:00Z\">21 Οκτ 2026 · 12:40 UTC</time>")
                 .contains("data-local-time=\"Η ώρα σας: {time}\"");
     }
@@ -99,12 +99,12 @@ class TimesFlowTest {
     void noTimestampWithoutUtc() throws Exception {
         Ship ship = ship();
         User crew = crew(ship);
-        ItemRequest request = request(ship, crew, Instant.now().minus(Duration.ofDays(2)));
+        ShipOrder order = order(ship, crew, Instant.now().minus(Duration.ofDays(2)));
         certificate(crew, "STCW Basic Safety", 10);
         invitation(ship, Role.CREW_MEMBER, Instant.now().minus(Duration.ofDays(1)));
 
         int times = 0;
-        for (String page : List.of("/office", "/office/requests", "/office/requests/" + request.getId(),
+        for (String page : List.of("/office", "/office/orders", "/office/orders/" + order.getId(),
                 "/office/audit", "/office/certificates", "/office/crew", "/office/ships/" + ship.getId())) {
             for (String lang : List.of("en", "el")) {
                 String html = html(get(page).param("lang", lang));
@@ -200,15 +200,17 @@ class TimesFlowTest {
         certificateRepository.save(certificate);
     }
 
-    private ItemRequest request(Ship ship, User crew, Instant decidedAt) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(crew);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedBy(crew);
-        request.setDecidedAt(decidedAt);
-        request.setCreatedAt(decidedAt.minus(Duration.ofHours(1)));
-        return requestRepository.save(request);
+    // An order the ship has sent (P36), without lines.
+    private ShipOrder order(Ship ship, User sentBy, Instant sentAt) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(ShipOrderStatus.SENT);
+        order.setSentBy(sentBy);
+        order.setSentAt(sentAt);
+        order.setRequestedPort("Rotterdam");
+        order.setNeededBy(LocalDate.ofInstant(sentAt, ZoneOffset.UTC).plusDays(7));
+        order.setCreatedAt(sentAt.minus(Duration.ofHours(1)));
+        return orderRepository.save(order);
     }
 
     private void invitation(Ship ship, Role role, Instant expiresAt) {

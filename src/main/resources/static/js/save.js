@@ -2,8 +2,9 @@
 // Only enhancements: without this script every form still submits as before.
 //  - Every POST form: once sent, its submit buttons are disabled and the one pressed shows a spinner and "Saving…"
 //    (data-busy on layout/parts :: offlineBanner; a button can say otherwise with data-busy-label), so a second press
-//    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. (An export comes back as a page
-//    too, P21: its file is a GET the page starts, js/download.js.)
+//    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. A form whose answer is a file
+//    download (data-file, the office's order export, P36) leaves the page as it is, so it is never made busy: its
+//    buttons stay usable, and no timer has to give them back.
 //  - Drafts: a form with data-draft="<its page's URL>" keeps its fields in localStorage while the user types, under
 //    that URL and the signed-in user (<body data-user>), so another user on the same PC never sees it. Never file
 //    inputs, passwords or hidden fields, nor a field marked data-draft-skip. Opening the form with a draft that differs
@@ -14,7 +15,7 @@
 //    ([data-flash="success"]). Any other page (the form with errors, the sign-in page after the session expired)
 //    keeps it, so after signing in again the form opens with the text (P12).
 //  - Unsaved changes: leaving a signed-in page with a form whose fields changed asks first (beforeunload), except when
-//    a form is being sent. Fields of a closed pop-up do not count.
+//    a form is being sent. Fields of a closed pop-up, and of a download form (data-file), do not count.
 //  - Offline: while the browser reports no connection, a banner at the bottom says so (layout/parts :: offlineBanner)
 //    and sending a POST form is stopped with a message next to its button, instead of a failed request.
 // Storage can be full, blocked or missing (private windows, strict settings): every access is wrapped, and without it
@@ -217,7 +218,8 @@
     const tracked = []; // {form, initial}: forms whose changes count for "leave this page?"
 
     document.querySelectorAll('form').forEach(form => {
-        if (form.method !== 'post') {
+        // A download form's fields (checked rows to export) are a choice, not unsaved work.
+        if (form.method !== 'post' || form.hasAttribute('data-file')) {
             return;
         }
         tracked.push({form: form, initial: valuesOf(userFields(form))});
@@ -334,6 +336,9 @@
             event.preventDefault();
             blockedMessage(form, event.submitter);
             return;
+        }
+        if (form.hasAttribute('data-file')) {
+            return; // a download: the page stays, so nothing would give the buttons back
         }
         form.dataset.sending = 'true';
         sending = true;

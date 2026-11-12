@@ -28,9 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -69,7 +69,7 @@ class TablesFlowTest {
     CertificateRepository certificateRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     @MockitoBean
     MailService mailService;
@@ -97,14 +97,15 @@ class TablesFlowTest {
         mockMvc.perform(post("/office/announcements/send")
                 .param("target", "ships").param("shipIds", ship.getId().toString()).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
 
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(crew);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedBy(crew);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        requestRepository.save(request);
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(ShipOrderStatus.SENT);
+        order.setSentBy(crew);
+        order.setSentAt(Instant.now());
+        order.setRequestedPort("Rotterdam");
+        order.setNeededBy(LocalDate.now(ZoneOffset.UTC).plusDays(7));
+        order.setCreatedAt(Instant.now());
+        orderRepository.save(order);
 
         // Page -> card title as rendered before the count.
         Map<String, String> pages = Map.of(
@@ -114,7 +115,7 @@ class TablesFlowTest {
                 "/office/certificates", "Certificates",
                 "/office/announcements", "Announcements",
                 "/office/ships/" + ship.getId() + "/items", "Galley items",
-                "/office/requests", "Requests",
+                "/office/orders", "Orders",
                 "/office/audit", "Audit log");
         for (Map.Entry<String, String> page : pages.entrySet()) {
             String html = html(page.getKey());
@@ -172,9 +173,9 @@ class TablesFlowTest {
                 "status-badge-icon status-danger");
         assertThat(html("/office/ships/" + ship.getId() + "/items")).contains(">Basmati rice</a>",
                 "More actions: Basmati rice");
-        assertThat(html("/office/requests")).contains(
-                "href=\"/office/requests/" + request.getId() + "\">Request #" + request.getId() + "</a>",
-                "class=\"cell-select\"", "class=\"num\" data-label=\"Lines\"");
+        assertThat(html("/office/orders")).contains(
+                "href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
+                "class=\"cell-select\"", "data-label=\"Requested port\">Rotterdam</td>");
         assertThat(html("/office/ships")).containsPattern("Ships</span>\\s*<span class=\"title-count\">"
                 + "<span aria-hidden=\"true\">·</span> <span class=\"num\">1</span>");
     }

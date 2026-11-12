@@ -156,7 +156,7 @@ class SaveFlowTest {
                 .flashAttr("successMessage", "library.particulars.saved"));
         assertThat(saved).contains("data-flash=\"success\"");
 
-        String failed = html(get("/office/requests").flashAttr("errorMessage", "request.export.noneSelected"));
+        String failed = html(get("/office/orders").flashAttr("errorMessage", "officeorder.export.noneSelected"));
         assertThat(failed).doesNotContain("data-flash=\"success\"");
     }
 
@@ -179,12 +179,12 @@ class SaveFlowTest {
     }
 
     @Test
-    void anExportComesBackAsAPage() throws Exception {
-        // P21: the export POST redirects to a page, so its button never has to be given back by a timer.
-        assertThat(html(get("/office/requests"))).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\"")
-                .doesNotContain("data-download");
+    void aDownloadFormIsNeverMadeBusy() throws Exception {
+        // P36: the order export answers with the file and the page stays, so the form is marked data-file: save.js
+        // leaves its buttons usable (nothing would give them back) and its checked rows are not unsaved changes.
+        assertThat(html(get("/office/orders"))).contains("<form id=\"exportForm\" action=\"/office/orders/export\" method=\"post\" data-selection data-file>");
         String script = new ClassPathResource("static/js/save.js").getContentAsString(StandardCharsets.UTF_8);
-        assertThat(script).doesNotContain("data-download");
+        assertThat(script).contains("form.hasAttribute('data-file')").doesNotContain("data-download");
     }
 
     @Test

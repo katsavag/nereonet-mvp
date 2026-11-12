@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!-- Parts of the office's ship orders (P36). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- An order's status as the office sees it: Sent (info: waiting for the office), Confirmed (ok), Closed (neutral).
+     The words carry the state, the colour repeats it.
+     Use: <span th:replace="~{officeorder/parts :: statusBadge(${order.status})}"></span> -->
+<span th:fragment="statusBadge(status)"
+      th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CONFIRMED'} ? 'ok'
+              : 'neutral'), #{${'officeorder.status.' + status.name()}})}"></span>
+
+<!-- Whether an order was exported: when (the last export), or "Not yet".
+     Use: <th:block th:replace="~{officeorder/parts :: exported(${order})}"></th:block> -->
+<th:block th:fragment="exported(order)">
+    <span th:if="${order.exportedAt != null}" class="exported-by">
+        <span th:replace="~{layout/parts :: status('ok', #{officeorder.exported.yes})}">Exported</span>
+        <time th:replace="~{layout/parts :: localTime(${order.exportedAt})}"></time>
+    </span>
+    <span th:unless="${order.exportedAt != null}" class="text-body-secondary" th:text="#{officeorder.exported.no}">Not yet</span>
+</th:block>
+
+</body>
+</html>

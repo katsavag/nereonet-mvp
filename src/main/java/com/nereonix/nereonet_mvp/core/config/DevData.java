@@ -26,7 +26,6 @@ import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
-import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -37,12 +36,12 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
-// Dev profile only: creates one demo ship if there are no ships yet, and two approved item requests
-// (with a demo Master, Chief cook and items when the ship has none) if there are no requests yet,
-// and two library items on that ship (one of them required) if its library is empty. P31: the demo Master and Chief
-// cook get their ranks if they have none, and three more crew members (two with a profile) are on board, so My crew
-// shows its departments. P33: while that ship has no PENDING request, two waiting for its Master: one from the Chief
-// cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's request).
+// Dev profile only: creates one demo ship if there are no ships yet, a demo Master on the first ship while there are
+// no requests and it has none, and two library items on that ship (one of them required) if its library is empty. P31: the demo
+// Master and Chief cook get their ranks if they have none, and three more crew members (two with a profile) are on
+// board, so My crew shows its departments. P33: while that ship has no PENDING request, two waiting for its Master:
+// one from the Chief cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's
+// request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -56,7 +55,6 @@ public class DevData implements ApplicationRunner {
     private final UserService userService;
     private final ItemRepository itemRepository;
     private final ItemRequestRepository requestRepository;
-    private final RequestLineRepository lineRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final LibraryItemVersionRepository libraryVersionRepository;
     private final CrewProfileRepository profileRepository;
@@ -64,15 +62,13 @@ public class DevData implements ApplicationRunner {
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
-                   RequestLineRepository lineRepository, LibraryItemRepository libraryItemRepository,
-                   LibraryItemVersionRepository libraryVersionRepository, CrewProfileRepository profileRepository,
-                   RequestService requestService) {
+                   LibraryItemRepository libraryItemRepository, LibraryItemVersionRepository libraryVersionRepository,
+                   CrewProfileRepository profileRepository, RequestService requestService) {
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.itemRepository = itemRepository;
         this.requestRepository = requestRepository;
-        this.lineRepository = lineRepository;
         this.libraryItemRepository = libraryItemRepository;
         this.libraryVersionRepository = libraryVersionRepository;
         this.profileRepository = profileRepository;
@@ -90,10 +86,11 @@ public class DevData implements ApplicationRunner {
             shipRepository.save(ship);
             log.info("Created demo ship {}", ship.getName());
         }
-        if (requestRepository.count() == 0) {
-            createApprovedRequests(shipRepository.findAllByOrderByNameAsc().getFirst());
-        }
         Ship firstShip = shipRepository.findAllByOrderByNameAsc().getFirst();
+        if (requestRepository.count() == 0) {
+            // A fresh database: the Master who approves the seeded requests (the Chief cook comes with them).
+            crewUser(firstShip, Role.MASTER, "master.demo@example.com", "Demo Master");
+        }
         if (!libraryItemRepository.existsByShip(firstShip)) {
             libraryItem(firstShip, "Galley hygiene rules", LibraryCategory.SHIP_RULES, false, "1",
                     "1. Wash your hands before entering the galley.\n"
@@ -202,24 +199,6 @@ public class DevData implements ApplicationRunner {
         item.setCurrentVersion(libraryVersionRepository.save(version));
     }
 
-    private void createApprovedRequests(Ship ship) {
-        User master = crewUser(ship, Role.MASTER, "master.demo@example.com", "Demo Master");
-        User cook = crewUser(ship, Role.CHIEF_COOK, "cook.demo@example.com", "Demo Cook");
-        Item rice = item(ship, "Basmati rice", "kg", ItemCategory.PROVISIONS, "Dry store");
-        Item oil = item(ship, "Olive oil", "lt", ItemCategory.PROVISIONS, "Dry store");
-        Item eggs = item(ship, "Eggs", "pcs", ItemCategory.PROVISIONS, "Cold room");
-
-        Instant now = Instant.now();
-        ItemRequest first = request(ship, cook, master, now.minus(Duration.ofDays(3)), now.minus(Duration.ofDays(2)));
-        line(first, rice, "25");
-        line(first, oil, "10.5");
-        line(first, eggs, "120");
-        ItemRequest second = request(ship, cook, master, now.minus(Duration.ofHours(5)), now.minus(Duration.ofHours(1)));
-        line(second, rice, "5");
-        line(second, eggs, "60");
-        log.info("Created 2 approved demo requests for ship {}", ship.getName());
-    }
-
     // The ship's active user with this role, or a demo user (password DEMO_CREW_PASSWORD).
     private User crewUser(Ship ship, Role role, String email, String fullName) {
         return userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role).stream().findFirst()
@@ -246,24 +225,5 @@ public class DevData implements ApplicationRunner {
                     item.setCreatedAt(Instant.now());
                     return itemRepository.save(item);
                 });
-    }
-
-    private ItemRequest request(Ship ship, User requestedBy, User approvedBy, Instant createdAt, Instant approvedAt) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(requestedBy);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedBy(approvedBy);
-        request.setDecidedAt(approvedAt);
-        request.setCreatedAt(createdAt);
-        return requestRepository.save(request);
-    }
-
-    private void line(ItemRequest request, Item item, String quantity) {
-        RequestLine line = new RequestLine();
-        line.setRequest(request);
-        line.setItem(item);
-        line.setQuantity(new BigDecimal(quantity));
-        request.getLines().add(lineRepository.save(line));
     }
 }

@@ -55,10 +55,12 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItemVersion;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemVersionRepository;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestLine;
-import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -96,7 +98,8 @@ class DashboardFlowTest {
     @Autowired UserService userService;
     @Autowired CertificateRepository certificateRepository;
     @Autowired ItemRequestRepository requestRepository;
-    @Autowired RequestLineRepository lineRepository;
+    @Autowired ShipOrderRepository orderRepository;
+    @Autowired ShipOrderLineRepository orderLineRepository;
     @Autowired ItemRepository itemRepository;
     @Autowired InvitationRepository invitationRepository;
     @Autowired AnnouncementRepository announcementRepository;
@@ -148,9 +151,9 @@ class DashboardFlowTest {
         Invitation expired = invitation(ship, "Eve Expired", Rank.OILER, days(-1));
         Invitation waiting = invitation(ship, "Wes Waiting", null, days(4));     // sent 3 days ago (valid 7 days)
         invitation(ship, "Fay Fresh", null, days(7).minus(Duration.ofHours(1))); // sent an hour ago
-        // c. requests
-        ItemRequest request = request(ship, bosun, days(-1), null);
-        request(ship, bosun, days(-2), days(-1)); // exported
+        // c. orders (P36)
+        ShipOrder order = order(ship, bosun, days(-1), null);
+        order(ship, bosun, days(-2), days(-1)); // exported
         // a. and b. certificates
         Certificate soon = certificate(cadet, "STCW Basic Safety", 12);
         Certificate gone = certificate(cook, "Medical fitness", -3);
@@ -160,7 +163,7 @@ class DashboardFlowTest {
         String list = attentionList(html);
 
         assertThat(ATTENTION_ROW.matcher(list).results().count()).isEqualTo(7);
-        assertThat(list).containsSubsequence("Medical fitness", "STCW Basic Safety", "Request #" + request.getId(),
+        assertThat(list).containsSubsequence("Medical fitness", "STCW Basic Safety", "Order #" + order.getId(),
                 "Eve Expired", "Wes Waiting", "Fire drill on Friday", "Drug and alcohol policy");
         assertThat(list).doesNotContain("Food hygiene", "Fay Fresh", "All read", "Too new", "Optional reading");
         assertThat(html).contains("1 ship · 3 crew · 7 open items")
@@ -174,10 +177,10 @@ class DashboardFlowTest {
         assertThat(list).contains(">Expires in 12 days</span>", "Dana Cadet, Deck Cadet", ">" + date(12) + "</time>",
                 "</span> in 12 days</span>",
                 "href=\"/office/crew/" + cadet.getId() + "/certificates/" + soon.getId() + "/edit?returnTo=/office\"");
-        // c. request: Export in place
-        assertThat(list).contains(">Not exported</span>", "href=\"/office/requests/" + request.getId() + "\"",
-                "Request #" + request.getId() + " · 1 item", "Bob Bosun, Bosun",
-                "action=\"/office/requests/export\"", "name=\"ids\" value=\"" + request.getId() + "\"", ">Export</button>");
+        // c. order sent, not exported: Open order, where it is confirmed and exported
+        assertThat(list).contains(">Not exported</span>", ">Ship order</span>",
+                "href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + " · 1 item</a>",
+                "Bob Bosun, Bosun", ">Open order</a>");
         // d. invitations: Resend, back to the Overview
         assertThat(list).contains(">Not accepted</span>", "Oiler", "expired 1 day ago", "expires in 4 days",
                 "action=\"/office/invitations/" + expired.getId() + "/resend\"",
@@ -193,7 +196,7 @@ class DashboardFlowTest {
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
         // The full list of each kind.
-        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/requests?exported=no\"",
+        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/orders?exported=no\"",
                 "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
     }
 
@@ -219,25 +222,30 @@ class DashboardFlowTest {
                         + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">MV Beta</span>");
     }
 
+    // P36: the office works on the orders the ships send, no longer on single approved requests.
     @Test
-    void theSeededApprovedRequestsAreTwoRowsUntilExported() throws Exception {
+    void aSentOrderIsOpenUntilExportedAndAnOpenOrApprovedRequestNever() throws Exception {
+        // The dev data seeds only requests waiting for the Master: nothing for the office yet.
         devData().run(null);
-        Ship ship = shipRepository.findAllByOrderByNameAsc().getFirst();
-        List<ItemRequest> seeded = requestRepository.findDecided(RequestStatus.APPROVED, ship.getId(), true);
-        assertThat(seeded).hasSize(2);
+        Ship seeded = shipRepository.findAllByOrderByNameAsc().getFirst();
+        assertThat(requestRepository.countByStatusAndShipId(RequestStatus.APPROVED, seeded.getId())).isZero();
+        assertThat(requestRepository.countByStatusAndShipId(RequestStatus.PENDING, seeded.getId())).isEqualTo(2);
+        assertThat(html(get("/office"))).doesNotContain(">Ship order</span>");
 
-        String list = attentionList(html(get("/office")));
-        assertThat(ATTENTION_ROW.matcher(list).results().count()).isEqualTo(2);
-        assertThat(count(list, ">Export</button>")).isEqualTo(2);
-
-        for (ItemRequest request : seeded) {
-            mockMvc.perform(post("/office/requests/export").param("ids", request.getId().toString())
-                            .param("returnTo", "overview").with(csrf()))
-                    .andExpect(redirectedUrl("/office"));
-        }
+        Ship ship = ship("MV Alpha");
+        User master = crew(ship, "Mia Master", Rank.MASTER);
+        ShipOrder open = order(ship, master, null, null); // still on board
+        ShipOrder sent = order(ship, master, days(-1), null);
 
         String html = html(get("/office"));
-        assertThat(html).contains("Nothing needs your attention").doesNotContain(">Export</button>");
+        assertThat(count(attentionList(html), ">Ship order</span>")).isEqualTo(1);
+        assertThat(attentionList(html)).contains("Order #" + sent.getId()).doesNotContain("Order #" + open.getId());
+        assertThat(group(FLEET_TABLE, html)).contains("href=\"/office/orders?shipId=" + ship.getId() + "&amp;exported=no\"");
+
+        mockMvc.perform(post("/office/orders/export").param("ids", sent.getId().toString()).with(csrf()))
+                .andExpect(status().isOk());
+
+        assertThat(html(get("/office"))).doesNotContain(">Ship order</span>", "orders?shipId=" + ship.getId());
     }
 
     @Test
@@ -292,7 +300,7 @@ class DashboardFlowTest {
         Ship busy = ship("MV Zzz Busy");
         User bosun = crew(busy, "Bob Bosun", Rank.BOSUN);
         certificate(bosun, "Medical fitness", -3);
-        request(busy, bosun, days(-1), null);
+        order(busy, bosun, days(-1), null);
         announcement("Fire drill", busy, days(-8), bosun);
         Ship inactive = ship("MV Laid Up");
         inactive.setActive(false);
@@ -308,12 +316,12 @@ class DashboardFlowTest {
                 "href=\"/office/crew?shipId=" + busyId + "\"",
                 "href=\"/office/certificates?shipId=" + busyId + "&amp;status=expired,30\"",
                 "href=\"/office?type=acknowledgements&amp;shipId=" + busyId + "\"",
-                "href=\"/office/requests?shipId=" + busyId + "&amp;exported=no\"");
+                "href=\"/office/orders?shipId=" + busyId + "&amp;exported=no\"");
         // The calm ship: crew linked, every other count a muted dash and no link.
         long calmId = calm.getId();
         assertThat(fleet).contains("href=\"/office/crew?shipId=" + calmId + "\"")
                 .doesNotContain("certificates?shipId=" + calmId, "type=acknowledgements&amp;shipId=" + calmId,
-                        "requests?shipId=" + calmId);
+                        "orders?shipId=" + calmId);
         assertThat(count(fleet, "class=\"count-zero\"")).isEqualTo(3);
 
         // The ship and condition filter of a count: only that ship's items of that kind.
@@ -328,14 +336,14 @@ class DashboardFlowTest {
         User bosun = crew(ship, "Bob Bosun", Rank.BOSUN);
         certificate(bosun, "Medical fitness", -3);
         certificate(bosun, "STCW Basic Safety", 5);
-        request(ship, bosun, days(-1), null);
+        order(ship, bosun, days(-1), null);
         invitation(ship, "Eve Expired", null, days(-1));
         announcement("Fire drill", ship, days(-8), bosun);
         libraryItem(ship, "Drug and alcohol policy", true, days(-10));
 
         String main = group(MAIN, html(get("/office")));
         List<String> lists = List.of("/office", "/office/crew", "/office/certificates", "/office/announcements",
-                "/office/requests", "/office/users");
+                "/office/orders", "/office/users");
         Matcher hrefs = HREF.matcher(main);
         List<String> found = new ArrayList<>();
         while (hrefs.find()) {
@@ -462,7 +470,7 @@ class DashboardFlowTest {
         User cook = crew(ship, "Cook " + shipCount, Rank.COOK);
         certificate(master, "Medical fitness", -3);
         certificate(cook, "STCW Basic Safety", 5);
-        request(ship, master, days(-1), null);
+        order(ship, master, days(-1), null);
         invitation(ship, "Invitee " + shipCount, Rank.OILER, days(-1));
         announcement("Notice " + shipCount, ship, days(-8), master, cook);
         libraryItem(ship, "Policy " + shipCount, true, days(-10));
@@ -517,15 +525,20 @@ class DashboardFlowTest {
         return certificateRepository.save(certificate);
     }
 
-    private ItemRequest request(Ship ship, User requestedBy, Instant approvedAt, Instant exportedAt) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(requestedBy);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedAt(approvedAt);
-        request.setCreatedAt(approvedAt);
-        request.setExportedAt(exportedAt);
-        requestRepository.save(request);
+    // An order with one line: sent at sentAt (null: still OPEN on board), exported at exportedAt (null: never).
+    private ShipOrder order(Ship ship, User sentBy, Instant sentAt, Instant exportedAt) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(sentAt == null ? ShipOrderStatus.OPEN : ShipOrderStatus.SENT);
+        if (sentAt != null) {
+            order.setSentBy(sentBy);
+            order.setSentAt(sentAt);
+            order.setRequestedPort("Rotterdam");
+            order.setNeededBy(LocalDate.now(ZoneOffset.UTC).plusDays(7));
+        }
+        order.setExportedAt(exportedAt);
+        order.setCreatedAt(Instant.now());
+        orderRepository.save(order);
         Item item = new Item();
         item.setShip(ship);
         item.setName("Rice " + UUID.randomUUID());
@@ -533,12 +546,12 @@ class DashboardFlowTest {
         item.setCategory(ItemCategory.PROVISIONS);
         item.setCreatedAt(Instant.now());
         itemRepository.save(item);
-        RequestLine line = new RequestLine();
-        line.setRequest(request);
+        ShipOrderLine line = new ShipOrderLine();
+        line.setOrder(order);
         line.setItem(item);
         line.setQuantity(BigDecimal.TEN);
-        lineRepository.save(line);
-        return request;
+        order.getLines().add(orderLineRepository.save(line));
+        return order;
     }
 
     private Invitation invitation(Ship ship, String fullName, Rank rank, Instant expiresAt) {
@@ -610,6 +623,6 @@ class DashboardFlowTest {
 
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                lineRepository, libraryItemRepository, versionRepository, profileRepository, requestService);
+                libraryItemRepository, versionRepository, profileRepository, requestService);
     }
 }

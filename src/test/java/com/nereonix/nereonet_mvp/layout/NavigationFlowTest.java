@@ -34,9 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -77,7 +77,7 @@ class NavigationFlowTest {
     CertificateRepository certificateRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     Ship ship;
     User crew;
@@ -110,7 +110,7 @@ class NavigationFlowTest {
         long id = ship.getId();
         List<String> pages = List.of("/office", "/office/ships", "/office/crew", "/office/crew/import",
                 "/office/crew/" + crew.getId() + "/edit", "/office/crew/" + crew.getId() + "/certificates/new",
-                "/office/certificates", "/office/announcements", "/office/announcements/new", "/office/requests",
+                "/office/certificates", "/office/announcements", "/office/announcements/new", "/office/orders",
                 "/office/users", "/office/audit", "/office/ships/" + id + "/items", "/office/ships/" + id + "/library",
                 "/office/ships/" + id + "/crew", "/notifications");
         for (String page : pages) {
@@ -123,7 +123,7 @@ class NavigationFlowTest {
         String nav = sidebar(get("/office/ships"));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList()).containsExactly(
                 "/office", "/office/ships", "/office/crew", "/office/certificates", "/office/announcements",
-                "/office/requests", "/office/users", "/office/audit", "/notifications");
+                "/office/orders", "/office/users", "/office/audit", "/notifications");
         // The language switch moved to the top bar (P29).
         assertThat(nav).containsSubsequence(">Operations</p>", ">Administration</p>", ">Account</p>").doesNotContain("lang=el")
                 .contains("aria-labelledby=\"navGroupOperations\"", "aria-labelledby=\"navGroupAdministration\"",
@@ -159,8 +159,9 @@ class NavigationFlowTest {
         certificate(today.minusDays(3));   // expired
         certificate(today.plusDays(30));   // expiring within 30 days
         certificate(today.plusDays(31));   // not yet
-        request(null);                      // approved, not exported
-        request(Instant.now());             // exported
+        order(ShipOrderStatus.SENT, null);              // sent, not exported
+        order(ShipOrderStatus.CONFIRMED, Instant.now()); // exported
+        order(ShipOrderStatus.OPEN, null);              // still on board: not counted
 
         String nav = sidebar(get("/office"));
         // Certificates opens what its counter counts (P20); without a count, the list as it is.
@@ -168,9 +169,9 @@ class NavigationFlowTest {
         assertThat(nav).containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?>Certificates</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 expired or expiring within 30 days</span>")
-                .containsPattern("(?s)href=\"/office/requests\">.*?>Requests</span>\\s*"
+                .containsPattern("(?s)href=\"/office/orders\">.*?>Orders</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">1</span>\\s*"
-                        + "<span class=\"visually-hidden\">1 approved, not exported</span>");
+                        + "<span class=\"visually-hidden\">1 sent, not exported</span>");
         assertThat(count(nav, "nav-count")).as("no unread notifications, no pill").isEqualTo(2);
 
         // Office counters only: the crew sidebar has none of them.
@@ -187,6 +188,7 @@ class NavigationFlowTest {
         assertThat(NavSection.of("/office/")).isEqualTo(NavSection.OVERVIEW);
         assertThat(NavSection.of("/office/crew/12/edit")).isEqualTo(NavSection.CREW);
         assertThat(NavSection.of("/office/invitations")).isEqualTo(NavSection.USERS);
+        assertThat(NavSection.of("/office/orders/12")).isEqualTo(NavSection.ORDERS);
         assertThat(NavSection.of("/office/crewing")).isNull();
         assertThat(NavSection.of("/ship")).isEqualTo(NavSection.HOME);
         assertThat(NavSection.of("/ship/library/3")).isEqualTo(NavSection.LIBRARY);
@@ -308,16 +310,19 @@ class NavigationFlowTest {
         certificateRepository.save(certificate);
     }
 
-    private void request(Instant exportedAt) {
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(crew);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedBy(master);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        request.setExportedAt(exportedAt);
-        requestRepository.save(request);
+    private void order(ShipOrderStatus status, Instant exportedAt) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(status);
+        order.setCreatedAt(Instant.now());
+        if (status != ShipOrderStatus.OPEN) {
+            order.setSentBy(master);
+            order.setSentAt(Instant.now());
+            order.setRequestedPort("Rotterdam");
+            order.setNeededBy(LocalDate.now(ZoneOffset.UTC).plusDays(7));
+        }
+        order.setExportedAt(exportedAt);
+        orderRepository.save(order);
     }
 
     private static int count(String text, String part) {

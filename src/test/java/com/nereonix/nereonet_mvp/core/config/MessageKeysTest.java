@@ -201,6 +201,7 @@ class MessageKeysTest {
             "order.send.error.tooLong",
             "order.sent",
             "order.notification.sent",
+            "order.notification.confirmed",
             "order.status.OPEN",
             "order.status.SENT",
             "order.status.CONFIRMED",

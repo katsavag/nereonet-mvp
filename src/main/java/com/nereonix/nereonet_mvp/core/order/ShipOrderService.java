@@ -1,16 +1,35 @@
 package com.nereonix.nereonet_mvp.core.order;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.context.MessageSource;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
@@ -25,16 +44,31 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 
 // Ship orders, for any feature (P34). RequestService.approve adds each approved request to the ship's OPEN order; the
-// Master edits its lines and sends it to the office (P35, shiporder). Every change locks the ship's row first, so an
-// approval, an edit and a send never interleave: an approval made while the order is sent goes into a new OPEN order.
+// Master edits its lines and sends it to the office (P35, shiporder). Every change of the ship locks the ship's row
+// first, so an approval, an edit and a send never interleave: an approval made while the order is sent goes into a
+// new OPEN order. The office (P36, officeorder) lists the sent orders, confirms the port and delivery date, and
+// exports them as CSV; it never changes lines or quantities.
 @Service
 public class ShipOrderService {
 
     // ShipOrderLine.quantity is numeric(12, 3).
     static final int QUANTITY_SCALE = 3;
     static final int QUANTITY_INTEGER_DIGITS = 9;
+
+    /** The orders the office sees (P36): those a Master has sent. Never OPEN ones. */
+    public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
+            ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
+
+    /** The columns of the office's CSV export (P36), one row per order line. A file format: never translated. */
+    static final String[] CSV_HEADER = {"imo_number", "ship_name", "order_id", "sent_at", "requested_port",
+            "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit", "quantity"};
+
+    // "12" or "#12": an order number in the office's search.
+    private static final Pattern ORDER_NUMBER = Pattern.compile("#?(\\d{1,18})");
 
     private final ShipOrderRepository orderRepository;
     private final ShipOrderLineRepository lineRepository;
@@ -45,11 +79,13 @@ public class ShipOrderService {
     private final MessageSource messageSource;
     private final Dates dates;
     private final EntityManager entityManager;
+    private final ListQueries listQueries;
 
     public ShipOrderService(ShipOrderRepository orderRepository, ShipOrderLineRepository lineRepository,
                             RequestLineRepository requestLineRepository, UserRepository userRepository,
                             AuditService auditService, NotificationService notificationService,
-                            MessageSource messageSource, Dates dates, EntityManager entityManager) {
+                            MessageSource messageSource, Dates dates, EntityManager entityManager,
+                            ListQueries listQueries) {
         this.orderRepository = orderRepository;
         this.lineRepository = lineRepository;
         this.requestLineRepository = requestLineRepository;
@@ -59,6 +95,7 @@ public class ShipOrderService {
         this.messageSource = messageSource;
         this.dates = dates;
         this.entityManager = entityManager;
+        this.listQueries = listQueries;
     }
 
     /**
@@ -198,11 +235,209 @@ public class ShipOrderService {
                 Locale.ENGLISH);
         for (User officeUser : userRepository.findAllByRoleOrderByFullNameAsc(Role.OFFICE_USER)) {
             if (officeUser.isEnabled()) {
-                // The office has no order page yet, so the notification links nowhere.
-                notificationService.notify(officeUser, NotificationType.ORDER, ship.getName(), text, null);
+                notificationService.notify(officeUser, NotificationType.ORDER, ship.getName(), text,
+                        "/office/orders/" + order.getId());
             }
         }
         return new Send(order);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // The office (P36)
+    // ---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * One page of the orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN), newest sent first, paginated
+     * in the database. shipId and status null mean every ship and every one of those statuses; notExported keeps
+     * those never exported. The search is an order number ("12" or "#12"), or the ship's name or IMO number.
+     */
+    @Transactional(readOnly = true)
+    public Page<ShipOrder> findSent(Long shipId, ShipOrderStatus status, boolean notExported, ListQuery list) {
+        return listQueries.page(ShipOrder.class, list, (root, cb) -> {
+            List<Predicate> where = new ArrayList<>();
+            where.add(status != null && SENT_TO_OFFICE.contains(status) ? cb.equal(root.get("status"), status)
+                    : root.get("status").in(SENT_TO_OFFICE));
+            if (shipId != null) {
+                where.add(cb.equal(root.get("ship").get("id"), shipId));
+            }
+            if (notExported) {
+                where.add(cb.isNull(root.get("exportedAt")));
+            }
+            String q = list.getContains();
+            if (q != null) {
+                Join<ShipOrder, Ship> ship = root.join("ship");
+                List<Predicate> any = new ArrayList<>(List.of(
+                        ListQueries.contains(cb, ship.get("name"), q),
+                        ListQueries.contains(cb, ship.get("imoNumber"), q)));
+                Matcher number = ORDER_NUMBER.matcher(list.getQ());
+                if (number.matches()) {
+                    any.add(cb.equal(root.get("id"), Long.parseLong(number.group(1))));
+                }
+                where.add(cb.or(any.toArray(Predicate[]::new)));
+            }
+            return where;
+        }, (root, cb) -> List.of(root.get("sentAt")), null);
+    }
+
+    /** An order the ship has sent (SENT, CONFIRMED or CLOSED); empty for an OPEN one or no such order. */
+    @Transactional(readOnly = true)
+    public Optional<ShipOrder> findSent(Long id) {
+        return orderRepository.findByIdAndStatusIn(id, SENT_TO_OFFICE);
+    }
+
+    /** Orders sent and never exported, every ship: the office's sidebar counter. */
+    @Transactional(readOnly = true)
+    public long countNotExported() {
+        return orderRepository.countByStatusInAndExportedAtIsNull(SENT_TO_OFFICE);
+    }
+
+    /** One ship's orders sent and never exported, newest sent first: open items of its Overview tab. */
+    @Transactional(readOnly = true)
+    public List<ShipOrder> findNotExported(Long shipId) {
+        return orderRepository.findAllByShipIdAndStatusInAndExportedAtIsNullOrderBySentAtDescIdDesc(shipId,
+                SENT_TO_OFFICE);
+    }
+
+    @Transactional(readOnly = true)
+    public long countNotExported(Long shipId) {
+        return orderRepository.countByShipIdAndStatusInAndExportedAtIsNull(shipId, SENT_TO_OFFICE);
+    }
+
+    /** What the office confirms: the port and the delivery date, both required. */
+    public record Confirmation(String confirmedPort, LocalDate deliveryDate) {
+    }
+
+    /** What confirm did. */
+    public enum Confirm {
+        DONE,
+        // The order is CLOSED: nothing changed.
+        CLOSED,
+        // No order the ship has sent with this id.
+        NOT_FOUND
+    }
+
+    /**
+     * An office user confirms a SENT order, or corrects the confirmation of a CONFIRMED one (P36): confirmedPort,
+     * deliveryDate, confirmedBy and CONFIRMED. Records "Order confirmed" and notifies the ship's enabled Master and
+     * Chief cook each time: "Order confirmed: Rotterdam, 20 Nov 2026". CLOSED (nothing changed) once the order is
+     * closed; NOT_FOUND for an OPEN order or no such order. The order's row is locked, so two confirmations at the
+     * same time are saved one after the other. IllegalArgumentException for a missing or too long port or a missing
+     * date; AccessDeniedException when the user is not an enabled office user.
+     */
+    @Transactional
+    public Confirm confirm(User officeUser, Long orderId, Confirmation confirmation) {
+        checkOffice(officeUser);
+        String port = confirmation.confirmedPort() == null ? "" : confirmation.confirmedPort().strip();
+        if (port.isEmpty() || port.length() > ShipOrder.PORT_MAX_LENGTH) {
+            throw new IllegalArgumentException("A confirmation needs a port of at most " + ShipOrder.PORT_MAX_LENGTH
+                    + " characters");
+        }
+        if (confirmation.deliveryDate() == null) {
+            throw new IllegalArgumentException("A confirmation needs a delivery date");
+        }
+        ShipOrder order = entityManager.find(ShipOrder.class, orderId, LockModeType.PESSIMISTIC_WRITE);
+        if (order == null || !SENT_TO_OFFICE.contains(order.getStatus())) {
+            return Confirm.NOT_FOUND;
+        }
+        if (order.getStatus() == ShipOrderStatus.CLOSED) {
+            return Confirm.CLOSED;
+        }
+        boolean correction = order.getStatus() == ShipOrderStatus.CONFIRMED;
+        order.setConfirmedPort(port);
+        order.setDeliveryDate(confirmation.deliveryDate());
+        order.setConfirmedBy(officeUser);
+        order.setStatus(ShipOrderStatus.CONFIRMED);
+
+        Ship ship = order.getShip();
+        auditService.record("ORDER_CONFIRMED", ship, "Order #" + order.getId() + ", " + port + ", delivery "
+                + confirmation.deliveryDate() + (correction ? ", corrected" : ""), officeUser);
+        String date = DateTimeFormatter.ofPattern(Dates.DATE_PATTERN, Locale.ENGLISH).format(confirmation.deliveryDate());
+        String text = messageSource.getMessage("order.notification.confirmed", new Object[] {port, date},
+                Locale.ENGLISH);
+        for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
+            for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
+                // Only the Master has the order pages (/ship/orders).
+                notificationService.notify(user, NotificationType.ORDER, ship.getName(), text,
+                        role == Role.MASTER ? "/ship/orders/" + order.getId() : null);
+            }
+        }
+        return Confirm.DONE;
+    }
+
+    /** A CSV file to download. */
+    public record CsvFile(String filename, byte[] content) {
+    }
+
+    /**
+     * The office exports the orders among ids that the ships have sent (other ids are ignored): one row per order
+     * line, the orders newest sent first, each order's lines by category (Provisions, then Personal items) and item
+     * name; UTF-8 with a BOM, so Excel reads Greek names. Sets exportedAt now on each of them (an order can be
+     * exported again) and records "Orders exported". Empty when none of the ids is such an order.
+     * AccessDeniedException when the user is not an enabled office user.
+     */
+    @Transactional
+    public Optional<CsvFile> export(User officeUser, Collection<Long> ids) {
+        checkOffice(officeUser);
+        List<ShipOrder> orders = ids == null || ids.isEmpty() ? List.of()
+                : orderRepository.findAllByIdInAndStatusInOrderBySentAtDescIdDesc(ids, SENT_TO_OFFICE);
+        if (orders.isEmpty()) {
+            return Optional.empty();
+        }
+        Instant now = Instant.now();
+        StringWriter csv = new StringWriter();
+        csv.write('\uFEFF');
+        int lineCount = 0;
+        try (CSVPrinter printer = new CSVPrinter(csv, CSVFormat.DEFAULT.builder().setHeader(CSV_HEADER).get())) {
+            for (ShipOrder order : orders) {
+                for (ShipOrderLine line : byCategoryAndName(order.getLines())) {
+                    printer.printRecord(
+                            order.getShip().getImoNumber(),
+                            order.getShip().getName(),
+                            order.getId(),
+                            order.getSentAt().truncatedTo(ChronoUnit.SECONDS), // e.g. 2026-11-11T09:30:00Z
+                            order.getRequestedPort(),
+                            text(order.getNeededBy()), // e.g. 2026-11-20
+                            order.getConfirmedPort() == null ? "" : order.getConfirmedPort(),
+                            text(order.getDeliveryDate()),
+                            line.getItem().getCategory().fileValue(),
+                            line.getItem().getName(),
+                            line.getItem().getUnit(),
+                            line.getQuantity().stripTrailingZeros().toPlainString());
+                    lineCount++;
+                }
+                order.setExportedAt(now);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e); // never happens with a StringWriter
+        }
+
+        // One audit entry per export, with the ship when all orders are from one ship.
+        List<Ship> ships = orders.stream().map(ShipOrder::getShip).distinct().toList();
+        auditService.record("ORDERS_EXPORTED", ships.size() == 1 ? ships.getFirst() : null,
+                orders.size() + (orders.size() == 1 ? " order, " : " orders, ") + lineCount
+                        + (lineCount == 1 ? " line, ids " : " lines, ids ")
+                        + orders.stream().map(order -> order.getId().toString()).toList(), officeUser);
+        String filename = "ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC) + ".csv";
+        return Optional.of(new CsvFile(filename, csv.toString().getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /** An order's lines by category (Provisions, then Personal items), then item name: the office's order. */
+    public static List<ShipOrderLine> byCategoryAndName(List<ShipOrderLine> lines) {
+        return lines.stream()
+                .sorted(Comparator.comparing((ShipOrderLine line) -> line.getItem().getCategory())
+                        .thenComparing(line -> line.getItem().getName(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(ShipOrderLine::getId))
+                .toList();
+    }
+
+    private static String text(LocalDate date) {
+        return date == null ? "" : date.toString();
+    }
+
+    private static void checkOffice(User officeUser) {
+        if (officeUser == null || officeUser.getRole() != Role.OFFICE_USER || !officeUser.isEnabled()) {
+            throw new AccessDeniedException("Only the office confirms or exports an order");
+        }
     }
 
     /** What changeQuantity or removeLine did. */

@@ -12,8 +12,8 @@ public enum AttentionType {
     CERTIFICATE_EXPIRED(Group.CERTIFICATES),
     /** A certificate expiring within DashboardService.OPEN_ITEM_CERTIFICATE_DAYS. */
     CERTIFICATE_EXPIRING(Group.CERTIFICATES),
-    /** An approved item request never exported. */
-    REQUEST_NOT_EXPORTED(Group.REQUESTS),
+    /** An order a ship has sent (P36) that the office has never exported. */
+    ORDER_NOT_EXPORTED(Group.ORDERS),
     /** A crew invitation that expired, or was sent more than 48 hours ago and is still not accepted. */
     INVITATION(Group.INVITATIONS),
     /** An announcement sent more than 7 days ago that not every recipient has acknowledged. */
@@ -36,7 +36,7 @@ public enum AttentionType {
      * links to its full list: see the "full lists" links in dashboard/dashboard.html.
      */
     public enum Group {
-        CERTIFICATES, REQUESTS, INVITATIONS, ACKNOWLEDGEMENTS;
+        CERTIFICATES, ORDERS, INVITATIONS, ACKNOWLEDGEMENTS;
 
         /** The value of the Overview's "type" parameter. */
         public String param() {

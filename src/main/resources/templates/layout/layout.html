@@ -81,8 +81,8 @@
                                     ${navCounts.certificates > 0} ? '/office/certificates?status=expired,30' : '/office/certificates', #{nav.certificates},
                                     ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
                             <li th:replace="~{layout/parts :: navItem('announcements', '/office/announcements', #{nav.announcements}, null, null)}"></li>
-                            <li th:replace="~{layout/parts :: navItem('requests', '/office/requests', #{nav.requests},
-                                    ${navCounts.requests}, #{nav.count.requests(${navCounts.requests})})}"></li>
+                            <li th:replace="~{layout/parts :: navItem('orders', '/office/orders', #{nav.orders},
+                                    ${navCounts.orders}, #{nav.count.orders(${navCounts.orders})})}"></li>
                         </ul>
                         <p class="nav-group-label" id="navGroupAdministration" th:text="#{nav.group.administration}">Administration</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupAdministration">

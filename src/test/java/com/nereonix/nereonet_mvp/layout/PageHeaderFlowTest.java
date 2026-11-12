@@ -44,9 +44,9 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemVersion;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemVersionRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -95,7 +95,7 @@ class PageHeaderFlowTest {
     CertificateRepository certificateRepository;
 
     @Autowired
-    ItemRequestRepository requestRepository;
+    ShipOrderRepository orderRepository;
 
     @Autowired
     AnnouncementRepository announcementRepository;
@@ -136,14 +136,7 @@ class PageHeaderFlowTest {
         mockMvc.perform(post("/office/announcements/send")
                 .param("target", "ships").param("shipIds", Long.toString(id)).param("title", "Safety drill").param("body", "Friday 10:00").with(csrf()));
         long announcementId = announcementRepository.findAll().get(0).getId();
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(crew);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedBy(master);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        requestRepository.save(request);
+        ShipOrder order = sentOrder(ship, master);
         LibraryItem item = libraryItem(ship, "Drug and alcohol policy");
 
         Map<String, Page> pages = new LinkedHashMap<>();
@@ -155,7 +148,7 @@ class PageHeaderFlowTest {
         add(pages, "/office/audit", null, "Audit log", List.of(), null);
         add(pages, "/office/certificates", null, "Certificates", List.of(), null);
         add(pages, "/office/announcements", null, "Announcements", List.of(), null);
-        add(pages, "/office/requests", null, "Approved requests", List.of(), null);
+        add(pages, "/office/orders", null, "Orders", List.of(), null);
         add(pages, "/notifications", null, "Notifications", List.of(), null);
         add(pages, "/ship", crew, "Home", List.of(), SHIP_CONTEXT);
         add(pages, "/ship/library", crew, "Library", List.of(), SHIP_CONTEXT);
@@ -163,8 +156,8 @@ class PageHeaderFlowTest {
         add(pages, "/office/announcements/new", null, "New announcement", List.of("Announcements", "New announcement"), null);
         add(pages, "/office/announcements/" + announcementId, null, "Safety drill",
                 List.of("Announcements", "Safety drill"), SHIP_CONTEXT);
-        add(pages, "/office/requests/" + request.getId(), null, "Request #" + request.getId(),
-                List.of("Requests", "Request #" + request.getId()), SHIP_CONTEXT);
+        add(pages, "/office/orders/" + order.getId(), null, "Order #" + order.getId(),
+                List.of("Orders", "Order #" + order.getId()), SHIP_CONTEXT);
         add(pages, "/office/crew/" + crew.getId() + "/edit", null, "Edit crew member",
                 List.of("Crew", "Edit crew member"), null);
         add(pages, "/office/crew/" + crew.getId() + "/certificates/new", null, "Add certificate",
@@ -175,8 +168,7 @@ class PageHeaderFlowTest {
         // The ship page (P08): every tab has the ship's name as its heading, under Ships; the tab title and the phone
         // top bar name the ship and the tab. No eyebrow: the ship is the heading.
         for (String[] tab : new String[][] {{"", "Overview"}, {"/crew", "Crew"}, {"/certificates", "Certificates"},
-                {"/library", "Library"}, {"/items", "Items"}, {"/announcements", "Announcements"},
-                {"/requests", "Requests"}}) {
+                {"/library", "Library"}, {"/items", "Items"}, {"/announcements", "Announcements"}}) {
             add(pages, "/office/ships/" + id + tab[0], null, "MV Demo · " + tab[1], List.of("Ships", "MV Demo"), null);
         }
         // Below the ship page: Ships > the ship > its tab > the page, with the ship as the eyebrow.
@@ -246,18 +238,11 @@ class PageHeaderFlowTest {
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
         User crew = userService.createUser("crew@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship, null);
-        ItemRequest request = new ItemRequest();
-        request.setShip(ship);
-        request.setRequestedBy(crew);
-        request.setDecidedBy(crew);
-        request.setStatus(RequestStatus.APPROVED);
-        request.setDecidedAt(Instant.now());
-        request.setCreatedAt(Instant.now());
-        requestRepository.save(request);
+        sentOrder(ship, crew);
 
         // The tabs of the ship page show their count on the tab instead (ShipPageFlowTest).
         for (String url : List.of("/office/ships", "/office/crew", "/office/users",
-                "/office/audit", "/office/certificates", "/office/announcements", "/office/requests")) {
+                "/office/audit", "/office/certificates", "/office/announcements", "/office/orders")) {
             String html = html(get(url));
             Matcher h1 = H1.matcher(html);
             assertThat(h1.find()).as("h1 on " + url).isTrue();
@@ -271,12 +256,23 @@ class PageHeaderFlowTest {
         assertThat(html(get("/office/ships"))).containsPattern("<h1 class=\"page-title\">\\s*<span>Ships</span>\\s*"
                 + "<span class=\"title-count\"><span aria-hidden=\"true\">·</span> <span class=\"num\">1</span></span>");
 
-        // Export moved from the card header to the page header; it still submits the list's form without JavaScript
-        // (P21: Export all not exported first, then Export selected, the primary action).
-        String requests = html(get("/office/requests"));
-        assertThat(requests).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\" data-selection")
-                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportAllForm\" class=\"btn btn-outline-secondary\"")
-                .containsPattern("</button>\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
+        // Export CSV is in the page header; it still submits the list's form without JavaScript (P36).
+        String orders = html(get("/office/orders"));
+        assertThat(orders).contains("<form id=\"exportForm\" action=\"/office/orders/export\" method=\"post\" data-selection")
+                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
+    }
+
+    // An order the ship has sent (P36), without lines.
+    private ShipOrder sentOrder(Ship ship, User sentBy) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(ShipOrderStatus.SENT);
+        order.setSentBy(sentBy);
+        order.setSentAt(Instant.now());
+        order.setRequestedPort("Rotterdam");
+        order.setNeededBy(LocalDate.now(ZoneOffset.UTC).plusDays(7));
+        order.setCreatedAt(Instant.now());
+        return orderRepository.save(order);
     }
 
     @Test

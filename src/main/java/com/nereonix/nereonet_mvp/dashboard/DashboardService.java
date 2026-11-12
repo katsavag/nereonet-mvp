@@ -23,9 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.request.ItemRequest;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -40,7 +39,7 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
  * the ship page. Read only.
  *
  * load() always runs the same 7 queries, whatever the size of the fleet: active ships, crew on board per ship, and
- * one per kind of open item (certificates, requests, invitations, announcements, library items). See DashboardQueries.
+ * one per kind of open item (certificates, orders, invitations, announcements, library items). See DashboardQueries.
  */
 @Service
 public class DashboardService {
@@ -60,18 +59,18 @@ public class DashboardService {
     private final DashboardQueries queries;
     private final UserRepository userRepository;
     private final CertificateRepository certificateRepository;
-    private final ItemRequestRepository requestRepository;
+    private final ShipOrderService orderService;
     // The same setting InvitationService uses for an invitation's expiry date.
     private final int invitationValidDays;
     private final Clock clock = Clock.systemUTC();
 
     public DashboardService(DashboardQueries queries, UserRepository userRepository,
-                            CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
+                            CertificateRepository certificateRepository, ShipOrderService orderService,
                             @Value("${app.invitation.valid-days:7}") int invitationValidDays) {
         this.queries = queries;
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
-        this.requestRepository = requestRepository;
+        this.orderService = orderService;
         this.invitationValidDays = invitationValidDays;
     }
 
@@ -81,7 +80,7 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, RequestItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
+            permits CertificateItem, OrderItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
 
         AttentionType type();
 
@@ -108,12 +107,12 @@ public class DashboardService {
         }
     }
 
-    /** An approved request never exported; requestedBy is null when that user was deleted. */
-    public record RequestItem(Long id, FleetShip ship, String requestedBy, Rank rank, Instant approvedAt, long lines)
+    /** An order a ship has sent and the office never exported (P36); sentBy is null when that user was deleted. */
+    public record OrderItem(Long id, FleetShip ship, String sentBy, Rank rank, Instant sentAt, long lines)
             implements AttentionItem {
 
         public AttentionType type() {
-            return AttentionType.REQUEST_NOT_EXPORTED;
+            return AttentionType.ORDER_NOT_EXPORTED;
         }
 
         public Set<Long> shipIds() {
@@ -121,7 +120,7 @@ public class DashboardService {
         }
 
         public long sortKey() {
-            return approvedAt == null ? Long.MIN_VALUE : approvedAt.getEpochSecond();
+            return sentAt == null ? Long.MIN_VALUE : sentAt.getEpochSecond();
         }
     }
 
@@ -194,7 +193,7 @@ public class DashboardService {
 
     /** One active ship in the fleet table. openItems counts every kind of open item, invitations included. */
     public record FleetRow(FleetShip ship, long crew, long certificateIssues, long notAcknowledged,
-                           long requestsNotExported, long openItems) {
+                           long ordersNotExported, long openItems) {
     }
 
     /** A kind of open item with its number, for the links to the full lists. */
@@ -256,9 +255,8 @@ public class DashboardService {
             all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(),
                     ChronoUnit.DAYS.between(today, c.expiresOn()), shipsById.get(c.shipId()), c.fullName(), c.rank()));
         }
-        for (DashboardQueries.RequestRow r : queries.requestsNotExported()) {
-            all.add(new RequestItem(r.id(), shipsById.get(r.shipId()), r.requestedBy(), r.rank(), r.approvedAt(),
-                    r.lines()));
+        for (DashboardQueries.OrderRow o : queries.ordersNotExported()) {
+            all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
         }
         // expiresAt is (last) sent + the validity, so "sent more than 48 hours ago" is a bound on expiresAt.
         // It includes the expired ones: they were sent at least the validity ago.
@@ -373,7 +371,7 @@ public class DashboardService {
     private static FleetRow fleetRow(FleetShip ship, long crew, List<AttentionItem> items) {
         long certificates = 0;
         long acknowledgements = 0;
-        long requests = 0;
+        long orders = 0;
         long open = 0;
         for (AttentionItem item : items) {
             if (!item.shipIds().contains(ship.id())) {
@@ -383,11 +381,11 @@ public class DashboardService {
             switch (item.type().group()) {
                 case CERTIFICATES -> certificates++;
                 case ACKNOWLEDGEMENTS -> acknowledgements++;
-                case REQUESTS -> requests++;
+                case ORDERS -> orders++;
                 case INVITATIONS -> { }
             }
         }
-        return new FleetRow(ship, crew, certificates, acknowledgements, requests, open);
+        return new FleetRow(ship, crew, certificates, acknowledgements, orders, open);
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -399,11 +397,11 @@ public class DashboardService {
     }
 
     /** The Overview tab of one ship (active or not): its open items and the crew on board by department. */
-    public record ShipOverview(List<Certificate> certificates, List<ItemRequest> requests,
+    public record ShipOverview(List<Certificate> certificates, List<ShipOrder> orders,
                                List<Department> departments) {
 
         public long openItems() {
-            return certificates.size() + requests.size();
+            return certificates.size() + orders.size();
         }
 
         public long crewOnBoard() {
@@ -411,11 +409,11 @@ public class DashboardService {
         }
     }
 
-    /** One ship's open items: expired or expiring certificates (soonest first), then requests not exported. */
+    /** One ship's open items: expired or expiring certificates (soonest first), then orders sent and not exported. */
     @Transactional(readOnly = true)
     public ShipOverview shipOverview(Ship ship) {
         List<Certificate> certificates = certificateRepository.findExpiringUntil(openItemsUntil(), ship.getId());
-        List<ItemRequest> requests = requestRepository.findDecided(RequestStatus.APPROVED, ship.getId(), true);
+        List<ShipOrder> orders = orderService.findNotExported(ship.getId());
         // Crew on board: enabled users with a ship role, as the fleet Overview counts them.
         List<User> crew = userRepository.findAllByShipAndRoleNotAndEnabledTrueOrderByFullNameAsc(ship, Role.OFFICE_USER);
         List<Department> departments = new ArrayList<>();
@@ -430,14 +428,14 @@ public class DashboardService {
         if (!noRank.isEmpty()) {
             departments.add(new Department(null, noRank));
         }
-        return new ShipOverview(certificates, requests, departments);
+        return new ShipOverview(certificates, orders, departments);
     }
 
     /** The number shipOverview(ship).openItems() gives, counted without loading the rows (the ship page's tab bar). */
     @Transactional(readOnly = true)
     public long openItemCount(Ship ship) {
         return certificateRepository.countExpiringUntil(openItemsUntil(), ship.getId())
-                + requestRepository.countByStatusAndShipIdAndExportedAtIsNull(RequestStatus.APPROVED, ship.getId());
+                + orderService.countNotExported(ship.getId());
     }
 
     private LocalDate openItemsUntil() {

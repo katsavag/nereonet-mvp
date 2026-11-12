@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Repository;
 
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 
@@ -30,7 +30,7 @@ public class DashboardQueries {
                           Rank rank) {
     }
 
-    public record RequestRow(Long id, Long shipId, String requestedBy, Rank rank, Instant approvedAt, long lines) {
+    public record OrderRow(Long id, Long shipId, String sentBy, Rank rank, Instant sentAt, long lines) {
     }
 
     public record InvitationRow(Long id, Long shipId, String fullName, Rank rank, Instant expiresAt) {
@@ -88,15 +88,15 @@ public class DashboardQueries {
                 .getResultList();
     }
 
-    /** Approved requests of active ships never exported, with their number of lines. */
-    List<RequestRow> requestsNotExported() {
+    /** Orders active ships have sent (P36) that were never exported, with their number of lines. */
+    List<OrderRow> ordersNotExported() {
         return entityManager.createQuery("""
-                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$RequestRow(
-                    r.id, s.id, u.fullName, u.rank, r.decidedAt,
-                    (select count(l) from RequestLine l where l.request = r))
-                from ItemRequest r join r.ship s left join r.requestedBy u
-                where r.status = :status and r.exportedAt is null and s.active = true""", RequestRow.class)
-                .setParameter("status", RequestStatus.APPROVED)
+                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$OrderRow(
+                    o.id, s.id, u.fullName, u.rank, o.sentAt,
+                    (select count(l) from ShipOrderLine l where l.order = o))
+                from ShipOrder o join o.ship s left join o.sentBy u
+                where o.status in :statuses and o.exportedAt is null and s.active = true""", OrderRow.class)
+                .setParameter("statuses", ShipOrderService.SENT_TO_OFFICE)
                 .getResultList();
     }
 

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
@@ -21,12 +22,14 @@ public class NavigationService {
     private final CertificateRepository certificateRepository;
     private final ItemRequestRepository requestRepository;
     private final ShipOrderLineRepository orderLineRepository;
+    private final ShipOrderService orderService;
 
     public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
-                             ShipOrderLineRepository orderLineRepository) {
+                             ShipOrderLineRepository orderLineRepository, ShipOrderService orderService) {
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
         this.orderLineRepository = orderLineRepository;
+        this.orderService = orderService;
     }
 
     @Transactional(readOnly = true)
@@ -34,7 +37,7 @@ public class NavigationService {
         // UTC days, as the certificate badges and the reminder job.
         LocalDate until = LocalDate.now(ZoneOffset.UTC).plusDays(CERTIFICATE_DAYS);
         return new NavCounts(certificateRepository.countByExpiresOnLessThanEqual(until),
-                requestRepository.countByStatusAndExportedAtIsNull(RequestStatus.APPROVED));
+                orderService.countNotExported());
     }
 
     /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */

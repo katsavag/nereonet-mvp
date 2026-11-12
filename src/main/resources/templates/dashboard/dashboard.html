@@ -114,31 +114,29 @@
                     </div>
                 </th:block>
 
-                <!-- c. Approved request not exported: Export marks it exported and comes back here (returnTo), where the
-                     row is gone and its CSV downloads by itself ("1 request exported · Download again", P21). -->
-                <th:block th:if="${type == 'REQUEST_NOT_EXPORTED'}">
+                <!-- c. Order a ship has sent and the office has not exported (P36): Open order, where it is confirmed
+                     and exported. -->
+                <th:block th:if="${type == 'ORDER_NOT_EXPORTED'}" th:with="url=@{/office/orders/{id}(id=${item.id})}">
                     <div class="attention-text">
                         <div class="attention-meta">
                             <span th:replace="~{layout/parts :: statusIcon('info', #{dashboard.item.notExported}, 'export')}"></span>
-                            <span th:text="#{dashboard.kind.request}">Approved request</span>
+                            <span th:text="#{dashboard.kind.order}">Ship order</span>
                         </div>
-                        <a class="attention-title" th:id="${titleId}" th:href="@{/office/requests/{id}(id=${item.id})}"
-                           th:text="#{dashboard.item.request(${item.id}, ${item.lines})}">Request #12 · 3 items</a>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="#{dashboard.item.order(${item.id}, ${item.lines})}">Order #12 · 3 items</a>
                         <p class="attention-context">
                             <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
-                            · <span th:replace="~{dashboard/dashboard :: person(${item.requestedBy}, ${item.rank})}">Jane Doe, Bosun</span>
-                            <th:block th:if="${item.approvedAt != null}">
-                                · <span th:text="#{dashboard.item.approved}">approved</span>
-                                <time th:replace="~{layout/parts :: localTime(${item.approvedAt})}"></time>
+                            · <span th:replace="~{dashboard/dashboard :: person(${item.sentBy}, ${item.rank})}">Jane Doe, Master</span>
+                            <th:block th:if="${item.sentAt != null}">
+                                · <span th:text="#{dashboard.item.sent}">sent</span>
+                                <time th:replace="~{layout/parts :: localTime(${item.sentAt})}"></time>
                             </th:block>
                         </p>
                     </div>
-                    <form class="attention-action" th:action="@{/office/requests/export}" method="post">
-                        <input type="hidden" name="ids" th:value="${item.id}">
-                        <input type="hidden" name="returnTo" value="overview">
-                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:attr="aria-describedby=${titleId}"
-                                th:data-busy-label="#{save.busy.export}" th:text="#{dashboard.action.export}">Export</button>
-                    </form>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openOrder}">Open order</a>
+                    </div>
                 </th:block>
 
                 <!-- d. Crew invitation expired, or sent more than 48 hours ago and not accepted. Invitations have no page
@@ -213,7 +211,7 @@
             </li>
         </ul>
 
-        <!-- The full list of each kind: requests not exported on Requests; certificates on Certificates, filtered to
+        <!-- The full list of each kind: orders not exported on Orders; certificates on Certificates, filtered to
              exactly what is counted here (expired or within 30 days, crew of active ships, P20); the other kinds on
              this page filtered to them (/office?type=...). -->
         <div th:if="${!d.filtered() and !d.groups.isEmpty()}" class="card-footer attention-footer">
@@ -222,7 +220,7 @@
             <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
             <ul class="attention-lists" aria-labelledby="attentionListsTitle">
                 <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
-                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
+                    <a th:href="${name == 'ORDERS'} ? @{/office/orders(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
                         <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
                     </a>
@@ -248,7 +246,7 @@
                         <th scope="col" class="num" th:text="#{dashboard.fleet.crew}">Crew on board</th>
                         <th scope="col" class="num" th:text="#{dashboard.fleet.certificates}">Certificate issues</th>
                         <th scope="col" class="num" th:text="#{dashboard.fleet.notAcknowledged}">Not acknowledged</th>
-                        <th scope="col" class="num" th:text="#{dashboard.fleet.requests}">Requests not exported</th>
+                        <th scope="col" class="num" th:text="#{dashboard.fleet.orders}">Orders not exported</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -260,8 +258,8 @@
                                 th:replace="~{layout/parts :: countLink(${row.certificateIssues}, @{/office/certificates(shipId=${id}, status='expired,30')})}"></th:block></td>
                         <td class="num" th:attr="data-label=#{dashboard.fleet.notAcknowledged}"><th:block
                                 th:replace="~{layout/parts :: countLink(${row.notAcknowledged}, @{/office(type='acknowledgements', shipId=${id})})}"></th:block></td>
-                        <td class="num" th:attr="data-label=#{dashboard.fleet.requests}"><th:block
-                                th:replace="~{layout/parts :: countLink(${row.requestsNotExported}, @{/office/requests(shipId=${id}, exported='no')})}"></th:block></td>
+                        <td class="num" th:attr="data-label=#{dashboard.fleet.orders}"><th:block
+                                th:replace="~{layout/parts :: countLink(${row.ordersNotExported}, @{/office/orders(shipId=${id}, exported='no')})}"></th:block></td>
                     </tr>
                     </tbody>
                 </table>

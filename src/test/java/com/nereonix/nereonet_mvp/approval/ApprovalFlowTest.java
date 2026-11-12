@@ -186,7 +186,7 @@ class ApprovalFlowTest {
     @Test
     void theDevDataSeedsTwoPendingRequestsOnce() throws Exception {
         DevData devData = new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                lineRepository, libraryItemRepository, versionRepository, profileRepository, requestService);
+                libraryItemRepository, versionRepository, profileRepository, requestService);
         devData.run(null);
         devData.run(null);
 

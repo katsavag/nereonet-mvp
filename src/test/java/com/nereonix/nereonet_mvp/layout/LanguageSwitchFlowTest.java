@@ -118,7 +118,7 @@ class LanguageSwitchFlowTest {
         List<String> pages = List.of("/office", "/office/ships", "/office/ships/" + demo.getId(),
                 "/office/ships/" + demo.getId() + "/items", "/office/ships/" + demo.getId() + "/items/new",
                 "/office/crew", "/office/crew/" + anna.getId() + "/edit", "/office/crew/import", "/office/certificates",
-                "/office/announcements", "/office/announcements/new", "/office/requests", "/office/users",
+                "/office/announcements", "/office/announcements/new", "/office/orders", "/office/users",
                 "/office/audit", "/notifications");
         for (String page : pages) {
             String html = html(get(page));

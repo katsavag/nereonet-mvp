@@ -27,11 +27,12 @@ Requirements: Java 25, Docker.
    filters, page number and token stay (see "language switch and required notices (P16)" below).
 
    On first start the dev profile creates an office user (`office@example.com` / `office123`)
-   and a demo ship (`MV Demo`, IMO 9074729). While there are no item requests it also creates two approved
-   requests on the first ship (by name), with three demo items and, when the ship has no active Master / Chief cook,
-   the users `master.demo@example.com` and `cook.demo@example.com` (password `crew123`). Since P31 the first ship
-   also gets three more crew members with sample profiles for My crew (see 20), and since P33, while it has none, two
-   requests waiting for its Master (see 21).
+   and a demo ship (`MV Demo`, IMO 9074729). While there are no item requests and the first ship (by name) has no
+   active Master / Chief cook, it creates the users `master.demo@example.com` and `cook.demo@example.com` (password
+   `crew123`). Since P31 the first ship also gets three more crew members with sample profiles for My crew (see 20),
+   and since P33, while it has none, two requests waiting for its Master (see 21), with four demo items. Since P36 no
+   approved requests are seeded: the Master approves these and sends the ship order (23), which the office then sees
+   on **Orders** (24).
    While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
    "Drug and alcohol policy" (Company policies, required).
 
@@ -59,31 +60,30 @@ Requirements: Java 25, Docker.
    each row, so it can be cleared without visiting other pages first. Under the title one summary line ("5 ships ·
    84 crew · 3 open items": active ships, enabled crew on them, open items); the page action is **New announcement**.
    - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
-     1. certificate expired; 2. certificate expiring within 30 days (UTC dates); 3. approved request not exported;
+     1. certificate expired; 2. certificate expiring within 30 days (UTC dates); 3. order sent by a ship and not
+     exported (P36: SENT, CONFIRMED or CLOSED, `exportedAt` empty);
      4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
      date and `app.invitation.valid-days`); 5. announcement sent, or Required library item published (current
      version), more than 7 days ago that not everyone has acknowledged. Within a kind, the most overdue or oldest first.
-     Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the request,
+     Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the order,
      the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
-     (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Export**
-     (marks that request exported, as on Requests, and comes back to the Overview, where the row is gone and its CSV
-     downloads by itself: "1 request exported · Download again", see 15),
-     **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
+     (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Open order**
+     (the order page, where it is confirmed and exported, see 24), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
      has not acknowledged**. The card shows the first 50 rows ("Showing the first 50 of 63"); under it **Full lists**
-     links each kind to its full list: requests to `/office/requests?exported=no` (not exported yet), certificates to
+     links each kind to its full list: orders to `/office/orders?exported=no` (not exported yet), certificates to
      `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see 12), the others
      to this page filtered to that kind (`/office?type=invitations`, `acknowledgements`, every row, with **Show all
      open items** to go back; `/office?type=certificates` still works). **Open certificate** opens the form, which
      comes back to the Overview (with its filter) after Save or Cancel. With nothing open the card says "Nothing needs
      your attention" and when it was checked.
    - **Fleet**: one row per active ship (the name opens the ship page): crew on board, certificate issues (expired or
-     within 30 days), not acknowledged (announcements and Required library items as above), requests not exported.
+     within 30 days), not acknowledged (announcements and Required library items as above), orders not exported.
      Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
      its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
-     `/office?type=acknowledgements&shipId=…`, `/office/requests?shipId=…&exported=no`.
+     `/office?type=acknowledgements&shipId=…`, `/office/orders?shipId=…&exported=no`.
    - `DashboardService.load()` always runs the same 7 queries, whatever the size of the fleet (active ships, crew per
      ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
-   With the dev data the two seeded approved requests are two rows with **Export**; export them and the card says
+   With the dev data an order the Master has sent is a row until the office exports it (24); then the card says
    "Nothing needs your attention".
    - **Set up Nereonet** (first run, P25): a checklist of four steps, each with one line of help and a link to the page
      where it is done: 1. **Add a ship** (Ships), 2. **Add or import its crew** (Crew), 3. **Add the ship's first library
@@ -113,14 +113,13 @@ Requirements: Java 25, Docker.
    the tab they were started on. Under the header a tab bar of ordinary links, one URL each, so every tab can be
    bookmarked; each shows a count:
    - **Overview** (`/office/ships/{id}`): the ship's open items, with the fleet Overview's rule (expired
-     certificates, certificates expiring within 30 days, approved requests not exported), each listed with a link;
+     certificates, certificates expiring within 30 days, orders sent and not exported), each listed with a link;
      the crew on board (enabled users) by the department of their rank (Deck, Engine, Galley, or "Rank not set");
      and the particulars (name, IMO number, type, flag and the first lines of the particulars text, with **Edit ship
      particulars** and a link to the library). The tab's count is the number of open items, in red when above zero.
-   - **Crew** (`/crew`), **Announcements** (`/announcements`) and **Requests** (`/requests`): the fleet-wide lists
-     of 8, 14 and 15 for this ship only, without the ship filter and the Ship column (Requests keeps its Export
-     status filter, **Export selected** and **Export all not exported (N)** for this ship, and comes back to the
-     tab). The fleet-wide pages keep their ship filter.
+   - **Crew** (`/crew`) and **Announcements** (`/announcements`): the fleet-wide lists of 8 and 14 for this ship
+     only, without the ship filter and the Ship column. The fleet-wide pages keep their ship filter. (The Requests
+     tab went with the request export in P36; a ship's orders are on **Orders** filtered to it, 24.)
    - **Certificates** (`/certificates`): the certificate matrix of the crew on board, or (**List**,
      `/certificates/list`) the Certificates list of 12 for this ship only; see 12.
    - **Library** (`/library`, see 16) and **Items** (`/items`, see 11): the existing pages, now inside the frame.
@@ -294,7 +293,8 @@ Requirements: Java 25, Docker.
    edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted; password reset (the user, by their email; see 17);
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
    certificate reminder sent (by "System"); announcement sent, announcement acknowledged (by the crew member, with the
-   title); requests exported (count and ids).
+   title); order sent, order confirmed (port and delivery date, "corrected" when changed again), orders exported
+   (counts and ids; before P36 "requests exported").
    Entries are read-only.
 
 11. Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see 5).
@@ -472,7 +472,14 @@ Requirements: Java 25, Docker.
    `announcement_ship` row; null: `fleet_wide = true`) and then drops the column, so existing announcements keep their
    target and it runs once.
 
-15. Approved requests (signed in as an office user): **Requests** in the sidebar (`/office/requests`) lists the item
+15. Approved requests: removed in P36. The office no longer sees single approved requests (`/office/requests`, its
+   CSV export, the ship page's Requests tab, `ItemRequest.exportedAt` / `exportedBy` and `RequestExport` are gone): the
+   Master collects them into one ship order and sends that (23), and the office works on the orders (24). The text
+   below is how it worked until then. Hibernate does not drop columns or tables, so an existing database keeps
+   `item_request.exported_at`, `item_request.exported_by_id`, `request_export` and `request_export_request`, unused;
+   drop them by hand if you like.
+
+   Until P36: **Requests** in the sidebar (`/office/requests`) listed the item
    requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at and number
    of lines. Filter by ship and **Export status** (`?exported=`): **Not exported yet** by default (also `no`, and
    any value it does not know, such as an old `?notExported=true` link), **Exported** (`yes`) or **All** (`all`);
@@ -805,8 +812,8 @@ Requirements: Java 25, Docker.
    - **Send to office**, under the lines: **Requested port** (required, up to 100 characters), **Needed by** (required,
      not before today in UTC) and an optional **Note to the office** (up to 1000). `POST /ship/order/send`: only an
      OPEN order with at least one line becomes SENT, with sent by and at; "Order sent to office" goes in the audit log
-     and every enabled office user gets a notification "New order from <ship name>" (no link yet: the office has no
-     order page). Then the order is read-only, on `/ship/orders/{id}`; the next approved request opens a new OPEN
+     and every enabled office user gets a notification "New order from <ship name>" (since P36 it opens the order,
+     `/office/orders/{id}`). Then the order is read-only, on `/ship/orders/{id}`; the next approved request opens a new OPEN
      order. Every change and the send lock the ship's row, as approvals do, so an approval never lands in an order
      being sent.
    - **`/ship/orders`**: the past orders (SENT, CONFIRMED, CLOSED), newest sent first, with status, requested port,
@@ -817,6 +824,38 @@ Requirements: Java 25, Docker.
      (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
    - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
      and send it with port "Rotterdam"; `office@example.com` sees the notification.
+
+24. Ship orders in the office (P36, office users only). `core/order/ShipOrderService` (`findSent`, `confirm`,
+   `export`, `countNotExported`) and `officeorder/` (`OfficeOrderController`, `ConfirmOrderForm`).
+   - **Orders** in the sidebar (`/office/orders`), with the number of orders sent and not exported. The list: the
+     orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN ones, which are still being put together on
+     board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Sent, Confirmed,
+     Closed) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`, `confirmed`,
+     `closed`) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
+     the ship name or IMO number; 25 or 50 per page (paged in the database). A row opens its order.
+   - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
+     confirmation once set (port, delivery date, by whom) and when it was last exported; then its lines by category
+     (Provisions, then Personal items): item, unit, quantity. Read-only: the office never changes lines or quantities.
+     An OPEN order is a 404.
+   - **Confirm delivery** (while SENT or CONFIRMED): **Confirmed port** (required, up to 100 characters, starts as
+     the requested port) and **Delivery date** (required). `POST /office/orders/{id}/confirm` sets confirmed port,
+     delivery date, confirmed by and CONFIRMED; "Order confirmed by office" goes in the audit log and the ship's
+     enabled Master (linking to `/ship/orders/{id}`) and Chief cook (no link: the order pages are the Master's) get
+     "Order confirmed: Antwerp, 20 Nov 2026". It can be corrected (**Correct the delivery**) as often as needed, each
+     time recorded and notified, until the order is CLOSED; then the form is gone and a confirmation changes nothing.
+     The order's row is locked while confirming.
+   - **Export CSV**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
+     `POST /office/orders/export` (`ids`) answers with the file `ship-orders-<date>.csv`, UTF-8 with a BOM (Excel
+     shows Greek correctly), one row per order line, the orders newest sent first and each order's lines by category
+     and item name: `imo_number,ship_name,order_id,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
+     (`sent_at` in UTC to the second, dates as `2026-11-20`, category `Provisions` or `Personal items`). It sets
+     `exportedAt` on the exported orders and records "Orders exported" (counts and ids). An order can be exported
+     again. Nothing checked: back to the list with "Select at least one order to export.". The page stays as it is
+     (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy
+     and their checkboxes are not unsaved changes.
+   - Tests: `officeorder/OfficeOrderFlowTest`; the Overview's rows and counts in `DashboardFlowTest`.
+   - To try it: send the order as in 23, then as `office@example.com` open **Orders**, confirm a port and date
+     (the Master and the Chief cook see the notification) and export it.
 
 Run the tests (H2 in memory, no Docker needed):
 
@@ -909,8 +948,7 @@ The app makes no request to any other host: everything a page needs is served fr
     Certificates, "No certificates yet" (**Go to Crew**), or when certificates exist but none expires within 90 days
     "Every certificate is valid for more than 90 days." (**Show all certificates**, secondary, `?status=all`); a
     ship's Certificates tab, matrix and list: Add certificate, or without crew on board **Go to Crew** (its tab);
-    Galley items (Add item, Import); Requests, "No requests yet" (**Go to Ships**; on the tab **Go to galley items**),
-    or when every approved request is exported "Nothing left to export" (**Show exported requests**, `?exported=yes`);
+    Galley items (Add item, Import); Orders, "No orders yet" (**Go to Ships**);
     Announcements (New announcement; on the tab with the ship preselected); Audit log (**Go to Overview**, where the
     setup checklist is); Notifications (**Go to start page**); Library, office tab and the Master (Add an item; the
     other crew read who adds documents, English only); a crew member's Certificates card (Add certificate, secondary:
@@ -975,9 +1013,8 @@ The app makes no request to any other host: everything a page needs is served fr
       "All ships" for a fleet announcement and "3 ships" for one to several ships (P28); the status code on the error page. The tabs of the ship page have the
       ship's name as their heading instead. There is no "Office portal" eyebrow;
     - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
-      a card header as well. The export buttons on **Requests** (**Export selected**, **Export all not exported**,
-      P21) are in the page header and still submit their forms without JavaScript (`form="exportForm"`,
-      `form="exportAllForm"`);
+      a card header as well. **Export CSV** on **Orders** (P36) is in the page header and still submits the list's
+      form without JavaScript (`form="exportForm"`);
     - an optional subtitle (one line, e.g. "Newest first.", or the category, version and date of a library item) and
       the actions on the right.
     The parameters are named: `pageHeader(heading=..., crumbs=~{::pageCrumbs}, eyebrow=..., count=..., subtitle=...,
@@ -1010,8 +1047,8 @@ The app makes no request to any other host: everything a page needs is served fr
       `navigation/NavigationAdvice` (model attribute `navSection`, from the URL via `NavSection`); controllers do not set it;
     - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
-      exactly those, `/office/certificates?status=expired,30`, P20), **Requests** approved and not
-      exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
+      exactly those, `/office/certificates?status=expired,30`, P20), **Orders** sent by the ships and
+      not exported (P36), **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
     - rail and preference (P29), from 768 px: the sidebar is a 64 px rail by default (the mark, the entries' icons, the
@@ -1049,8 +1086,8 @@ The app makes no request to any other host: everything a page needs is served fr
       button and its trigger is a link to the action's own URL, where a GET shows the same question as a plain page
       (`confirm/confirm.html`, built by `core/confirm/ConfirmPages` from the same message keys) with the confirm
       button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`);
-    - an action that asks only sometimes (P21: **Export selected** on Requests, when a selected request was exported
-      before) keeps its submit button and adds `data-confirm-when="<selector>"`: the dialog opens when an element of
+    - an action that asks only sometimes (until P36 **Export selected** on Requests, when a selected request was
+      exported before) keeps its submit button and adds `data-confirm-when="<selector>"`: the dialog opens when an element of
       the form matches it, and Confirm sends the form with `confirmed=true`. Without the script the POST itself
       answers with the plain confirmation page, which posts the same fields with `confirmed=true`.
 
@@ -1129,9 +1166,10 @@ The app makes no request to any other host: everything a page needs is served fr
     All of it is `js/save.js`, on every page; without the script every form still submits as before. No offline
     queue and no service worker:
     - sent once: when a POST form is sent, all its submit buttons are disabled and the one pressed shows a spinner
-      and "Saving…" (sign-in "Signing in…", sign-out "Signing out…", request export "Exporting…": `data-busy-label`).
+      and "Saving…" (sign-in "Signing in…", sign-out "Signing out…": `data-busy-label`).
       A second click, a double click or Enter sends nothing more. Back to the page (browser Back, `pageshow`) gives
-      the buttons back. The request export comes back as a page too (P21: its file is a GET the page starts). The
+      the buttons back. A form answered with a download (`data-file`, the order export, P36) leaves the page as it
+      is, so it is never made busy and its fields never count as unsaved changes. The
       confirmation dialog (P10) sends its form the same way
       (`requestSubmit`);
     - drafts: the long-text forms (new announcement: title and message; library: add an item, publish a new

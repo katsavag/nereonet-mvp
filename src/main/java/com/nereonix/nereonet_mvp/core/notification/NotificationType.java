@@ -13,8 +13,9 @@ public enum NotificationType {
     ANNOUNCEMENT("announcements"),
     /** An item request waiting for the Master (P33), sent when it is submitted. */
     REQUEST("approvals"),
-    /** A ship order sent to the office (P35), to every enabled office user. */
-    ORDER("requests");
+    /** A ship order sent to the office (P35), to every enabled office user; its confirmation by the office (P36), to
+     *  the ship's Master and Chief cook. */
+    ORDER("orders");
 
     private final String icon;
 
