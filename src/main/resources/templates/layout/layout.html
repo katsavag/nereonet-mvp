@@ -54,7 +54,9 @@
                             <li th:replace="~{layout/parts :: navItem('overview', '/office', #{nav.overview}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('ships', '/office/ships', #{nav.ships}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li>
-                            <li th:replace="~{layout/parts :: navItem('certificates', '/office/certificates', #{nav.certificates},
+                            <!-- Certificates opens exactly what its counter counts (P20): expired or within 30 days. -->
+                            <li th:replace="~{layout/parts :: navItem('certificates',
+                                    ${navCounts.certificates > 0} ? '/office/certificates?status=expired,30' : '/office/certificates', #{nav.certificates},
                                     ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
                             <li th:replace="~{layout/parts :: navItem('announcements', '/office/announcements', #{nav.announcements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('requests', '/office/requests', #{nav.requests},

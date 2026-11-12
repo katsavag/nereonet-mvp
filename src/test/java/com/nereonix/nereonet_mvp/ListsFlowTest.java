@@ -110,7 +110,7 @@ class ListsFlowTest {
         certificates();
 
         assertThat(names(html(get("/office/certificates").param("q", "medic")))).containsExactly("Medical");
-        String expired = html(get("/office/certificates").param("due", "expired"));
+        String expired = html(get("/office/certificates").param("status", "expired"));
         assertThat(names(expired)).containsExactly("Old Pass");
         assertThat(expired).contains("class=\"filter-chip\"", "Clear all");
         assertThat(names(html(get("/office/certificates").param("sort", "type").param("dir", "desc"))))
@@ -131,14 +131,14 @@ class ListsFlowTest {
     @Test
     void certificates_inTheShipTab() throws Exception {
         certificates();
-        String tab = "/office/ships/" + beta.getId() + "/certificates";
+        String tab = "/office/ships/" + beta.getId() + "/certificates/list";
 
         assertThat(names(html(get(tab)))).containsExactly("Old Pass", "Medical");
         assertThat(names(html(get(tab).param("q", "pass")))).containsExactly("Old Pass");
-        assertThat(names(html(get(tab).param("due", "90")))).containsExactly("Medical");
+        assertThat(names(html(get(tab).param("status", "90")))).containsExactly("Medical");
         assertThat(names(html(get(tab).param("sort", "type")))).containsExactly("Medical", "Old Pass");
 
-        String alphaTab = "/office/ships/" + alpha.getId() + "/certificates";
+        String alphaTab = "/office/ships/" + alpha.getId() + "/certificates/list";
         assertThat(names(html(get(alphaTab).param("page", "2")))).containsExactly("Cert 26", "Cert 27");
     }
 

@@ -5,7 +5,8 @@
      "Needs attention": one row per open item, most urgent first (AttentionType), the first 50 unless filtered
      (/office?type=invitations&shipId=3 is the full list of one kind and / or one ship). Each row: status badge with an
      icon and the kind, the title linking to the record, one context line (ship · person · date) and one action.
-     Fleet: one row per active ship, those with open items first; a zero is a muted dash, never a link. -->
+     Fleet: one row per active ship, those with open items first; a zero is a muted dash, never a link.
+     overviewUrl: this page with its filter, sent as returnTo with "Open certificate" so the form comes back here. -->
 <main th:with="d=${dashboard}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{office.heading},
             subtitle=#{dashboard.summary(${d.fleet.size()}, ${d.crewOnBoard}, ${d.openItems})},
@@ -51,7 +52,7 @@
 
                 <!-- a. Expired certificate, b. certificate expiring within 30 days -->
                 <th:block th:if="${type == 'CERTIFICATE_EXPIRED' or type == 'CERTIFICATE_EXPIRING'}"
-                          th:with="url=@{/office/crew/{u}/certificates/{id}/edit(u=${item.userId}, id=${item.id})}">
+                          th:with="url=@{/office/crew/{u}/certificates/{id}/edit(u=${item.userId}, id=${item.id}, returnTo=${overviewUrl})}">
                     <div class="attention-text">
                         <div class="attention-meta">
                             <th:block th:if="${type == 'CERTIFICATE_EXPIRED'}"><span th:replace="~{layout/parts :: statusIcon('danger', #{certificate.badge.expired}, 'alert')}"></span></th:block>
@@ -168,15 +169,16 @@
             </li>
         </ul>
 
-        <!-- The full list of each kind: requests not exported on Requests; the other kinds on this page filtered to
-             them (/office?type=...) until their own lists can filter by status (P20 certificates, P17 crew). -->
+        <!-- The full list of each kind: requests not exported on Requests; certificates on Certificates, filtered to
+             exactly what is counted here (expired or within 30 days, crew of active ships, P20); the other kinds on
+             this page filtered to them (/office?type=...). -->
         <div th:if="${!d.filtered() and !d.groups.isEmpty()}" class="card-footer attention-footer">
             <p th:if="${d.truncated()}" class="attention-truncated"
                th:text="#{dashboard.attention.truncated(${d.shown().size()}, ${d.items.size()})}">Showing the first 50 of 63.</p>
             <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
             <ul class="attention-lists" aria-labelledby="attentionListsTitle">
                 <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
-                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(notExported=true)} : @{/office(type=${g.group.param()})}">
+                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(notExported=true)} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
                         <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
                     </a>
@@ -207,7 +209,7 @@
                         <td class="num" th:attr="data-label=#{dashboard.fleet.crew}"><th:block
                                 th:replace="~{layout/parts :: countLink(${row.crew}, @{/office/crew(shipId=${id})})}"></th:block></td>
                         <td class="num" th:attr="data-label=#{dashboard.fleet.certificates}"><th:block
-                                th:replace="~{layout/parts :: countLink(${row.certificateIssues}, @{/office(type='certificates', shipId=${id})})}"></th:block></td>
+                                th:replace="~{layout/parts :: countLink(${row.certificateIssues}, @{/office/certificates(shipId=${id}, status='expired,30')})}"></th:block></td>
                         <td class="num" th:attr="data-label=#{dashboard.fleet.notAcknowledged}"><th:block
                                 th:replace="~{layout/parts :: countLink(${row.notAcknowledged}, @{/office(type='acknowledgements', shipId=${id})})}"></th:block></td>
                         <td class="num" th:attr="data-label=#{dashboard.fleet.requests}"><th:block

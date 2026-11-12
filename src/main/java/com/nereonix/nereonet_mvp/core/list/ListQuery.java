@@ -234,6 +234,13 @@ public final class ListQuery {
         return (long) rows.getNumber() * rows.getSize() + rows.getNumberOfElements();
     }
 
+    /** The same search, filters and chosen sort at another path, without page and page size: the list's export
+     *  (P20), e.g. /office/certificates/export?status=expired. */
+    public String urlAt(String otherPath) {
+        String url = build(q, null, sortChosen, sort.key(), descending, DEFAULT_SIZE, 1, true);
+        return otherPath + url.substring(path.length());
+    }
+
     /** This list's link as it is. */
     public String getUrl() {
         return url(q, null, sortChosen, size, page + 1);

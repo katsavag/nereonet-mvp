@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.certificates}, ~{::main})}">
+<body>
+<!-- The ship page's Certificates tab (P20): who on board holds which certificate. matrix: certificate/CertificateMatrix.
+     Rows: the active crew on board by department and rank; columns: the certificate types they hold. Each cell is the
+     expiry date and the state badge of the certificate that expires last, and opens it; a dash when the person has
+     none, which opens Add certificate with the person and the type filled in. Both come back here (returnTo).
+     The crew column stays put while the table scrolls sideways (.cert-matrix). The tab's List view is
+     certificate/list.html; both start with tabTop. -->
+<main>
+    <th:block th:replace="~{certificate/matrix :: tabTop('matrix', ${'/office/ships/' + ship.id + '/certificates/export'})}"></th:block>
+
+    <div class="card">
+        <p th:if="${matrix.rows.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{certificate.matrix.noCrew}">No active crew on board.</p>
+        <p th:if="${!matrix.rows.isEmpty() and matrix.types.isEmpty()}" class="card-body text-body-secondary mb-0"
+           th:text="#{certificate.matrix.noCertificates}">No certificates recorded for this crew yet.</p>
+
+        <!-- A focusable region, so the keyboard can scroll it sideways; the caption names it. -->
+        <div th:unless="${matrix.types.isEmpty()}" class="table-responsive cert-matrix-scroll" tabindex="0"
+             role="region" aria-labelledby="matrixCaption">
+            <table class="table data-table cert-matrix mb-0">
+                <caption id="matrixCaption" class="visually-hidden"
+                         th:text="#{certificate.matrix.caption(${ship.name})}">Certificates of the crew of MV Demo</caption>
+                <thead>
+                <tr>
+                    <th scope="col" class="cert-matrix-person" th:text="#{certificate.crewMember}">Crew member</th>
+                    <th scope="col" th:each="t : ${matrix.types}" class="cert-matrix-type" th:text="${t}">STCW Basic Safety Training</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${matrix.rows}" th:with="m=${row.member}">
+                    <th scope="row" class="cert-matrix-person">
+                        <a th:href="@{/office/crew/{id}/edit(id=${m.id})}" th:text="${m.fullName}">Jane Doe</a>
+                        <span class="cert-matrix-rank" th:text="${m.rank} ? #{${'rank.' + m.rank}} : #{department.none}">Second Officer</span>
+                    </th>
+                    <td th:each="cell : ${row.cells}" class="cert-matrix-cell">
+                        <a th:if="${cell.certificate}" th:with="c=${cell.certificate}" class="cert-matrix-link"
+                           th:href="@{/office/crew/{u}/certificates/{id}/edit(u=${m.id}, id=${c.id}, returnTo=${returnTo})}">
+                            <span class="visually-hidden" th:text="#{certificate.matrix.cell(${cell.type}, ${m.fullName})}">STCW Basic Safety Training, Jane Doe:</span>
+                            <time th:replace="~{layout/parts :: localDate(${c.expiresOn})}"></time>
+                            <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
+                        </a>
+                        <a th:unless="${cell.certificate}" class="cert-matrix-link cert-matrix-add"
+                           th:href="@{/office/ships/{s}/certificates/new(s=${ship.id}, userId=${m.id}, type=${cell.type}, returnTo=${returnTo})}">
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden" th:text="#{certificate.matrix.add(${cell.type}, ${m.fullName})}">Add STCW Basic Safety Training for Jane Doe</span>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- The top of the Certificates tab, in both views: the ship frame, the tab heading with Export CSV and Add
+     certificate (both for what this view shows; Add comes back to it), the Matrix / List switch and the view's hint.
+     view: 'matrix' or 'list'; exportUrl: this view's CSV. Needs returnTo (this view's URL) in the model. -->
+<th:block th:fragment="tabTop(view, exportUrl)">
+    <th:block th:replace="~{ship/parts :: header}"></th:block>
+    <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ~{certificate/matrix :: tabActions(${exportUrl})})}"></div>
+    <nav th:replace="~{layout/parts :: viewSwitch(#{certificate.view.label}, ~{certificate/matrix :: viewLinks(${view})})}"></nav>
+    <p class="tab-hint" th:text="${view == 'matrix'} ? #{certificate.matrix.hint} : #{certificate.list.hint}">Active crew on board ...</p>
+</th:block>
+
+<th:block th:fragment="tabActions(exportUrl)">
+    <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
+        <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+        <span th:text="#{certificate.export}">Export CSV</span>
+    </a>
+    <a class="btn btn-primary" th:href="@{/office/ships/{id}/certificates/new(id=${ship.id}, returnTo=${returnTo})}">
+        <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+        <span th:text="#{certificate.new.heading}">Add certificate</span>
+    </a>
+</th:block>
+
+<th:block th:fragment="viewLinks(view)">
+    <a class="view-switch-link" th:href="@{/office/ships/{id}/certificates(id=${ship.id})}"
+       th:aria-current="${view == 'matrix'} ? 'page'">
+        <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+        <span th:text="#{certificate.view.matrix}">Matrix</span>
+    </a>
+    <a class="view-switch-link" th:href="@{/office/ships/{id}/certificates/list(id=${ship.id})}"
+       th:aria-current="${view == 'list'} ? 'page'">
+        <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+        <span th:text="#{certificate.view.list}">List</span>
+    </a>
+</th:block>
+</body>
+</html>

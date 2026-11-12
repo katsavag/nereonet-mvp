@@ -163,12 +163,12 @@ class DashboardFlowTest {
 
         // a. expired certificate
         String certificateUrl = "/office/crew/" + cook.getId() + "/certificates/" + gone.getId() + "/edit";
-        assertThat(list).contains(">Expired</span>", "href=\"" + certificateUrl + "\"", ">Open certificate</a>",
+        assertThat(list).contains(">Expired</span>", "href=\"" + certificateUrl + "?returnTo=/office\"", ">Open certificate</a>",
                 "Chris Cook, Cook", ">" + date(-3) + "</time>", "expired 3 days ago");
         // b. expiring certificate
         assertThat(list).contains(">Expires in 12 days</span>", "Dana Cadet, Deck Cadet", ">" + date(12) + "</time>",
                 "</span> in 12 days</span>",
-                "href=\"/office/crew/" + cadet.getId() + "/certificates/" + soon.getId() + "/edit\"");
+                "href=\"/office/crew/" + cadet.getId() + "/certificates/" + soon.getId() + "/edit?returnTo=/office\"");
         // c. request: Export in place
         assertThat(list).contains(">Not exported</span>", "href=\"/office/requests/" + request.getId() + "\"",
                 "Request #" + request.getId() + " · 1 item", "Bob Bosun, Bosun",
@@ -188,7 +188,7 @@ class DashboardFlowTest {
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
         // The full list of each kind.
-        assertThat(html).contains("href=\"/office?type=certificates\"", "href=\"/office/requests?notExported=true\"",
+        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/requests?notExported=true\"",
                 "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
     }
 
@@ -278,13 +278,13 @@ class DashboardFlowTest {
         long busyId = busy.getId();
         assertThat(fleet).contains("href=\"/office/ships/" + busyId + "\"",
                 "href=\"/office/crew?shipId=" + busyId + "\"",
-                "href=\"/office?type=certificates&amp;shipId=" + busyId + "\"",
+                "href=\"/office/certificates?shipId=" + busyId + "&amp;status=expired,30\"",
                 "href=\"/office?type=acknowledgements&amp;shipId=" + busyId + "\"",
                 "href=\"/office/requests?shipId=" + busyId + "&amp;notExported=true\"");
         // The calm ship: crew linked, every other count a muted dash and no link.
         long calmId = calm.getId();
         assertThat(fleet).contains("href=\"/office/crew?shipId=" + calmId + "\"")
-                .doesNotContain("type=certificates&amp;shipId=" + calmId, "type=acknowledgements&amp;shipId=" + calmId,
+                .doesNotContain("certificates?shipId=" + calmId, "type=acknowledgements&amp;shipId=" + calmId,
                         "requests?shipId=" + calmId);
         assertThat(count(fleet, "class=\"count-zero\"")).isEqualTo(3);
 

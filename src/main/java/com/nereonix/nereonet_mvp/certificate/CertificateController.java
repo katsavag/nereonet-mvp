@@ -1,7 +1,12 @@
 package com.nereonix.nereonet_mvp.certificate;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -22,127 +27,242 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// A crew member's certificates are listed on the crew edit page; add, edit and delete return there.
-// The ship page's Certificates tab lists one ship's expiring certificates; Add certificate there picks the crew
-// member from that ship and returns to the tab.
+// Certificates (P20): every certificate, filtered by status (?status=), ship and "active ships only", with a CSV
+// export of the list as filtered. The ship page's Certificates tab is a matrix of the crew on board and the types
+// they hold (/office/ships/{id}/certificates), or the list for that ship (/certificates/list), each with its export.
+// A crew member's certificates are listed on the crew edit page. Add and edit return to the page they were opened
+// from (returnTo, CertificateReturn), else to the crew member's page or the ship's tab; delete returns to the crew
+// member's page.
 @Controller
 public class CertificateController {
 
     private final CertificateService certificateService;
     private final ShipFrame shipFrame;
     private final ConfirmPages confirmPages;
+    private final MessageSource messageSource;
 
     public CertificateController(CertificateService certificateService, ShipFrame shipFrame,
-                                 ConfirmPages confirmPages) {
+                                 ConfirmPages confirmPages, MessageSource messageSource) {
         this.certificateService = certificateService;
         this.shipFrame = shipFrame;
         this.confirmPages = confirmPages;
+        this.messageSource = messageSource;
     }
 
-    // The columns that sort (P19), the default first; the ship's tab has no Ship column.
+    // The columns that sort (P19), the default first; the ship's list has no Ship column.
     private static final ListSort[] FLEET_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
             ListSort.asc("crewMember"), ListSort.asc("ship"), ListSort.asc("number")};
     private static final ListSort[] TAB_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
             ListSort.asc("crewMember"), ListSort.asc("number")};
 
-    // due: the Status filter (CertificateDue key); listRequest: search, sort and page (P19).
+    // ---------------------------------------------------------------------------------------------------------------
+    // The fleet list
+    // ---------------------------------------------------------------------------------------------------------------
+
+    // status: the Status filter (CertificateStatus); activeShips: crew of active ships only; listRequest: search,
+    // sort and page (P19).
     @GetMapping("/office/certificates")
-    public String expiring(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String due,
-                           @ModelAttribute ListRequest listRequest, Model model) {
+    public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
+                       @RequestParam(defaultValue = "false") boolean activeShips,
+                       @ModelAttribute ListRequest listRequest, Model model) {
         List<Ship> ships = certificateService.findAllShips();
-        CertificateDue step = CertificateDue.of(due).orElse(null);
-        ListQuery list = withDue(ListQuery.of("/office/certificates", listRequest, FLEET_SORTS)
-                .filterShip(shipId, ships), step);
+        CertificateStatus filter = CertificateStatus.of(status);
+        ListQuery list = fleetList(shipId, filter, activeShips, listRequest, ships);
         model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
-        return showList(shipId, step, list, model);
+        model.addAttribute("activeShips", activeShips);
+        return showList(new CertificateService.Filter(shipId, activeShips, filter), list, model);
     }
 
-    // The same list for one ship, without the ship filter and column.
+    @GetMapping("/office/certificates/export")
+    public void export(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
+                       @RequestParam(defaultValue = "false") boolean activeShips,
+                       @ModelAttribute ListRequest listRequest, HttpServletResponse response) throws IOException {
+        CertificateStatus filter = CertificateStatus.of(status);
+        ListQuery list = fleetList(shipId, filter, activeShips, listRequest, certificateService.findAllShips());
+        List<Certificate> rows = certificateService.findAllCertificates(
+                new CertificateService.Filter(shipId, activeShips, filter), list);
+        write(response, certificateService.listCsv("certificates", rows));
+    }
+
+    private ListQuery fleetList(Long shipId, CertificateStatus status, boolean activeShips, ListRequest listRequest,
+                                List<Ship> ships) {
+        ListQuery list = withStatus(ListQuery.of("/office/certificates", listRequest, FLEET_SORTS)
+                .filterShip(shipId, ships), status);
+        return list.filter("activeShips", activeShips ? "true" : null, "certificate.filter.activeShips", null);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // The ship page's Certificates tab: the matrix, and the list for this ship
+    // ---------------------------------------------------------------------------------------------------------------
+
     @GetMapping("/office/ships/{id}/certificates")
-    public String shipCertificates(@PathVariable Long id, @RequestParam(required = false) String due,
-                                   @ModelAttribute ListRequest listRequest, Model model) {
-        shipFrame.show(model, shipFrame.ship(id), ShipTab.CERTIFICATES);
-        CertificateDue step = CertificateDue.of(due).orElse(null);
-        return showList(id, step, withDue(ListQuery.of(ShipTab.CERTIFICATES.url(id), listRequest, TAB_SORTS), step),
-                model);
+    public String matrix(@PathVariable Long id, Model model) {
+        Ship ship = shipFrame.ship(id);
+        shipFrame.show(model, ship, ShipTab.CERTIFICATES);
+        model.addAttribute("matrix", certificateService.matrix(ship));
+        model.addAttribute("today", certificateService.today());
+        model.addAttribute("returnTo", ShipTab.CERTIFICATES.url(id));
+        return "certificate/matrix";
     }
 
-    private String showList(Long shipId, CertificateDue due, ListQuery list, Model model) {
+    @GetMapping("/office/ships/{id}/certificates/export")
+    public void exportMatrix(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        Ship ship = shipFrame.ship(id);
+        write(response, certificateService.matrixCsv("certificate-matrix-" + ship.getImoNumber(),
+                certificateService.matrix(ship)));
+    }
+
+    // The fleet list for one ship, without the ship filter and column.
+    @GetMapping("/office/ships/{id}/certificates/list")
+    public String shipList(@PathVariable Long id, @RequestParam(required = false) String status,
+                           @ModelAttribute ListRequest listRequest, Model model) {
+        shipFrame.show(model, shipFrame.ship(id), ShipTab.CERTIFICATES);
+        CertificateStatus filter = CertificateStatus.of(status);
+        ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
+        return showList(new CertificateService.Filter(id, false, filter), list, model);
+    }
+
+    @GetMapping("/office/ships/{id}/certificates/list/export")
+    public void exportShipList(@PathVariable Long id, @RequestParam(required = false) String status,
+                               @ModelAttribute ListRequest listRequest, HttpServletResponse response)
+            throws IOException {
+        Ship ship = shipFrame.ship(id);
+        CertificateStatus filter = CertificateStatus.of(status);
+        ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
+        List<Certificate> rows = certificateService.findAllCertificates(
+                new CertificateService.Filter(id, false, filter), list);
+        write(response, certificateService.listCsv("certificates-" + ship.getImoNumber(), rows));
+    }
+
+    private static String shipListPath(Long shipId) {
+        return ShipTab.CERTIFICATES.url(shipId) + "/list";
+    }
+
+    private String showList(CertificateService.Filter filter, ListQuery list, Model model) {
+        CertificateStatus status = filter.status();
         model.addAttribute("list", list);
-        model.addAttribute("certificates", certificateService.findExpiring(shipId, due, list));
-        model.addAttribute("due", due == null ? null : due.key());
-        model.addAttribute("dues", CertificateDue.values());
+        model.addAttribute("certificates", certificateService.findCertificates(filter, list));
+        model.addAttribute("status", status.key());
+        model.addAttribute("statusOption", status.isOption());
+        model.addAttribute("statusLabel", label(status));
+        model.addAttribute("statusOptions", CertificateStatus.OPTIONS);
+        model.addAttribute("exportUrl", list.urlAt(list.getPath() + "/export"));
+        model.addAttribute("returnTo", list.getUrl());
         model.addAttribute("today", certificateService.today());
         return "certificate/list";
     }
 
-    private static ListQuery withDue(ListQuery list, CertificateDue due) {
-        return due == null ? list
-                : list.filterKey("due", due.key(), "certificate.status", "certificate.filter.due." + due.key());
+    // The Status chip; none for the default (the list without a status).
+    private ListQuery withStatus(ListQuery list, CertificateStatus status) {
+        return status.isDefault() ? list : list.filter("status", status.key(), "certificate.status", label(status));
     }
 
+    // "Expired", "Within 30 days", "Expired or within 30 days"; a combination without a label of its own lists its
+    // states.
+    private String label(CertificateStatus status) {
+        var locale = LocaleContextHolder.getLocale();
+        String joined = String.join(", ", status.stateLabelKeys().stream()
+                .map(key -> messageSource.getMessage(key, null, locale)).toList());
+        return messageSource.getMessage(status.labelKey(), null, joined, locale);
+    }
+
+    private static void write(HttpServletResponse response, CertificateService.CsvFile csv) throws IOException {
+        response.setContentType("text/csv;charset=UTF-8");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment().filename(csv.filename()).build().toString());
+        response.getOutputStream().write(csv.content());
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // Add and edit
+    // ---------------------------------------------------------------------------------------------------------------
+
+    // userId and type: prefilled from a matrix cell (P20); a userId not of this ship's crew is ignored.
     @GetMapping("/office/ships/{id}/certificates/new")
-    public String newShipForm(@PathVariable Long id, Model model) {
-        model.addAttribute("form", new ShipCertificateForm());
-        return showShipForm(shipFrame.ship(id), model);
+    public String newShipForm(@PathVariable Long id, @RequestParam(required = false) Long userId,
+                              @RequestParam(required = false) String type,
+                              @RequestParam(required = false) String returnTo, Model model) {
+        Ship ship = shipFrame.ship(id);
+        ShipCertificateForm form = new ShipCertificateForm();
+        if (userId != null && isShipCrew(ship, userId)) {
+            form.setUserId(userId);
+        }
+        form.setType(type);
+        model.addAttribute("form", form);
+        return showShipForm(ship, returnTo, model);
     }
 
     @PostMapping("/office/ships/{id}/certificates/new")
     public String createForShip(@PathVariable Long id, @Valid @ModelAttribute("form") ShipCertificateForm form,
-                                BindingResult result, Model model, RedirectAttributes redirectAttributes) {
+                                BindingResult result, @RequestParam(required = false) String returnTo, Model model,
+                                RedirectAttributes redirectAttributes) {
         Ship ship = shipFrame.ship(id);
         // Only a crew member of this ship: a posted id of someone elsewhere is refused like an empty choice.
-        if (form.getUserId() != null && certificateService.findShipCrew(ship).stream()
-                .map(User::getId).noneMatch(form.getUserId()::equals)) {
+        if (form.getUserId() != null && !isShipCrew(ship, form.getUserId())) {
             result.rejectValue("userId", "certificate.error.crewMemberRequired");
         }
         if (result.hasErrors()) {
-            return showShipForm(ship, model);
+            return showShipForm(ship, returnTo, model);
         }
         certificateService.create(form.getUserId(), form.getType(), form.getNumber(), form.getExpiresOn());
         redirectAttributes.addFlashAttribute("successMessage", "certificate.created");
-        return "redirect:" + ShipTab.CERTIFICATES.url(id);
+        return "redirect:" + CertificateReturn.or(returnTo, ShipTab.CERTIFICATES.url(id));
+    }
+
+    private boolean isShipCrew(Ship ship, Long userId) {
+        return certificateService.findShipCrew(ship).stream().map(User::getId).anyMatch(userId::equals);
     }
 
     @GetMapping("/office/crew/{userId}/certificates/new")
-    public String newForm(@PathVariable Long userId, Model model) {
-        model.addAttribute("form", new CertificateForm());
-        return showForm(userId, null, model);
+    public String newForm(@PathVariable Long userId, @RequestParam(required = false) String type,
+                          @RequestParam(required = false) String returnTo, Model model) {
+        CertificateForm form = new CertificateForm();
+        form.setType(type);
+        model.addAttribute("form", form);
+        return showForm(userId, null, returnTo, model);
     }
 
     @PostMapping("/office/crew/{userId}/certificates/new")
     public String create(@PathVariable Long userId, @Valid @ModelAttribute("form") CertificateForm form,
-                         BindingResult result, Model model, RedirectAttributes redirectAttributes) {
+                         BindingResult result, @RequestParam(required = false) String returnTo, Model model,
+                         RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
-            return showForm(userId, null, model);
+            return showForm(userId, null, returnTo, model);
         }
         certificateService.create(userId, form.getType(), form.getNumber(), form.getExpiresOn());
         redirectAttributes.addFlashAttribute("successMessage", "certificate.created");
-        return "redirect:/office/crew/" + userId + "/edit";
+        return "redirect:" + CertificateReturn.or(returnTo, crewUrl(userId));
     }
 
     @GetMapping("/office/crew/{userId}/certificates/{id}/edit")
-    public String editForm(@PathVariable Long userId, @PathVariable Long id, Model model) {
+    public String editForm(@PathVariable Long userId, @PathVariable Long id,
+                           @RequestParam(required = false) String returnTo, Model model) {
         Certificate certificate = certificateService.getCertificate(userId, id);
         model.addAttribute("form", CertificateForm.of(certificate));
-        return showForm(userId, certificate, model);
+        return showForm(userId, certificate, returnTo, model);
     }
 
     @PostMapping("/office/crew/{userId}/certificates/{id}/edit")
     public String update(@PathVariable Long userId, @PathVariable Long id,
-                         @Valid @ModelAttribute("form") CertificateForm form, BindingResult result, Model model,
+                         @Valid @ModelAttribute("form") CertificateForm form, BindingResult result,
+                         @RequestParam(required = false) String returnTo, Model model,
                          RedirectAttributes redirectAttributes) {
         Certificate certificate = certificateService.getCertificate(userId, id);
         if (result.hasErrors()) {
-            return showForm(userId, certificate, model);
+            return showForm(userId, certificate, returnTo, model);
         }
         certificateService.update(userId, id, form.getType(), form.getNumber(), form.getExpiresOn());
         redirectAttributes.addFlashAttribute("successMessage", "certificate.updated");
-        return "redirect:/office/crew/" + userId + "/edit";
+        return "redirect:" + CertificateReturn.or(returnTo, crewUrl(userId));
+    }
+
+    private static String crewUrl(Long userId) {
+        return "/office/crew/" + userId + "/edit";
     }
 
     // The confirmation page: where Delete leads when js/confirm.js did not load (P10).
@@ -150,7 +270,7 @@ public class CertificateController {
     public String confirmDelete(@PathVariable Long userId, @PathVariable Long id, Model model) {
         Certificate certificate = certificateService.getCertificate(userId, id);
         User member = certificateService.getCrewMember(userId);
-        String memberUrl = "/office/crew/" + userId + "/edit";
+        String memberUrl = crewUrl(userId);
         return confirmPages.danger()
                 .title("certificate.delete.confirm.title", certificate.getType())
                 .body("certificate.delete.confirm.body", certificate.getType(), member.getFullName())
@@ -166,21 +286,28 @@ public class CertificateController {
     public String delete(@PathVariable Long userId, @PathVariable Long id, RedirectAttributes redirectAttributes) {
         certificateService.delete(userId, id);
         redirectAttributes.addFlashAttribute("successMessage", "certificate.deleted");
-        return "redirect:/office/crew/" + userId + "/edit";
+        return "redirect:" + crewUrl(userId);
     }
 
-    // Add certificate from the ship page: no member yet, the ship's crew to choose from.
-    private String showShipForm(Ship ship, Model model) {
+    // Add certificate from the ship page: the ship's crew to choose from. backUrl: Cancel, and returnTo for the form.
+    private String showShipForm(Ship ship, String returnTo, Model model) {
         model.addAttribute("ship", ship);
         model.addAttribute("shipCrew", certificateService.findShipCrew(ship));
         model.addAttribute("certificate", null);
-        return "certificate/form";
+        return showFormCommon(CertificateReturn.clean(returnTo), ShipTab.CERTIFICATES.url(ship.getId()), model);
     }
 
     // certificate is null when adding.
-    private String showForm(Long userId, Certificate certificate, Model model) {
+    private String showForm(Long userId, Certificate certificate, String returnTo, Model model) {
         model.addAttribute("member", certificateService.getCrewMember(userId));
         model.addAttribute("certificate", certificate);
+        return showFormCommon(CertificateReturn.clean(returnTo), crewUrl(userId), model);
+    }
+
+    private String showFormCommon(String returnTo, String fallback, Model model) {
+        model.addAttribute("returnTo", returnTo);
+        model.addAttribute("backUrl", returnTo == null ? fallback : returnTo);
+        model.addAttribute("typeSuggestions", certificateService.typeSuggestions());
         return "certificate/form";
     }
 }

@@ -2104,3 +2104,131 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     margin: 0;
     font-weight: 600;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Certificates the office can plan with (P20): certificate/list.html, certificate/matrix.html,
+   layout/parts :: viewSwitch, certificateBadge.
+     - .filter-field-wide: a filter select with long options (Status: "Expired or within 90 days"), full width on
+       phones like the others.
+     - .view-switch: two or more views of the same records as one group of links (Matrix / List). The current one
+       (aria-current="page") is in the primary pair, semibold, with a tick: not shown by colour alone. Each link is
+       40px high (44px on phones).
+     - .cert-matrix: the ship's certificate matrix. Crew as rows, certificate types as columns; the crew column
+       (.cert-matrix-person) stays put while the table scrolls sideways inside its card, with a divider on its right
+       edge. Type headers wrap at --nn-matrix-type-width. Each cell is one link (.cert-matrix-link) filling the cell:
+       the expiry date over the state badge, or a muted dash that adds one; at least the touch target in both
+       directions, its focus ring drawn inside so the scroll box never cuts it off.
+   Text pairs: dates and names 15:1, the dash and the rank 6.6:1 on the surface; badges as everywhere.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-matrix-person-width: 13rem;
+    --nn-matrix-type-width: 8.5rem;
+    --nn-filter-width-wide: 17.5rem;  /* a filter whose options are long: "Expired or within 90 days" */
+}
+
+.filter-field-wide { flex-basis: var(--nn-filter-width-wide); }
+@media (max-width: 767.98px) {
+    .filter-field-wide { flex-basis: 100%; }
+}
+
+.view-switch {
+    display: inline-flex;
+    margin-bottom: var(--nn-space-4);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-surface);
+}
+.view-switch-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--nn-touch-target);
+    padding: 0 var(--nn-space-4);
+    color: var(--nn-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+}
+.view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
+.view-switch-link:first-child { border-radius: calc(var(--nn-radius-control) - 1px) 0 0 calc(var(--nn-radius-control) - 1px); }
+.view-switch-link:last-child { border-radius: 0 calc(var(--nn-radius-control) - 1px) calc(var(--nn-radius-control) - 1px) 0; }
+.view-switch-link:hover { background: var(--nn-hover); text-decoration: underline; }
+.view-switch-link > svg { flex-shrink: 0; }
+.view-switch-link:not([aria-current]) > svg { display: none; }
+.view-switch-link[aria-current] {
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-weight: 600;
+}
+
+.cert-matrix { border-collapse: separate; border-spacing: 0; }
+.cert-matrix > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
+.cert-matrix > tbody > tr:last-child > * { border-bottom: 0; }
+.cert-matrix .cert-matrix-person {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: var(--nn-matrix-person-width);
+    max-width: var(--nn-matrix-person-width);
+    background-color: var(--nn-surface);
+    box-shadow: none;
+    text-align: left;
+    vertical-align: middle;
+}
+/* The divider on the crew column's right edge; a pseudo-element, so it moves with the sticky cell. */
+.cert-matrix .cert-matrix-person::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--nn-divider);
+}
+.cert-matrix > tbody > tr > .cert-matrix-person {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.cert-matrix > tbody > tr > .cert-matrix-person > a { text-decoration: none; }
+.cert-matrix > tbody > tr > .cert-matrix-person > a:hover { text-decoration: underline; }
+.cert-matrix-rank {
+    display: block;
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+.cert-matrix > thead > tr > .cert-matrix-type {
+    min-width: var(--nn-matrix-type-width);
+    max-width: var(--nn-matrix-type-width);
+    white-space: normal;
+    vertical-align: bottom;
+}
+.data-table.cert-matrix > tbody > tr > .cert-matrix-cell {
+    padding: var(--nn-space-1);
+    vertical-align: top;
+}
+/* position: relative keeps its visually hidden label (absolutely positioned) inside the scroll box; without it the
+   labels of the far columns widened the page on phones. */
+.cert-matrix-link {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--nn-space-1);
+    min-width: var(--nn-touch-target);
+    min-height: calc(var(--nn-row-height) - 2 * var(--nn-space-1));
+    height: 100%;
+    padding: var(--nn-space-2);
+    border-radius: var(--nn-radius-control);
+    color: var(--nn-text);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+.cert-matrix-link:hover { background: var(--nn-hover); }
+.cert-matrix-link:hover time { text-decoration: underline; }
+.cert-matrix-link:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
+.cert-matrix-add { color: var(--nn-text-secondary); }
+.cert-matrix-scroll:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
+@media (max-width: 767.98px) {
+    :root { --nn-matrix-person-width: 9.5rem; }
+}

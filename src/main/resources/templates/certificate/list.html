@@ -2,38 +2,49 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.certificates} : #{certificate.list.title}, ~{::main})}">
 <body>
-<!-- Also the Certificates tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
-     header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
+<!-- Certificates (P20): every certificate, by default the expired ones and those expiring within 90 days, soonest
+     first. Also the List view of the ship page's Certificates tab (shipTab set, see ship/ShipFrame): the ship header
+     and the Matrix / List switch instead of the page header, the ship fixed (no ship filter, no ship column).
+     Export CSV downloads the list as filtered and sorted (every page). Links to a certificate carry returnTo, so its
+     form comes back here. -->
 <main th:with="onShip=${shipTab != null}">
     <th:block th:if="${onShip}">
-        <th:block th:replace="~{ship/parts :: header}"></th:block>
-        <!-- Add certificate: the crew member is picked from this ship's crew; back to this tab. -->
-        <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ~{::tabActions})}">
-            <th:block th:fragment="tabActions">
-                <a class="btn btn-primary" th:href="@{/office/ships/{id}/certificates/new(id=${ship.id})}">
-                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
-                    <span th:text="#{certificate.new.heading}">Add certificate</span>
-                </a>
-            </th:block>
-        </div>
-        <p class="tab-hint" th:text="#{certificate.list.hint}">Certificates that expire within 90 days ...</p>
+        <th:block th:replace="~{certificate/matrix :: tabTop('list', ${exportUrl})}"></th:block>
     </th:block>
     <th:block th:unless="${onShip}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.totalElements}, subtitle=#{certificate.list.hint})}"></header>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.totalElements},
+            subtitle=#{certificate.list.hint}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
+                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                <span th:text="#{certificate.export}">Export CSV</span>
+            </a>
+        </th:block>
+    </header>
     </th:block>
 
-    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. The ship's tab has no
-         ship filter. -->
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. Status: one state, or
+         the combination a link brought (the Overview's "expired or within 30 days"), kept as an option of its own.
+         The ship's list has no ship filter and no "active ships only". -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{certificate.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <th:block th:unless="${onShip}"><div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div></th:block>
-            <div class="filter-field">
-                <label for="filterDue" class="form-label" th:text="#{certificate.status}">Status</label>
-                <select id="filterDue" name="due" class="form-select">
-                    <option value="" th:text="#{certificate.filter.allDue}">All, within 90 days</option>
-                    <option th:each="d : ${dues}" th:value="${d.key()}" th:selected="${d.key() == due}"
-                            th:text="#{${'certificate.filter.due.' + d.key()}}">Expired</option>
+            <div class="filter-field filter-field-wide">
+                <label for="filterStatus" class="form-label" th:text="#{certificate.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{certificate.filter.status.default}">Expired or within 90 days</option>
+                    <option th:unless="${statusOption}" th:value="${status}" th:selected="${true}"
+                            th:text="${statusLabel}">Expired or within 30 days</option>
+                    <option th:each="o : ${statusOptions}" th:value="${o}" th:selected="${o == status}"
+                            th:text="#{${'certificate.filter.status.' + o}}">Expired</option>
                 </select>
+            </div>
+            <div th:unless="${onShip}" class="filter-field filter-field-check">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="filterActiveShips" name="activeShips"
+                           value="true" th:checked="${activeShips}">
+                    <label class="form-check-label" for="filterActiveShips" th:text="#{certificate.filter.activeShips}">Active ships only</label>
+                </div>
             </div>
         </th:block>
     </div>
@@ -43,7 +54,8 @@
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
              stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls. Soonest
-             expiry first unless sorted otherwise (P19). -->
+             expiry first unless sorted otherwise (P19). Expires: the date and how far it is ("in 23 days",
+             "expired 5 days ago"); Status: the badge with its icon. -->
         <div th:unless="${certificates.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
@@ -59,7 +71,7 @@
                 <tbody>
                 <tr th:each="c : ${certificates}">
                     <td class="cell-primary">
-                        <a th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
+                        <a th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id},returnTo=${returnTo})}"
                            th:text="${c.type}">STCW Basic Safety</a>
                     </td>
                     <td class="text-nowrap" th:attr="data-label=#{certificate.crewMember}">

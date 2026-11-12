@@ -152,7 +152,7 @@ class PageHeaderFlowTest {
         add(pages, "/office/crew", null, "Crew", List.of(), null);
         add(pages, "/office/users", null, "Office users", List.of(), null);
         add(pages, "/office/audit", null, "Audit log", List.of(), null);
-        add(pages, "/office/certificates", null, "Expiring certificates", List.of(), null);
+        add(pages, "/office/certificates", null, "Certificates", List.of(), null);
         add(pages, "/office/announcements", null, "Announcements", List.of(), null);
         add(pages, "/office/requests", null, "Approved requests", List.of(), null);
         add(pages, "/notifications", null, "Notifications", List.of(), null);

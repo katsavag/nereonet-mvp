@@ -22,7 +22,7 @@
                 <ul th:if="${overview.openItems() > 0}" class="list-group list-group-flush open-items">
                     <li th:each="c : ${overview.certificates}" class="list-group-item open-item">
                         <div class="open-item-text">
-                            <a class="fw-semibold" th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id})}"
+                            <a class="fw-semibold" th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id},returnTo=${'/office/ships/' + ship.id})}"
                                th:text="${c.type}">STCW Basic Safety</a>
                             <div class="small text-body-secondary">
                                 <span th:text="${c.user.fullName}">Jane Doe</span>

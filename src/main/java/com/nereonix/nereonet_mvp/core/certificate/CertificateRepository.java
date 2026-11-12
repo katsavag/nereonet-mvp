@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.core.certificate;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,6 +10,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface CertificateRepository extends JpaRepository<Certificate, Long> {
+
+    /** One spelling of a certificate type and how many certificates use it. */
+    record TypeCount(String type, long count) {
+    }
+
+    // Every type in use with its number of certificates (P20: the type suggestions and the match on save).
+    @Query("""
+            select new com.nereonix.nereonet_mvp.core.certificate.CertificateRepository$TypeCount(c.type, count(c))
+            from Certificate c group by c.type""")
+    List<TypeCount> countByType();
+
+    // The certificates of these users (a ship's crew), for the ship's certificate matrix.
+    List<Certificate> findAllByUserIdIn(Collection<Long> userIds);
 
     List<Certificate> findAllByUserIdOrderByExpiresOnAsc(Long userId);
 

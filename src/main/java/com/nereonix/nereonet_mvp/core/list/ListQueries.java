@@ -61,6 +61,21 @@ public class ListQueries {
         if (total == 0) {
             return new PageImpl<>(List.of(), PageRequest.of(0, list.getSize()), 0);
         }
+        List<T> rows = entityManager.createQuery(query(type, list, where, sortBy, fetch))
+                .setFirstResult(page * list.getSize())
+                .setMaxResults(list.getSize())
+                .getResultList();
+        return new PageImpl<>(rows, PageRequest.of(page, list.getSize()), total);
+    }
+
+    /** Every row of the list, in its order, without pages: an export of the list as it is filtered (P20). */
+    public <T> List<T> all(Class<T> type, ListQuery list, Where<T> where, SortBy<T> sortBy, Fetch<T> fetch) {
+        return entityManager.createQuery(query(type, list, where, sortBy, fetch)).getResultList();
+    }
+
+    private <T> CriteriaQuery<T> query(Class<T> type, ListQuery list, Where<T> where, SortBy<T> sortBy,
+                                       Fetch<T> fetch) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<T> query = cb.createQuery(type);
         Root<T> root = query.from(type);
         if (fetch != null) {
@@ -72,12 +87,7 @@ public class ListQueries {
         }
         // A tie-breaker, so the same URL always shows the same rows in the same order.
         orders.add(list.isDescending() ? cb.desc(root.get("id")) : cb.asc(root.get("id")));
-        query.select(root).where(where.build(root, cb).toArray(Predicate[]::new)).orderBy(orders);
-        List<T> rows = entityManager.createQuery(query)
-                .setFirstResult(page * list.getSize())
-                .setMaxResults(list.getSize())
-                .getResultList();
-        return new PageImpl<>(rows, PageRequest.of(page, list.getSize()), total);
+        return query.select(root).where(where.build(root, cb).toArray(Predicate[]::new)).orderBy(orders);
     }
 
     /** The page to show: the one asked for, or the last one when it is past the end. Zero-based. */

@@ -67,14 +67,16 @@ Requirements: Java 25, Docker.
      (downloads that request's CSV, as on Requests, and marks it exported; it is gone the next time the page loads),
      **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
      has not acknowledged**. The card shows the first 50 rows ("Showing the first 50 of 63"); under it **Full lists**
-     links each kind to its full list: requests to `/office/requests?notExported=true`, the others to this page
-     filtered to that kind (`/office?type=certificates`, `invitations`, `acknowledgements`, every row, with **Show all
-     open items** to go back) until the certificate and crew lists can filter by status (P20, P17). With nothing open
-     the card says "Nothing needs your attention" and when it was checked.
+     links each kind to its full list: requests to `/office/requests?notExported=true`, certificates to
+     `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see 12), the others
+     to this page filtered to that kind (`/office?type=invitations`, `acknowledgements`, every row, with **Show all
+     open items** to go back; `/office?type=certificates` still works). **Open certificate** opens the form, which
+     comes back to the Overview (with its filter) after Save or Cancel. With nothing open the card says "Nothing needs
+     your attention" and when it was checked.
    - **Fleet**: one row per active ship (the name opens the ship page): crew on board, certificate issues (expired or
      within 30 days), not acknowledged (announcements and Required library items as above), requests not exported.
      Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
-     its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office?type=certificates&shipId=…`,
+     its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
      `/office?type=acknowledgements&shipId=…`, `/office/requests?shipId=…&notExported=true`.
    - `DashboardService.load()` always runs the same 7 queries, whatever the size of the fleet (active ships, crew per
      ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
@@ -101,9 +103,11 @@ Requirements: Java 25, Docker.
      the crew on board (enabled users) by the department of their rank (Deck, Engine, Galley, or "Rank not set");
      and the particulars (name, IMO number, type, flag and the first lines of the particulars text, with **Edit ship
      particulars** and a link to the library). The tab's count is the number of open items, in red when above zero.
-   - **Crew** (`/crew`), **Certificates** (`/certificates`), **Announcements** (`/announcements`) and **Requests**
-     (`/requests`): the fleet-wide lists of 8, 12, 14 and 15 for this ship only, without the ship filter and the Ship
-     column (Requests keeps "Not exported yet" and **Export CSV**). The fleet-wide pages keep their ship filter.
+   - **Crew** (`/crew`), **Announcements** (`/announcements`) and **Requests** (`/requests`): the fleet-wide lists
+     of 8, 14 and 15 for this ship only, without the ship filter and the Ship column (Requests keeps "Not exported
+     yet" and **Export CSV**). The fleet-wide pages keep their ship filter.
+   - **Certificates** (`/certificates`): the certificate matrix of the crew on board, or (**List**,
+     `/certificates/list`) the Certificates list of 12 for this ship only; see 12.
    - **Library** (`/library`, see 16) and **Items** (`/items`, see 11): the existing pages, now inside the frame.
    Actions started on a tab keep the ship and return to the tab: **Add crew member** opens the same pop-up form as
    on the Crew page with this ship preselected (it can still be changed; once sent, the user is on the Crew tab of the
@@ -112,7 +116,7 @@ Requirements: Java 25, Docker.
    crew member from this ship's active crew only; **New announcement** opens the form with this ship preselected (the
    target can still be changed) and returns to the tab once sent; a crew member's **⋯** menu returns to the Crew tab.
    The counts: Crew, every user on the ship and its pending invitations; Certificates, expired or expiring within 90
-   days; Library, items not retired; Items, all; Announcements, sent to this ship or to all ships; Requests, approved.
+   days (what the tab's List view shows); Library, items not retired; Items, all; Announcements, sent to this ship or to all ships; Requests, approved.
 
    An inactive ship shows a banner on every tab: crew cannot be invited to it or moved to it, it gets no
    announcements and it is not on the Overview; its records stay as they are; **Activate** in the **⋯** menu undoes it.
@@ -245,11 +249,52 @@ Requirements: Java 25, Docker.
 12. Certificates (signed in as an office user): on a crew member's **Edit** page (`/office/crew/{id}/edit`) the
    **Certificates** card lists their certificates (type, optional number, expiry date) with **Add certificate**,
    **Edit** and, in the row's **⋯** menu, **Delete** (after the confirmation "Delete STCW Basic Safety?").
-   **Certificates** in the sidebar (`/office/certificates`) lists every certificate that
-   expires within 90 days or has expired, soonest first, with a badge: Expired, 30, 60 or 90 days. Searchable (type,
-   number, crew member), filterable by ship and by **Status** (`?due=expired`, `30`, `60`, `90`: the badge steps),
-   sortable by expiry, type, crew member, ship and number, 25 or 50 per page (paged in the database). The ship's
-   **Certificates** tab is the same list for that ship.
+   **Certificates** in the sidebar (`/office/certificates`, P20) lists every certificate, soonest expiry first. The
+   **Expires on** column shows the date and how far it is ("in 23 days", "expired 5 days ago"); the status badge has
+   an icon as well as a colour: a warning triangle for Expired, a clock for 30, 60 or 90 days, a tick for Valid.
+   Searchable (type, number, crew member), sortable by expiry, type, crew member, ship and number, 25 or 50 per page
+   (paged in the database), filterable by ship, **Active ships only** (`activeShips=true`) and **Status**
+   (`?status=`): `expired`; `30`, `60`, `90` (not expired, expiring within that many days, today included, so
+   "Within 60 days" includes "Within 30 days"); `valid` (more than 90 days left); `all`. Without a status, or with one
+   it does not know: expired and within 90 days, as before. States combine with a comma, which is how the counts link
+   to exactly what they count (each tested in `CertificatePlanningFlowTest`):
+   - the sidebar counter (expired or within 30 days, every ship): the **Certificates** entry opens
+     `?status=expired,30` while the counter shows; without a counter, the list as it is;
+   - the Overview's **Full lists** entry (the same, crew of active ships): `?status=expired,30&activeShips=true`;
+   - the Overview's fleet table, **Certificate issues** of a ship: `?shipId=…&status=expired,30`;
+   - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
+   **Export CSV** (page header) downloads the list as filtered, searched and sorted, every page:
+   `certificates-<date>.csv`, UTF-8 with a byte order mark and ISO dates, as the request export, with the columns
+   `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,
+   `SECOND_OFFICER`; status `expired`, `30_days`, `60_days`, `90_days` or `valid`, the badge). It is a plain link
+   (GET, nothing changes, not in the audit log).
+
+   The ship page's **Certificates** tab (`/office/ships/{id}/certificates`) is a matrix: the active crew on board as
+   rows, by department and rank (Rank's order, "Rank not set" last), and the certificate types they hold as columns,
+   the most held first. Each cell shows the expiry date and the badge of that person's certificate of that type that
+   expires last (a renewed certificate replaces the old one) and opens it; a dash when there is none, which opens
+   **Add certificate** with the person and the type filled in. The crew column stays in place while the table scrolls
+   sideways (also on phones; the table is a keyboard-focusable region). **Matrix** / **List** switch between the
+   matrix and the list above for this ship (`/certificates/list`, without the ship filter, the Ship column and Active
+   ships only). **Export CSV** downloads the view on screen: the matrix as `certificate-matrix-<IMO>-<date>.csv`
+   (`crew_member, rank`, then one column per type with the expiry date, empty when there is none), the list as
+   `certificates-<IMO>-<date>.csv`.
+
+   Certificate type is free text with suggestions (a datalist): the types already used, most used first, then the
+   starter list (STCW Basic Safety Training, Certificate of Competency, Flag State Endorsement, GMDSS Operator,
+   Advanced Fire Fighting, Proficiency in Survival Craft, Medical First Aid, Security Awareness, Ship Security Officer,
+   Tanker Endorsement, Medical Fitness Certificate, Seaman's Book, Passport, Yellow Fever Vaccination, US Visa C1/D).
+   On save a type that differs from a known one only in case or surrounding spaces is stored as that one
+   (`certificate/CertificateTypes`): "stcw basic safety training " becomes "STCW Basic Safety Training", the most used
+   spelling, else the starter list's. The certificate being edited does not count, so the only certificate of a type
+   can still correct its spelling. Different spellings already in the database are shown as one type in the
+   suggestions and in the matrix.
+
+   **Add certificate** and **Edit** go back to where they were opened after Save or Cancel: the Certificates list with
+   its filters, page and sort, the ship's matrix or list, the Overview, the ship's Overview tab, else the crew
+   member's page (or, from the ship, the tab). The page travels as `returnTo` on the link and as a hidden field;
+   only those office pages are accepted (`certificate/CertificateReturn`), anything else goes to the usual page.
+   **Delete** still returns to the crew member's page.
 
    A daily job (06:00 UTC; change it with `CERTIFICATE_REMINDER_CRON`, a Spring cron such as `0 0 6 * * *`) reminds
    about certificates of active users that expire within 90, 60 or 30 days: the crew member gets an email and an in-app
@@ -533,7 +578,8 @@ The app makes no request to any other host: everything a page needs is served fr
       is active on every page except `/ship`, which has no entry until P26. The section comes from one place,
       `navigation/NavigationAdvice` (model attribute `navSection`, from the URL via `NavSection`); controllers do not set it;
     - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
-      screen readers: **Certificates** expired or expiring within 30 days (UTC days), **Requests** approved and not
+      screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
+      exactly those, `/office/certificates?status=expired,30`, P20), **Requests** approved and not
       exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`);
     - phones (below 768 px): the sidebar is an offcanvas opened from the top bar's menu button and closed with Esc or

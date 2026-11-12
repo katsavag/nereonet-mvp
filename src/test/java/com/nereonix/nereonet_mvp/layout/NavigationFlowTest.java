@@ -152,7 +152,9 @@ class NavigationFlowTest {
         request(Instant.now());             // exported
 
         String nav = sidebar(get("/office"));
-        assertThat(nav).containsPattern("(?s)href=\"/office/certificates\">.*?>Certificates</span>\\s*"
+        // Certificates opens what its counter counts (P20); without a count, the list as it is.
+        assertThat(empty).contains("href=\"/office/certificates\">");
+        assertThat(nav).containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?>Certificates</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 expired or expiring within 30 days</span>")
                 .containsPattern("(?s)href=\"/office/requests\">.*?>Requests</span>\\s*"

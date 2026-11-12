@@ -167,8 +167,8 @@ class TablesFlowTest {
         assertThat(crewBody.group(1)).as("emails broken mid-word").doesNotContain("text-break");
         assertThat(html("/office/users")).contains("More actions: New Office", "status-badge status-primary");
         assertThat(html("/office/certificates")).contains(
-                "href=\"/office/crew/" + crew.getId() + "/certificates/" + certificate.getId() + "/edit\">STCW Basic Safety</a>",
-                "status-badge status-danger");
+                "href=\"/office/crew/" + crew.getId() + "/certificates/" + certificate.getId() + "/edit?returnTo=/office/certificates\">STCW Basic Safety</a>",
+                "status-badge-icon status-danger");
         assertThat(html("/office/ships/" + ship.getId() + "/items")).contains(">Basmati rice</a>",
                 "More actions: Basmati rice");
         assertThat(html("/office/requests")).contains(

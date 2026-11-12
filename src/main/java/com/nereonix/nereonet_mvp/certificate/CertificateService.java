@@ -1,11 +1,21 @@
 package com.nereonix.nereonet_mvp.certificate;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,6 +43,24 @@ import jakarta.persistence.criteria.Predicate;
 // Certificates of crew members, managed by the office.
 @Service
 public class CertificateService {
+
+    /** A CSV download, UTF-8 with a byte order mark (so Excel reads Greek names), as the request export (P20). */
+    public record CsvFile(String filename, byte[] content) {
+    }
+
+    /**
+     * Which certificates the Certificates list shows (P19, P20). shipId: one ship's crew, or null; activeShips: only
+     * the crew of active ships (what the Overview counts); status: the Status filter. The search is the type, the
+     * number or the crew member's name.
+     */
+    public record Filter(Long shipId, boolean activeShips, CertificateStatus status) {
+    }
+
+    private static final String[] LIST_HEADER = {"imo_number", "ship_name", "crew_member", "rank", "type", "number",
+            "expires_on", "days_left", "status"};
+
+    private static final ListQueries.Fetch<Certificate> FETCH =
+            root -> root.fetch("user").fetch("ship", JoinType.LEFT);
 
     private final CertificateRepository certificateRepository;
     private final CertificateReminderRepository reminderRepository;
@@ -68,27 +96,34 @@ public class CertificateService {
     }
 
     /**
-     * One page of the certificates that expire within 90 days or have expired (P19), paginated in the database.
-     * shipId and due (the expiry step) may be null; the search is the type, the number or the crew member's name.
+     * One page of the Certificates list, paginated in the database.
      * Sort keys: expiresOn (default, soonest first), type, crewMember, ship, number.
      */
     @Transactional(readOnly = true)
-    public Page<Certificate> findExpiring(Long shipId, CertificateDue due, ListQuery list) {
-        LocalDate today = today();
-        return listQueries.page(Certificate.class, list, (root, cb) -> {
+    public Page<Certificate> findCertificates(Filter filter, ListQuery list) {
+        return listQueries.page(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
+    }
+
+    /** Every certificate of the list as filtered and sorted, without pages: its CSV export. */
+    @Transactional(readOnly = true)
+    public List<Certificate> findAllCertificates(Filter filter, ListQuery list) {
+        return listQueries.all(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
+    }
+
+    private static ListQueries.Where<Certificate> where(Filter filter, ListQuery list, LocalDate today) {
+        return (root, cb) -> {
             List<Predicate> where = new ArrayList<>();
             Path<LocalDate> expiresOn = root.get("expiresOn");
             Join<Certificate, User> user = root.join("user");
-            where.add(cb.lessThanOrEqualTo(expiresOn, today.plusDays(Certificate.REMINDER_DAYS.getLast())));
-            if (shipId != null) {
-                where.add(cb.equal(user.get("ship").get("id"), shipId));
+            Predicate status = filter.status().predicate(cb, expiresOn, today);
+            if (status != null) {
+                where.add(status);
             }
-            if (due != null) {
-                if (due.from(today) == null) {
-                    where.add(cb.lessThan(expiresOn, today));
-                } else {
-                    where.add(cb.between(expiresOn, due.from(today), due.to(today)));
-                }
+            if (filter.shipId() != null) {
+                where.add(cb.equal(user.get("ship").get("id"), filter.shipId()));
+            }
+            if (filter.activeShips()) {
+                where.add(cb.isTrue(user.join("ship").get("active")));
             }
             String q = list.getContains();
             if (q != null) {
@@ -97,7 +132,11 @@ public class CertificateService {
                         ListQueries.contains(cb, user.get("fullName"), q)));
             }
             return where;
-        }, (root, cb) -> {
+        };
+    }
+
+    private static ListQueries.SortBy<Certificate> sortBy(ListQuery list) {
+        return (root, cb) -> {
             Expression<LocalDate> expiresOn = root.get("expiresOn");
             return switch (list.getSort()) {
                 case "type" -> List.of(cb.lower(root.get("type")), expiresOn);
@@ -106,7 +145,7 @@ public class CertificateService {
                 case "number" -> List.of(cb.lower(root.get("number")), expiresOn);
                 default -> List.of(expiresOn);
             };
-        }, root -> root.fetch("user").fetch("ship", JoinType.LEFT));
+        };
     }
 
     /** The enabled crew members of a ship, by name: who can get a certificate from the ship page. */
@@ -118,6 +157,112 @@ public class CertificateService {
     @Transactional(readOnly = true)
     public List<Ship> findAllShips() {
         return shipRepository.findAllByOrderByNameAsc();
+    }
+
+    /** The type suggestions of the certificate form: types in use, most used first, then the starter list. */
+    @Transactional(readOnly = true)
+    public List<String> typeSuggestions() {
+        return CertificateTypes.suggestions(certificateRepository.countByType());
+    }
+
+    /** One column of the matrix: a type, whatever its spelling, named by its most used spelling. */
+    private record Column(String key, String name, long holders) {
+    }
+
+    /** The ship's certificate matrix (P20): its active crew on board and the types they hold. */
+    @Transactional(readOnly = true)
+    public CertificateMatrix matrix(Ship ship) {
+        List<User> crew = new ArrayList<>(findShipCrew(ship));
+        // By department and rank (Rank's order), without a rank last; a stable sort, so by name within a rank.
+        crew.sort(Comparator.comparing(User::getRank, Comparator.nullsLast(Comparator.naturalOrder())));
+        if (crew.isEmpty()) {
+            return new CertificateMatrix(List.of(), List.of());
+        }
+        List<Certificate> certificates =
+                certificateRepository.findAllByUserIdIn(crew.stream().map(User::getId).toList());
+
+        Map<String, List<Certificate>> byType = certificates.stream().collect(Collectors.groupingBy(
+                c -> CertificateTypes.sameTypeKey(c.getType()), LinkedHashMap::new, Collectors.toList()));
+        List<Column> columns = new ArrayList<>();
+        byType.forEach((key, list) -> columns.add(new Column(key, mostUsedSpelling(list),
+                list.stream().map(c -> c.getUser().getId()).distinct().count())));
+        columns.sort(Comparator.comparingLong(Column::holders).reversed()
+                .thenComparing(Column::name, String.CASE_INSENSITIVE_ORDER));
+
+        // Per person and type, the certificate that expires last.
+        Comparator<Certificate> latest = Comparator.comparing(Certificate::getExpiresOn).thenComparing(Certificate::getId);
+        Map<Long, Map<String, Certificate>> current = new LinkedHashMap<>();
+        for (Certificate c : certificates) {
+            current.computeIfAbsent(c.getUser().getId(), id -> new LinkedHashMap<>())
+                    .merge(CertificateTypes.sameTypeKey(c.getType()), c, (a, b) -> latest.compare(a, b) >= 0 ? a : b);
+        }
+        List<CertificateMatrix.Row> rows = crew.stream().map(member -> {
+            Map<String, Certificate> held = current.getOrDefault(member.getId(), Map.of());
+            return new CertificateMatrix.Row(member, columns.stream()
+                    .map(column -> new CertificateMatrix.Cell(column.name(), held.get(column.key()))).toList());
+        }).toList();
+        return new CertificateMatrix(columns.stream().map(Column::name).toList(), rows);
+    }
+
+    // The spelling most of these certificates use; the first by name on a tie.
+    private static String mostUsedSpelling(List<Certificate> certificates) {
+        Map<String, Long> counts = certificates.stream()
+                .collect(Collectors.groupingBy(c -> c.getType().strip(), Collectors.counting()));
+        return counts.entrySet().stream()
+                .min(Map.Entry.<String, Long>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
+                .orElseThrow().getKey();
+    }
+
+    /**
+     * The list as CSV (P20), one row per certificate: imo_number, ship_name, crew_member, rank (Rank's name), type,
+     * number, expires_on (ISO date), days_left (negative once expired) and status (expired, 30_days, 60_days,
+     * 90_days or valid: the badge). name: the file name before the date, e.g. "certificates".
+     */
+    public CsvFile listCsv(String name, List<Certificate> certificates) {
+        LocalDate today = today();
+        return csv(name, LIST_HEADER, printer -> {
+            for (Certificate c : certificates) {
+                Ship ship = c.getUser().getShip();
+                Integer threshold = c.reminderThreshold(today);
+                printer.printRecord(ship == null ? "" : ship.getImoNumber(), ship == null ? "" : ship.getName(),
+                        c.getUser().getFullName(), rank(c.getUser()), c.getType(),
+                        c.getNumber() == null ? "" : c.getNumber(), c.getExpiresOn(), c.daysLeft(today),
+                        c.isExpired(today) ? "expired" : threshold == null ? "valid" : threshold + "_days");
+            }
+        });
+    }
+
+    /** The matrix as CSV (P20): crew_member, rank, then one column per type with the expiry date (ISO), or empty. */
+    public CsvFile matrixCsv(String name, CertificateMatrix matrix) {
+        List<String> header = new ArrayList<>(List.of("crew_member", "rank"));
+        header.addAll(matrix.types());
+        return csv(name, header.toArray(String[]::new), printer -> {
+            for (CertificateMatrix.Row row : matrix.rows()) {
+                List<Object> values = new ArrayList<>(List.of(row.member().getFullName(), rank(row.member())));
+                row.cells().forEach(cell -> values.add(cell.certificate() == null ? "" : cell.certificate().getExpiresOn()));
+                printer.printRecord(values);
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface Rows {
+        void print(CSVPrinter printer) throws IOException;
+    }
+
+    private CsvFile csv(String name, String[] header, Rows rows) {
+        StringWriter csv = new StringWriter();
+        csv.write(0xFEFF); // the byte order mark
+        try (CSVPrinter printer = new CSVPrinter(csv, CSVFormat.DEFAULT.builder().setHeader(header).get())) {
+            rows.print(printer);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e); // never happens with a StringWriter
+        }
+        return new CsvFile(name + "-" + today() + ".csv", csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String rank(User user) {
+        return user.getRank() == null ? "" : user.getRank().name();
     }
 
     @Transactional
@@ -161,8 +306,15 @@ public class CertificateService {
                 + ", expires " + certificate.getExpiresOn();
     }
 
-    private static void apply(Certificate certificate, String type, String number, LocalDate expiresOn) {
-        certificate.setType(type.strip());
+    // The type is stored as a known type is spelled when it differs only in case or surrounding spaces (P20). The
+    // certificate being edited does not count, so the only certificate of a type can still correct its spelling.
+    private void apply(Certificate certificate, String type, String number, LocalDate expiresOn) {
+        List<CertificateRepository.TypeCount> used = certificateRepository.countByType().stream()
+                .map(row -> row.type().equals(certificate.getType())
+                        ? new CertificateRepository.TypeCount(row.type(), row.count() - 1) : row)
+                .filter(row -> row.count() > 0)
+                .toList();
+        certificate.setType(CertificateTypes.canonical(type, used));
         certificate.setNumber(number == null || number.isBlank() ? null : number.strip());
         certificate.setExpiresOn(expiresOn);
     }

@@ -221,13 +221,14 @@
 </svg>
 
 <!-- 16px icon before the label of a page header action, in the style of the sidebar icons.
-     name: 'plus' (add), 'upload' (import), 'download' (export).
+     name: 'plus' (add), 'upload' (import), 'download' (export), 'check' (the current view of a viewSwitch, P20).
      Use: <svg th:replace="~{layout/parts :: icon('plus')}"></svg><span th:text="#{...}">Add ship</span> -->
 <svg th:fragment="icon(name)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
     <path th:if="${name == 'plus'}" d="M12 5v14M5 12h14"/>
     <th:block th:if="${name == 'upload'}"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
     <th:block th:if="${name == 'download'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
+    <path th:if="${name == 'check'}" d="m4.5 12.5 5 5 10-11"/>
 </svg>
 
 <!-- The "more" menu at the end of a table or list row: every row action except the one visible next to it.
@@ -402,7 +403,8 @@
 
 <!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows, P09). Same tones as
      status; the text still carries the meaning. icon: 'alert' (expired), 'clock' (expiring, waiting), 'export'
-     (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank, P18).
+     (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank, P18), 'check'
+     (valid, P20).
      Use: <span th:replace="~{layout/parts :: statusIcon('danger', #{...}, 'alert')}"></span> -->
 <span th:fragment="statusIcon(tone, label, icon)" class="badge status-badge status-badge-icon"
       th:classappend="'status-' + ${tone}">
@@ -414,6 +416,7 @@
         <th:block th:if="${icon == 'mail'}"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></th:block>
         <th:block th:if="${icon == 'key'}"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M16 7l3 3M14 9l2 2"/></th:block>
         <th:block th:if="${icon == 'eye'}"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></th:block>
+        <path th:if="${icon == 'check'}" d="m4.5 12.5 5 5 10-11"/>
     </svg>
     <span th:text="${label}">Expired</span>
 </span>
@@ -436,17 +439,29 @@
 <span th:fragment="email(value)" class="truncate" th:title="${value}" th:text="${value}">jane@example.com</span>
 
 <!-- Expiry badge of a certificate: Expired, 30 / 60 / 90 days (the smallest reminder threshold reached), or Valid.
-     today is the UTC date. Used on the crew edit page and the expiring certificates list. -->
+     today is the UTC date. The state is in the text and the icon's shape (P20): a warning triangle when expired, a
+     clock while it runs out, a tick when valid; the colour only repeats it. Used on the crew edit page, the
+     Certificates list and matrix, and the ship's Overview tab. -->
 <th:block th:fragment="certificateBadge(c, today)">
-    <th:block th:with="threshold=${c.reminderThreshold(today)}">
-        <th:block th:if="${c.isExpired(today)}"><span
-                th:replace="~{layout/parts :: status('danger', #{certificate.badge.expired})}"></span></th:block>
-        <th:block th:if="${!c.isExpired(today) and threshold != null}"><span
-                th:replace="~{layout/parts :: status(${threshold == 30} ? 'danger' : (${threshold == 60} ? 'warning' : 'info'), #{certificate.badge.days(${threshold})})}"></span></th:block>
+    <th:block th:with="threshold=${c.reminderThreshold(today)}, expired=${c.isExpired(today)}">
+        <th:block th:if="${expired}"><span
+                th:replace="~{layout/parts :: statusIcon('danger', #{certificate.badge.expired}, 'alert')}"></span></th:block>
+        <th:block th:if="${!expired and threshold != null}"><span
+                th:replace="~{layout/parts :: statusIcon(${threshold == 30} ? 'danger' : (${threshold == 60} ? 'warning' : 'info'), #{certificate.badge.days(${threshold})}, 'clock')}"></span></th:block>
         <th:block th:if="${threshold == null}"><span
-                th:replace="~{layout/parts :: status('ok', #{certificate.badge.valid})}"></span></th:block>
+                th:replace="~{layout/parts :: statusIcon('ok', #{certificate.badge.valid}, 'check')}"></span></th:block>
     </th:block>
 </th:block>
+
+<!-- Two or more views of the same records, as ordinary links (P20: the ship's certificates as a matrix or a list).
+     The current one has aria-current="page", the selected look and a tick; each is a 40px (44px on phones) target.
+     label: what the group switches, for screen readers; views: the links, ~{::viewLinks}, each
+     <a class="view-switch-link" th:href="..." th:aria-current="${current} ? 'page'">Matrix</a>.
+     Use: <nav th:replace="~{layout/parts :: viewSwitch(#{certificate.view.label}, ~{::viewLinks})}">
+              <th:block th:fragment="viewLinks">...</th:block></nav> -->
+<nav th:fragment="viewSwitch(label, views)" class="view-switch" th:attr="aria-label=${label}">
+    <th:block th:replace="${views}"></th:block>
+</nav>
 
 <!-- Lists (P19): search, filters, sort and pages, the same on every office list. The state is a
      core/list/ListQuery, model attribute "list": it builds every link below, all in the URL, so a list can be
