@@ -64,10 +64,11 @@ Requirements: Java 25, Docker.
      Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the request,
      the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
      (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Export**
-     (downloads that request's CSV, as on Requests, and marks it exported; it is gone the next time the page loads),
+     (marks that request exported, as on Requests, and comes back to the Overview, where the row is gone and its CSV
+     downloads by itself: "1 request exported · Download again", see 15),
      **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
      has not acknowledged**. The card shows the first 50 rows ("Showing the first 50 of 63"); under it **Full lists**
-     links each kind to its full list: requests to `/office/requests?notExported=true`, certificates to
+     links each kind to its full list: requests to `/office/requests?exported=no` (not exported yet), certificates to
      `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see 12), the others
      to this page filtered to that kind (`/office?type=invitations`, `acknowledgements`, every row, with **Show all
      open items** to go back; `/office?type=certificates` still works). **Open certificate** opens the form, which
@@ -77,7 +78,7 @@ Requirements: Java 25, Docker.
      within 30 days), not acknowledged (announcements and Required library items as above), requests not exported.
      Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
      its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
-     `/office?type=acknowledgements&shipId=…`, `/office/requests?shipId=…&notExported=true`.
+     `/office?type=acknowledgements&shipId=…`, `/office/requests?shipId=…&exported=no`.
    - `DashboardService.load()` always runs the same 7 queries, whatever the size of the fleet (active ships, crew per
      ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
    With the dev data the two seeded approved requests are two rows with **Export**; export them and the card says
@@ -104,8 +105,9 @@ Requirements: Java 25, Docker.
      and the particulars (name, IMO number, type, flag and the first lines of the particulars text, with **Edit ship
      particulars** and a link to the library). The tab's count is the number of open items, in red when above zero.
    - **Crew** (`/crew`), **Announcements** (`/announcements`) and **Requests** (`/requests`): the fleet-wide lists
-     of 8, 14 and 15 for this ship only, without the ship filter and the Ship column (Requests keeps "Not exported
-     yet" and **Export CSV**). The fleet-wide pages keep their ship filter.
+     of 8, 14 and 15 for this ship only, without the ship filter and the Ship column (Requests keeps its Export
+     status filter, **Export selected** and **Export all not exported (N)** for this ship, and comes back to the
+     tab). The fleet-wide pages keep their ship filter.
    - **Certificates** (`/certificates`): the certificate matrix of the crew on board, or (**List**,
      `/certificates/list`) the Certificates list of 12 for this ship only; see 12.
    - **Library** (`/library`, see 16) and **Items** (`/items`, see 11): the existing pages, now inside the frame.
@@ -334,17 +336,37 @@ Requirements: Java 25, Docker.
    Crew members cannot acknowledge yet (their pages come later), so every recipient shows as "not yet".
 
 15. Approved requests (signed in as an office user): **Requests** in the sidebar (`/office/requests`) lists the item
-   requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at, number of
-   lines and an "Exported" mark. Filter by ship and "Not exported yet"; search the number (`#12`), the people, the ship
-   name or IMO number; sort by approved at, number, ship, requested by and approved by; 25 or 50 per page (paged in
-   the database). Click a request to see its items
-   (`/office/requests/{id}`). Creating and approving requests on board come later; the dev profile seeds two (see 3).
+   requests approved by a Master, newest approval first, with ship, requested by, approved by, approved at and number
+   of lines. Filter by ship and **Export status** (`?exported=`): **Not exported yet** by default (also `no`, and
+   any value it does not know, such as an old `?notExported=true` link), **Exported** (`yes`) or **All** (`all`);
+   these two add an **Exported** column: when, in UTC, and by whom ("12 Nov 2026 · 10:32 UTC", "by John Doe", or
+   "Not yet"). Search the number (`#12`), the people, the ship name or IMO number; sort by approved at, number, ship,
+   requested by and approved by; 25 or 50 per page (paged in the database). Click a request (anywhere on its row but
+   the checkbox; its number is the link for the keyboard) to see its items (`/office/requests/{id}`). Creating and
+   approving requests on board come later; the dev profile seeds two (see 3).
 
-   Check one or more requests and click **Export CSV** to download `approved-requests-<date>.csv` (UTF-8 with BOM,
-   so Excel shows Greek correctly), one row per request line:
-   `imo_number,ship_name,request_id,approved_at,approved_by,item_name,unit,quantity` (`approved_at` in UTC, e.g.
-   `2026-11-10T09:30:00Z`). The exported requests get the "Exported" mark (reload the page to see it) and the export
-   is recorded in the audit log. A request can be exported again.
+   Exporting (P21), three clicks at most:
+   - **Select** rows with their checkboxes, or all rows of the page with the checkbox in the table header (on phones,
+     where the header is hidden, **Select all on this page** above the list; half-checked when some are). The line
+     above the table says how many are selected ("3 selected"); **Export selected** is disabled until at least one
+     is. Or, without selecting, **Export all not exported (N)** exports every approved request not exported yet under
+     the ship filter (every ship without one; on the ship's tab, that ship). It is not shown when there is none.
+   - Both are a POST that records the export (`RequestExport`: who, when, which requests; audit log "Requests
+     exported" with the count and ids), marks the requests exported now by the office user, and redirects to the list
+     showing exactly them, exported (`?exported=yes&exportId=…`, chip "Export: 12 Nov 2026 · 10:32 UTC"; the ship
+     filter kept) with "3 requests exported · Download again". No reload is needed: the rows show as exported and the
+     sidebar counter has dropped. The file is a GET of that export, `/office/requests/exports/{id}`, which the page
+     starts by itself (`js/download.js`); **Download again** repeats it (downloading changes nothing). Without
+     JavaScript the link is there to click.
+   - Selecting requests exported before asks first (P10, neutral): "Export requests that were exported before?
+     Some of the selected requests were exported before. They will be in the file again and marked as exported now,
+     by you." **Export again** / **Cancel** (without JavaScript the same question as a page).
+   - Nothing selected: "Select at least one request to export."; nothing left to export (another office user was
+     quicker): "Nothing to export: every approved request has been exported."
+
+   The file `approved-requests-<date of the export>.csv` (UTF-8 with BOM, so Excel shows Greek correctly) has one row
+   per request line: `imo_number,ship_name,request_id,approved_at,approved_by,item_name,unit,quantity`
+   (`approved_at` in UTC, e.g. `2026-11-10T09:30:00Z`).
 
 16. Ship library (signed in as a ship user, e.g. `master.demo@example.com` / `crew123`): **Library** in the sidebar
    (`/ship/library`) shows the ship particulars (name, IMO number, flag and the particulars text) and the library
@@ -552,8 +574,9 @@ The app makes no request to any other host: everything a page needs is served fr
       "All ships" for a fleet announcement; the status code on the error page. The tabs of the ship page have the
       ship's name as their heading instead. There is no "Office portal" eyebrow;
     - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
-      a card header as well. **Export CSV** on **Requests** moved from the card header to the page header and still
-      submits the list's form without JavaScript (`form="exportForm"`);
+      a card header as well. The export buttons on **Requests** (**Export selected**, **Export all not exported**,
+      P21) are in the page header and still submit their forms without JavaScript (`form="exportForm"`,
+      `form="exportAllForm"`);
     - an optional subtitle (one line, e.g. "Newest first.", or the category, version and date of a library item) and
       the actions on the right.
     The parameters are named: `pageHeader(heading=..., crumbs=~{::pageCrumbs}, eyebrow=..., count=..., subtitle=...,
@@ -601,7 +624,11 @@ The app makes no request to any other host: everything a page needs is served fr
     - without the script (or in a browser without `<dialog>`) nothing is submitted silently: the form has no submit
       button and its trigger is a link to the action's own URL, where a GET shows the same question as a plain page
       (`confirm/confirm.html`, built by `core/confirm/ConfirmPages` from the same message keys) with the confirm
-      button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`).
+      button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`);
+    - an action that asks only sometimes (P21: **Export selected** on Requests, when a selected request was exported
+      before) keeps its submit button and adds `data-confirm-when="<selector>"`: the dialog opens when an element of
+      the form matches it, and Confirm sends the form with `confirmed=true`. Without the script the POST itself
+      answers with the plain confirmation page, which posts the same fields with `confirmed=true`.
 
   - times and dates (P11): office and ship read the same time for the same event, so every time is shown in UTC
     and says so. One format in both languages, from one place, the `@dates` bean (`core/time/Dates`); month names
@@ -673,8 +700,8 @@ The app makes no request to any other host: everything a page needs is served fr
     - sent once: when a POST form is sent, all its submit buttons are disabled and the one pressed shows a spinner
       and "Saving…" (sign-in "Signing in…", sign-out "Signing out…", request export "Exporting…": `data-busy-label`).
       A second click, a double click or Enter sends nothing more. Back to the page (browser Back, `pageshow`) gives
-      the buttons back. The request export answers with a file and does not leave the page (`data-download`), so
-      its button comes back after 4 seconds. The confirmation dialog (P10) sends its form the same way
+      the buttons back. The request export comes back as a page too (P21: its file is a GET the page starts). The
+      confirmation dialog (P10) sends its form the same way
       (`requestSubmit`);
     - drafts: the long-text forms (new announcement: title and message; library: add an item, publish a new
       version, ship particulars; office and crew) carry `data-draft="<the URL of their page>"`. While the user types,

@@ -373,7 +373,7 @@ class ShipPageFlowTest {
         request(demo, null);
         String html = html(get("/office/ships/{id}/requests", demo.getId()));
         assertThat(html).contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">",
-                "id=\"filterNotExported\"", "action=\"/office/ships/" + demo.getId() + "/requests\"");
+                "id=\"filterExported\"", "action=\"/office/ships/" + demo.getId() + "/requests\"");
         mockMvc.perform(post("/office/requests/export").param("returnShipId", demo.getId().toString()).with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + demo.getId() + "/requests"));
     }

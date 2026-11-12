@@ -72,7 +72,8 @@
                     </div>
                 </th:block>
 
-                <!-- c. Approved request not exported: Export downloads its CSV here and marks it exported. -->
+                <!-- c. Approved request not exported: Export marks it exported and comes back here (returnTo), where the
+                     row is gone and its CSV downloads by itself ("1 request exported · Download again", P21). -->
                 <th:block th:if="${type == 'REQUEST_NOT_EXPORTED'}">
                     <div class="attention-text">
                         <div class="attention-meta">
@@ -90,8 +91,9 @@
                             </th:block>
                         </p>
                     </div>
-                    <form class="attention-action" th:action="@{/office/requests/export}" method="post" data-download>
+                    <form class="attention-action" th:action="@{/office/requests/export}" method="post">
                         <input type="hidden" name="ids" th:value="${item.id}">
+                        <input type="hidden" name="returnTo" value="overview">
                         <button type="submit" class="btn btn-outline-secondary btn-sm" th:attr="aria-describedby=${titleId}"
                                 th:data-busy-label="#{save.busy.export}" th:text="#{dashboard.action.export}">Export</button>
                     </form>
@@ -178,7 +180,7 @@
             <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
             <ul class="attention-lists" aria-labelledby="attentionListsTitle">
                 <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
-                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(notExported=true)} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
+                    <a th:href="${name == 'REQUESTS'} ? @{/office/requests(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
                         <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
                     </a>
@@ -213,7 +215,7 @@
                         <td class="num" th:attr="data-label=#{dashboard.fleet.notAcknowledged}"><th:block
                                 th:replace="~{layout/parts :: countLink(${row.notAcknowledged}, @{/office(type='acknowledgements', shipId=${id})})}"></th:block></td>
                         <td class="num" th:attr="data-label=#{dashboard.fleet.requests}"><th:block
-                                th:replace="~{layout/parts :: countLink(${row.requestsNotExported}, @{/office/requests(shipId=${id}, notExported=true)})}"></th:block></td>
+                                th:replace="~{layout/parts :: countLink(${row.requestsNotExported}, @{/office/requests(shipId=${id}, exported='no')})}"></th:block></td>
                     </tr>
                     </tbody>
                 </table>

@@ -4,70 +4,114 @@
 <body>
 <!-- Also the Requests tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
      header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab. -->
-<!-- On the tab the "Not exported yet" filter stays (it is not a ship filter), and Export CSV comes back to the tab
-     when nothing was checked. -->
-<main th:with="onShip=${shipTab != null}">
+<!-- Export (P21): select rows (the header checkbox selects the page) and Export selected, or Export all not exported
+     (N) for the list's ship (or every ship) without selecting. Both POST, record the export and come back to this
+     list showing exactly the exported requests, with "3 requests exported · Download again"; the download starts by
+     itself (layout/parts :: flash, js/download.js). Without JavaScript everything still submits; there is no
+     select-all and no selection count, and Export selected is never disabled (nothing checked: a message). -->
+<main th:with="onShip=${shipTab != null}, showExported=${exported != null}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{ship/parts :: header}"></th:block>
         <div th:replace="~{ship/parts :: tabHeading(#{request.list.heading}, ~{::pageActions})}"></div>
     </th:block>
     <th:block th:unless="${onShip}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.heading}, count=${requests.totalElements}, subtitle=#{request.list.hint}, actions=~{::pageActions})}">
-        <!-- Submits the export form around the list below (form attribute), with the checked requests. -->
+        <!-- Submit the forms below (form attribute). Export selected is disabled by js/list-rows.js while nothing is
+             selected; the line above the table (selectionCount) says why. -->
         <th:block th:fragment="pageActions">
-            <button th:unless="${requests.isEmpty()}" type="submit" form="exportForm" class="btn btn-primary"
+            <button th:if="${notExportedCount > 0}" type="submit" form="exportAllForm" class="btn btn-outline-secondary"
                     th:data-busy-label="#{save.busy.export}">
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
-                <span th:text="#{request.export}">Export CSV</span>
+                <span th:text="#{request.exportAll(${notExportedCount})}">Export all not exported (3)</span>
+            </button>
+            <button th:unless="${requests.isEmpty()}" type="submit" form="exportForm" class="btn btn-primary"
+                    data-needs-selection aria-describedby="selectionCount" th:data-busy-label="#{save.busy.export}">
+                <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                <span th:text="#{request.export}">Export selected</span>
             </button>
         </th:block>
     </header>
     </th:block>
 
-    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. On the ship's tab the
-         "Not exported yet" filter stays (it is not a ship filter). -->
+    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. Export status: not
+         exported yet (the default, no chip), exported or all; on the ship's tab too (it is not a ship filter). The
+         list an export comes back to has an "Export: <time>" chip (exportId). -->
     <div th:replace="~{layout/parts :: filterBar(${list}, ${onShip} ? #{request.search.tab} : #{request.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <th:block th:unless="${onShip}"><div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div></th:block>
-            <div class="filter-field filter-field-check">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="filterNotExported" name="notExported"
-                           value="true" th:checked="${notExported}">
-                    <label class="form-check-label" for="filterNotExported" th:text="#{request.filter.notExported}">Not exported yet</label>
-                </div>
+            <div class="filter-field">
+                <label for="filterExported" class="form-label" th:text="#{request.filter.exported}">Export status</label>
+                <select id="filterExported" name="exported" class="form-select">
+                    <option value="" th:text="#{request.filter.exported.no}">Not exported yet</option>
+                    <option th:each="o : ${exportedOptions}" th:value="${o.key()}" th:selected="${o.key() == exported}"
+                            th:text="#{${o.labelKey()}}">Exported</option>
+                </select>
             </div>
         </th:block>
     </div>
 
-
-    <!-- Check requests and export them. The download does not reload this page (data-download: js/save.js gives the
-         button back after a few seconds, P15). -->
-    <form id="exportForm" th:action="@{/office/requests/export}" method="post" data-download>
+    <!-- Export all not exported: the list's ship, or every ship. -->
+    <form id="exportAllForm" th:action="@{/office/requests/export-all}" method="post">
         <input th:if="${onShip}" type="hidden" name="returnShipId" th:value="${ship.id}">
+        <input th:if="${!onShip and shipId != null}" type="hidden" name="shipId" th:value="${shipId}">
+    </form>
+
+    <!-- Export selected. Selecting requests exported before asks first (P10, neutral): with js/confirm.js the dialog
+         (data-confirm-when: a checked row with data-exported), without it the plain confirmation page. -->
+    <form id="exportForm" th:action="@{/office/requests/export}" method="post" data-selection
+          th:data-confirm-title="#{request.export.again.title}" th:data-confirm-body="#{request.export.again.body}"
+          th:data-confirm-label="#{request.export.again}" data-confirm-tone="neutral"
+          data-confirm-when="input[name=ids][data-exported]:checked">
+        <input th:if="${onShip}" type="hidden" name="returnShipId" th:value="${ship.id}">
+        <input th:if="${!onShip and shipId != null}" type="hidden" name="shipId" th:value="${shipId}">
         <div class="card">
-            <th:block th:replace="~{layout/parts :: listEmpty(${requests}, ${list}, #{request.list.empty})}"></th:block>
+            <th:block th:replace="~{layout/parts :: listEmpty(${requests}, ${list}, #{${emptyKey}})}"></th:block>
+
+            <!-- The selection line: how many are selected (a live region) and, on phones, where the table header is
+                 hidden, the select-all checkbox. Shown by js/list-rows.js only. -->
+            <div th:unless="${requests.isEmpty()}" class="list-selection" hidden data-selection-only>
+                <div class="form-check list-selection-all">
+                    <input class="form-check-input" type="checkbox" id="selectAllPhone" data-select-all>
+                    <label class="form-check-label" for="selectAllPhone" th:text="#{request.selectAll.short}">Select all on this page</label>
+                </div>
+                <p id="selectionCount" class="list-selection-count" role="status" data-selection-count
+                   th:data-none="#{request.selection.none}" th:data-one="#{request.selection.one}"
+                   th:data-many="#{request.selection.many('{count}')}" th:text="#{request.selection.none}">Select the requests to export</p>
+            </div>
 
             <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
-                 stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls. -->
+                 stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls.
+                 A row opens its request when clicked outside its checkbox (data-row-href, js/list-rows.js); its
+                 number stays the link for the keyboard and without the script. Exported (not in the default view,
+                 where every row is "not yet"): when, in UTC, and by whom. -->
             <div th:unless="${requests.isEmpty()}" class="table-responsive table-sticky">
                 <table class="table data-table data-table-stack align-middle mb-0">
                     <thead>
                     <tr>
-                        <th scope="col"><span class="visually-hidden" th:text="#{request.select}">Select</span></th>
+                        <th scope="col" class="cell-select">
+                            <span class="visually-hidden" th:text="#{request.select}">Select</span>
+                            <label class="select-target" hidden data-selection-only>
+                                <input class="form-check-input" type="checkbox" data-select-all
+                                       th:attr="aria-label=#{request.selectAll}">
+                            </label>
+                        </th>
                         <th th:replace="~{layout/parts :: sortHeader(${list}, 'number', #{request.id})}"></th>
                         <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
                         <th th:replace="~{layout/parts :: sortHeader(${list}, 'requestedBy', #{request.requestedBy})}"></th>
                         <th th:replace="~{layout/parts :: sortHeader(${list}, 'approvedBy', #{request.approvedBy})}"></th>
                         <th th:replace="~{layout/parts :: sortHeader(${list}, 'approvedAt', #{request.approvedAt})}"></th>
                         <th scope="col" class="num" th:text="#{request.lineCount}">Lines</th>
-                        <th scope="col" th:text="#{request.exported}">Exported</th>
+                        <th th:if="${showExported}" scope="col" th:text="#{request.exported}">Exported</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="r : ${requests}">
+                    <tr th:each="r : ${requests}" th:data-row-href="@{/office/requests/{id}(id=${r.id})}">
                         <td class="cell-select">
-                            <input class="form-check-input" type="checkbox" name="ids" th:value="${r.id}"
-                                   th:id="'select' + ${r.id}" th:attr="aria-label=#{request.number(${r.id})}">
+                            <label class="select-target">
+                                <input class="form-check-input" type="checkbox" name="ids" th:value="${r.id}"
+                                       th:id="'select' + ${r.id}" data-select-row
+                                       th:attr="aria-label=#{request.number(${r.id})}, data-exported=${r.exportedAt != null} ? 'true' : null">
+                            </label>
                         </td>
                         <td class="cell-primary text-nowrap">
                             <a th:href="@{/office/requests/{id}(id=${r.id})}" th:text="#{request.number(${r.id})}">#12</a>
@@ -79,9 +123,14 @@
                             <time th:replace="~{layout/parts :: localTime(${r.decidedAt})}"></time>
                         </td>
                         <td class="num" th:attr="data-label=#{request.lineCount}" th:text="${r.lines.size()}">2</td>
-                        <td class="cell-status">
-                            <th:block th:if="${r.exportedAt}"><span
-                                    th:replace="~{layout/parts :: status('ok', #{request.exported})}">Exported</span></th:block>
+                        <td th:if="${showExported}" th:attr="data-label=#{request.exported}">
+                            <span th:if="${r.exportedAt}" class="exported-by">
+                                <time th:replace="~{layout/parts :: localTime(${r.exportedAt})}"></time>
+                                <span class="exported-by-name"
+                                      th:with="by=${r.exportedBy != null} ? ${r.exportedBy.fullName} : #{audit.deletedUser}"
+                                      th:text="#{request.exportedBy(${by})}">by John Doe</span>
+                            </span>
+                            <span th:unless="${r.exportedAt}" class="text-body-secondary" th:text="#{request.notExported}">Not yet</span>
                         </td>
                     </tr>
                     </tbody>

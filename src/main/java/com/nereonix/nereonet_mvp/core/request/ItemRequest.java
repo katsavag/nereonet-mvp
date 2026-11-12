@@ -67,6 +67,11 @@ public class ItemRequest {
     // Last CSV export by the office. Null until exported; a request can be exported again.
     private Instant exportedAt;
 
+    // The office user of the last export (P21). Null until exported, or when the user was deleted.
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User exportedBy;
+
     @OneToMany(mappedBy = "request")
     @OrderBy("id")
     @BatchSize(size = 50)

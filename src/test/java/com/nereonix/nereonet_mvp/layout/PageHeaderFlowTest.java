@@ -268,11 +268,12 @@ class PageHeaderFlowTest {
         assertThat(html(get("/office/ships"))).containsPattern("<h1 class=\"page-title\">\\s*<span>Ships</span>\\s*"
                 + "<span class=\"title-count\"><span aria-hidden=\"true\">·</span> <span class=\"num\">1</span></span>");
 
-        // Export CSV moved from the card header to the page header; it still submits the list's form without JavaScript.
+        // Export moved from the card header to the page header; it still submits the list's form without JavaScript
+        // (P21: Export all not exported first, then Export selected, the primary action).
         String requests = html(get("/office/requests"));
-        // (data-download, data-busy-label: P15.)
-        assertThat(requests).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\" data-download>")
-                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
+        assertThat(requests).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\" data-selection")
+                .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportAllForm\" class=\"btn btn-outline-secondary\"")
+                .containsPattern("</button>\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
     }
 
     @Test

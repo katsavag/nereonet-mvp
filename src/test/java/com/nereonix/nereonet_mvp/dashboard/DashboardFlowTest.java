@@ -188,7 +188,7 @@ class DashboardFlowTest {
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
         // The full list of each kind.
-        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/requests?notExported=true\"",
+        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/requests?exported=no\"",
                 "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
     }
 
@@ -204,8 +204,9 @@ class DashboardFlowTest {
         assertThat(count(list, ">Export</button>")).isEqualTo(2);
 
         for (ItemRequest request : seeded) {
-            mockMvc.perform(post("/office/requests/export").param("ids", request.getId().toString()).with(csrf()))
-                    .andExpect(status().isOk());
+            mockMvc.perform(post("/office/requests/export").param("ids", request.getId().toString())
+                            .param("returnTo", "overview").with(csrf()))
+                    .andExpect(redirectedUrl("/office"));
         }
 
         String html = html(get("/office"));
@@ -280,7 +281,7 @@ class DashboardFlowTest {
                 "href=\"/office/crew?shipId=" + busyId + "\"",
                 "href=\"/office/certificates?shipId=" + busyId + "&amp;status=expired,30\"",
                 "href=\"/office?type=acknowledgements&amp;shipId=" + busyId + "\"",
-                "href=\"/office/requests?shipId=" + busyId + "&amp;notExported=true\"");
+                "href=\"/office/requests?shipId=" + busyId + "&amp;exported=no\"");
         // The calm ship: crew linked, every other count a muted dash and no link.
         long calmId = calm.getId();
         assertThat(fleet).contains("href=\"/office/crew?shipId=" + calmId + "\"")

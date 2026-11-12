@@ -177,8 +177,12 @@ class SaveFlowTest {
     }
 
     @Test
-    void downloadsGiveTheirButtonBack() throws Exception {
-        assertThat(html(get("/office/requests"))).contains("method=\"post\" data-download");
+    void anExportComesBackAsAPage() throws Exception {
+        // P21: the export POST redirects to a page, so its button never has to be given back by a timer.
+        assertThat(html(get("/office/requests"))).contains("<form id=\"exportForm\" action=\"/office/requests/export\" method=\"post\"")
+                .doesNotContain("data-download");
+        String script = new ClassPathResource("static/js/save.js").getContentAsString(StandardCharsets.UTF_8);
+        assertThat(script).doesNotContain("data-download");
     }
 
     @Test

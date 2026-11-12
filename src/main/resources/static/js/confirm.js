@@ -9,6 +9,10 @@
 // the dialog; Confirm submits the form. Focus starts on Cancel; Esc, Cancel and the backdrop close the dialog and
 // put focus back where it was. Without this script, or in a browser without <dialog>, the link opens the page, so a
 // confirmForm never submits unconfirmed.
+// A form that asks only sometimes (P21, exporting requests exported before) has a submit button instead, and
+//   data-confirm-when     a selector: when an element of the form matches it, sending the form opens the dialog
+// Confirm then sends it with confirmed=true. Without this script the server answers such a form with the plain
+// confirmation page, which posts the same fields with confirmed=true.
 (function () {
     'use strict';
 
@@ -21,6 +25,7 @@
     const cancel = dialog.querySelector('[data-confirm-cancel]');
     const ok = dialog.querySelector('[data-confirm-ok]');
     let form = null;
+    let submitter = null;
     let returnFocus = null;
 
     function open(target, trigger) {
@@ -48,8 +53,29 @@
             return;
         }
         event.preventDefault();
+        submitter = null;
         open(target, trigger);
     });
+
+    // data-confirm-when: in the capture phase, so before js/save.js marks the form as being sent.
+    document.addEventListener('submit', event => {
+        const target = event.target;
+        if (!(target instanceof HTMLFormElement) || !target.dataset.confirmWhen || event.defaultPrevented) {
+            return;
+        }
+        const confirmed = target.querySelector('input[name=confirmed][data-confirm-added]');
+        if (confirmed) {
+            // Sent after Confirm; the field goes once the browser has read the form, so a later send asks again.
+            setTimeout(() => confirmed.remove(), 0);
+            return;
+        }
+        if (!target.querySelector(target.dataset.confirmWhen)) {
+            return;
+        }
+        event.preventDefault();
+        submitter = event.submitter || null;
+        open(target, submitter || target);
+    }, true);
 
     cancel.addEventListener('click', () => dialog.close());
 
@@ -57,11 +83,20 @@
         // Once only: a second click on a slow connection must not post the action twice.
         ok.disabled = true;
         const target = form;
+        const button = submitter;
         returnFocus = null;
         dialog.close();
+        if (target.dataset.confirmWhen) {
+            const confirmed = document.createElement('input');
+            confirmed.type = 'hidden';
+            confirmed.name = 'confirmed';
+            confirmed.value = 'true';
+            confirmed.setAttribute('data-confirm-added', '');
+            target.append(confirmed);
+        }
         // requestSubmit fires "submit", so js/save.js sees it: not sent while offline, no "leave this page?" (P15).
         if (typeof target.requestSubmit === 'function') {
-            target.requestSubmit();
+            target.requestSubmit(button && button.form === target ? button : undefined);
         } else {
             target.submit();
         }

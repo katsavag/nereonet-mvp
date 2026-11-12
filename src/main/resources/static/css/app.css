@@ -242,6 +242,7 @@ h1, .h1 {
 .form-check-input.is-invalid:focus { border-color: var(--bs-form-invalid-border-color); }
 
 /* Checkboxes and radios: 20px, same border as the fields. */
+:root { --nn-check-size: 1.25rem; }
 .form-check {
     min-height: 1.5rem;
     padding-left: 2rem;
@@ -249,8 +250,8 @@ h1, .h1 {
 .form-check .form-check-input { margin-left: -2rem; }
 .form-check-input {
     --bs-form-check-bg: var(--nn-field);
-    width: 1.25rem;
-    height: 1.25rem;
+    width: var(--nn-check-size);
+    height: var(--nn-check-size);
     margin-top: .125rem;
     border-color: var(--nn-field-border);
 }
@@ -2231,4 +2232,68 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .cert-matrix-scroll:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
 @media (max-width: 767.98px) {
     :root { --nn-matrix-person-width: 9.5rem; }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Request export that shows its own result (P21): officerequest/list.html, js/list-rows.js.
+     - .select-target: a row checkbox, or the header's select-all, with a click area the size of a touch target that
+       overlaps the cell's padding, so the cell keeps its size;
+     - .list-selection: the line above the table, "3 selected" (and, on phones, where the table header is hidden,
+       "Select all on this page");
+     - tr.is-row-link: a row that opens its record when clicked (set by the script: no pointer without it); the
+       checkbox cell keeps the normal pointer, a click there never opens the row;
+     - .exported-by: when (UTC) and by whom, on two lines.
+   --------------------------------------------------------------------------------------------------------------- */
+.select-target {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    margin: calc((var(--nn-check-size) - var(--nn-touch-target)) / 2);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.list-selection {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-2) var(--nn-card-padding);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.list-selection-count {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.list-selection-all { display: none; }
+@media (max-width: 767.98px) {
+    .list-selection-all {
+        display: flex;
+        align-items: center;
+        gap: var(--nn-space-3);
+        min-height: var(--nn-touch-target);
+        margin: 0;
+        padding-left: 0;
+    }
+    .list-selection-all .form-check-input { margin: 0; }
+    .list-selection-all .form-check-label { padding-block: var(--nn-space-2); }
+}
+
+.data-table > tbody > tr.is-row-link { cursor: pointer; }
+.data-table > tbody > tr.is-row-link > .cell-select { cursor: default; }
+
+.exported-by {
+    display: inline-flex;
+    flex-direction: column;
+}
+.exported-by-name {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+@media (max-width: 767.98px) {
+    .exported-by { align-items: flex-end; }
 }

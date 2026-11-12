@@ -2,8 +2,8 @@
 // Only enhancements: without this script every form still submits as before.
 //  - Every POST form: once sent, its submit buttons are disabled and the one pressed shows a spinner and "Saving…"
 //    (data-busy on layout/parts :: offlineBanner; a button can say otherwise with data-busy-label), so a second press
-//    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. A form whose answer is a file
-//    (data-download) does not leave the page: its buttons come back after a few seconds.
+//    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. (An export comes back as a page
+//    too, P21: its file is a GET the page starts, js/download.js.)
 //  - Drafts: a form with data-draft="<its page's URL>" keeps its fields in localStorage while the user types, under
 //    that URL and the signed-in user (<body data-user>), so another user on the same PC never sees it. Never file
 //    inputs, passwords or hidden fields, nor a field marked data-draft-skip. Opening the form with a draft that differs
@@ -28,7 +28,6 @@
     const busyLabel = (banner && banner.dataset.busy) || 'Saving…';
     const DRAFT = 'nn.draft.';
     const PENDING = 'nn.draft.pending';
-    const DOWNLOAD_MS = 4000;
     const lang = document.documentElement.lang || undefined;
 
     // ---- Storage, never trusted to be there --------------------------------------------------------------------
@@ -346,12 +345,6 @@
         // After the browser has read the form: a disabled button would not be sent with it.
         const submitter = event.submitter;
         setTimeout(() => setBusy(form, submitter), 0);
-        if (form.hasAttribute('data-download')) {
-            setTimeout(() => {
-                setIdle(form);
-                sending = false;
-            }, DOWNLOAD_MS);
-        }
     });
 
     // Back to this page from the browser's cache (Back button, a failed request): buttons as before.

@@ -178,23 +178,26 @@ class ListsFlowTest {
         request(beta, bob, RequestStatus.PENDING, START, false);
         long firstId = alphaRequests.getFirst().getId();
 
-        assertThat(names(html(get("/office/requests").param("q", "beta"))))
+        // Not exported yet is the default view (P21); Export status: Exported or All on request.
+        assertThat(names(html(get("/office/requests").param("q", "beta")))).isEmpty();
+        assertThat(names(html(get("/office/requests").param("q", "beta").param("exported", "all"))))
                 .containsExactly(number(exported.getId()));
         assertThat(names(html(get("/office/requests").param("q", "#" + firstId)))).containsExactly(number(firstId));
-        assertThat(names(html(get("/office/requests").param("notExported", "true"))))
-                .hasSize(25).doesNotContain(number(exported.getId()));
+        assertThat(names(html(get("/office/requests")))).hasSize(25).doesNotContain(number(exported.getId()));
+        assertThat(names(html(get("/office/requests").param("exported", "yes")))).containsExactly(number(exported.getId()));
         // Newest approval first; by number, lowest first when asked.
         assertThat(names(html(get("/office/requests"))).getFirst()).isEqualTo(number(alphaRequests.getLast().getId()));
         assertThat(names(html(get("/office/requests").param("sort", "number").param("dir", "asc"))).getFirst())
                 .isEqualTo(number(firstId));
 
-        String second = html(get("/office/requests").param("page", "2"));
+        String second = html(get("/office/requests").param("exported", "all").param("page", "2"));
         assertThat(names(second)).containsExactly(number(alphaRequests.get(0).getId()), number(exported.getId()));
         assertThat(second).contains("26 to 27 of 27");
 
         String tab = "/office/ships/" + beta.getId() + "/requests";
-        assertThat(names(html(get(tab)))).containsExactly(number(exported.getId()));
-        assertThat(html(get(tab).param("notExported", "true"))).contains("No results for these filters");
+        assertThat(html(get(tab))).contains("Every approved request has been exported.");
+        assertThat(names(html(get(tab).param("exported", "all")))).containsExactly(number(exported.getId()));
+        assertThat(html(get(tab).param("q", "nobody"))).contains("No results for these filters");
     }
 
     // Announcements --------------------------------------------------------------------------------------------------

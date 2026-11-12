@@ -656,11 +656,16 @@
 </th:block>
 
 <!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
-     "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."). -->
+     "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."), and "successDownloadUrl",
+     the GET URL of a file the action prepared (P21: "3 requests exported · Download again"). js/download.js starts
+     that download once when the page opens; the link is there to repeat it, and is all there is without the script. -->
 <!-- data-flash="success": the server confirmed a save; js/save.js then removes the draft of the form just sent (P15). -->
 <th:block th:fragment="flash">
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert" data-flash="success">
         <span th:text="${successArgs != null} ? ${#messages.msgWithParams(successMessage, successArgs)} : #{${successMessage}}"></span>
+        <th:block th:if="${successDownloadUrl}"><span aria-hidden="true">·</span>
+            <a class="alert-link" th:href="@{${successDownloadUrl}}" download data-auto-download
+               th:text="#{flash.downloadAgain}">Download again</a></th:block>
         <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
     </div>
     <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">

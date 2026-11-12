@@ -23,6 +23,14 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     List<ItemRequest> findAllByIdInAndStatusOrderByDecidedAtDescIdDesc(Collection<Long> ids, RequestStatus status);
 
+    // "Export all not exported" (P21): every approved request never exported, of one ship or (shipId null) all.
+    @Query("""
+            select r from ItemRequest r
+            where r.status = :status and r.exportedAt is null
+              and (:shipId is null or r.ship.id = :shipId)
+            order by r.decidedAt desc, r.id desc""")
+    List<ItemRequest> findNotExported(RequestStatus status, Long shipId);
+
     // One ship's requests with this status: the ship page's Requests tab; and those never exported, its Overview tab.
     long countByStatusAndShipId(RequestStatus status, Long shipId);
 
