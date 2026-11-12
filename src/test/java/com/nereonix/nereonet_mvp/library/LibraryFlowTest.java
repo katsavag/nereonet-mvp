@@ -36,6 +36,7 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItemVersionRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
 import com.nereonix.nereonet_mvp.core.notification.Notification;
 import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
+import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -141,6 +142,8 @@ class LibraryFlowTest {
         Notification notification = notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc(crew.getEmail()).get(0);
         assertThat(notification.getText()).isEqualTo("Library · New document to read");
         assertThat(notification.getLink()).isEqualTo("/ship/library/" + item.getId());
+        assertThat(notification.getType()).isEqualTo(NotificationType.LIBRARY);
+        assertThat(notification.getSubject()).isEqualTo("MV Demo");
     }
 
     @Test

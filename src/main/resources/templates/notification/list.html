@@ -1,31 +1,85 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{notification.title}, ~{::main})}">
 <body>
+<!-- Notifications (P23). Newest first, grouped by UTC day (Today, Yesterday, then the date), 25 to a page. Showing
+     this page marks nothing as read. A notification is read once it is opened (its text, a POST that then follows its
+     link) or marked as read; Mark all as read is in the page header while anything is unread. Unread ones have a dot,
+     bold text and "Unread:" for screen readers; the type icon's shape and hidden label say what it is about.
+     js/notifications.js marks as read in place and updates the counters; without it each form reloads the page. -->
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{notification.heading})}"></header>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{notification.heading}, subtitle=#{notification.subtitle},
+                         actions=${unreadNotifications > 0} ? ~{::pageActions} : null)}">
+        <th:block th:fragment="pageActions">
+            <form th:action="@{/notifications/read-all}" method="post" data-notification-read-all>
+                <input th:if="${list.request.page() != null}" type="hidden" name="page" th:value="${list.request.page()}">
+                <input th:if="${list.request.size() != null}" type="hidden" name="size" th:value="${list.request.size()}">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                    <span th:text="#{notification.markAllRead}">Mark all as read</span>
+                </button>
+            </form>
+        </th:block>
+    </header>
 
-    <!-- Newest first. Opening this page marks them as read; readAt is still null for the ones that were new. -->
-    <div class="card form-box">
-        <p th:if="${notifications.isEmpty()}" class="card-body text-body-secondary mb-0"
+    <!-- What js/notifications.js did ("Notification marked as read."), for screen readers. -->
+    <p class="visually-hidden" role="status" data-notification-status
+       th:data-one="#{notification.markedRead}" th:data-all="#{notification.allMarkedRead}"></p>
+
+    <div class="card notification-card">
+        <p th:if="${notifications.totalElements == 0}" class="card-body text-body-secondary mb-0"
            th:text="#{notification.empty}">No notifications yet.</p>
 
-        <ul th:unless="${notifications.isEmpty()}" class="list-group list-group-flush">
-            <li th:each="n : ${notifications}" class="list-group-item py-3"
-                th:classappend="${n.readAt == null} ? 'list-group-item-primary'">
-                <div class="d-flex align-items-start gap-2">
-                    <div class="flex-grow-1 text-break">
-                        <a th:if="${n.link}" th:href="@{${n.link}}" class="stretched-link link-body-emphasis"
-                           th:text="${n.text}">Your certificate STCW expires in 60 days.</a>
-                        <span th:unless="${n.link}" th:text="${n.text}">Your certificate STCW expires in 60 days.</span>
-                        <div class="small text-body-secondary mt-1">
-                            <time th:replace="~{layout/parts :: localTime(${n.createdAt})}"></time>
-                        </div>
+        <section th:each="day, dayStat : ${days}" class="notification-day"
+                 th:with="dayId=${'notificationDay' + dayStat.index}, ago=${-@dates.daysUntil(day.date)}"
+                 th:attr="aria-labelledby=${dayId}">
+            <h2 class="notification-day-title" th:id="${dayId}"
+                th:text="${ago == 0} ? #{notification.day.today} : (${ago == 1} ? #{notification.day.yesterday} : ${@dates.date(day.date)})">Today</h2>
+            <ul class="notification-list">
+                <li th:each="n : ${day.notifications}" class="notification" th:classappend="${n.readAt == null} ? 'is-unread'"
+                    th:with="unread=${n.readAt == null}, metaIds=${'notificationSubject' + n.id + ' notificationTime' + n.id}"
+                    data-notification>
+                    <span class="notification-dot" aria-hidden="true"></span>
+                    <span class="notification-icon" th:title="#{${'notification.type.' + (n.type == null ? 'none' : n.type)}}">
+                        <svg th:replace="~{layout/parts :: navIcon(${n.type == null} ? 'notifications' : ${n.type.icon})}"></svg>
+                        <span class="visually-hidden" th:text="#{${'notification.type.' + (n.type == null ? 'none' : n.type)}}">Library</span>
+                    </span>
+                    <div class="notification-body">
+                        <p th:if="${n.subject}" class="notification-subject" th:id="${'notificationSubject' + n.id}"
+                           th:text="${n.subject}">MV Demo</p>
+                        <!-- Unread with a link: opening it is a POST that marks it as read, then goes to the link. -->
+                        <form th:if="${unread and n.link != null}" class="notification-open-form" method="post"
+                              th:action="@{/notifications/{id}/open(id=${n.id})}">
+                            <button type="submit" class="notification-text notification-open stretched-link"
+                                    th:data-busy-label="#{notification.opening}" th:aria-describedby="${metaIds}">
+                                <span class="visually-hidden" data-unread-label th:text="#{notification.unread} + ': '">Unread: </span>
+                                <th:block th:text="${n.text}">Library · New document to read</th:block>
+                            </button>
+                        </form>
+                        <a th:if="${!unread and n.link != null}" class="notification-text notification-open stretched-link" th:href="@{${n.link}}"
+                           th:aria-describedby="${metaIds}" th:text="${n.text}">Library · New document to read</a>
+                        <p th:if="${n.link == null}" class="notification-text">
+                            <span th:if="${unread}" class="visually-hidden" data-unread-label th:text="#{notification.unread} + ': '">Unread: </span>
+                            <th:block th:text="${n.text}">Your certificate STCW expires in 60 days.</th:block>
+                        </p>
+                        <p class="notification-time" th:id="${'notificationTime' + n.id}">
+                            <time th:replace="~{layout/parts :: utcTime(${n.createdAt})}"></time>
+                        </p>
                     </div>
-                    <span th:if="${n.readAt == null}" class="badge rounded-pill text-bg-primary"
-                          th:text="#{notification.new}">New</span>
-                </div>
-            </li>
-        </ul>
+                    <form th:if="${unread}" class="notification-mark" method="post"
+                          th:action="@{/notifications/{id}/read(id=${n.id})}" data-notification-read>
+                        <input th:if="${list.request.page() != null}" type="hidden" name="page" th:value="${list.request.page()}">
+                        <input th:if="${list.request.size() != null}" type="hidden" name="size" th:value="${list.request.size()}">
+                        <button type="submit" class="btn btn-ghost btn-sm"
+                                th:attr="aria-label=#{notification.markRead.named(${n.text})}">
+                            <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                            <span th:text="#{notification.markRead}">Mark as read</span>
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </section>
+
+        <nav th:replace="~{layout/parts :: pager(${notifications}, ${list})}"></nav>
     </div>
 </main>
 </body>

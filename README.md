@@ -306,8 +306,26 @@ Requirements: Java 25, Docker.
    certificate expiring in 60 days, and watch Mailpit.
 
 13. Notifications (any signed-in user): the bell in the top bar (phones) and **Notifications** in the sidebar (a pill,
-   see "sidebar navigation" below) show the number of unread notifications. `/notifications` lists them, newest first; opening it marks them as read
-   (new ones stay highlighted on that visit).
+   see "sidebar navigation" below) show the number of unread notifications. `/notifications` lists them, newest first,
+   grouped by UTC day (**Today**, **Yesterday**, then the date), 25 to a page (or 50, with the usual pager). Each shows a
+   type icon (certificate, library, announcement; the bell for notifications saved before P23), the ship or person it
+   concerns ("MV Demo", "Jane Doe · MV Demo"), its text and the time in UTC ("12:40 UTC").
+   Notifications stay until handled (P23):
+   - showing the list marks nothing as read; leaving it keeps the unread count;
+   - a notification is read once it is opened: its text is a POST (`/notifications/{id}/open`) that marks it and goes
+     to its link (a library item, for example). A notification without a link (the certificate reminder) has only
+     **Mark as read** (`/notifications/{id}/read`). **Mark all as read** (`/notifications/read-all`) is in the page header
+     while anything is unread. Each comes back to the same page of the list with "Notification marked as read." or
+     "All notifications marked as read.";
+   - unread ones have a dot and bold text ("Unread:" for screen readers); read ones are regular weight, no dot, and
+     their text is a plain link;
+   - with JavaScript (`js/notifications.js`) Mark as read and Mark all as read do not reload the page: they are sent
+     with `Accept: application/json`, the answer is the new count, and the row, the sidebar pill and the top bar's
+     bell change in place (offline, or on any other answer, the form is sent the ordinary way). Back to the list after
+     opening a notification reloads it, so the one just opened no longer shows as unread;
+   - only the user's own notifications (someone else's id gives 404). Reading a notification is not recorded in the
+     audit log: it is the user's own bookkeeping, not a change to shared records.
+   `notification.type` and `notification.subject` are new nullable columns (Hibernate adds them on start).
 
 14. Announcements (signed in as an office user): **Announcements** in the sidebar (`/office/announcements`) lists every
    announcement, newest first, with its target (All ships or a ship), date and e.g. "1 of 2 acknowledged".
@@ -638,7 +656,8 @@ The app makes no request to any other host: everything a page needs is served fr
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
       exactly those, `/office/certificates?status=expired,30`, P20), **Requests** approved and not
       exported, **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
-      office users only; `unreadNotifications` from `NotificationBellAdvice`);
+      office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
+      follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
     - phones (below 768 px): the sidebar is an offcanvas opened from the top bar's menu button and closed with Esc or
       the backdrop. Entries are 40 px tall (44 px on phones); Tab goes brand, entries in visual order, language, Sign
       out, then the page.

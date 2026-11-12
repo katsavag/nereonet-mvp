@@ -17,15 +17,23 @@ public class NotificationService {
         this.notificationRepository = notificationRepository;
     }
 
-    /** Saves an unread notification. link is an app path such as /ship, or null. */
+    /**
+     * Saves an unread notification (P23). subject: the ship or person it concerns, shown above the text ("MV Demo",
+     * "Jane Doe · MV Demo"). link: an app path such as /ship/library/3, or null; opening the notification follows it.
+     */
     @Transactional
-    public Notification notify(User user, String text, String link) {
+    public Notification notify(User user, NotificationType type, String subject, String text, String link) {
         Notification notification = new Notification();
         notification.setUser(user);
-        notification.setText(text.length() > Notification.TEXT_MAX_LENGTH
-                ? text.substring(0, Notification.TEXT_MAX_LENGTH) : text);
+        notification.setType(type);
+        notification.setSubject(cut(subject, Notification.SUBJECT_MAX_LENGTH));
+        notification.setText(cut(text, Notification.TEXT_MAX_LENGTH));
         notification.setLink(link);
         notification.setCreatedAt(Instant.now());
         return notificationRepository.save(notification);
+    }
+
+    private static String cut(String value, int max) {
+        return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 }

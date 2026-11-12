@@ -113,8 +113,9 @@
             </button>
             <!-- The current page's name; the brand is in the sidebar. -->
             <span class="topbar-title fw-bold" th:text="${title}">Ships</span>
-            <!-- Notification bell with the unread count, always visible on phones. -->
-            <a class="btn text-white p-2 ms-auto position-relative" th:href="@{/notifications}"
+            <!-- Notification bell with the unread count, always visible on phones. js/notifications.js updates the
+                 count and the label in place after Mark as read (P23). -->
+            <a class="btn text-white p-2 ms-auto position-relative" id="notificationBell" th:href="@{/notifications}"
                th:attr="aria-label=#{notification.bell(${unreadNotifications ?: 0})}">
                 <th:block th:replace="~{layout/parts :: bellIcon}"></th:block>
                 <span th:if="${unreadNotifications != null and unreadNotifications > 0}"
@@ -155,5 +156,6 @@
 <script th:src="@{/js/list-rows.js}"></script>
 <script th:src="@{/js/save.js}"></script>
 <script th:src="@{/js/download.js}"></script>
+<script th:src="@{/js/notifications.js}"></script>
 </body>
 </html>

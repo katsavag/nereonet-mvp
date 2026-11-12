@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
+import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.time.Dates;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -100,7 +101,10 @@ public class CertificateReminderService {
         long daysLeft = certificate.daysLeft(today);
         String expiresOn = DATE.format(certificate.getExpiresOn());
         String crewText = message("certificate.reminder.crew.text", certificate.getType(), daysLeft, expiresOn);
-        notificationService.notify(member, crewText, null);
+        // Names the person and the ship it concerns (P23); opens nothing: the crew have no certificate page yet.
+        String subject = member.getShip() == null ? member.getFullName()
+                : member.getFullName() + " · " + member.getShip().getName();
+        notificationService.notify(member, NotificationType.CERTIFICATE, subject, crewText, null);
         mailService.send(member.getEmail(), message("certificate.reminder.crew.subject", certificate.getType()),
                 message("certificate.reminder.crew.email", member.getFullName(), crewText));
 

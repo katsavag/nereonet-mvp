@@ -25,6 +25,7 @@ public class Dates {
     /** The one date format of the app, also in emails and notifications. */
     public static final String DATE_PATTERN = "d MMM yyyy";
     private static final String DATE_TIME_PATTERN = DATE_PATTERN + " · HH:mm 'UTC'";
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm 'UTC'").withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter ISO_INSTANT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
             .withZone(ZoneOffset.UTC);
 
@@ -55,6 +56,11 @@ public class Dates {
     public String dateTime(Instant instant) {
         return instant == null ? ""
                 : DateTimeFormatter.ofPattern(DATE_TIME_PATTERN, locale()).withZone(ZoneOffset.UTC).format(instant);
+    }
+
+    /** "12:40 UTC", under a heading that gives the day (a notification, P23); empty for null. */
+    public String utcTime(Instant instant) {
+        return instant == null ? "" : TIME.format(instant);
     }
 
     /** "2026-10-21T12:40:00Z", for the datetime attribute of a time element; empty for null. */

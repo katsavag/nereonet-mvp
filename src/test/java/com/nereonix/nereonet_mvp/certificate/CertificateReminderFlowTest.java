@@ -29,6 +29,7 @@ import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.notification.Notification;
 import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
+import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -98,6 +99,9 @@ class CertificateReminderFlowTest {
         assertThat(notifications).hasSize(1);
         assertThat(notifications.getFirst().getReadAt()).isNull();
         assertThat(notifications.getFirst().getText()).startsWith("Your certificate STCW Basic Safety expires in 60 days");
+        // P23: a certificate notification naming the person and the ship.
+        assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.CERTIFICATE);
+        assertThat(notifications.getFirst().getSubject()).isEqualTo("Crew Member · MV Demo");
 
         // 60 sent, 90 saved without sending.
         assertThat(reminderRepository.findAll()).extracting(CertificateReminder::getDaysBefore)

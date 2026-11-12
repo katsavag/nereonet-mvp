@@ -26,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
+import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -220,7 +221,8 @@ public class LibraryService {
         String text = messageSource.getMessage("library.notification.newRequired", null, Locale.ENGLISH);
         for (User user : userRepository.findAllByShipAndRoleNotAndEnabledTrue(item.getShip(), Role.OFFICE_USER)) {
             if (!user.getId().equals(actor.getId())) {
-                notificationService.notify(user, text, "/ship/library/" + item.getId());
+                notificationService.notify(user, NotificationType.LIBRARY, item.getShip().getName(), text,
+                        "/ship/library/" + item.getId());
             }
         }
     }
@@ -325,7 +327,8 @@ public class LibraryService {
         }
         String text = messageSource.getMessage("library.notification.reminder", null, Locale.ENGLISH);
         for (User user : recipients) {
-            notificationService.notify(user, text, "/ship/library/" + item.getId());
+            notificationService.notify(user, NotificationType.LIBRARY, item.getShip().getName(), text,
+                    "/ship/library/" + item.getId());
         }
         item.setLastReminderAt(now);
         itemRepository.save(item);

@@ -566,6 +566,8 @@ fieldset:disabled button.btn {
         grid-template-columns: 1fr;
         width: 100%;
     }
+    /* An action that is a form of its own (Mark all as read, P23): its button fills the form. */
+    .page-actions > form > .btn { width: 100%; }
 }
 
 /* Row "more" menu (layout/parts :: rowMenu): a Bootstrap dropdown on a native details element.
@@ -2494,4 +2496,145 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     justify-content: space-between;
     gap: var(--nn-space-2) var(--nn-space-4);
     margin-bottom: var(--nn-space-2);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Notifications that stay until handled (P23): notification/list.html, js/notifications.js.
+     - .notification-card: one card; each UTC day is a .notification-day under its heading (Today, Yesterday, the
+       date), then the pager.
+     - .notification: one row, in four columns: the unread dot, the type icon (a 36px circle with the sidebar icon of
+       the same subject; its hidden label names the type), the body (the ship or person it concerns, the text, the
+       time in UTC) and Mark as read (below the text on phones). The text opens the notification and the whole body is
+       its click area (.stretched-link); Mark as read sits outside it.
+     - .is-unread: an 8px navy dot and bold text, and "Unread:" before the text for screen readers. Read rows are
+       regular weight without a dot. The icon's tint only repeats it; there is no row background to rely on.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-notification-icon: 2.25rem; /* 36px */
+    --nn-notification-glyph: 1.25rem;
+    --nn-notification-dot: 8px;
+}
+
+.notification-day + .notification-day { border-top: 1px solid var(--nn-divider); }
+.notification-day-title {
+    margin: 0;
+    padding: var(--nn-space-4) var(--nn-card-padding) var(--nn-space-1);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+}
+.notification-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.notification {
+    display: grid;
+    grid-template-columns: var(--nn-notification-dot) var(--nn-notification-icon) minmax(0, 1fr) auto;
+    grid-template-areas: "dot icon body action";
+    align-items: start;
+    column-gap: var(--nn-space-3);
+    padding: var(--nn-space-3) var(--nn-card-padding);
+}
+.notification + .notification { border-top: 1px solid var(--nn-divider); }
+.notification:has(.notification-open):hover { background: var(--nn-hover); }
+
+.notification-dot {
+    grid-area: dot;
+    width: var(--nn-notification-dot);
+    height: var(--nn-notification-dot);
+    margin-top: calc((var(--nn-notification-icon) - var(--nn-notification-dot)) / 2);
+    border-radius: 50%;
+}
+.notification.is-unread .notification-dot { background: var(--nn-blue); }
+
+.notification-icon {
+    grid-area: icon;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-notification-icon);
+    height: var(--nn-notification-icon);
+    border-radius: 50%;
+    background: var(--nn-neutral-bg);
+    color: var(--nn-neutral-text);
+}
+.notification-icon > svg {
+    width: var(--nn-notification-glyph);
+    height: var(--nn-notification-glyph);
+}
+.notification.is-unread .notification-icon {
+    background: var(--nn-primary-bg);
+    color: var(--nn-blue);
+}
+
+.notification-body {
+    grid-area: body;
+    position: relative;              /* the click area of the stretched text */
+    min-width: 0;
+    align-self: center;
+}
+.notification-subject {
+    margin: 0 0 2px;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.notification-open-form { margin: 0; }
+.notification-text {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--nn-text);
+    font-weight: 400;
+    text-align: left;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.notification.is-unread .notification-text { font-weight: 700; }
+.notification-open { cursor: pointer; }
+.notification-open:hover,
+.notification-open:focus-visible,
+.notification-body:hover .notification-open {
+    color: var(--nn-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.notification-open.is-busy {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    cursor: progress;
+}
+.notification-time {
+    margin: 2px 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.notification-mark {
+    grid-area: action;
+    position: relative;
+    z-index: 2;                      /* above the stretched text */
+    align-self: center;
+    margin: 0;
+}
+@media (max-width: 575.98px) {
+    /* Mark as read under the text, in line with it. */
+    .notification {
+        grid-template-columns: var(--nn-notification-dot) var(--nn-notification-icon) minmax(0, 1fr);
+        grid-template-areas: "dot icon body" ". . action";
+    }
+    .notification-mark {
+        justify-self: start;
+        margin: var(--nn-space-2) 0 0 -.5rem;   /* the button's text lines up with the notification's */
+    }
+    /* A longer label (Greek) wraps next to its tick instead of centring away from it. */
+    .notification-mark .btn {
+        justify-content: flex-start;
+        text-align: left;
+    }
 }

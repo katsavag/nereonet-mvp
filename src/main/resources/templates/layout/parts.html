@@ -151,9 +151,10 @@
      is active on a page, none on a page without an entry (/ship until P26).
      url: an app path. label: text. count: a number shown as a quiet pill on the right, hidden when null or zero,
      "99+" above 99; countLabel: the same number in words for screen readers ("3 unread"), or null without count.
-     The icon is navIcon(section).
+     The icon is navIcon(section). data-nav on the item is the section, for scripts that update its count in place
+     (js/notifications.js, P23).
      Use: <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li> -->
-<li th:fragment="navItem(section, url, label, count, countLabel)" class="nav-item"
+<li th:fragment="navItem(section, url, label, count, countLabel)" class="nav-item" th:data-nav="${section}"
     th:with="active=${navSection == section}">
     <a class="nav-link sidebar-link" th:classappend="${active} ? 'active'" th:href="@{${url}}" th:aria-current="${active} ? 'page'">
         <svg th:replace="~{layout/parts :: navIcon(${section})}"></svg>
@@ -200,6 +201,12 @@
      Use: <time th:replace="~{layout/parts :: utcDate(${version.publishedAt})}"></time> -->
 <time th:fragment="utcDate(instant)" class="local-time text-nowrap" th:datetime="${@dates.iso(instant)}"
       th:text="${@dates.utcDate(instant)}">21 Oct 2026</time>
+
+<!-- The UTC time of an instant, "12:40 UTC", under a heading that already gives the day (a notification, P23). Like
+     localTime, js/local-time.js adds the viewer's own date and time as a tooltip and as screen reader text.
+     Use: <time th:replace="~{layout/parts :: utcTime(${n.createdAt})}"></time> -->
+<time th:fragment="utcTime(instant)" class="local-time text-nowrap" th:datetime="${@dates.iso(instant)}"
+      th:text="${@dates.utcTime(instant)}">12:40 UTC</time>
 
 <!-- How far a date that drives action is from today, in whole UTC days, put after that date (.date-hint). The dot is
      decoration; the words carry the meaning.
