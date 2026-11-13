@@ -1,31 +1,33 @@
 package com.nereonix.nereonet_mvp.certificate;
 
 import java.io.IOException;
-import java.io.StringWriter;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
+import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateReminderRepository;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -44,10 +46,6 @@ import jakarta.persistence.criteria.Predicate;
 @Service
 public class CertificateService {
 
-    /** A CSV download, UTF-8 with a byte order mark (so Excel reads Greek names), as the request export (P20). */
-    public record CsvFile(String filename, byte[] content) {
-    }
-
     /**
      * Which certificates the Certificates list shows (P19, P20). shipId: one ship's crew, or null; activeShips: only
      * the crew of active ships (what the Overview counts); status: the Status filter. The search is the type, the
@@ -56,8 +54,9 @@ public class CertificateService {
     public record Filter(Long shipId, boolean activeShips, CertificateStatus status) {
     }
 
-    private static final String[] LIST_HEADER = {"imo_number", "ship_name", "crew_member", "rank", "type", "number",
-            "expires_on", "days_left", "status"};
+    // The export's columns (P20; an Excel workbook since P39, the same columns): a file format, never translated.
+    private static final List<String> LIST_HEADER = List.of("imo_number", "ship_name", "crew_member", "rank", "type",
+            "number", "expires_on", "days_left", "status");
 
     private static final ListQueries.Fetch<Certificate> FETCH =
             root -> root.fetch("user").fetch("ship", JoinType.LEFT);
@@ -68,16 +67,19 @@ public class CertificateService {
     private final ShipRepository shipRepository;
     private final AuditService auditService;
     private final ListQueries listQueries;
+    private final CertificateFileStorage fileStorage;
 
     public CertificateService(CertificateRepository certificateRepository,
                               CertificateReminderRepository reminderRepository, UserRepository userRepository,
-                              ShipRepository shipRepository, AuditService auditService, ListQueries listQueries) {
+                              ShipRepository shipRepository, AuditService auditService, ListQueries listQueries,
+                              CertificateFileStorage fileStorage) {
         this.certificateRepository = certificateRepository;
         this.reminderRepository = reminderRepository;
         this.userRepository = userRepository;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
         this.listQueries = listQueries;
+        this.fileStorage = fileStorage;
     }
 
     // 404 if there is no such user or it is an office user.
@@ -104,7 +106,7 @@ public class CertificateService {
         return listQueries.page(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
     }
 
-    /** Every certificate of the list as filtered and sorted, without pages: its CSV export. */
+    /** Every certificate of the list as filtered and sorted, without pages: its export. */
     @Transactional(readOnly = true)
     public List<Certificate> findAllCertificates(Filter filter, ListQuery list) {
         return listQueries.all(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
@@ -223,84 +225,133 @@ public class CertificateService {
     }
 
     /**
-     * The list as CSV (P20), one row per certificate: imo_number, ship_name, crew_member, rank (Rank's name), type,
-     * number, expires_on (ISO date), days_left (negative once expired) and status (expired, 30_days, 60_days,
-     * 90_days or valid: the badge). name: the file name before the date, e.g. "certificates".
+     * The list as an Excel workbook (P20; .xlsx since P39), sheet "Certificates", one row per certificate:
+     * imo_number, ship_name, crew_member, rank (Rank's name), type, number, expires_on (a date), days_left (a number,
+     * negative once expired) and status (expired, 30_days, 60_days, 90_days or valid: the badge). name: the file name
+     * before the date, e.g. "certificates".
      */
-    public CsvFile listCsv(String name, List<Certificate> certificates) {
+    public XlsxExport.File listXlsx(String name, List<Certificate> certificates) {
         LocalDate today = today();
-        return csv(name, LIST_HEADER, printer -> {
-            for (Certificate c : certificates) {
-                Ship ship = c.getUser().getShip();
-                Integer threshold = c.reminderThreshold(today);
-                printer.printRecord(ship == null ? "" : ship.getImoNumber(), ship == null ? "" : ship.getName(),
-                        c.getUser().getFullName(), rank(c.getUser()), c.getType(),
-                        c.getNumber() == null ? "" : c.getNumber(), c.getExpiresOn(), c.daysLeft(today),
-                        c.isExpired(today) ? "expired" : threshold == null ? "valid" : threshold + "_days");
-            }
-        });
+        XlsxExport sheet = XlsxExport.sheet("Certificates", LIST_HEADER);
+        for (Certificate c : certificates) {
+            Ship ship = c.getUser().getShip();
+            Integer threshold = c.reminderThreshold(today);
+            sheet.row(Arrays.asList(ship == null ? null : ship.getImoNumber(),
+                    ship == null ? null : ship.getName(), c.getUser().getFullName(), rank(c.getUser()), c.getType(),
+                    c.getNumber(), c.getExpiresOn(), c.daysLeft(today),
+                    c.isExpired(today) ? "expired" : threshold == null ? "valid" : threshold + "_days"));
+        }
+        return sheet.file(name + "-" + today);
     }
 
-    /** The matrix as CSV (P20): crew_member, rank, then one column per type with the expiry date (ISO), or empty. */
-    public CsvFile matrixCsv(String name, CertificateMatrix matrix) {
+    /** The matrix as a workbook (P20, P39), sheet "Certificate matrix": crew_member, rank, then one column per type
+     *  with the expiry date (a date), or empty. */
+    public XlsxExport.File matrixXlsx(String name, CertificateMatrix matrix) {
         List<String> header = new ArrayList<>(List.of("crew_member", "rank"));
         header.addAll(matrix.types());
-        return csv(name, header.toArray(String[]::new), printer -> {
-            for (CertificateMatrix.Row row : matrix.rows()) {
-                List<Object> values = new ArrayList<>(List.of(row.member().getFullName(), rank(row.member())));
-                row.cells().forEach(cell -> values.add(cell.certificate() == null ? "" : cell.certificate().getExpiresOn()));
-                printer.printRecord(values);
-            }
-        });
-    }
-
-    @FunctionalInterface
-    private interface Rows {
-        void print(CSVPrinter printer) throws IOException;
-    }
-
-    private CsvFile csv(String name, String[] header, Rows rows) {
-        StringWriter csv = new StringWriter();
-        csv.write(0xFEFF); // the byte order mark
-        try (CSVPrinter printer = new CSVPrinter(csv, CSVFormat.DEFAULT.builder().setHeader(header).get())) {
-            rows.print(printer);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e); // never happens with a StringWriter
+        XlsxExport sheet = XlsxExport.sheet("Certificate matrix", header);
+        for (CertificateMatrix.Row row : matrix.rows()) {
+            List<Object> values = new ArrayList<>(Arrays.asList(row.member().getFullName(), rank(row.member())));
+            row.cells().forEach(cell -> values.add(cell.certificate() == null ? null : cell.certificate().getExpiresOn()));
+            sheet.row(values);
         }
-        return new CsvFile(name + "-" + today() + ".csv", csv.toString().getBytes(StandardCharsets.UTF_8));
+        return sheet.file(name + "-" + today());
     }
 
     private static String rank(User user) {
-        return user.getRank() == null ? "" : user.getRank().name();
+        return user.getRank() == null ? null : user.getRank().name();
     }
 
     @Transactional
-    public void create(Long userId, String type, String number, LocalDate expiresOn) {
+    public void create(Long userId, CertificateForm form) {
         Certificate certificate = new Certificate();
         certificate.setUser(getCrewMember(userId));
-        apply(certificate, type, number, expiresOn);
+        apply(certificate, form.getType(), form.getNumber(), form.getExpiresOn());
         certificate.setCreatedAt(Instant.now());
         certificateRepository.save(certificate);
         auditService.record("CERTIFICATE_CREATED", certificate.getUser().getShip(), describe(certificate));
+        if (form.hasFile()) {
+            attach(certificate, form.getFile());
+            auditService.record("CERTIFICATE_FILE_ADDED", certificate.getUser().getShip(), describeFile(certificate));
+        }
     }
 
-    /** A new expiry date deletes the certificate's reminder rows, so its reminders start again. */
+    /**
+     * A new expiry date deletes the certificate's reminder rows, so its reminders start again. A file in the form
+     * replaces the current one (or adds one); otherwise removeFile removes it (P39). The old file is deleted from
+     * disk once the change is saved.
+     */
     @Transactional
-    public void update(Long userId, Long id, String type, String number, LocalDate expiresOn) {
+    public void update(Long userId, Long id, CertificateForm form) {
         Certificate certificate = getCertificate(userId, id);
-        if (!certificate.getExpiresOn().equals(expiresOn)) {
+        if (!certificate.getExpiresOn().equals(form.getExpiresOn())) {
             reminderRepository.deleteByCertificate(certificate);
         }
-        apply(certificate, type, number, expiresOn);
+        apply(certificate, form.getType(), form.getNumber(), form.getExpiresOn());
         auditService.record("CERTIFICATE_UPDATED", certificate.getUser().getShip(), describe(certificate));
+        String oldFile = certificate.getFileStoragePath();
+        if (form.hasFile()) {
+            String replaced = certificate.getFileName();
+            attach(certificate, form.getFile());
+            auditService.record(oldFile == null ? "CERTIFICATE_FILE_ADDED" : "CERTIFICATE_FILE_REPLACED",
+                    certificate.getUser().getShip(),
+                    describeFile(certificate) + (oldFile == null ? "" : ", replaces " + replaced));
+        } else if (form.isRemoveFile() && oldFile != null) {
+            String removed = describeFile(certificate);
+            certificate.setFileName(null);
+            certificate.setFileContentType(null);
+            certificate.setFileStoragePath(null);
+            auditService.record("CERTIFICATE_FILE_REMOVED", certificate.getUser().getShip(), removed);
+        }
+        if (oldFile != null && !oldFile.equals(certificate.getFileStoragePath())) {
+            fileStorage.deleteLater(oldFile);
+        }
     }
 
-    /** Its reminder rows are deleted by the database (cascade). */
+    /** Its reminder rows are deleted by the database (cascade); its file from disk once the deletion is saved. */
     @Transactional
     public void delete(Long userId, Long id) {
         Certificate certificate = getCertificate(userId, id);
         certificateRepository.delete(certificate);
         auditService.record("CERTIFICATE_DELETED", certificate.getUser().getShip(), describe(certificate));
+        if (certificate.hasFile()) {
+            fileStorage.deleteLater(certificate.getFileStoragePath());
+        }
+    }
+
+    /**
+     * The file of a crew member's certificate (P39), for the office or for that crew member (the callers check
+     * who asks); 404 when the certificate has none.
+     */
+    @Transactional(readOnly = true)
+    public CertificateFile file(Long userId, Long id) {
+        Certificate certificate = getCertificate(userId, id);
+        if (!certificate.hasFile()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return new CertificateFile(certificate.getFileName(), certificate.getFileContentType(),
+                fileStorage.load(certificate.getFileStoragePath()));
+    }
+
+    /** The signed-in crew member's own certificates (My profile, P39): soonest expiry first, so expired ones lead. */
+    @Transactional(readOnly = true)
+    public List<Certificate> ownCertificates(Long userId) {
+        return certificateRepository.findAllByUserIdOrderByExpiresOnAsc(userId);
+    }
+
+    private void attach(Certificate certificate, MultipartFile file) {
+        try (InputStream content = file.getInputStream()) {
+            certificate.setFileStoragePath(fileStorage.save(content));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        certificate.setFileName(StringUtils.getFilename(file.getOriginalFilename()));
+        certificate.setFileContentType(CertificateFileStorage.contentTypeOf(file));
+    }
+
+    // For the audit log, e.g. "jane@example.com: STCW Basic Safety, file stcw.pdf"
+    private static String describeFile(Certificate certificate) {
+        return certificate.getUser().getEmail() + ": " + certificate.getType() + ", file " + certificate.getFileName();
     }
 
     // The UTC date, as used by the reminder job.

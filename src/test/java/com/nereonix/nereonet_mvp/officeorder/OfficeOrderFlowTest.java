@@ -14,7 +14,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,8 +31,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.XlsxSheet;
 import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
+import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -52,7 +56,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 /**
  * P36, the office's ship orders: the orders the ships have sent (never OPEN ones), one order with its lines by
  * category, confirming the port and delivery date (the Master and the Chief cook are notified each time, until the
- * order is closed), and the CSV export, which marks the orders exported. Office users only.
+ * order is closed), and the export (Excel since P39), which marks the orders exported. Office users only.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,8 +65,10 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 @WithUserDetails("office@example.com") // seeded by BootstrapData
 class OfficeOrderFlowTest {
 
-    private static final String CSV_HEADER = "imo_number,ship_name,order_id,sent_at,requested_port,needed_by,"
-            + "confirmed_port,delivery_date,category,item_name,unit,quantity";
+    // The export's columns: a file format.
+    private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "sent_at",
+            "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
+            "quantity");
     private static final Instant SENT_AT = Instant.parse("2026-11-10T09:30:15.123Z");
     private static final LocalDate NEEDED_BY = LocalDate.of(2026, 11, 25);
 
@@ -138,21 +144,23 @@ class OfficeOrderFlowTest {
         assertThat(audit("ORDER_CONFIRMED")).singleElement().extracting(AuditEntry::getDetails)
                 .isEqualTo("Order #" + order.getId() + ", Antwerp, delivery 2026-11-20");
 
-        // Export: a download, one row per line, Provisions first; the order is marked exported.
+        // Export: an Excel download, one row per line, Provisions first; the order is marked exported. Dates are date
+        // cells (sent_at in UTC, to the second), the order id and quantities numbers, the IMO number text.
         MvcResult export = mockMvc.perform(post("/office/orders/export").param("ids", order.getId().toString())
                         .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", "text/csv;charset=UTF-8"))
-                .andExpect(header().string("Content-Disposition",
-                        org.hamcrest.Matchers.startsWith("attachment; filename=\"ship-orders-")))
+                .andExpect(header().string("Content-Type", XlsxExport.CONTENT_TYPE.toString()))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.matchesPattern(
+                        "attachment; filename=\"ship-orders-\\d{4}-\\d{2}-\\d{2}\\.xlsx\"")))
                 .andReturn();
-        byte[] body = export.getResponse().getContentAsByteArray();
-        assertThat(body).startsWith(0xEF, 0xBB, 0xBF); // UTF-8 BOM
-        List<String> rows = new String(body, StandardCharsets.UTF_8).substring(1).lines().toList();
-        String common = "9074729,MV Demo," + order.getId() + ",2026-11-10T09:30:15Z,Rotterdam,2026-11-25,Antwerp,2026-11-20,";
-        assertThat(rows).containsExactly(CSV_HEADER,
-                common + "Provisions,Basmati rice,kg,25",
-                common + "Personal items,Shower gel,pcs,2.5");
+        XlsxSheet sheet = XlsxSheet.of(export.getResponse().getContentAsByteArray());
+        assertThat(sheet.name()).isEqualTo("Orders");
+        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(),
+                LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
+        assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
+        assertThat(sheet.body()).containsExactly(
+                concat(common, "Provisions", "Basmati rice", "kg", 25.0),
+                concat(common, "Personal items", "Shower gel", "pcs", 2.5));
         assertThat(order.getExportedAt()).isNotNull();
         assertThat(audit("ORDERS_EXPORTED")).singleElement().satisfies(e -> {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");
@@ -235,6 +243,12 @@ class OfficeOrderFlowTest {
     private String page(String url) throws Exception {
         return mockMvc.perform(get(url)).andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    private static List<Object> concat(List<Object> first, Object... more) {
+        List<Object> all = new ArrayList<>(first);
+        all.addAll(List.of(more));
+        return all;
     }
 
     private List<Notification> notifications(User user) {

@@ -6,7 +6,7 @@
      profile photo, P31), no script of its own.
      Phones: one column (To read, My certificates); from 992px To read on the left, the certificates on the right.
      The header says who is signed in, their rank and ship; on a shared PC "Not Demo Cook? Sign out" sits next to the
-     name. P31: the person's profile photo (96px version) or initials before the name. -->
+     name, from 768px only (P39, .from-md: on phones Sign out is under More). P31: the person's profile photo (96px version) or initials before the name. -->
 <main class="crew-home" th:with="u=${home.user}, today=${@dates.today()},
         photo=${home.photoKey != null} ? ${'/ship/crew/' + u.id + '/photo/' + home.photoKey + '/96'} : null">
     <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
@@ -16,7 +16,7 @@
             <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
         </th:block>
         <th:block th:fragment="pageActions">
-            <div class="home-sign-out">
+            <div class="home-sign-out from-md">
                 <span class="home-sign-out-name" th:text="#{home.notYou(${u.fullName})}">Not Demo Cook?</span>
                 <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary')}"></form>
             </div>
@@ -25,8 +25,9 @@
 
     <div class="row g-4">
         <div class="col-lg-7">
-            <!-- To read: Required library items and announcements (P27) not yet acknowledged, oldest first. Each card
-                 opens the item or announcement, where "I have read this" is. -->
+            <!-- To read: Required library items not yet acknowledged and news items (P27) not opened yet (P39), oldest
+                 first. Each card opens the item: a library item has "I have read this"; a news item is read by opening
+                 it. -->
             <section class="home-section" aria-labelledby="toReadTitle">
                 <h2 class="home-section-title" id="toReadTitle">
                     <span th:text="#{home.toRead.heading}">To read</span>
@@ -38,7 +39,7 @@
                         <a class="read-card" th:href="@{${r.url}}">
                             <th:block th:if="${r.version != null}"><span
                                     th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span></th:block>
-                            <!-- An announcement: the sidebar's announcements icon; the type below says it in words. -->
+                            <!-- A news item: the sidebar's News icon; the type below says it in words. -->
                             <span th:if="${r.version == null}" class="read-card-icon" aria-hidden="true"><svg
                                     th:replace="~{layout/parts :: navIcon('announcements')}"></svg></span>
                             <span class="read-card-main">
@@ -58,7 +59,7 @@
                     <span th:text="#{home.toRead.empty}">You are up to date.</span>
                 </p>
                 <p class="home-links">
-                    <a class="btn btn-ghost" th:href="@{/ship/announcements}" th:text="#{home.links.announcements}">All announcements</a>
+                    <a class="btn btn-ghost" th:href="@{/ship/news}" th:text="#{home.links.announcements}">All news</a>
                     <a class="btn btn-ghost" th:href="@{/ship/library}" th:text="#{home.links.library}">Open the Library</a>
                 </p>
             </section>
@@ -68,24 +69,7 @@
             <!-- The person's own certificates, soonest expiry first (expired, then expiring soon). Read only. -->
             <section class="home-section" aria-labelledby="certificatesTitle">
                 <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
-                <div class="card">
-                    <p th:if="${home.certificates.isEmpty()}" class="card-body mb-0"
-                       th:text="#{home.certificates.empty}">No certificates on record.</p>
-                    <ul th:unless="${home.certificates.isEmpty()}" class="list-group list-group-flush">
-                        <li th:each="c : ${home.certificates}" class="list-group-item cert-row">
-                            <div class="cert-row-main">
-                                <p class="cert-row-type" th:text="${c.type}">STCW Basic Safety</p>
-                                <p class="cert-row-meta">
-                                    <span th:text="#{home.certificates.expires}">Expires</span>
-                                    <span th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}"></span>
-                                </p>
-                                <p th:if="${c.number}" class="cert-row-meta"
-                                   th:text="#{home.certificates.number(${c.number})}">No. 12345</p>
-                            </div>
-                            <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
-                        </li>
-                    </ul>
-                </div>
+                <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false)}"></div>
                 <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>
             </section>
         </div>

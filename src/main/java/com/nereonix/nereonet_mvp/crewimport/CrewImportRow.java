@@ -14,7 +14,8 @@ import jakarta.validation.constraints.Size;
 // mapped, otherwise the value as it was in the file. There is no role: it follows from the rank (getRole, P18).
 public class CrewImportRow extends ImportRow {
 
-    // The annotations are only used by CrewImportService.validate for the length and email format checks.
+    // The annotations are only used by CrewImportService.validate for the length and email format checks, and by the
+    // review page's live check for the length (P39).
     @Size(max = 255)
     private String fullName = "";
 

@@ -117,7 +117,7 @@ class ShipPageFlowTest {
             String html = html(get(url));
             assertFrame(html, url);
             assertThat(html).as("status on " + url).contains(">Active</span>")
-                    .doesNotContain("ship-inactive-banner", "This ship is inactive.");
+                    .doesNotContain("ship-inactive-banner", "This vessel is inactive.");
             // The "more" menu: Deactivate, sending the tab back.
             assertThat(html).as("more menu on " + url)
                     .contains("action=\"/office/ships/" + demo.getId() + "/deactivate\"")
@@ -141,7 +141,7 @@ class ShipPageFlowTest {
             String html = html(get(url));
             assertFrame(html, url);
             assertThat(html).as("inactive banner on " + url)
-                    .contains("class=\"alert alert-warning ship-inactive-banner\" role=\"note\"", "This ship is inactive.",
+                    .contains("class=\"alert alert-warning ship-inactive-banner\" role=\"note\"", "This vessel is inactive.",
                             "You cannot invite crew to it, move crew to it or send it announcements", ">Inactive</span>")
                     .contains("action=\"/office/ships/" + demo.getId() + "/activate\"")
                     .doesNotContain("action=\"/office/ships/" + demo.getId() + "/deactivate\"");
@@ -329,7 +329,7 @@ class ShipPageFlowTest {
         String errors = mockMvc.perform(post("/office/ships/{id}/edit", demo.getId()).param("name", " ")
                         .param("tab", "crew").with(csrf()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(errors).contains("Enter the ship name.", "<input type=\"hidden\" name=\"tab\" value=\"crew\">",
+        assertThat(errors).contains("Enter the vessel name.", "<input type=\"hidden\" name=\"tab\" value=\"crew\">",
                 "href=\"/office/ships/" + demo.getId() + "/crew\">Cancel</a>");
 
         // An unknown tab value never becomes a redirect target.

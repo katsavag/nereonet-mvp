@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.nereonix.nereonet_mvp.core.form.PlausibleDate;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 
 import jakarta.validation.constraints.NotBlank;
@@ -19,6 +20,7 @@ public class ConfirmOrderForm {
     private String confirmedPort;
 
     @NotNull(message = "{officeorder.confirm.error.dateRequired}")
+    @PlausibleDate(yearsBefore = 1, yearsAfter = 2)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate deliveryDate;
 

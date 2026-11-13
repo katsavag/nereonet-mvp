@@ -187,12 +187,12 @@
 <!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
      sidebar has the same entries (layout/layout.html, group On board). Fixed at the bottom of the screen, above the
      safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each entry is
-     tabItem. Announcements (P27) sits between Home and Library, here and in the sidebar. More (P31) is last: a link to
+     tabItem. News (P27 announcements, "News" since P39) sits between Home and Library, here and in the sidebar. More (P31) is last: a link to
      a page (/ship/more) listing My profile, My crew and Sign out, which the sidebar shows directly from 768px. -->
 <nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}">
     <ul class="tab-bar-list">
         <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
-        <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/announcements', #{nav.announcements},
+        <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/news', #{nav.news},
                 ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
         <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
         <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
@@ -241,11 +241,13 @@
     </button>
 </form>
 
-<!-- "Expand menu" / "Collapse menu" at the bottom of the sidebar from 768px (P29): a small form, so it works without
+<!-- "Expand menu" / "Collapse menu" from 768px (P29), at the top of the sidebar since P39: right of the brand mark,
+     under it (centred) in the rail. Icon only (a 20px "panel left": a rectangle with its left bar, and a chevron that
+     points the way the sidebar will move: left when expanded, right in the rail) on a 44px target; the words stay as
+     its accessible name and show as a tooltip on hover and keyboard focus. A small form, so it works without
      JavaScript (SidebarPreferenceController sets the cookie and comes back to this page). js/sidebar.js turns it into
      a toggle in place: it switches body.sidebar-collapsed / sidebar-expanded, sets the same cookie and never sends
-     the form. expanded: the state the page was rendered in (@sidebarPreference). The chevron points the way the
-     sidebar will move. -->
+     the form. expanded: the state the page was rendered in (@sidebarPreference). -->
 <form th:fragment="sidebarToggle(expanded)" class="sidebar-toggle-form" th:action="@{/preferences/sidebar}"
       method="post" th:with="returnTo=${@sidebarPreference.returnTo()}">
     <input type="hidden" name="state" th:value="${expanded} ? 'collapsed' : 'expanded'" data-sidebar-state>
@@ -254,8 +256,9 @@
             th:attr="aria-expanded=${expanded} ? 'true' : 'false'"
             th:data-label-expand="#{nav.expand}" th:data-label-collapse="#{nav.collapse}">
         <svg class="sidebar-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="m10 6 6 6-6 6"/>
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>
+            <path class="sidebar-toggle-chevron" d="m13.5 9.5 2.5 2.5-2.5 2.5"/>
         </svg>
         <span class="sidebar-label" th:text="${expanded} ? #{nav.collapse} : #{nav.expand}">Expand menu</span>
     </button>
@@ -339,6 +342,34 @@
 <span th:fragment="expiryDate(date)"><time th:replace="~{layout/parts :: localDate(${date})}"></time>
     <span th:replace="~{layout/parts :: certificateHint(${date})}"></span></span>
 
+<!-- Read receipts of a news item (P39, announcements): the crew's own, on their list and the item's page, and the
+     office's, per recipient. read: two ticks in the primary blue (like a messenger's "read"); not read: one grey tick.
+     Never by colour or icon alone: the words are always there, visible or for screen readers.
+     readTicks(read): the 16px icon only, decorative. -->
+<svg th:fragment="readTicks(read)" class="read-ticks" th:classappend="${read} ? 'is-read' : 'is-unread'" width="16"
+     height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+     stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <th:block th:if="${read}"><path d="m1.5 12.5 4.5 4.5 9.5-9.5"/><path d="m10.5 15.5 1.5 1.5 9.5-9.5"/></th:block>
+    <path th:unless="${read}" d="m4.5 12.5 5 5 10-11"/>
+</svg>
+
+<!-- The crew's list (P39): not read yet, a filled dot and "New"; read, the two ticks with "Read" for screen readers.
+     readAt: when this person read it, or null. -->
+<span th:fragment="newsState(readAt)" class="news-state" th:classappend="${readAt == null} ? 'is-new'">
+    <th:block th:if="${readAt == null}"><span class="news-state-dot" aria-hidden="true"></span><span th:text="#{announcement.ship.new}">New</span></th:block>
+    <th:block th:unless="${readAt == null}"><svg th:replace="~{layout/parts :: readTicks(true)}"></svg>
+        <span class="visually-hidden" th:text="#{announcement.read}">Read</span></th:block>
+</span>
+
+<!-- When it was read: the two ticks, "Read" and the time ("Read 13 Nov 2026 · 10:07 UTC"); not read yet, one grey tick
+     and "Not read yet". The crew's news item page and each recipient on the office's announcement page. -->
+<span th:fragment="readReceipt(readAt)" class="read-receipt" th:classappend="${readAt == null} ? 'is-unread'">
+    <svg th:replace="~{layout/parts :: readTicks(${readAt != null})}"></svg>
+    <th:block th:if="${readAt != null}"><span th:text="#{announcement.read}">Read</span>
+        <time th:replace="~{layout/parts :: localTime(${readAt})}"></time></th:block>
+    <span th:if="${readAt == null}" th:text="#{announcement.notRead}">Not read yet</span>
+</span>
+
 <!-- Bell icon for the notification button in the phone top bar (the sidebar uses navIcon('notifications')). -->
 <svg th:fragment="bellIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -357,6 +388,7 @@
     <th:block th:if="${name == 'download'}"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></th:block>
     <path th:if="${name == 'check'}" d="m4.5 12.5 5 5 10-11"/>
     <th:block th:if="${name == 'external'}"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></th:block>
+    <path th:if="${name == 'paperclip'}" d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l8-8"/>
 </svg>
 
 <!-- The "more" menu at the end of a table or list row: every row action except the one visible next to it.
@@ -889,7 +921,7 @@
 <!-- The first cell of a review row: the row's number in the file, what importing it does, and Exclude. It stays in
      place, with the name cell after it (.import-col-name), when the table scrolls sideways. Inside the review form
      (th:object set); index: the row's index in the form. -->
-<td th:fragment="importRowHead(row, index)" class="import-col-row">
+<td th:fragment="importRowHead(row, index)" class="import-col-row" th:attr="data-action=${row.action}">
     <span class="import-row-number num" th:text="${row.rowNumber}">2</span>
     <th:block th:replace="~{layout/parts :: importAction(${row})}"></th:block>
     <label class="import-exclude">
@@ -899,10 +931,31 @@
     </label>
 </td>
 
+<!-- An editable text cell of a review row. Its local rules ride along as data attributes for the live check (P39,
+     js/import-check.js): data-required (the message when empty; requiredKey null: optional), data-max-length (the row's
+     @Size for the property) and data-too-long, data-email (type 'email': the message for an invalid address), and data-server-error (what the
+     server found, shown again while the value is the one the server checked). The server checks everything again;
+     without JavaScript only its errors show. property: the row's property; label: the column's name; cellClass: the
+     cell's class, e.g. import-col-name, or null. -->
+<td th:fragment="importTextCell(row, index, property, label, type, requiredKey, tooLongKey, cellClass)"
+    th:class="${cellClass}" th:with="maxLength=${@formFields.maxLength(row, property)}">
+    <input th:type="${type}" class="form-control form-control-sm" th:field="*{rows[__${index}__].__${property}__}"
+           th:classappend="${row.errors.get(property)} ? 'is-invalid'" autocomplete="off"
+           th:aria-label="#{importFile.review.cell(${label}, ${row.rowNumber})}"
+           th:data-required="${requiredKey != null} ? #{${requiredKey}} : null"
+           th:data-max-length="${maxLength}" th:data-too-long="#{${tooLongKey}}"
+           th:data-email="${type == 'email'} ? #{invitation.error.emailInvalid} : null"
+           th:data-server-error="${row.errors.get(property) != null} ? #{${row.errors.get(property)}} : null">
+    <div class="invalid-feedback" th:if="${row.errors.get(property)}" th:text="#{${row.errors.get(property)}}"></div>
+</td>
+
 <!-- Above the review table, inside the review form: the row filters (All, With errors, Excluded, each with its
      count; they keep the edits, as Check again does), what the import will do, and "Exclude all rows with errors".
-     form: the ImportForm; show: the current filter (null for all). -->
-<div th:fragment="importSummary(form, show)" class="import-summary">
+     form: the ImportForm; show: the current filter (null for all). The live check (P39, js/import-check.js) starts
+     from the counts of all rows (data-error-count, data-changing-count: rows to create or update), as the filters may
+     show only some of them. -->
+<div th:fragment="importSummary(form, show)" class="import-summary" data-import-check
+     th:attr="data-error-count=${form.errorCount}, data-changing-count=${form.createCount + form.updateCount}">
     <div class="view-switch import-filter" role="group" th:attr="aria-label=#{importFile.review.filter}">
         <button th:each="f : ${ {'all', 'errors', 'excluded'} }" type="submit" class="view-switch-link"
                 th:formaction="@{${flow.path('/check')}}" name="show" th:value="${f}"
@@ -918,8 +971,10 @@
     </div>
     <p class="import-plan" th:text="#{importFile.review.plan(${form.createCount}, ${form.updateCount}, ${form.unchangedCount})}">
         8 new, 2 updates, 1 without changes.</p>
+    <!-- data-label-one, data-label-many: its text for 1 row and for 100 (the live check puts the count in). -->
     <button th:if="${form.errorCount > 0}" type="submit" class="btn btn-outline-secondary btn-sm import-exclude-errors"
             th:formaction="@{${flow.path('/exclude-errors')}}" name="show" th:value="${show}"
+            th:attr="data-label-one=#{importFile.review.excludeErrors(1)}, data-label-many=#{importFile.review.excludeErrors(100)}"
             th:text="#{importFile.review.excludeErrors(${form.errorCount})}">Exclude the 2 rows with errors</button>
 </div>
 
@@ -930,10 +985,11 @@
 </tr>
 
 <!-- The review's actions: the import (enabled when no included row has errors and a row changes something), Check
-     again and Cancel. submitLabel: the import button's text; submitHint: why it is disabled. -->
+     again and Cancel. submitLabel: the import button's text; submitHint: why it is disabled (hidden while enabled;
+     the live check, P39, enables and disables the button as cells are corrected). -->
 <th:block th:fragment="importReviewActions(form, show, submitLabel, submitHint)">
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary" th:formaction="@{${flow.path('/submit')}}"
+        <button type="submit" class="btn btn-primary" th:formaction="@{${flow.path('/submit')}}" data-import-submit
                 th:disabled="${!form.ready}" th:attr="aria-describedby=${form.ready} ? null : 'submitHint'"
                 th:text="${submitLabel}">Import and invite</button>
         <button type="submit" class="btn btn-outline-secondary" name="show" th:value="${show}"
@@ -941,7 +997,7 @@
         <button type="submit" class="btn btn-ghost" th:formaction="@{${flow.path('/cancel')}}"
                 th:data-busy-label="#{importFile.cancelling}" th:text="#{form.cancel}">Cancel</button>
     </div>
-    <p th:unless="${form.ready}" id="submitHint" class="form-text mt-2 mb-0" th:text="${submitHint}">
+    <p id="submitHint" class="form-text mt-2 mb-0" th:hidden="${form.ready}" th:text="${submitHint}">
         Import and invite is available when no included row has errors.</p>
 </th:block>
 

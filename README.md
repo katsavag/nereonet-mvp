@@ -97,7 +97,11 @@ Requirements: Java 25, Docker.
      library, no announcement) it shows 3 of 4 above the work list until an announcement is sent.
      `DashboardService.setup()` is one query (`DashboardQueries.setup()`), outside `load()`'s seven.
 
-5. Ships (signed in as an office user): **Ships** in the sidebar (`/office/ships`). **Add ship** (a pop-up form) asks for
+5. Ships (signed in as an office user): **Vessels** in the sidebar (`/office/ships`).
+   Wording (P39): every English text on screen and in emails says "vessel", not "ship" ("Add vessel", "All
+   vessels"; `MessageKeysTest` checks it), except proper names: the certificate type "Ship Security Officer" and the
+   crew template's column "Ship IMO" (a file format). The code, URLs, database tables, export column names and this README keep
+   "ship"; the Greek texts are unchanged. Below, the buttons are named as before P39. **Add ship** (a pop-up form) asks for
    the IMO number (7 digits with a valid check digit, e.g. `9074729`; `IMO 9074729` also works), name,
    type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be
    edited in a pop-up (except the IMO number) and deactivated or activated, never deleted: on the list both are in the
@@ -265,7 +269,13 @@ Requirements: Java 25, Docker.
      than one Master / Chief cook per ship, shown on the rank). Under each rank its access in short ("Access:
      Master"). Each row says what it will do (New), and above the table "Will import: 3 new, …". Filter chips **All**,
      **With errors**, **Excluded** (with counts; they keep edits made before they are pressed); **Exclude all rows
-     with errors** in one action; exclude single rows with the checkbox; **Check again** re-validates; **Change
+     with errors** in one action; exclude single rows with the checkbox; **Check again** re-validates (P39: with
+     `js/import-check.js` it is rarely needed: each cell checks itself as it is corrected, 400 ms after the last key,
+     against the same rules as the server (required, too long, email format, a rank and a ship chosen); a cell that
+     is right again loses its error at once, a wrong one shows it when the person leaves the cell. The "With errors"
+     count, **Exclude all N rows with errors**, the error total and **Import and invite** with its hint follow. What
+     only the server knows (an email that already has an account, a repeated one) stays shown while the value is the
+     one it checked. The server checks every row again on submit; without the script the page works as before); **Change
      column mapping** goes back. The row number and name columns stay in place when the table scrolls sideways. A
      file with a `Role` column (the template from before P18) is accepted: that column is ignored and the review
      page says so. **Import and invite** (enabled when no included row has errors) sends one invitation email per
@@ -288,12 +298,17 @@ Requirements: Java 25, Docker.
    You cannot deactivate or delete yourself.
 
 10. Audit log (signed in as an office user): **Audit log** in the sidebar (`/office/audit`). Lists who did what and
-   when, newest first, 25 or 50 rows per page (paged in the database), searchable (who did it, by name or email, and
-   the details), filterable by ship and date range (UTC days), sortable by when, who, action and ship. Recorded so far: ship added,
+   when, newest first, 20 rows per page by default, 50 or 100 on request (P39; paged in the database), searchable (who
+   did it, by name or email, and the details), filterable by ship and date range (UTC days), sortable by when, who,
+   action and ship. Under the table "1 to 20 of 27" and **Previous** / **Next**; the pager, the page size and the sort
+   keep the search and the filters. **From** and **To** accept dates from 30 years ago to 1 year ahead (see the date
+   limits in 12); a date outside them is shown on the field with the limits, an impossible one (`from=2026-02-31`
+   in the URL) with "Enter a date.", and the list is not filtered by it. Recorded so far: ship added,
    edited, deactivated, activated; invitation sent, resent, cancelled; crew imported (counts only); user registered, edited, deactivated, activated, deleted; password reset (the user, by their email; see 17);
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
-   certificate reminder sent (by "System"); announcement sent, announcement acknowledged (by the crew member, with the
-   title); order sent, order confirmed (port and delivery date, "corrected" when changed again), orders exported
+   certificate file added, replaced, removed (P39, with the file name); certificate reminder sent (by "System");
+   announcement sent, announcement read (by the crew member, with the title, the first time they open it: P39, before
+   "announcement acknowledged"); order sent, order confirmed (port and delivery date, "corrected" when changed again), orders exported
    (counts and ids; before P36 "requests exported").
    Entries are read-only.
 
@@ -321,7 +336,7 @@ Requirements: Java 25, Docker.
      **Updates** that item's unit, category and place, or is **No change** (skipped) when they are the same. The rows
      that add or update are checked (missing name, unit or category, a category that is not Provisions or Personal
      items, value too long, name repeated in the file). Filters, **Exclude
-     all rows with errors** and the sticky first columns as for crew.
+     all rows with errors**, the live check of each cell (P39) and the sticky first columns as for crew.
    - **Import items** saves the new items and the updates; **Done** shows how many were added, updated and skipped,
      with a link to the ship's items. Nothing is saved before that. An import started for one ship is never continued
      or saved for another: its steps lead back to that ship's upload.
@@ -359,11 +374,61 @@ Requirements: Java 25, Docker.
    - the Overview's **Full lists** entry (the same, crew of active ships): `?status=expired,30&activeShips=true`;
    - the Overview's fleet table, **Certificate issues** of a ship: `?shipId=…&status=expired,30`;
    - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
-   **Export CSV** (page header) downloads the list as filtered, searched and sorted, every page:
-   `certificates-<date>.csv`, UTF-8 with a byte order mark and ISO dates, as the request export, with the columns
+   **Export** (page header) downloads the list as filtered, searched and sorted, every page, as an Excel workbook
+   (P39; CSV before): `certificates-<date>.xlsx`, sheet "Certificates", with the columns
    `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,
-   `SECOND_OFFICER`; status `expired`, `30_days`, `60_days`, `90_days` or `valid`, the badge). It is a plain link
-   (GET, nothing changes, not in the audit log).
+   `SECOND_OFFICER`; `expires_on` a date cell, `days_left` a number, negative once expired; status `expired`,
+   `30_days`, `60_days`, `90_days` or `valid`, the badge). It is a plain link (GET, nothing changes, not in the audit
+   log).
+
+   **The export format** (P39, every office export: certificates, the certificate matrix and ship orders, see 24;
+   `core/export/XlsxExport`, Apache POI, already used by the imports): one `.xlsx` workbook with one sheet named after
+   the list; the first row holds the column names (never translated: they are the format), bold, frozen (it stays on
+   screen while scrolling) and with an autofilter on every column; then one row per record. Dates are real date
+   cells shown as `13 Nov 2026` (`dd mmm yyyy`), a date and time as `10 Nov 2026 09:30` (UTC), numbers are numbers,
+   anything else is text (an IMO number stays text: it is an identifier); an empty value is an empty cell. Column
+   widths fit the longest value (8 to 60 characters). The file name is the list's name and the UTC date,
+   `<name>-2026-11-13.xlsx`; the response is `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
+   an attachment that is never cached. Tests read the workbook back (`XlsxSheet` in the tests).
+
+   **Certificate file** (P39): on **Add certificate** and **Edit** an optional scan of the certificate, PDF, JPEG or
+   PNG, at most 10 MB (said before choosing; with `js/forms.js` the chosen file's name and size show, with a warning before a file
+   over 10 MB is sent). The server checks the extension and the file's first bytes; a file of another kind: "Only
+   PDF, JPEG or PNG files can be attached."; too large: "The file is larger than 10 MB. Choose a smaller file.". Editing a certificate with a
+   file shows its name, **Open** and **Remove the file**; a new file replaces the old one. Files are stored under
+   `<app.certificate.storage-dir>` (default `<app.library.storage-dir>/certificates`, back it up with the library) as
+   `<uuid>.<ext>`; a replaced or removed file, or that of a deleted certificate, is removed after the change is
+   committed. The audit log records "Certificate file added", "Certificate file replaced" and "Certificate file
+   removed" with the file name. A certificate with a file shows a paperclip **Open** link on the crew member's page,
+   on the Certificates list and on the crew member's **My profile** (20). Only the office
+   (`/office/crew/{userId}/certificates/{id}/file`) and the certificate's owner (`/ship/profile/certificates/{id}/file`)
+   can open it, inline in a new tab and never cached; anyone else on board gets 404 for the `/ship` URL (and 403
+   for the office URL, as every office page). A crew member who is deleted takes their certificates with them in the
+   database, but their files stay on disk (see the report of P39).
+
+   **Date limits** (P39): a date field refuses a date outside a plausible range, both in the browser (`min` and `max`
+   on the date input) and on the server (`core/form/PlausibleDate`, measured from today in UTC), with "Enter a date
+   between 13 Nov 1996 and 13 Nov 2056." on the field; a date that is not a date at all: "Enter a date.".
+
+   | Field | Earliest | Latest |
+   | --- | --- | --- |
+   | Certificate **Expires on** (12) | 30 years ago | 30 years ahead |
+   | Order **Needed by** (Master, 23) | today | 2 years ahead |
+   | Order **Delivery date** (office, 24) | 1 year ago | 2 years ahead |
+   | Audit log **From** / **To** (10) | 30 years ago | 1 year ahead |
+
+   The imports have no date columns. Dates saved before P39 are not changed. To find the ones outside these limits
+   (PostgreSQL; nothing is changed automatically, correct them by hand in the app):
+
+   ```sql
+   SELECT id, user_id, type, expires_on FROM certificate
+    WHERE expires_on < CURRENT_DATE - INTERVAL '30 years' OR expires_on > CURRENT_DATE + INTERVAL '30 years';
+   SELECT id, ship_id, status, needed_by, delivery_date FROM ship_order
+    WHERE needed_by > CURRENT_DATE + INTERVAL '2 years'
+       OR delivery_date < CURRENT_DATE - INTERVAL '1 year' OR delivery_date > CURRENT_DATE + INTERVAL '2 years';
+   ```
+
+   (A Needed by date in the past is normal for an order sent earlier, so only the upper limit is checked there.)
 
    The ship page's **Certificates** tab (`/office/ships/{id}/certificates`) is a matrix: the active crew on board as
    rows, by department and rank (Rank's order, "Rank not set" last), and the certificate types they hold as columns,
@@ -372,9 +437,9 @@ Requirements: Java 25, Docker.
    **Add certificate** with the person and the type filled in. The crew column stays in place while the table scrolls
    sideways (also on phones; the table is a keyboard-focusable region). **Matrix** / **List** switch between the
    matrix and the list above for this ship (`/certificates/list`, without the ship filter, the Ship column and Active
-   ships only). **Export CSV** downloads the view on screen: the matrix as `certificate-matrix-<IMO>-<date>.csv`
-   (`crew_member, rank`, then one column per type with the expiry date, empty when there is none), the list as
-   `certificates-<IMO>-<date>.csv`.
+   ships only). **Export** downloads the view on screen (P39: Excel, see the export format above): the matrix as
+   `certificate-matrix-<IMO>-<date>.xlsx`, sheet "Certificate matrix" (`crew_member, rank`, then one column per type
+   with the expiry date as a date cell, empty when there is none), the list as `certificates-<IMO>-<date>.xlsx`.
 
    Certificate type is free text with suggestions (a datalist): the types already used, most used first, then the
    starter list (STCW Basic Safety Training, Certificate of Competency, Flag State Endorsement, GMDSS Operator,
@@ -422,7 +487,8 @@ Requirements: Java 25, Docker.
    `notification.type` and `notification.subject` are new nullable columns (Hibernate adds them on start).
 
 14. Announcements (signed in as an office user): **Announcements** in the sidebar (`/office/announcements`) lists every
-   announcement, newest first, with its target, date and e.g. "1 of 2 acknowledged". The target (P28) is "All ships",
+   announcement, newest first, with its target, date and e.g. "1 of 2 read" (P39: the crew read an announcement by
+   opening it, see 19; before, "acknowledged" by a button). The target (P28) is "All ships",
    the ship's name (a link) for one ship, or "3 ships" with the names as its title (and, for screen readers, as hidden
    text; on the phone card they show under it). Filter by ship to see the announcements sent to all ships or with that
    ship among their targets; search the title; sort by sent (the default, newest first), title and target (All ships,
@@ -457,11 +523,12 @@ Requirements: Java 25, Docker.
    (on every active ship for All ships). Someone who joins the ship later is not a recipient; someone who leaves the
    ship or is deactivated later stays in the list. Each recipient gets an in-app notification "Announcement · <title>"
    (the subject is their ship) that opens the announcement on their own page (19); there the eyebrow is All ships or
-   their own ship, never the other target ships. Opening an announcement shows its text, "1 of 3 acknowledged" under
-   the heading (with "3 ships" as the eyebrow for several ships), **Acknowledgements by ship** (every target ship and
-   every ship of the recipients, by name, "1 of 2 acknowledged" each or "Nobody on board when it was sent", and the
-   Total for more than one ship), and two lists, both grouped by ship: acknowledged (name, role, ship, time) and not
-   yet acknowledged. Announcements cannot be edited or deleted. The audit entry "Announcement sent" lists the target
+   their own ship, never the other target ships. Opening an announcement shows its text, "1 of 3 read" under
+   the heading (with "3 vessels" as the eyebrow for several ships), **Read by vessel** (every target ship and
+   every ship of the recipients, by name, "1 of 2 read" each or "Nobody on board when it was sent", and the
+   Total for more than one ship), and two lists, both grouped by ship: **Read** (name, role, ship, and the read
+   receipt: two blue ticks, "Read" and the time) and **Not read yet** (one grey tick and "Not read yet"; the words
+   are always there, never the ticks alone: `layout/parts :: readReceipt`). Announcements cannot be edited or deleted. The audit entry "Announcement sent" lists the target
    ship ids and names ("Port state control (ship ids 3, 7: MV Alpha, MV Beta; 12 recipients)"), and has the ship
    only when there is one.
 
@@ -630,30 +697,32 @@ Requirements: Java 25, Docker.
    (it replaces the placeholder `login/ship.html`).
    - **Header**: the ship's name and IMO number as the eyebrow, the person's name as the heading and their rank under
      it (the role when no rank is set), and before the name their profile photo or initials (P31, see 20). Next to
-     the name: "Not Demo Cook?" and **Sign out**, one tap from Home, so
-     the next person on a shared PC sees whose session it is.
+     the name, from 768 px: "Not Demo Cook?" and **Sign out**, one tap from Home, so
+     the next person on a shared PC sees whose session it is. Below 768 px they are not repeated there (P39): Sign
+     out is under **More** in the tab bar (20).
    - **To read**: the Required library items of the person's ship that they have not acknowledged in the current
-     version and the announcements they have not acknowledged (P27, see 19), together, oldest first, with their number
+     version and the news they have not opened yet (P27, P39, see 19), together, oldest first, with their number
      after the heading. Each is a full-width card (at least 56 px) with the type icon (the announcements icon for an
-     announcement), the type ("Library" or "Announcement"), the title and "Published 12 Nov 2026" or "Sent 12 Nov
-     2026" (UTC date), and opens the item or announcement, where **I have read this** is. Retired items and items of
+     announcement), the type ("Library" or "News item"), the title and "Published 12 Nov 2026" or "Sent 12 Nov
+     2026" (UTC date), and opens the item (where **I have read this** is) or the news item (read by opening it). Retired items and items of
      other ships never show. A new version puts the item back on the list. Nothing left: "You are up to date."
-     **All announcements** and **Open the Library** follow the list.
+     **All news** and **Open the Library** follow the list.
    - **My certificates**: the person's own certificates, soonest expiry first (so expired, then expiring soon, then
      valid): type, "Expires 3 Nov 2026 · expired 8 days ago", the number when set, and the expiry badge of the office
      lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
-     office to update a certificate." Without any: "No certificates on record."
+     office to update a certificate." Without any: "No certificates on record." (`crew/parts :: myCertificates`,
+     shared with My profile, 20, which adds the file links.)
    - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
      the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
      acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
    - From 992 px To read (and the Master's card) and the certificates sit side by side.
    - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
-     :: tabBar`) with **Home**, **Announcements** (P27), **Library**, **Notifications** and **More** (P31: My profile,
+     :: tabBar`) with **Home**, **News** (P27; "Announcements" before P39), **Library**, **Notifications** and **More** (P31: My profile,
      My crew and Sign out, see 20) (the Notifications unread count as a badge on the icon, in words
      for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
      one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
      the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
-     Announcements, Library and, since P31, My crew; Account: Notifications and My profile). The page keeps room for the bar, and the offline banner and the
+     News, Library and, since P31, My crew; Account: Notifications and My profile). The page keeps room for the bar, and the offline banner and the
      pinned **I have read this** sit above it.
    - The page loads no script of its own (only the layout's shared files) and no images, except since P31 the
      person's own 96 px photo when they have added one (about 2 KB, cached for a year). Measured with the dev data
@@ -665,35 +734,40 @@ Requirements: Java 25, Docker.
      press **I have read this**, then **Home**: "You are up to date.". As `master.demo@example.com` the Crew
      acknowledgements card lists it with its count.
 
-19. Crew announcements (P27, any ship user): the crew read and acknowledge the announcements the office sends (14).
+19. Crew news (P27, any ship user; "Announcements" until P39): the crew read the announcements the office sends (14).
    `announcement/ShipAnnouncementController`, `templates/announcement/ship-list.html` and `ship-detail.html`; English
-   only, as every crew screen. **Announcements** sits between Home and Library in the sidebar and the phone tab bar,
-   with the number the person has still to acknowledge (P37; "2 to acknowledge" for screen readers, none at zero).
-   - `/ship/announcements`: the announcements the signed-in person is a recipient of, the ones to acknowledge first
-     (P37), each group newest first. Each row is one
-     link (the whole row) with the title, the date sent (UTC) and "To acknowledge" or "Acknowledged". One to
-     acknowledge has a bold title and the "To acknowledge" badge; the words carry the state, weight and colour only
-     repeat it. With none: "No announcements yet".
-   - `/ship/announcements/{id}`: All ships or the ship (with its IMO number) as the eyebrow, the title, "Office ·
-     <sender name>" (just "Office" when the sender was deleted) and the date and time sent in UTC, the message as plain
-     text with its line breaks, then **I have read this**, filling the reading column (48 rem wide at most) and, on
-     phones, pinned to the bottom of the screen above the tab bar until the message ends, as on a Required library
-     item (16).
-   - **I have read this** (`POST /ship/announcements/{id}/acknowledge`) sets the person's `acknowledgedAt`, records
-     "Announcement acknowledged" in the audit log (10) and comes back with "Thank you. Your acknowledgement is
-     recorded."; the button is replaced by "Acknowledged · 12 Nov 2026 · 14:05 UTC". Pressing it again (a second tab,
-     a resend over a bad link) changes nothing: same time, no new audit entry, no message.
-   - Someone who is not a recipient (another ship, joined after it was sent) gets 404 on both URLs, and never sees it
-     in their list. The crew never see who else has or has not acknowledged: only their own state.
-   - Unacknowledged announcements are on the Home page's To read (18) until acknowledged.
+   only, as every crew screen. **News** sits between Home and Library in the sidebar and the phone tab bar,
+   with the number the person has not read yet (P37; "2 unread" for screen readers, none at zero).
+   - `/ship/news`: the news the signed-in person is a recipient of, the ones not read yet first (P37), each group
+     newest first. Each row is one link (the whole row) with the title, the date sent (UTC) and its state: not read
+     yet, a bold title, a dot and "New"; read, two ticks ("Read" for screen readers). The word carries the state, the
+     weight and colour only repeat it. With none: "No news yet".
+   - `/ship/news/{id}`: All vessels or the ship (with its IMO number) as the eyebrow, the title, "Office ·
+     <sender name>" (just "Office" when the sender was deleted) and the date and time sent in UTC, the message as plain text with its line breaks, in the reading column (48 rem
+     wide at most), and under it the read receipt ("Read 13 Nov 2026 · 10:07 UTC" with two ticks).
+   - **Read by opening** (P39, asked by the crew: the button was one tap too many over a slow link): opening the item
+     is reading it. The first time, the server sets the person's `acknowledgedAt` and records "Announcement read" in
+     the audit log (10) in the same request as the page (`AnnouncementService.open`); opening it again, in a second
+     tab or after a resend over a bad link, changes nothing: same time, no new audit entry. There is no **I have read
+     this** button and no `POST …/acknowledge` any more. Opening the item does not mark its notification as read
+     (Notifications keep their own state, 13).
+   - The URLs before P39, `/ship/announcements` and `/ship/announcements/{id}`, answer 301 to `/ship/news` and
+     `/ship/news/{id}` (bookmarks, links in older notifications and emails).
+   - Someone who is not a recipient (another ship, joined after it was sent) gets 404 on both URLs, records nothing,
+     and never sees it in their list. The crew never see who else has or has not read it: only their own state.
+   - Unread news is on the Home page's To read (18) until opened.
    - To try it: as `office@example.com` send an announcement to MV Demo (14). As `cook.demo@example.com` /
-     `crew123`: **Notifications** has "Announcement · <title>"; open it, press **I have read this**. As the office, the
-     announcement's page shows "1 of 2 acknowledged" with Demo Cook and the time under Acknowledged.
+     `crew123`: **News** has the counter; open the item. As the office, the announcement's page shows "1 of 2 read"
+     with Demo Cook, the two ticks and the time under Read.
 
 20. My profile and My crew (P31, any ship user): a seafarer adds a little about themselves, and sees who is on board.
    `profile/ProfileController`, `mycrew/MyCrewController`, `core/profile/` (the `crew_profile` table, `ProfileService`,
    the photo handling), `templates/profile/` and `templates/mycrew/`; English only, as every crew screen. Every field
    is optional, and what a person fills in is seen by everyone on board the same ship now and by the office.
+   - **My certificates** (P39): under the four rows of My profile, the person's own certificates, as on Home (18),
+     with "Only you and the office see your certificates. The office keeps them up to date: tell them when
+     you renew one." and, for a certificate with a scan, a paperclip **Open**
+     link (`/ship/profile/certificates/{id}/file`, see 12). Their crewmates never see them (My crew is unchanged).
    - **Where**: on phones the tab bar's fifth tab is **More** (`/ship/more`): who is signed in, **My profile**, **My
      crew** and **Sign out**. From 768 px the sidebar has **My crew** under On board and **My profile** under Account.
      The person's photo (or initials) is next to their name on Home (18) and on My profile.
@@ -846,11 +920,12 @@ Requirements: Java 25, Docker.
      "Order confirmed: Antwerp, 20 Nov 2026". It can be corrected (**Correct the delivery**) as often as needed, each
      time recorded and notified, until the order is CLOSED; then the form is gone and a confirmation changes nothing.
      The order's row is locked while confirming.
-   - **Export CSV**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
-     `POST /office/orders/export` (`ids`) answers with the file `ship-orders-<date>.csv`, UTF-8 with a BOM (Excel
-     shows Greek correctly), one row per order line, the orders newest sent first and each order's lines by category
+   - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
+     `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xlsx` (P39; CSV before; the
+     format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
      and item name: `imo_number,ship_name,order_id,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
-     (`sent_at` in UTC to the second, dates as `2026-11-20`, category `Provisions` or `Personal items`). It sets
+     (`sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
+     category `Provisions` or `Personal items`). It sets
      `exportedAt` on the exported orders and records "Orders exported" (counts and ids). An order can be exported
      again. Nothing checked: back to the list with "Select at least one order to export.". The page stays as it is
      (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy
@@ -1015,7 +1090,7 @@ The app makes no request to any other host: everything a page needs is served fr
       "All ships" for a fleet announcement and "3 ships" for one to several ships (P28); the status code on the error page. The tabs of the ship page have the
       ship's name as their heading instead. There is no "Office portal" eyebrow;
     - the title (h1), with the record count after it on list pages ("Galley items · 3"); no page shows its title in
-      a card header as well. **Export CSV** on **Orders** (P36) is in the page header and still submits the list's
+      a card header as well. **Export** on **Orders** (P36; Excel since P39) is in the page header and still submits the list's
       form without JavaScript (`form="exportForm"`);
     - an optional subtitle (one line, e.g. "Newest first.", or the category, version and date of a library item) and
       the actions on the right.
@@ -1056,9 +1131,11 @@ The app makes no request to any other host: everything a page needs is served fr
     - rail and preference (P29), from 768 px: the sidebar is a 64 px rail by default (the mark, the entries' icons, the
       user's initials and a sign-out icon); each entry's name shows as a tooltip beside it on hover and on keyboard
       focus, and stays in the link for screen readers; the active entry keeps its pink bar; a counter becomes a
-      10 px dot with the number and its meaning still in the link's text. **Expand menu** / **Collapse menu** at
-      the bottom (a chevron, `aria-expanded`, `aria-controls="sidebar"`; `layout/parts :: sidebarToggle`) switches
-      to today's full 256 px sidebar and back. The choice is the cookie `sidebar=expanded|collapsed` (one year,
+      10 px dot with the number and its meaning still in the link's text. **Expand menu** / **Collapse menu**
+      (`aria-expanded`, `aria-controls="sidebar"`; `layout/parts :: sidebarToggle`) switches to the full 256 px
+      sidebar and back. Since P39 it is at the top, next to the brand mark (under it, centred, in the rail), where it
+      is found without scrolling: an icon only (a panel with a chevron pointing the way the sidebar will move) on a
+      44 px target, its words the accessible name and a tooltip on hover and keyboard focus. The choice is the cookie `sidebar=expanded|collapsed` (one year,
       path `/`, SameSite=Lax), read by the server (`navigation/SidebarPreference`, the body class
       `sidebar-expanded` / `sidebar-collapsed`), so the next page is drawn in the right state without a flash.
       With JavaScript (`js/sidebar.js`) the toggle changes the page in place and writes the cookie; without it the

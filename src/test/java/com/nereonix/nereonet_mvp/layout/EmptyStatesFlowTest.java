@@ -61,16 +61,16 @@ class EmptyStatesFlowTest {
     void onAFreshDatabaseEveryFleetListShowsAnEmptyStateWithAnAction() throws Exception {
         // list, title, help, the action's link and label
         List<List<String>> lists = List.of(
-                List.of("/office/ships", "No ships yet", "Add your first ship to invite its crew.",
-                        "data-bs-target=\"#newShipModal\"", "Add ship"),
-                List.of("/office/crew", "No crew yet", "Crew members belong to a ship: add your first ship, then invite its crew.",
-                        "href=\"/office/ships\"", "Go to Ships"),
+                List.of("/office/ships", "No vessels yet", "Add your first vessel to invite its crew.",
+                        "data-bs-target=\"#newShipModal\"", "Add vessel"),
+                List.of("/office/crew", "No crew yet", "Crew members belong to a vessel: add your first vessel, then invite its crew.",
+                        "href=\"/office/ships\"", "Go to Vessels"),
                 List.of("/office/certificates", "No certificates yet", "on each crew member&#39;s page",
                         "href=\"/office/crew\"", "Go to Crew"),
-                List.of("/office/announcements", "No announcements yet", "Send news and instructions to all ships or to the ships they concern",
+                List.of("/office/announcements", "No announcements yet", "Send news and instructions to all vessels or to the vessels they concern",
                         "href=\"/office/announcements/new\"", "New announcement"),
-                List.of("/office/orders", "No orders yet", "Orders appear here once a ship&#39;s master sends them.",
-                        "href=\"/office/ships\"", "Go to Ships"),
+                List.of("/office/orders", "No orders yet", "Orders appear here once a vessel&#39;s master sends them.",
+                        "href=\"/office/ships\"", "Go to Vessels"),
                 List.of("/office/audit", "Nothing recorded yet", "start with the setup steps on the Overview",
                         "href=\"/office\"", "Go to Overview"),
                 List.of("/notifications", "No notifications yet", "Certificate reminders, new library documents",
@@ -97,9 +97,9 @@ class EmptyStatesFlowTest {
         String tab = "/office/ships/" + ship.getId();
 
         String crew = html(get("/office/crew"));
-        assertThat(emptyState(crew, "crew")).contains("Invite your ships&#39; crew one by one",
+        assertThat(emptyState(crew, "crew")).contains("Invite your vessels&#39; crew one by one",
                 "data-bs-target=\"#addCrewModal\"", "Add crew member", "href=\"/office/crew/import\"", "Import from file");
-        assertThat(html(get(tab + "/crew"))).contains("No crew on this ship yet", "Invite this ship&#39;s crew");
+        assertThat(html(get(tab + "/crew"))).contains("No crew on this vessel yet", "Invite this vessel&#39;s crew");
         assertThat(emptyState(html(get(tab + "/items")), "items"))
                 .contains("No galley items yet", "href=\"" + tab + "/items/new\"", "href=\"" + tab + "/items/import\"");
         assertThat(emptyState(html(get(tab + "/library")), "library"))
@@ -144,7 +144,7 @@ class EmptyStatesFlowTest {
         assertThat(emptyState(certificates, "certificates")).contains("No certificates expire within 90 days",
                 "Every certificate is valid for more than 90 days.", "href=\"/office/certificates?status=all\"",
                 "btn btn-outline-secondary", "Show all certificates");
-        assertThat(certificates).contains("Export CSV"); // not first use: the header keeps its action
+        assertThat(certificates).contains("<span>Export</span>"); // not first use: the header keeps its action
 
         // A crew member without certificates: Add certificate moves from the card header into the empty state.
         String member = html(get("/office/crew/{id}/edit", anna.getId()));

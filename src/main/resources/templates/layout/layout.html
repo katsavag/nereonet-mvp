@@ -62,6 +62,9 @@
                        th:with="office=${#authentication.principal.role.name() == 'OFFICE_USER'}">
                         <div th:replace="~{layout/parts :: brand(${office} ? #{portal.office} : #{portal.ship})}"></div>
                     </a>
+                    <!-- From md: "Collapse menu" / "Expand menu", an icon right of the brand, under the mark in the
+                         rail (P29, at the top since P39). -->
+                    <form th:replace="~{layout/parts :: sidebarToggle(${sidebarExpanded})}"></form>
                     <button type="button" class="sidebar-close" data-bs-dismiss="offcanvas"
                             data-bs-target="#sidebar" th:attr="aria-label=#{nav.close}">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -90,15 +93,15 @@
                             <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
                         </ul>
                     </th:block>
-                    <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), Announcements (P27)
-                         between Home and Library in both. My crew and My profile (P31) are under the tab bar's More, and
+                    <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), News (P27
+                         announcements, "News" for the crew since P39) between Home and Library in both. My crew and My profile (P31) are under the tab bar's More, and
                          so are the Master's Approvals (P33) and Ship order (P35). -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
                             <li th:replace="~{layout/parts :: navItem('home', '/ship', #{nav.home}, null, null)}"></li>
-                            <!-- With the number still to acknowledge (P37). -->
-                            <li th:replace="~{layout/parts :: navItem('announcements', '/ship/announcements', #{nav.announcements},
+                            <!-- With the number not opened yet (P37, P39). -->
+                            <li th:replace="~{layout/parts :: navItem('announcements', '/ship/news', #{nav.news},
                                     ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
                             <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('crew', '/ship/crew', #{nav.myCrew}, null, null)}"></li>
@@ -131,8 +134,6 @@
                     </div>
                     <form th:replace="~{layout/parts :: sidebarSignOut}"></form>
                 </div>
-                <!-- From md: "Expand menu" / "Collapse menu" (P29). -->
-                <form th:replace="~{layout/parts :: sidebarToggle(${sidebarExpanded})}"></form>
             </div>
         </div>
     </aside>
@@ -174,7 +175,7 @@
             <main th:replace="${content}"></main>
         </div>
     </div>
-    <!-- Ship crew on phones (P26): Home, Announcements, Library, Notifications and More (P31) at the bottom of the
+    <!-- Ship crew on phones (P26): Home, News (P39), Library, Notifications and More (P31) at the bottom of the
          screen. -->
     <th:block sec:authorize="!hasRole('OFFICE_USER')">
         <nav th:replace="~{layout/parts :: tabBar}"></nav>
@@ -209,6 +210,7 @@
 <script th:src="@{/js/download.js}"></script>
 <script th:src="@{/js/notifications.js}"></script>
 <script th:src="@{/js/import-map.js}"></script>
+<script th:src="@{/js/import-check.js}"></script>
 <script th:src="@{/js/ship-picker.js}"></script>
 <script th:src="@{/js/sidebar.js}"></script>
 </th:block>

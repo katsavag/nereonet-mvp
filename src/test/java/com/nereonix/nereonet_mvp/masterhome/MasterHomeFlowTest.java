@@ -137,9 +137,9 @@ class MasterHomeFlowTest {
 
         String html = home(master);
         assertThat(card(html, "approvals")).contains(">2</span>", "is-due");
-        assertThat(card(html, "order")).contains("href=\"/ship/order\"", ">Ship order<", ">1</span>", "is-due");
+        assertThat(card(html, "order")).contains("href=\"/ship/order\"", ">Vessel order<", ">1</span>", "is-due");
         assertThat(card(html, "announcements"))
-                .contains("href=\"/ship/announcements\"", ">Announcements to acknowledge<", ">1</span>", "is-due");
+                .contains("href=\"/ship/news\"", ">News to read<", ">1</span>", "is-due");
         assertThat(card(html, "library"))
                 .contains("href=\"/ship/library\"", ">Library to acknowledge<", ">1</span>", "is-due");
         // Crew on board informs: never highlighted.

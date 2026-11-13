@@ -142,7 +142,7 @@ class PageHeaderFlowTest {
         Map<String, Page> pages = new LinkedHashMap<>();
         // Top level: the sidebar entries. No breadcrumbs.
         add(pages, "/office", null, "Overview", List.of(), null);
-        add(pages, "/office/ships", null, "Ships", List.of(), null);
+        add(pages, "/office/ships", null, "Vessels", List.of(), null);
         add(pages, "/office/crew", null, "Crew", List.of(), null);
         add(pages, "/office/users", null, "Office users", List.of(), null);
         add(pages, "/office/audit", null, "Audit log", List.of(), null);
@@ -169,34 +169,34 @@ class PageHeaderFlowTest {
         // top bar name the ship and the tab. No eyebrow: the ship is the heading.
         for (String[] tab : new String[][] {{"", "Overview"}, {"/crew", "Crew"}, {"/certificates", "Certificates"},
                 {"/library", "Library"}, {"/items", "Items"}, {"/announcements", "Announcements"}}) {
-            add(pages, "/office/ships/" + id + tab[0], null, "MV Demo · " + tab[1], List.of("Ships", "MV Demo"), null);
+            add(pages, "/office/ships/" + id + tab[0], null, "MV Demo · " + tab[1], List.of("Vessels", "MV Demo"), null);
         }
         // Below the ship page: Ships > the ship > its tab > the page, with the ship as the eyebrow.
-        add(pages, "/office/ships/" + id + "/edit", null, "Edit ship", List.of("Ships", "MV Demo", "Edit ship"),
+        add(pages, "/office/ships/" + id + "/edit", null, "Edit vessel", List.of("Vessels", "MV Demo", "Edit vessel"),
                 SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/certificates/new", null, "Add certificate",
-                List.of("Ships", "MV Demo", "Certificates", "Add certificate"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Certificates", "Add certificate"), SHIP_CONTEXT);
         add(pages, "/office/announcements/new?shipId=" + id, null, "New announcement",
-                List.of("Ships", "MV Demo", "Announcements", "New announcement"), null);
+                List.of("Vessels", "MV Demo", "Announcements", "New announcement"), null);
         add(pages, "/office/ships/" + id + "/items/new", null, "Add item",
-                List.of("Ships", "MV Demo", "Items", "Add item"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Items", "Add item"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/items/import", null, "Import items",
-                List.of("Ships", "MV Demo", "Items", "Import items from a file"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Items", "Import items from a file"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/new", null, "Add an item",
-                List.of("Ships", "MV Demo", "Library", "Add an item"), SHIP_CONTEXT);
-        add(pages, "/office/ships/" + id + "/library/particulars", null, "Edit ship particulars",
-                List.of("Ships", "MV Demo", "Library", "Edit ship particulars"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Library", "Add an item"), SHIP_CONTEXT);
+        add(pages, "/office/ships/" + id + "/library/particulars", null, "Edit vessel particulars",
+                List.of("Vessels", "MV Demo", "Library", "Edit vessel particulars"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId(), null, "Drug and alcohol policy",
-                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/edit", null, "Publish new version",
-                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/acknowledgements", null, "Acknowledgements",
-                List.of("Ships", "MV Demo", "Library", "Drug and alcohol policy", "Acknowledgements"), SHIP_CONTEXT);
+                List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy", "Acknowledgements"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId(), crew, "Drug and alcohol policy",
                 List.of("Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/ship/library/new", master, "Add an item", List.of("Library", "Add an item"), SHIP_CONTEXT);
-        add(pages, "/ship/library/particulars", master, "Edit ship particulars",
-                List.of("Library", "Edit ship particulars"), SHIP_CONTEXT);
+        add(pages, "/ship/library/particulars", master, "Edit vessel particulars",
+                List.of("Library", "Edit vessel particulars"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId() + "/edit", master, "Publish new version",
                 List.of("Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId() + "/acknowledgements", master, "Acknowledgements",
@@ -221,7 +221,7 @@ class PageHeaderFlowTest {
         mockMvc.perform(multipart("/office/ships/{id}/items/import", id).file(csv("Name,Unit,Category,Place\nOlive oil,lt,Provisions,Dry store\n"))
                 .session(itemImport).with(csrf()));
         assertPageHeader(new Page("/office/ships/" + id + "/items/import/review", null, "Review item import",
-                List.of("Ships", "MV Demo", "Items", "Import items", "Review item import"), SHIP_CONTEXT),
+                List.of("Vessels", "MV Demo", "Items", "Import items", "Review item import"), SHIP_CONTEXT),
                 html(get("/office/ships/{id}/items/import/review", id).session(itemImport)), true);
 
         // Signed out: the same header, without breadcrumbs or the app frame.
@@ -253,10 +253,10 @@ class PageHeaderFlowTest {
                 assertThat(cardHeader).as("card header repeating the title on " + url).doesNotContain("<h2");
             }
         }
-        assertThat(html(get("/office/ships"))).containsPattern("<h1 class=\"page-title\">\\s*<span>Ships</span>\\s*"
+        assertThat(html(get("/office/ships"))).containsPattern("<h1 class=\"page-title\">\\s*<span>Vessels</span>\\s*"
                 + "<span class=\"title-count\"><span aria-hidden=\"true\">·</span> <span class=\"num\">1</span></span>");
 
-        // Export CSV is in the page header; it still submits the list's form without JavaScript (P36).
+        // Export is in the page header; it still submits the list's form without JavaScript (P36).
         String orders = html(get("/office/orders"));
         assertThat(orders).contains("<form id=\"exportForm\" action=\"/office/orders/export\" method=\"post\" data-selection")
                 .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");

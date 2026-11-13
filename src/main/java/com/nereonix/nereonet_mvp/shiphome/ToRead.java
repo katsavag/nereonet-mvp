@@ -28,6 +28,6 @@ public record ToRead(Kind kind, String title, Instant date, String url, LibraryI
     static ToRead of(AnnouncementRecipient recipient) {
         var announcement = recipient.getAnnouncement();
         return new ToRead(Kind.ANNOUNCEMENT, announcement.getTitle(), announcement.getCreatedAt(),
-                "/ship/announcements/" + announcement.getId(), null);
+                "/ship/news/" + announcement.getId(), null);
     }
 }

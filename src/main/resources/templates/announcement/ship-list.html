@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.ship.title}, ~{::main})}">
 <body>
-<!-- The crew's announcements (P27): the ones the signed-in person is a recipient of, the ones to acknowledge first
-     (P37), each group newest first. English only, as every crew screen. Each row is one link (the title, stretched over the row): title, date sent (UTC) and the
-     person's own state. One to acknowledge has a bold title and "To acknowledge"; one acknowledged a regular title and
-     "Acknowledged": the words carry the state, weight and colour only repeat it. Nothing about anyone else. -->
+<!-- The crew's News (P27 announcements, "News" on the crew side since P39, /ship/news): the items the signed-in person
+     is a recipient of, the ones not read yet first (P37), each group newest first. English only, as every crew screen.
+     Each row is one link (the title, stretched over the row): title, date sent (UTC) and the person's own state. Not
+     read yet: a bold title, a filled dot and "New"; read (opened, P39): a regular title and two ticks in the primary
+     blue with "Read" for screen readers (layout/parts :: newsState). Nothing about anyone else. -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.ship.title}, eyebrowShip=${ship},
                          subtitle=${rows.isEmpty()} ? null : #{announcement.ship.hint})}"></header>
@@ -18,14 +19,11 @@
             <li th:each="r : ${rows}" class="list-group-item list-group-item-action announcement-row"
                 th:classappend="${r.acknowledgedAt == null} ? 'is-unread'" th:with="a=${r.announcement}">
                 <div class="announcement-row-main">
-                    <a class="announcement-row-title stretched-link" th:href="@{/ship/announcements/{id}(id=${a.id})}"
+                    <a class="announcement-row-title stretched-link" th:href="@{/ship/news/{id}(id=${a.id})}"
                        th:text="${a.title}">Safety drill on Friday</a>
                     <p class="announcement-row-meta"><time th:replace="~{layout/parts :: utcDate(${a.createdAt})}"></time></p>
                 </div>
-                <th:block th:if="${r.acknowledgedAt == null}"><span
-                        th:replace="~{layout/parts :: status('warning', #{announcement.ship.toAcknowledge})}"></span></th:block>
-                <th:block th:unless="${r.acknowledgedAt == null}"><span
-                        th:replace="~{layout/parts :: status('ok', #{announcement.ship.acknowledged})}"></span></th:block>
+                <span th:replace="~{layout/parts :: newsState(${r.acknowledgedAt})}"></span>
             </li>
         </ul>
     </div>

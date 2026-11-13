@@ -72,7 +72,7 @@ public class MasterHomeService {
                 Card.toDo("order", "order",
                         orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email), "/ship/order"),
                 Card.toDo("announcements", "announcements",
-                        recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email), "/ship/announcements"),
+                        recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email), "/ship/news"),
                 Card.toDo("library", "library",
                         libraryItemRepository.countRequiredNotAcknowledgedBy(ship, email), "/ship/library"),
                 // Room for "Stores" (items low and out of stock, /ship/stores) once the inventory exists: one more

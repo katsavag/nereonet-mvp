@@ -53,6 +53,22 @@ public class Certificate {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    // The scan of the certificate (P39), all three null without one: the uploaded file's name (shown and used for
+    // the download, never as a path), its content type (application/pdf, image/jpeg or image/png) and the generated
+    // name it is stored under (CertificateFileStorage). Served only to the crew member and to the office.
+    @Column(length = 255)
+    private String fileName;
+
+    @Column(length = 50)
+    private String fileContentType;
+
+    @Column(length = 36)
+    private String fileStoragePath;
+
+    public boolean hasFile() {
+        return fileStoragePath != null;
+    }
+
     public long daysLeft(LocalDate today) {
         return ChronoUnit.DAYS.between(today, expiresOn);
     }

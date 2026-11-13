@@ -110,7 +110,7 @@ class CrewImportFlowTest {
                 .containsPattern("<li class=\"import-step is-current\"\\s+aria-current=\"step\">")
                 .containsPattern("<li class=\"import-step is-done\">\\s*<span class=\"import-step-mark\"")
                 .contains("Will import: 3 new, 0 updates, 0 without changes (skipped).")
-                .containsPattern("(?s)<td class=\"import-col-row\">\\s*<span class=\"import-row-number num\">2</span>"
+                .containsPattern("(?s)<td class=\"import-col-row\" data-action=\"CREATE\">\\s*<span class=\"import-row-number num\">2</span>"
                         + "\\s*<span class=\"badge status-badge status-primary\">New</span>");
         assertThat(invitationRepository.findAll()).isEmpty();
 
@@ -153,7 +153,7 @@ class CrewImportFlowTest {
         // Every field found under its new name, in its new place.
         String map = html(get(BASE + "/map").session(session));
         assertThat(map).contains("File: crew-from-system.xlsx", "Sheet: Crew", "First 5 of 10 rows",
-                "To: Full name", "To: Email", "To: Rank", "To: Ship (IMO number or exact name)");
+                "To: Full name", "To: Email", "To: Rank", "To: Vessel (IMO number or exact name)");
         assertSelected(map, "fullName", 2);
         assertSelected(map, "email", 3);
         assertSelected(map, "rank", 0);
@@ -356,6 +356,64 @@ class CrewImportFlowTest {
         mockMvc.perform(get(BASE + "/done").session(session)).andExpect(redirectedUrl("/office/crew"));
     }
 
+    // P39: the review checks its cells as they are corrected (js/import-check.js). The markup carries each cell's local
+    // rules and the server's own error; the counts of all rows; the import button and its hint for the script to
+    // follow. Without the script the page works as before: the server's errors and Check again.
+    @Test
+    void theReviewCarriesTheRulesForTheLiveCheck() throws Exception {
+        ship();
+        MockHttpSession session = new MockHttpSession();
+        upload(session, "crew.csv", """
+                Full name,Email,Rank,Ship IMO
+                Anna Testa,anna.testa.example.com,Bosun,9074729
+                Bruno Exemplo,office@example.com,,9074729
+                Carla Motore,carla.motore@example.com,Oiler,9074729
+                """, BASE + "/review");
+
+        String review = review(session);
+        assertThat(review).contains("src=\"/js/import-check")
+                .containsPattern("<div class=\"import-summary\" data-import-check\\s+data-error-count=\"2\"\\s+data-changing-count=\"3\">");
+        // The email cell of row 2: required, at most 255 characters, an address; the server found it invalid.
+        assertThat(tag(review, "input", "rows[0].email")).contains("type=\"email\"", "class=\"form-control form-control-sm is-invalid\"",
+                "data-required=\"Enter an email address.\"", "data-max-length=\"255\"",
+                "data-too-long=\"This value is too long.\"", "data-email=\"Enter a valid email address.\"",
+                "data-server-error=\"Enter a valid email address.\"");
+        // A rule only the server knows (an account exists) is its server error; the name has none.
+        assertThat(tag(review, "input", "rows[1].email")).contains("data-server-error=\"A user with this email already exists.\"");
+        assertThat(tag(review, "input", "rows[1].fullName")).contains("data-required=\"Enter the full name.\"")
+                .doesNotContain("data-server-error", "data-email");
+        assertThat(tag(review, "select", "rows[1].rank")).contains("data-required=\"Choose a rank.\"",
+                "data-server-error=\"Choose a rank.\"");
+        assertThat(tag(review, "select", "rows[1].shipImo")).contains("data-required=\"Choose a vessel.\"");
+        // What the script updates: the rows' actions, the "Exclude" button's text for 1 and for N, the import button
+        // and its hint.
+        assertThat(review).contains("data-action=\"CREATE\"",
+                "data-label-one=\"Exclude the row with errors\"", "data-label-many=\"Exclude all 100 rows with errors\"",
+                ">Exclude all 2 rows with errors</button>", ">Check again</button>")
+                .containsPattern("<button type=\"submit\" class=\"btn btn-primary\" formaction=\"[^\"]*/submit\" data-import-submit\\s+"
+                        + "aria-describedby=\"submitHint\" disabled=\"disabled\">")
+                .containsPattern("<p id=\"submitHint\" class=\"form-text mt-2 mb-0\">");
+
+        // Corrected and checked again: the import button is enabled and the hint is there, hidden, for the script.
+        mockMvc.perform(post(BASE + "/check").param("rows[0].email", "anna.testa@example.com")
+                        .param("rows[1].email", "bruno.exemplo@example.com").param("rows[1].rank", "BOSUN")
+                        .session(session).with(csrf()))
+                .andExpect(redirectedUrl(BASE + "/review"));
+        String ready = review(session);
+        assertThat(ready).containsPattern("formaction=\"[^\"]*/submit\" data-import-submit>")
+                .containsPattern("<p id=\"submitHint\" class=\"form-text mt-2 mb-0\" hidden=\"hidden\">")
+                .doesNotContain("import-exclude-errors");
+    }
+
+    // The opening tag of the form control named name.
+    private static String tag(String html, String element, String name) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("<" + element + "\\b[^>]*\\bname=\"" + java.util.regex.Pattern.quote(name) + "\"[^>]*>")
+                .matcher(html);
+        assertThat(m.find()).as(name).isTrue();
+        return m.group();
+    }
+
     // Any structure: an .xls workbook with a title above the columns, and first and last name in two columns; a CSV
     // with ";".
     @Test
@@ -440,11 +498,11 @@ class CrewImportFlowTest {
                 .andExpect(redirectedUrl(BASE + "/review"));
 
         String review = review(session);
-        assertThat(review).contains("This ship already has an active crew member with this access.",
-                "Choose a rank.", "The file has more than one crew member with this access for this ship.",
+        assertThat(review).contains("This vessel already has an active crew member with this access.",
+                "Choose a rank.", "The file has more than one crew member with this access for this vessel.",
                 "Not one of the ranks. Choose a rank.",
                 // A ship name that names no active ship: kept, shown as written, and an error.
-                ">MV Atlas</option>", "No active ship with this IMO number or name. Choose a ship.",
+                ">MV Atlas</option>", "No active vessel with this IMO number or name. Choose a vessel.",
                 "<span class=\"import-filter-count num has-errors\">5</span>");
         for (int row = 0; row < 5; row++) {
             assertThat(review).as("row " + row).containsPattern("<select class=\"form-select form-select-sm is-invalid\""
@@ -469,7 +527,7 @@ class CrewImportFlowTest {
                     Full name,Email,Rank,Ship IMO
                     Anna Testa,anna.testa@example.com,Master,9074729
                     """, BASE + "/review");
-            assertThat(review(session)).contains("This ship already has an active crew member with this access.");
+            assertThat(review(session)).contains("This vessel already has an active crew member with this access.");
         } finally {
             userRepository.delete(master);
             shipRepository.delete(ship);

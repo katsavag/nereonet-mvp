@@ -74,6 +74,45 @@
     </a>
 </li>
 
+<!-- A certificate's file (P39): a paperclip and "Open", opening the scan in a new tab; nothing when it has none. Its
+     accessible name says whose file it is: "Open the file of STCW Basic Safety (opens in a new tab)"; the file's
+     name is its tooltip. c: the certificate; url: where the file is served (/office/crew/{user}/certificates/{id}/file
+     for the office, /ship/profile/certificates/{id}/file for the crew member); linkClass: e.g. 'btn btn-ghost btn-sm'.
+     Office and crew, so in both languages. -->
+<a th:fragment="certificateFile(c, url, linkClass)" th:if="${c.hasFile()}" th:class="${'cert-file-link ' + linkClass}"
+   th:href="@{${url}}" target="_blank" rel="noopener" th:title="${c.fileName}">
+    <svg th:replace="~{layout/parts :: icon('paperclip')}"></svg>
+    <span th:text="#{certificate.file.open}">Open</span>
+    <span class="visually-hidden" th:text="#{certificate.file.openContext(${c.type})}">the file of STCW Basic Safety (opens in a new tab)</span>
+</a>
+
+<!-- The signed-in crew member's own certificates, read only, soonest expiry first (so expired, then expiring soon): a
+     card of rows (.cert-row) with the type, "Expires 10 Jan 2027 · in 60 days", the number when set and the P20 badge
+     (icon and words, not colour alone). On crew Home (P26) and on My profile (P39), where withFile adds Open for a
+     certificate whose file the office attached. certificates: the person's; today: the UTC date. -->
+<div th:fragment="myCertificates(certificates, today, withFile)" class="card">
+    <p th:if="${certificates.isEmpty()}" class="card-body mb-0"
+       th:text="#{home.certificates.empty}">No certificates on record.</p>
+    <ul th:unless="${certificates.isEmpty()}" class="list-group list-group-flush">
+        <li th:each="c : ${certificates}" class="list-group-item cert-row">
+            <div class="cert-row-main">
+                <p class="cert-row-type" th:text="${c.type}">STCW Basic Safety</p>
+                <p class="cert-row-meta">
+                    <span th:text="#{home.certificates.expires}">Expires</span>
+                    <span th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}"></span>
+                </p>
+                <p th:if="${c.number}" class="cert-row-meta"
+                   th:text="#{home.certificates.number(${c.number})}">No. 12345</p>
+            </div>
+            <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
+            <th:block th:if="${withFile}">
+                <a th:replace="~{crew/parts :: certificateFile(${c}, ${'/ship/profile/certificates/' + c.id + '/file'},
+                        'btn btn-outline-secondary')}"></a>
+            </th:block>
+        </li>
+    </ul>
+</div>
+
 <!-- One person of My crew (P31): the whole row is one link to their page, at least 56px high: their picture (photo or
      initials), name and rank ("Rank not set" without one); the signed-in person's row says "· you" after the name.
      p: a mycrew/CrewmateView. -->

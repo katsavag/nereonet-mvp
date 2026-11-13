@@ -54,9 +54,9 @@
     </div>
 </main>
 
-<!-- The top of the Certificates tab, in both views: the ship frame, the tab heading with Export CSV and Add
+<!-- The top of the Certificates tab, in both views: the ship frame, the tab heading with Export and Add
      certificate (both for what this view shows; Add comes back to it), the Matrix / List switch and the view's hint.
-     view: 'matrix' or 'list'; exportUrl: this view's CSV. Needs returnTo (this view's URL) in the model. -->
+     view: 'matrix' or 'list'; exportUrl: this view's export (an Excel workbook, P39). Needs returnTo (this view's URL) in the model. -->
 <th:block th:fragment="tabTop(view, exportUrl, noCertificates)">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
     <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ${noCertificates} ? null : ~{certificate/matrix :: tabActions(${exportUrl})})}"></div>
@@ -67,7 +67,7 @@
 <th:block th:fragment="tabActions(exportUrl)">
     <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
         <svg th:replace="~{layout/parts :: icon('download')}"></svg>
-        <span th:text="#{certificate.export}">Export CSV</span>
+        <span th:text="#{certificate.export}">Export</span>
     </a>
     <a th:replace="~{certificate/matrix :: addAction}"></a>
 </th:block>

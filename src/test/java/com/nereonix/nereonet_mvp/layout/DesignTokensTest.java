@@ -42,11 +42,12 @@ class DesignTokensTest {
     @Test
     void largeButtonsOnlyWhereTheyAreFullWidthOrIHaveReadThis() throws IOException {
         // Sign-in, registration, forgot password (P14) and signed-out error pages (w-100; the error pages' button is in
-        // layout/parts :: errorPage, P12), and the crew "I have read this" button (library items; announcements, P27).
+        // layout/parts :: errorPage, P12), and the crew "I have read this" button of library items (announcements had
+        // one too until P39: news is read by opening it).
         Path templates = Path.of("src/main/resources/templates");
         List<String> allowed = List.of("login/login.html", "registration/register.html", "registration/invalid.html",
                 "passwordreset/forgot.html", "passwordreset/sent.html", "passwordreset/reset.html", "passwordreset/invalid.html",
-                "layout/parts.html", "library/item.html", "announcement/ship-detail.html");
+                "layout/parts.html", "library/item.html");
         List<String> found = new ArrayList<>();
         try (Stream<Path> files = Files.walk(templates)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".html")).toList()) {
@@ -63,8 +64,6 @@ class DesignTokensTest {
         assertThat(found).isEmpty();
         assertThat(Files.readString(Path.of("src/main/resources/templates/library/item.html")))
                 .contains("btn btn-primary btn-lg\" th:text=\"#{library.acknowledge}\"");
-        assertThat(Files.readString(Path.of("src/main/resources/templates/announcement/ship-detail.html")))
-                .contains("btn btn-primary btn-lg\" th:text=\"#{announcement.ship.acknowledge}\"");
     }
 
     @Test

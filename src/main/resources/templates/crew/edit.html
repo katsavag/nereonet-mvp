@@ -129,6 +129,7 @@
                 </div>
                 <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                 <div class="d-flex align-items-start gap-2">
+                    <a th:replace="~{crew/parts :: certificateFile(${c}, ${'/office/crew/' + member.id + '/certificates/' + c.id + '/file'}, 'btn btn-ghost btn-sm')}"></a>
                     <a class="btn btn-ghost btn-sm"
                        th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${member.id},cid=${c.id})}"
                        th:text="#{certificate.edit}">Edit</a>

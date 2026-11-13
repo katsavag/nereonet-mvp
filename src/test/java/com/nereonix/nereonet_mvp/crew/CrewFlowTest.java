@@ -308,7 +308,7 @@ class CrewFlowTest {
                     .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
             assertThat(html).as(rank)
                     .containsPattern("<select class=\"form-select is-invalid\"[^>]*id=\"rank\" name=\"rank\"")
-                    .contains("This ship already has an active crew member with this access.");
+                    .contains("This vessel already has an active crew member with this access.");
         }
         assertThat(invitationRepository.findAll()).isEmpty();
 

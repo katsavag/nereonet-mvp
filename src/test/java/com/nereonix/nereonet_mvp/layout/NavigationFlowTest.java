@@ -99,7 +99,7 @@ class NavigationFlowTest {
         // Three representative URLs: the office home, a page below Crew, a page below Ships.
         assertActive(get("/office"), "/office", "Overview");
         assertActive(get("/office/crew/{id}/edit", crew.getId()), "/office/crew", "Crew");
-        assertActive(get("/office/ships/{id}/items", ship.getId()), "/office/ships", "Ships");
+        assertActive(get("/office/ships/{id}/items", ship.getId()), "/office/ships", "Vessels");
         // And for the crew: a page below Library.
         assertActive(get("/ship/library/new").with(user(new CurrentUser(master))), "/ship/library", "Library");
         assertActive(get("/notifications"), "/notifications", "Notifications");
@@ -135,12 +135,12 @@ class NavigationFlowTest {
     void crewSidebarHasHomeAnnouncementsLibraryMyCrewMyProfileAndNotifications() throws Exception {
         String nav = sidebar(get("/ship/library").with(user(new CurrentUser(crew))));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList())
-                .containsExactly("/ship", "/ship/announcements", "/ship/library", "/ship/crew", "/ship/profile", "/notifications");
+                .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/profile", "/notifications");
         assertThat(nav).contains(">On board</p>", ">Account</p>").doesNotContain("/office", "lang=el");
         // The ship home page is Home (P26).
         assertActive(get("/ship").with(user(new CurrentUser(crew))), "/ship", "Home");
-        // The crew's announcements (P27).
-        assertActive(get("/ship/announcements").with(user(new CurrentUser(crew))), "/ship/announcements", "Announcements");
+        // The crew's announcements (P27), News since P39.
+        assertActive(get("/ship/news").with(user(new CurrentUser(crew))), "/ship/news", "News");
     }
 
     @Test
@@ -192,7 +192,7 @@ class NavigationFlowTest {
         assertThat(NavSection.of("/office/crewing")).isNull();
         assertThat(NavSection.of("/ship")).isEqualTo(NavSection.HOME);
         assertThat(NavSection.of("/ship/library/3")).isEqualTo(NavSection.LIBRARY);
-        assertThat(NavSection.of("/ship/announcements/7")).isEqualTo(NavSection.ANNOUNCEMENTS);
+        assertThat(NavSection.of("/ship/news/7")).isEqualTo(NavSection.ANNOUNCEMENTS);
         assertThat(NavSection.of("/shipping")).isNull();
         assertThat(NavSection.of("/error")).isNull();
     }
@@ -218,8 +218,17 @@ class NavigationFlowTest {
                         + "<input type=\"hidden\" name=\"returnTo\" value=\"/office/crew\\?shipId=" + ship.getId() + "\">\\s*"
                         + "<button type=\"submit\" class=\"sidebar-toggle\" aria-controls=\"sidebar\" data-sidebar-toggle"
                         + "[^>]*aria-expanded=\"false\">.*?<span class=\"sidebar-label\">Expand menu</span>");
-        // The toggle is the last thing in the sidebar: the Tab order of the entries is unchanged.
-        assertThat(first).containsSubsequence("class=\"sidebar-nav\"", "class=\"sidebar-user\"", "data-sidebar-toggle", "</aside>");
+        // P39: the toggle is at the top, right after the brand (in the rail under the mark), before the navigation.
+        assertThat(first).containsSubsequence("class=\"sidebar-head\"", "class=\"sidebar-brand\"", "data-sidebar-toggle",
+                "class=\"sidebar-close\"", "class=\"sidebar-nav\"", "class=\"sidebar-user\"", "</aside>");
+        // Icon only: the "panel left" icon with its chevron, the words visually hidden as its name and tooltip.
+        assertThat(first).containsPattern("(?s)data-sidebar-toggle[^>]*>\\s*<svg class=\"sidebar-toggle-icon\" width=\"20\" "
+                + "height=\"20\"[^>]*aria-hidden=\"true\"[^>]*>\\s*<rect [^>]*/><path d=\"M9 4v16\"/>\\s*"
+                + "<path class=\"sidebar-toggle-chevron\"[^>]*/>\\s*</svg>\\s*<span class=\"sidebar-label\">Expand menu</span>");
+        String css = Files.readString(Path.of("src/main/resources/static/css/app.css"));
+        assertThat(css).contains(".sidebar-toggle .sidebar-label {", ".sidebar-toggle:hover .sidebar-label,",
+                ".sidebar-toggle:focus-visible .sidebar-label,", ".sidebar-expanded .sidebar-toggle-chevron { transform: rotate(180deg); }")
+                .containsPattern("\\.sidebar-toggle \\{[^}]*width: 44px;[^}]*height: 44px;");
 
         String expanded = html(get("/office/crew").cookie(new Cookie("sidebar", "expanded")));
         assertThat(expanded).containsPattern("<body [^>]*class=\"sidebar-expanded\"")
@@ -267,7 +276,7 @@ class NavigationFlowTest {
     @Test
     void thePhoneMenuHasACloseButtonAndClosesOnATapOutside() throws Exception {
         assertThat(html(get("/office/crew"))).containsPattern("(?s)<div class=\"sidebar-head\">\\s*<a class=\"sidebar-brand\" href=\"/office\">"
-                + ".*?</a>\\s*<button type=\"button\" class=\"sidebar-close\" data-bs-dismiss=\"offcanvas\"\\s+data-bs-target=\"#sidebar\" aria-label=\"Close menu\">");
+                + ".*?</a>.*?</form>\\s*<button type=\"button\" class=\"sidebar-close\" data-bs-dismiss=\"offcanvas\"\\s+data-bs-target=\"#sidebar\" aria-label=\"Close menu\">");
         String layout = Files.readString(Path.of("src/main/resources/templates/layout/layout.html"));
         assertThat(layout).doesNotContain("data-bs-backdrop", "data-bs-scroll", "data-bs-keyboard").contains("/js/sidebar.js");
         String script = Files.readString(Path.of("src/main/resources/static/js/sidebar.js"));

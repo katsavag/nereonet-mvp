@@ -5,7 +5,7 @@
     <header th:replace="~{layout/parts :: pageHeader(heading=${announcement.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{::pageSubtitle},
                 eyebrow=${announcement.fleet} ? #{announcement.target.fleet} : (${announcement.onlyShip == null} ? #{announcement.target.ships(${announcement.targetShips.size()})} : null),
                 eyebrowShip=${announcement.onlyShip})}">
-        <!-- The target: All ships, the ship's name and IMO number, or "3 ships" (named in Acknowledgements by ship). -->
+        <!-- The target: All vessels, the vessel's name and IMO number, or "3 vessels" (named in Read by vessel). -->
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{nav.announcements}, '/office/announcements')}"></li>
         </th:block>
@@ -14,8 +14,8 @@
             ·
             <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
             ·
-            <!-- As in the list: the crew acknowledge on their own page (P27). -->
-            <span th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 acknowledged</span>
+            <!-- As in the list: a crew member has read it once they opened it on their own page (P27, P39). -->
+            <span th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 read</span>
         </th:block>
     </header>
 
@@ -23,18 +23,18 @@
         <div class="card-body text-break text-pre-line" th:text="${announcement.body}">Message text</div>
     </div>
 
-    <!-- Acknowledgements by ship (P28): every target ship (also one that had nobody on board) and every ship of the
+    <!-- Read by vessel (P28): every target ship (also one that had nobody on board) and every ship of the
          recipients, by name, with the total when there is more than one. The two lists below are grouped the same way. -->
     <section id="perShip" class="card mb-4" aria-labelledby="perShipTitle">
         <div class="card-header bg-transparent py-3">
-            <h2 class="h5 fw-bold mb-0" id="perShipTitle" th:text="#{announcement.perShip.heading}">Acknowledgements by ship</h2>
+            <h2 class="h5 fw-bold mb-0" id="perShipTitle" th:text="#{announcement.perShip.heading}">Read by vessel</h2>
         </div>
         <div class="table-responsive">
             <table class="table data-table review-recipients align-middle mb-0">
                 <thead>
                 <tr>
                     <th scope="col" th:text="#{announcement.review.ship}">Ship</th>
-                    <th scope="col" class="num" th:text="#{announcement.acknowledgements}">Acknowledged</th>
+                    <th scope="col" class="num" th:text="#{announcement.acknowledgements}">Read</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -44,38 +44,40 @@
                         <span class="review-imo num" th:text="#{ship.codeValue(${s.ship().imoNumber})}">IMO 9074729</span>
                     </td>
                     <td class="num" th:classappend="${s.recipients() > 0} ? 'text-nowrap'" th:text="${s.recipients() == 0} ? #{announcement.perShip.nobody}
-                            : #{announcement.count(${s.acknowledged()}, ${s.recipients()})}">1 of 2 acknowledged</td>
+                            : #{announcement.count(${s.acknowledged()}, ${s.recipients()})}">1 of 2 read</td>
                 </tr>
                 </tbody>
                 <tfoot th:if="${perShip.size() > 1}">
                 <tr>
                     <th scope="row" th:text="#{announcement.review.total}">Total</th>
                     <td class="num fw-semibold text-nowrap"
-                        th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 acknowledged</td>
+                        th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 read</td>
                 </tr>
                 </tfoot>
             </table>
         </div>
     </section>
 
-    <!-- Acknowledged and not yet acknowledged, side by side from 992px (P29, .card-grid). -->
+    <!-- Read and not read yet, side by side from 992px (P29, .card-grid). Each recipient row ends with its read receipt
+         (P39, layout/parts :: readReceipt): two ticks in the primary blue and the time, or one grey tick and "Not read
+         yet". -->
     <div class="card-grid">
-        <!-- Acknowledged -->
+        <!-- Read -->
         <div id="acknowledged" class="card">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-                <h2 class="h5 fw-bold mb-0" th:text="#{announcement.acknowledged}">Acknowledged</h2>
+                <h2 class="h5 fw-bold mb-0" th:text="#{announcement.acknowledged}">Read</h2>
                 <span class="font-monospace small text-body-secondary" th:text="${recipients.acknowledged.size()}">0</span>
             </div>
             <p th:if="${recipients.acknowledged.isEmpty()}" class="card-body text-body-secondary mb-0"
-               th:text="#{announcement.acknowledged.empty}">Nobody has acknowledged it yet.</p>
+               th:text="#{announcement.acknowledged.empty}">Nobody has read it yet.</p>
             <div th:unless="${recipients.acknowledged.isEmpty()}" class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
                     <tr class="small text-body-secondary">
                         <th scope="col" th:text="#{announcement.recipient.name}">Name</th>
                         <th scope="col" th:text="#{announcement.recipient.role}">Role</th>
-                        <th scope="col" th:text="#{user.ship}">Ship</th>
-                        <th scope="col" th:text="#{announcement.recipient.acknowledgedAt}">Acknowledged at</th>
+                        <th scope="col" th:text="#{user.ship}">Vessel</th>
+                        <th scope="col" th:text="#{announcement.recipient.acknowledgedAt}">Read</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -83,28 +85,29 @@
                         <td class="fw-semibold" th:text="${r.user.fullName}">Jane Doe</td>
                         <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
                         <td><a th:replace="~{layout/parts :: shipLink(${r.ship})}">MV Demo</a></td>
-                        <td><time th:replace="~{layout/parts :: localTime(${r.acknowledgedAt})}"></time></td>
+                        <td><span th:replace="~{layout/parts :: readReceipt(${r.acknowledgedAt})}"></span></td>
                     </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     
-        <!-- Not yet acknowledged -->
+        <!-- Not read yet -->
         <div id="pending" class="card">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-                <h2 class="h5 fw-bold mb-0" th:text="#{announcement.pending}">Not yet acknowledged</h2>
+                <h2 class="h5 fw-bold mb-0" th:text="#{announcement.pending}">Not read yet</h2>
                 <span class="font-monospace small text-body-secondary" th:text="${recipients.pending.size()}">0</span>
             </div>
             <p th:if="${recipients.pending.isEmpty()}" class="card-body text-body-secondary mb-0"
-               th:text="#{announcement.pending.empty}">Everyone has acknowledged it.</p>
+               th:text="#{announcement.pending.empty}">Everyone has read it.</p>
             <div th:unless="${recipients.pending.isEmpty()}" class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
                     <tr class="small text-body-secondary">
                         <th scope="col" th:text="#{announcement.recipient.name}">Name</th>
                         <th scope="col" th:text="#{announcement.recipient.role}">Role</th>
-                        <th scope="col" th:text="#{user.ship}">Ship</th>
+                        <th scope="col" th:text="#{user.ship}">Vessel</th>
+                        <th scope="col" th:text="#{announcement.recipient.acknowledgedAt}">Read</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -112,6 +115,7 @@
                         <td class="fw-semibold" th:text="${r.user.fullName}">John Doe</td>
                         <td th:text="#{${'role.' + r.user.role}}">Crew member</td>
                         <td><a th:replace="~{layout/parts :: shipLink(${r.ship})}">MV Demo</a></td>
+                        <td><span th:replace="~{layout/parts :: readReceipt(null)}"></span></td>
                     </tr>
                     </tbody>
                 </table>

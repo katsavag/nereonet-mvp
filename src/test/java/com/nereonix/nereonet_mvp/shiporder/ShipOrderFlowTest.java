@@ -14,7 +14,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 @ActiveProfiles("test")
 @Transactional
 class ShipOrderFlowTest {
+
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
 
     @Autowired MockMvc mockMvc;
     @Autowired ShipRepository shipRepository;
@@ -192,11 +196,17 @@ class ShipOrderFlowTest {
     @Test
     void theSendFormNeedsAPortAndADateNotInThePast() throws Exception {
         ShipOrder order = openOrderWithTwoLines();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        String range = "Enter a date between " + DAY.format(today) + " and " + DAY.format(today.plusYears(2)) + ".";
 
-        String html = send("  ", LocalDate.now(ZoneOffset.UTC).minusDays(1).toString(), "")
+        // P39: from today to two years ahead, the shared date rule; the picker offers the same days.
+        String html = send("  ", today.minusDays(1).toString(), "")
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat(html).contains("Enter the requested port.", "The date can&#39;t be in the past.");
+        assertThat(html).contains("Enter the requested port.", range)
+                .contains("min=\"" + today + "\"", "max=\"" + today.plusYears(2) + "\"");
+        assertThat(send("Rotterdam", today.plusYears(2).plusDays(1).toString(), "")
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
+                .contains(range);
         assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.OPEN);
         assertThat(notificationRepository.countByUserEmailAndReadAtIsNull(office.getEmail())).isZero();
     }

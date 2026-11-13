@@ -1,6 +1,5 @@
 package com.nereonix.nereonet_mvp.officeorder;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -9,12 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import org.springframework.http.CacheControl;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,7 +30,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Confirmation;
-import com.nereonix.nereonet_mvp.core.order.ShipOrderService.CsvFile;
+import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -45,7 +39,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 // The orders the ships have sent, as the office sees them (P36): the list, one order, confirming its port and
-// delivery date, and the CSV export. The logic is ShipOrderService's; the office never changes lines or quantities.
+// delivery date, and the export (an Excel workbook since P39). The logic is ShipOrderService's; the office never changes lines or quantities.
 // /office/** is limited to OFFICE_USER in SecurityConfig. An OPEN order (still being put together on board) is a 404.
 @Controller
 public class OfficeOrderController {
@@ -128,9 +122,9 @@ public class OfficeOrderController {
     }
 
     /**
-     * The CSV of the checked orders (the list), or of one order (its page): a download, one row per order line. It
-     * marks them exported now. Nothing checked, or none of them an order the ships sent: back to the list with a
-     * message.
+     * The workbook of the checked orders (the list), or of one order (its page): a .xlsx download, one row per order
+     * line (P39; CSV before). It marks them exported now. Nothing checked, or none of them an order the ships sent:
+     * back to the list with a message.
      */
     @PostMapping(LIST + "/export")
     public Object export(@RequestParam(required = false) List<Long> ids,
@@ -140,17 +134,12 @@ public class OfficeOrderController {
             redirectAttributes.addFlashAttribute("errorMessage", "officeorder.export.noneSelected");
             return "redirect:" + LIST;
         }
-        CsvFile csv = orderService.export(user(currentUser), chosen).orElse(null);
-        if (csv == null) {
+        XlsxExport.File file = orderService.export(user(currentUser), chosen).orElse(null);
+        if (file == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "officeorder.export.nothing");
             return "redirect:" + LIST;
         }
-        return ResponseEntity.ok()
-                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(csv.filename()).build().toString())
-                .cacheControl(CacheControl.noStore())
-                .body(csv.content());
+        return file.response();
     }
 
     private String showDetail(ShipOrder order, ConfirmOrderForm confirmForm, Model model) {

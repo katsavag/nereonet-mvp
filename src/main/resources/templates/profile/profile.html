@@ -4,7 +4,7 @@
 <!-- My profile (P31): what the signed-in seafarer says about themselves. The header is the office's: their picture,
      name and "rank · ship", read only. Then one line on who sees it, and the four optional fields as full-width rows,
      each opening its own page (Save comes back here with "Saved."). English only, no script of its own.
-     Model: me (User), ship, profile (CrewProfile, empty before the first Save). -->
+     Model: me (User), ship, profile (CrewProfile, empty before the first Save), certificates (theirs, P39), today. -->
 <main class="profile-page"
       th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null,
                languageNames=${profile.languages.isEmpty()} ? null : ${@profileNames.languages(profile.languages, null)},
@@ -30,6 +30,14 @@
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/photo', #{profile.field.photo},
                     ${profile.photoKey != null} ? #{profile.photo.set} : null)}"></li>
         </ul>
+    </section>
+
+    <!-- P39: the person's own certificates, read only, soonest expiry first (so expired ones lead). Only they and the
+         office see them; crewmates never do (My crew is unchanged). -->
+    <section class="profile-section" aria-labelledby="myCertificatesTitle">
+        <h2 class="profile-section-title" id="myCertificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
+        <p class="form-text mt-0" th:text="#{profile.certificates.hint}">Only you and the office see your certificates.</p>
+        <div th:replace="~{crew/parts :: myCertificates(${certificates}, ${today}, true)}"></div>
     </section>
 </main>
 </body>

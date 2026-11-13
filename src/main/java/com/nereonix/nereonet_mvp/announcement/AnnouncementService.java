@@ -273,13 +273,13 @@ public class AnnouncementService {
                 Locale.ENGLISH);
         for (User user : users) {
             notificationService.notify(user, NotificationType.ANNOUNCEMENT, user.getShip().getName(), text,
-                    "/ship/announcements/" + announcement.getId());
+                    "/ship/news/" + announcement.getId());
         }
 
         // The ship of the entry (the audit log's ship filter) only when there is exactly one.
         Ship auditShip = !fleet && targets.ships().size() == 1 ? targets.ships().getFirst() : null;
-        String target = fleet ? "all ships"
-                : "ship ids " + targets.ships().stream().map(s -> s.getId().toString()).collect(Collectors.joining(", "))
+        String target = fleet ? "all vessels"
+                : "vessel ids " + targets.ships().stream().map(s -> s.getId().toString()).collect(Collectors.joining(", "))
                         + ": " + announcement.getTargetNames();
         auditService.record("ANNOUNCEMENT_CREATED", auditShip,
                 announcement.getTitle() + " (" + target + "; " + users.size() + " recipients)");
@@ -306,20 +306,21 @@ public class AnnouncementService {
     }
 
     /**
-     * Records that this recipient read the announcement (P27), in the audit log too. Returns false and changes nothing
-     * when they had already acknowledged it. 404 for someone who is not a recipient.
+     * This user opens a news item (P39): their place among its recipients, read from now on. The first time, it
+     * records when they read it (acknowledgedAt) and the audit entry "Announcement read", in the same transaction as
+     * the page load; opening it again changes nothing. Only the signed-in recipient's own row: 404 for someone who is
+     * not a recipient, as recipient(...).
      */
     @Transactional
-    public boolean acknowledge(String email, Long announcementId) {
+    public AnnouncementRecipient open(String email, Long announcementId) {
         AnnouncementRecipient recipient = recipient(email, announcementId);
-        if (recipient.getAcknowledgedAt() != null) {
-            return false;
+        if (recipient.getAcknowledgedAt() == null) {
+            recipient.setAcknowledgedAt(Instant.now());
+            recipientRepository.save(recipient);
+            auditService.record("ANNOUNCEMENT_ACKNOWLEDGED", recipient.getShip(),
+                    "\"" + recipient.getAnnouncement().getTitle() + "\"");
         }
-        recipient.setAcknowledgedAt(Instant.now());
-        recipientRepository.save(recipient);
-        auditService.record("ANNOUNCEMENT_ACKNOWLEDGED", recipient.getShip(),
-                "\"" + recipient.getAnnouncement().getTitle() + "\"");
-        return true;
+        return recipient;
     }
 
     // Every enabled user with a ship role on one of the target ships, or on any active ship for the fleet.

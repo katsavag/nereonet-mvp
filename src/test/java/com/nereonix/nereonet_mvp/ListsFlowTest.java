@@ -247,9 +247,10 @@ class ListsFlowTest {
         assertThat(byWho.getFirst()).contains("p19 beta entry");
 
         String first = html(get("/office/audit").param("q", "p19"));
-        assertThat(rows(first)).hasSize(25);
-        assertThat(first).contains("1 to 25 of 27", "href=\"/office/audit?q=p19&amp;page=2\"");
-        assertThat(rows(html(get("/office/audit").param("q", "p19").param("page", "2")))).hasSize(2);
+        // 20 a page on the audit log (P39).
+        assertThat(rows(first)).hasSize(20);
+        assertThat(first).contains("1 to 20 of 27", "href=\"/office/audit?q=p19&amp;page=2\"");
+        assertThat(rows(html(get("/office/audit").param("q", "p19").param("page", "2")))).hasSize(7);
         assertThat(html(get("/office/audit").param("q", "p19").param("from", TODAY.plusDays(1).toString())))
                 .contains("No results for these filters");
     }

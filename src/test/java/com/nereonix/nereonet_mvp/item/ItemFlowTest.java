@@ -136,7 +136,7 @@ class ItemFlowTest {
             StringBuilder help = new StringBuilder();
             workbook.getSheet("Instructions").forEach(row -> row.forEach(cell -> help.append(cell.getStringCellValue()).append('|')));
             assertThat(help.toString()).contains("How to fill in the item template", "Place|",
-                    "Provisions|Food and drink for the ship's meals.", "Personal items|Things crew buy for themselves");
+                    "Provisions|Food and drink for the vessel's meals.", "Personal items|Things crew buy for themselves");
         }
     }
 

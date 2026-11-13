@@ -15,8 +15,9 @@ public enum NavSection {
     // The office's Crew and, for the crew, My crew (P31): the same entry key and icon.
     CREW("crew", List.of("/office/crew", "/ship/crew")),
     CERTIFICATES("certificates", List.of("/office/certificates")),
-    // The office list and, for the crew, their own announcements (P27): the same entry key and icon.
-    ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/announcements")),
+    // The office list and, for the crew, their own announcements (P27), called News since P39 (/ship/news; the old
+    // /ship/announcements URLs redirect there): the same entry key and icon.
+    ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/news", "/ship/announcements")),
     // The orders the ships have sent (P36).
     ORDERS("orders", List.of("/office/orders")),
     // Office, Administration. Office invitations are part of the Office users page.

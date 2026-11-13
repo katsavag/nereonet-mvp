@@ -22,7 +22,7 @@
 
     <div class="card form-box">
         <div class="card-body p-3 p-md-4">
-            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
+            <form th:object="${form}" method="post" enctype="multipart/form-data" novalidate th:action="@{${action}}">
                 <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
                 <!-- The page this form was opened from (P20, certificate/CertificateReturn); Save and Cancel go back
                      there. -->
@@ -67,9 +67,38 @@
                     <div class="field-half">
                         <label for="expiresOn" class="form-label" th:text="#{certificate.expiresOn}">Expires on</label>
                         <input type="date" th:field="*{expiresOn}" class="form-control" th:errorclass="is-invalid"
+                               th:min="${@formFields.minDate(form, 'expiresOn')}"
+                               th:max="${@formFields.maxDate(form, 'expiresOn')}"
                                aria-describedby="expiresOnHint" required>
                         <div class="invalid-feedback" th:errors="*{expiresOn}"></div>
                         <div id="expiresOnHint" class="form-text" th:text="#{certificate.expiresOnHint}">Reminders are sent 90, 60 and 30 days before.</div>
+                    </div>
+                    <!-- The scan of the certificate (P39), optional: PDF, JPEG or PNG, at most 10 MB; the crew member
+                         sees it on My profile. Editing one with a file: the current file (Open) and Remove; a new file
+                         replaces it. js/forms.js shows the chosen file's name and size and warns before uploading a
+                         file over the limit; ?fileTooLarge: one over the multipart limit (UploadTooLargeFilter). -->
+                    <div th:with="current=${certificate != null and certificate.hasFile()}">
+                        <label for="file" class="form-label">[[#{certificate.file}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <div th:if="${current}" class="cert-file-current">
+                            <span class="text-break">[[#{certificate.file.current}]] <strong th:text="${certificate.fileName}">stcw.pdf</strong></span>
+                            <a th:replace="~{crew/parts :: certificateFile(${certificate},
+                                    ${'/office/crew/' + member.id + '/certificates/' + certificate.id + '/file'}, 'btn btn-ghost btn-sm')}"></a>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{removeFile}">
+                                <label class="form-check-label" th:for="${#ids.prev('removeFile')}" th:text="#{certificate.file.remove}">Remove the file</label>
+                            </div>
+                        </div>
+                        <input type="file" id="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png"
+                               aria-describedby="fileHint fileInfo" data-file-info="fileInfo"
+                               th:data-max-size="${form.maxFileSize}" th:data-too-large="#{certificate.error.fileTooLarge}"
+                               th:classappend="${param.fileTooLarge != null or #fields.hasErrors('fileTypeAllowed') or #fields.hasErrors('fileSizeAllowed')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{fileTypeAllowed}"></div>
+                        <div class="invalid-feedback" th:errors="*{fileSizeAllowed}"></div>
+                        <div th:if="${param.fileTooLarge != null}" class="invalid-feedback" th:text="#{certificate.error.fileTooLarge}">
+                            The file is larger than 10 MB.</div>
+                        <div id="fileHint" class="form-text"
+                             th:text="${current} ? #{certificate.file.replaceHint} : #{certificate.file.hint}">PDF, JPEG or PNG, at most 10 MB.</div>
+                        <p id="fileInfo" class="form-file-info" aria-live="polite" hidden></p>
                     </div>
                 </div>
                 <div class="form-actions">

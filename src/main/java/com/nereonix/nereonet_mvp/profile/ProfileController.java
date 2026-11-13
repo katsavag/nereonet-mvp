@@ -6,17 +6,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.certificate.CertificateService;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 import com.nereonix.nereonet_mvp.core.profile.Languages;
@@ -32,6 +36,8 @@ import jakarta.validation.Valid;
  * Cancel; Save comes back to My profile with "Saved.". Always the signed-in person's own profile: no URL names a
  * user. Name, rank, department and ship are the office's and only shown. Also "More" (/ship/more), the fifth tab of
  * the phone tab bar: My profile, My crew and Sign out. English only, every ship role (SecurityConfig: /ship/**).
+ * P39: My profile also lists the person's own certificates, read only, each with its file when the office attached
+ * one; only the certificate's owner can open that file here (anyone else: 404), and the office from the crew pages.
  */
 @Controller
 public class ProfileController {
@@ -42,16 +48,28 @@ public class ProfileController {
 
     private final ProfileService profileService;
     private final ConfirmPages confirmPages;
+    private final CertificateService certificateService;
 
-    public ProfileController(ProfileService profileService, ConfirmPages confirmPages) {
+    public ProfileController(ProfileService profileService, ConfirmPages confirmPages,
+                             CertificateService certificateService) {
         this.profileService = profileService;
         this.confirmPages = confirmPages;
+        this.certificateService = certificateService;
     }
 
     @GetMapping("/ship/profile")
     public String profile(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         own(currentUser, model);
+        model.addAttribute("certificates", certificateService.ownCertificates(currentUser.getId()));
+        model.addAttribute("today", certificateService.today());
         return "profile/profile";
+    }
+
+    // The file of one of the signed-in person's certificates; 404 for a certificate of someone else or without one.
+    @GetMapping("/ship/profile/certificates/{id}/file")
+    public ResponseEntity<Resource> certificateFile(@AuthenticationPrincipal CurrentUser currentUser,
+                                                    @PathVariable Long id) {
+        return certificateService.file(currentUser.getId(), id).response();
     }
 
     @GetMapping("/ship/more")

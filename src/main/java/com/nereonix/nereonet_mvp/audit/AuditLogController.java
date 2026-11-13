@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -21,6 +23,9 @@ public class AuditLogController {
     private static final ListSort[] SORTS =
             {ListSort.desc("when"), ListSort.asc("who"), ListSort.asc("action"), ListSort.asc("ship")};
 
+    // P39: 20 entries a page by default, 50 or 100 on request; the other lists keep 25 and 50.
+    static final List<Integer> PAGE_SIZES = List.of(20, 50, 100);
+
     private final AuditLogService auditLogService;
     private final Dates dates;
 
@@ -29,12 +34,19 @@ public class AuditLogController {
         this.dates = dates;
     }
 
-    // filter: ship and UTC days; listRequest: search, sort and page (P19).
+    // filter: ship and UTC days; listRequest: search, sort, page and page size (P19; 20 a page, P39). A day outside
+    // the sensible range (P39: @PlausibleDate) or not a date shows its error under the field and filters nothing.
     @GetMapping("/office/audit")
-    public String list(@ModelAttribute("filter") AuditFilterForm filter, @ModelAttribute ListRequest listRequest,
-                       Model model) {
+    public String list(@Validated @ModelAttribute("filter") AuditFilterForm filter, BindingResult bindingResult,
+                       @ModelAttribute ListRequest listRequest, Model model) {
+        if (bindingResult.hasFieldErrors("from")) {
+            filter.setFrom(null);
+        }
+        if (bindingResult.hasFieldErrors("to")) {
+            filter.setTo(null);
+        }
         List<Ship> ships = auditLogService.findShips();
-        ListQuery list = ListQuery.of("/office/audit", listRequest, SORTS)
+        ListQuery list = ListQuery.withSizes("/office/audit", listRequest, PAGE_SIZES, SORTS)
                 .filterShip(filter.getShipId(), ships)
                 .filter("from", filter.getFrom(), "audit.filter.from", filter.getFrom() == null ? null : dates.date(filter.getFrom()))
                 .filter("to", filter.getTo(), "audit.filter.to", filter.getTo() == null ? null : dates.date(filter.getTo()));

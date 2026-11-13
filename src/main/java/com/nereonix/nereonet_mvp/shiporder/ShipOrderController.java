@@ -21,7 +21,6 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Change;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Send;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
-import com.nereonix.nereonet_mvp.core.time.Dates;
 
 // The Master's ship order (P35): the OPEN order of their own ship, its lines edited one at a time (each change is
 // saved at once, nobody is notified), "Send to office", and the past orders. SecurityConfig limits /ship/order/** and
@@ -30,18 +29,15 @@ import com.nereonix.nereonet_mvp.core.time.Dates;
 public class ShipOrderController {
 
     private final ShipOrderPageService pageService;
-    private final Dates dates;
 
-    public ShipOrderController(ShipOrderPageService pageService, Dates dates) {
+    public ShipOrderController(ShipOrderPageService pageService) {
         this.pageService = pageService;
-        this.dates = dates;
     }
 
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         model.addAttribute("view", pageService.open(currentUser.getUsername()));
         model.addAttribute("sendForm", new SendOrderForm());
-        model.addAttribute("today", dates.today());
         return "shiporder/order";
     }
 
@@ -70,13 +66,9 @@ public class ShipOrderController {
     public String send(@AuthenticationPrincipal CurrentUser currentUser,
                        @Validated @ModelAttribute("sendForm") SendOrderForm sendForm, BindingResult bindingResult,
                        Model model, RedirectAttributes redirectAttributes) {
-        if (sendForm.getNeededBy() != null && sendForm.getNeededBy().isBefore(dates.today())) {
-            bindingResult.rejectValue("neededBy", "order.send.error.neededByPast");
-        }
         if (bindingResult.hasErrors()) {
             model.addAttribute("view", pageService.open(currentUser.getUsername()));
-            model.addAttribute("today", dates.today());
-            return "shiporder/order";
+                return "shiporder/order";
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {

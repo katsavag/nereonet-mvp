@@ -3,7 +3,7 @@
 <body>
 <!-- One order a ship has sent (P36): its status, who sent it and when, the requested port, needed by date and the
      Master's note, the confirmation once set, when it was last exported; then its lines by category (Provisions, then
-     Personal items), read-only: the office never changes lines or quantities. Export CSV (the page action) downloads
+     Personal items), read-only: the office never changes lines or quantities. Export (the page action) downloads an Excel workbook of
      this order's file and marks it exported. While SENT or CONFIRMED, "Confirm delivery" with the confirmed port
      (the requested port to start with) and the delivery date; it can be corrected until the order is closed.
      Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm). -->
@@ -16,7 +16,7 @@
         <th:block th:fragment="pageActions">
             <button type="submit" form="exportOrderForm" class="btn btn-outline-secondary">
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
-                <span th:text="#{officeorder.export}">Export CSV</span>
+                <span th:text="#{officeorder.export}">Export</span>
             </button>
         </th:block>
     </header>
@@ -103,7 +103,9 @@
                     </div>
                     <div class="field-half">
                         <label for="deliveryDate" class="form-label" th:text="#{officeorder.deliveryDate}">Delivery date</label>
-                        <input type="date" th:field="*{deliveryDate}" class="form-control" th:errorclass="is-invalid" required>
+                        <input type="date" th:field="*{deliveryDate}" class="form-control" th:errorclass="is-invalid"
+                               th:min="${@formFields.minDate(confirmForm, 'deliveryDate')}"
+                               th:max="${@formFields.maxDate(confirmForm, 'deliveryDate')}" required>
                         <div class="invalid-feedback" th:errors="*{deliveryDate}"></div>
                     </div>
                 </div>

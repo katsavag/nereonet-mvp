@@ -1,6 +1,8 @@
 package com.nereonix.nereonet_mvp.core.form;
 
 import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -17,6 +19,7 @@ import jakarta.validation.metadata.PropertyDescriptor;
  * Helpers for the form templates (P05), used as {@code @formFields} in Thymeleaf:
  * the character limits of a field, read from its {@code @Size} in the form class (the counter under the field, and
  * the "At least 8 characters" rule of the registration password),
+ * the min and max of a date input, read from its {@code @PlausibleDate} (P39),
  * and the field id and order of each error (the error summary at the top of a form, layout/parts :: errorSummary).
  */
 @Component("formFields")
@@ -64,6 +67,31 @@ public class FormFields {
                 .map(constraint -> ((Size) constraint.getAnnotation()).min())
                 .filter(min -> min > 0)
                 .max(Integer::compare)
+                .orElse(null);
+    }
+
+    /** The earliest date the property's {@code @PlausibleDate} accepts, for the input's min (P39); null without one. */
+    public LocalDate minDate(Object form, String property) {
+        PlausibleDate limits = plausibleDate(form, property);
+        return limits == null ? null : PlausibleDateValidator.earliest(limits, LocalDate.now(ZoneOffset.UTC));
+    }
+
+    /** The latest date the property's {@code @PlausibleDate} accepts, for the input's max (P39); null without one. */
+    public LocalDate maxDate(Object form, String property) {
+        PlausibleDate limits = plausibleDate(form, property);
+        return limits == null ? null : PlausibleDateValidator.latest(limits, LocalDate.now(ZoneOffset.UTC));
+    }
+
+    private PlausibleDate plausibleDate(Object form, String property) {
+        PropertyDescriptor descriptor = validator.getConstraintsForClass(form.getClass())
+                .getConstraintsForProperty(property);
+        if (descriptor == null) {
+            return null;
+        }
+        return descriptor.getConstraintDescriptors().stream()
+                .filter(constraint -> constraint.getAnnotation() instanceof PlausibleDate)
+                .map(constraint -> (PlausibleDate) constraint.getAnnotation())
+                .findFirst()
                 .orElse(null);
     }
 

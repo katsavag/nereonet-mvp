@@ -100,7 +100,7 @@ class CrewListFlowTest {
 
         String expired = html(get("/office/crew").param("shipId", this.beta.getId().toString()).param("status", "expired"));
         assertThat(names(expired)).containsExactly("Zed Invitee");
-        assertThat(expired).contains("Ship: MV Beta", "Status: Invitation expired",
+        assertThat(expired).contains("Vessel: MV Beta", "Status: Invitation expired",
                 "href=\"/office/crew?status=expired\"", "href=\"/office/crew?shipId=" + this.beta.getId() + "\"",
                 ">Clear all</a>");
 

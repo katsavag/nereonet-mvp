@@ -2,7 +2,8 @@
 <!-- Step 3 of the item import (P24): every item from the file, editable. The row filters, the plan and "Exclude all
      rows with errors" are layout/parts :: importSummary; the first two columns (row, name) stay in place when the
      table scrolls sideways. Each row says what it does: a new item, an update of the item with that name (unit,
-     category and place), or no change (skipped). Category is the file's text: Provisions or Personal items. -->
+     category and place), or no change (skipped). Category is the file's text: Provisions or Personal items. The cells
+     check themselves as they are corrected (P39, js/import-check.js); the server checks everything again. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{itemImport.review.title}, ~{::main})}">
 <body>
 <main>
@@ -42,34 +43,14 @@
                     <tr th:each="row, stat : *{rows}" th:if="${row.isShownFor(show)}"
                         th:classappend="${row.excluded} ? 'is-excluded'">
                         <td th:replace="~{layout/parts :: importRowHead(${row}, ${stat.index})}"></td>
-                        <td class="import-col-name">
-                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].name}"
-                                   th:classappend="${row.errors['name']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{item.name}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['name']}"
-                                 th:text="#{${row.errors['name']}}"></div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].unit}"
-                                   th:classappend="${row.errors['unit']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{item.unit}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['unit']}"
-                                 th:text="#{${row.errors['unit']}}"></div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].category}"
-                                   th:classappend="${row.errors['category']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{item.category}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['category']}"
-                                 th:text="#{${row.errors['category']}}"></div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].place}"
-                                   th:classappend="${row.errors['place']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{item.place}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['place']}"
-                                 th:text="#{${row.errors['place']}}"></div>
-                        </td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'name', #{item.name},
+                                'text', 'item.error.nameRequired', 'item.error.tooLong', 'import-col-name')}"></td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'unit', #{item.unit},
+                                'text', 'item.error.unitRequired', 'item.error.tooLong', null)}"></td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'category', #{item.category},
+                                'text', 'item.error.categoryRequired', 'item.error.tooLong', null)}"></td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'place', #{item.place},
+                                'text', null, 'item.error.tooLong', null)}"></td>
                     </tr>
                     <tr th:replace="~{layout/parts :: importNoRows(${itemImport}, ${show}, 5)}"></tr>
                     </tbody>

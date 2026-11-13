@@ -1,16 +1,13 @@
 package com.nereonix.nereonet_mvp.core.order;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -19,8 +16,6 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
@@ -63,9 +59,11 @@ public class ShipOrderService {
     public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
             ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
 
-    /** The columns of the office's CSV export (P36), one row per order line. A file format: never translated. */
-    static final String[] CSV_HEADER = {"imo_number", "ship_name", "order_id", "sent_at", "requested_port",
-            "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit", "quantity"};
+    /** The columns of the office's export (P36; an Excel workbook since P39, the same columns), one row per order
+     *  line. A file format: never translated. */
+    static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "sent_at",
+            "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
+            "quantity");
 
     // "12" or "#12": an order number in the office's search.
     private static final Pattern ORDER_NUMBER = Pattern.compile("#?(\\d{1,18})");
@@ -364,19 +362,16 @@ public class ShipOrderService {
         return Confirm.DONE;
     }
 
-    /** A CSV file to download. */
-    public record CsvFile(String filename, byte[] content) {
-    }
-
     /**
-     * The office exports the orders among ids that the ships have sent (other ids are ignored): one row per order
-     * line, the orders newest sent first, each order's lines by category (Provisions, then Personal items) and item
-     * name; UTF-8 with a BOM, so Excel reads Greek names. Sets exportedAt now on each of them (an order can be
-     * exported again) and records "Orders exported". Empty when none of the ids is such an order.
+     * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel workbook
+     * (P39; CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
+     * category (Provisions, then Personal items) and item name; order_id and quantity are numbers, sent_at a date and
+     * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
+     * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
      */
     @Transactional
-    public Optional<CsvFile> export(User officeUser, Collection<Long> ids) {
+    public Optional<XlsxExport.File> export(User officeUser, Collection<Long> ids) {
         checkOffice(officeUser);
         List<ShipOrder> orders = ids == null || ids.isEmpty() ? List.of()
                 : orderRepository.findAllByIdInAndStatusInOrderBySentAtDescIdDesc(ids, SENT_TO_OFFICE);
@@ -384,31 +379,26 @@ public class ShipOrderService {
             return Optional.empty();
         }
         Instant now = Instant.now();
-        StringWriter csv = new StringWriter();
-        csv.write('\uFEFF');
+        XlsxExport sheet = XlsxExport.sheet("Orders", EXPORT_HEADER);
         int lineCount = 0;
-        try (CSVPrinter printer = new CSVPrinter(csv, CSVFormat.DEFAULT.builder().setHeader(CSV_HEADER).get())) {
-            for (ShipOrder order : orders) {
-                for (ShipOrderLine line : byCategoryAndName(order.getLines())) {
-                    printer.printRecord(
-                            order.getShip().getImoNumber(),
-                            order.getShip().getName(),
-                            order.getId(),
-                            order.getSentAt().truncatedTo(ChronoUnit.SECONDS), // e.g. 2026-11-11T09:30:00Z
-                            order.getRequestedPort(),
-                            text(order.getNeededBy()), // e.g. 2026-11-20
-                            order.getConfirmedPort() == null ? "" : order.getConfirmedPort(),
-                            text(order.getDeliveryDate()),
-                            line.getItem().getCategory().fileValue(),
-                            line.getItem().getName(),
-                            line.getItem().getUnit(),
-                            line.getQuantity().stripTrailingZeros().toPlainString());
-                    lineCount++;
-                }
-                order.setExportedAt(now);
+        for (ShipOrder order : orders) {
+            for (ShipOrderLine line : byCategoryAndName(order.getLines())) {
+                sheet.row(Arrays.asList(
+                        order.getShip().getImoNumber(),
+                        order.getShip().getName(),
+                        order.getId(),
+                        order.getSentAt().truncatedTo(ChronoUnit.SECONDS),
+                        order.getRequestedPort(),
+                        order.getNeededBy(),
+                        order.getConfirmedPort(),
+                        order.getDeliveryDate(),
+                        line.getItem().getCategory().fileValue(),
+                        line.getItem().getName(),
+                        line.getItem().getUnit(),
+                        line.getQuantity()));
+                lineCount++;
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e); // never happens with a StringWriter
+            order.setExportedAt(now);
         }
 
         // One audit entry per export, with the ship when all orders are from one ship.
@@ -417,8 +407,7 @@ public class ShipOrderService {
                 orders.size() + (orders.size() == 1 ? " order, " : " orders, ") + lineCount
                         + (lineCount == 1 ? " line, ids " : " lines, ids ")
                         + orders.stream().map(order -> order.getId().toString()).toList(), officeUser);
-        String filename = "ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC) + ".csv";
-        return Optional.of(new CsvFile(filename, csv.toString().getBytes(StandardCharsets.UTF_8)));
+        return Optional.of(sheet.file("ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC)));
     }
 
     /** An order's lines by category (Provisions, then Personal items), then item name: the office's order. */
@@ -428,10 +417,6 @@ public class ShipOrderService {
                         .thenComparing(line -> line.getItem().getName(), String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(ShipOrderLine::getId))
                 .toList();
-    }
-
-    private static String text(LocalDate date) {
-        return date == null ? "" : date.toString();
     }
 
     private static void checkOffice(User officeUser) {

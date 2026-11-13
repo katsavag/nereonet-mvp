@@ -1,12 +1,11 @@
 package com.nereonix.nereonet_mvp.certificate;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -27,14 +26,14 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.ship.ShipFrame;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// Certificates (P20): every certificate, filtered by status (?status=), ship and "active ships only", with a CSV
-// export of the list as filtered. The ship page's Certificates tab is a matrix of the crew on board and the types
+// Certificates (P20): every certificate, filtered by status (?status=), ship and "active ships only", with an Excel
+// export of the list as filtered (CSV before P39). The ship page's Certificates tab is a matrix of the crew on board and the types
 // they hold (/office/ships/{id}/certificates), or the list for that ship (/certificates/list), each with its export.
-// A crew member's certificates are listed on the crew edit page. Add and edit return to the page they were opened
+// A crew member's certificates are listed on the crew edit page. A certificate can have a file, its scan (P39):
+// added, replaced or removed on its form, opened from the lists. Add and edit return to the page they were opened
 // from (returnTo, CertificateReturn), else to the crew member's page or the ship's tab; delete returns to the crew
 // member's page.
 @Controller
@@ -79,14 +78,15 @@ public class CertificateController {
     }
 
     @GetMapping("/office/certificates/export")
-    public void export(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
-                       @RequestParam(defaultValue = "false") boolean activeShips,
-                       @ModelAttribute ListRequest listRequest, HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> export(@RequestParam(required = false) Long shipId,
+                                         @RequestParam(required = false) String status,
+                                         @RequestParam(defaultValue = "false") boolean activeShips,
+                                         @ModelAttribute ListRequest listRequest) {
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = fleetList(shipId, filter, activeShips, listRequest, certificateService.findAllShips());
         List<Certificate> rows = certificateService.findAllCertificates(
                 new CertificateService.Filter(shipId, activeShips, filter), list);
-        write(response, certificateService.listCsv("certificates", rows));
+        return certificateService.listXlsx("certificates", rows).response();
     }
 
     private ListQuery fleetList(Long shipId, CertificateStatus status, boolean activeShips, ListRequest listRequest,
@@ -111,10 +111,10 @@ public class CertificateController {
     }
 
     @GetMapping("/office/ships/{id}/certificates/export")
-    public void exportMatrix(@PathVariable Long id, HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> exportMatrix(@PathVariable Long id) {
         Ship ship = shipFrame.ship(id);
-        write(response, certificateService.matrixCsv("certificate-matrix-" + ship.getImoNumber(),
-                certificateService.matrix(ship)));
+        return certificateService.matrixXlsx("certificate-matrix-" + ship.getImoNumber(),
+                certificateService.matrix(ship)).response();
     }
 
     // The fleet list for one ship, without the ship filter and column.
@@ -131,15 +131,14 @@ public class CertificateController {
     }
 
     @GetMapping("/office/ships/{id}/certificates/list/export")
-    public void exportShipList(@PathVariable Long id, @RequestParam(required = false) String status,
-                               @ModelAttribute ListRequest listRequest, HttpServletResponse response)
-            throws IOException {
+    public ResponseEntity<byte[]> exportShipList(@PathVariable Long id, @RequestParam(required = false) String status,
+                                                 @ModelAttribute ListRequest listRequest) {
         Ship ship = shipFrame.ship(id);
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
         List<Certificate> rows = certificateService.findAllCertificates(
                 new CertificateService.Filter(id, false, filter), list);
-        write(response, certificateService.listCsv("certificates-" + ship.getImoNumber(), rows));
+        return certificateService.listXlsx("certificates-" + ship.getImoNumber(), rows).response();
     }
 
     private static String shipListPath(Long shipId) {
@@ -176,13 +175,6 @@ public class CertificateController {
         return messageSource.getMessage(status.labelKey(), null, joined, locale);
     }
 
-    private static void write(HttpServletResponse response, CertificateService.CsvFile csv) throws IOException {
-        response.setContentType("text/csv;charset=UTF-8");
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                ContentDisposition.attachment().filename(csv.filename()).build().toString());
-        response.getOutputStream().write(csv.content());
-    }
-
     // ---------------------------------------------------------------------------------------------------------------
     // Add and edit
     // ---------------------------------------------------------------------------------------------------------------
@@ -214,7 +206,7 @@ public class CertificateController {
         if (result.hasErrors()) {
             return showShipForm(ship, returnTo, model);
         }
-        certificateService.create(form.getUserId(), form.getType(), form.getNumber(), form.getExpiresOn());
+        certificateService.create(form.getUserId(), form);
         redirectAttributes.addFlashAttribute("successMessage", "certificate.created");
         return "redirect:" + CertificateReturn.or(returnTo, ShipTab.CERTIFICATES.url(id));
     }
@@ -239,7 +231,7 @@ public class CertificateController {
         if (result.hasErrors()) {
             return showForm(userId, null, returnTo, model);
         }
-        certificateService.create(userId, form.getType(), form.getNumber(), form.getExpiresOn());
+        certificateService.create(userId, form);
         redirectAttributes.addFlashAttribute("successMessage", "certificate.created");
         return "redirect:" + CertificateReturn.or(returnTo, crewUrl(userId));
     }
@@ -261,9 +253,16 @@ public class CertificateController {
         if (result.hasErrors()) {
             return showForm(userId, certificate, returnTo, model);
         }
-        certificateService.update(userId, id, form.getType(), form.getNumber(), form.getExpiresOn());
+        certificateService.update(userId, id, form);
         redirectAttributes.addFlashAttribute("successMessage", "certificate.updated");
         return "redirect:" + CertificateReturn.or(returnTo, crewUrl(userId));
+    }
+
+    // The certificate's file (P39), opened in the browser; 404 without one. The crew member opens their own from My
+    // profile (ProfileController).
+    @GetMapping("/office/crew/{userId}/certificates/{id}/file")
+    public ResponseEntity<Resource> file(@PathVariable Long userId, @PathVariable Long id) {
+        return certificateService.file(userId, id).response();
     }
 
     private static String crewUrl(Long userId) {

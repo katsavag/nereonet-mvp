@@ -1,6 +1,9 @@
 package com.nereonix.nereonet_mvp.item;
 
 import com.nereonix.nereonet_mvp.core.importfile.ImportRow;
+import com.nereonix.nereonet_mvp.core.item.Item;
+
+import jakarta.validation.constraints.Size;
 
 // One item on the import review screen. Values stay strings so a wrong value from the file can be shown.
 // The action (ImportRow.getAction) is set by ItemImportService.validate: a name the ship does not have is a new item;
@@ -8,9 +11,13 @@ import com.nereonix.nereonet_mvp.core.importfile.ImportRow;
 // The category is the file's text ("Provisions", "Personal items"); ItemImportService checks it.
 public class ItemImportRow extends ImportRow {
 
+    // The limits ItemImportService checks; the annotations give them to the review page's live check (P39).
+    @Size(max = Item.NAME_MAX_LENGTH)
     private String name = "";
+    @Size(max = Item.UNIT_MAX_LENGTH)
     private String unit = "";
     private String category = "";
+    @Size(max = Item.PLACE_MAX_LENGTH)
     private String place = "";
 
     public String getName() { return name; }

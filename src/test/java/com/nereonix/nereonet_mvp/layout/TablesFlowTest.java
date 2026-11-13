@@ -109,7 +109,7 @@ class TablesFlowTest {
 
         // Page -> card title as rendered before the count.
         Map<String, String> pages = Map.of(
-                "/office/ships", "Ships",
+                "/office/ships", "Vessels",
                 "/office/crew", "Crew",
                 "/office/users", "Office users",
                 "/office/certificates", "Certificates",
@@ -158,10 +158,10 @@ class TablesFlowTest {
         // The primary column links to the record's page.
         // A ship's name opens the ship page (P08).
         assertThat(html("/office/ships")).contains("href=\"/office/ships/" + ship.getId() + "\">MV Demo</a>",
-                "status-badge status-ok", "data-label=\"Ship code\"");
+                "status-badge status-ok", "data-label=\"Vessel code\"");
         String crewList = html("/office/crew");
         assertThat(crewList).contains("href=\"/office/crew/" + crew.getId() + "/edit\">Crew Member</a>",
-                "More actions: Crew Member", "data-label=\"Ship\"");
+                "More actions: Crew Member", "data-label=\"Vessel\"");
         // Emails stay on one line, cut with an ellipsis, with the full value in the title.
         assertThat(crewList).contains("class=\"truncate\" title=\"a.very.long.address.for.a.crew.member@example.com\"");
         Matcher crewBody = TBODY.matcher(crewList);
@@ -176,7 +176,7 @@ class TablesFlowTest {
         assertThat(html("/office/orders")).contains(
                 "href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
                 "class=\"cell-select\"", "data-label=\"Requested port\">Rotterdam</td>");
-        assertThat(html("/office/ships")).containsPattern("Ships</span>\\s*<span class=\"title-count\">"
+        assertThat(html("/office/ships")).containsPattern("Vessels</span>\\s*<span class=\"title-count\">"
                 + "<span aria-hidden=\"true\">·</span> <span class=\"num\">1</span>");
     }
 

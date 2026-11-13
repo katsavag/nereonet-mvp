@@ -211,7 +211,7 @@ class ConfirmFlowTest {
                 "<input type=\"hidden\" name=\"tab\" value=\"crew\">",
                 "<button type=\"submit\" class=\"btn btn-primary\">Deactivate</button>",
                 "href=\"/office/ships/" + ship.getId() + "/crew\">Cancel</a>",
-                "<a href=\"/office/ships\">Ships</a>");
+                "<a href=\"/office/ships\">Vessels</a>");
         assertThat(shipRepository.findById(ship.getId()).orElseThrow().isActive()).isTrue();
         mockMvc.perform(post("/office/ships/{id}/deactivate", ship.getId()).param("tab", "crew").with(csrf()))
                 .andExpect(redirectedUrl("/office/ships/" + ship.getId() + "/crew"));

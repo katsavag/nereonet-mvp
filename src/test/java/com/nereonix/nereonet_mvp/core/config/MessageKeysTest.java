@@ -7,15 +7,21 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
 /**
  * P16: office screens are English and Greek, so every key of messages.properties is also in messages_el.properties,
  * except the crew-only and email keys listed in {@link #ENGLISH_ONLY}, which are English only today.
+ * P39: the English texts say "Vessel", never "Ship" (only the names in {@link #SHIP_ALLOWED}).
  */
 class MessageKeysTest {
 
@@ -74,13 +80,11 @@ class MessageKeysTest {
             "announcement.ship.hint",
             "announcement.ship.empty.title",
             "announcement.ship.empty.text",
-            "announcement.ship.toAcknowledge",
-            "announcement.ship.acknowledged",
+            "announcement.ship.new",
             "announcement.ship.from",
             "announcement.ship.fromOffice",
-            "announcement.ship.acknowledge",
-            "announcement.ship.acknowledgedAt",
-            "announcement.ship.acknowledgedMessage",
+            // P39: the crew's word for announcements.
+            "nav.news",
             // My profile and My crew (P31). The field names, "Not given", the photo's alt text, the office's Profile
             // card and the audit actions are on office screens too, so they are in Greek and not listed here.
             "nav.profile",
@@ -91,6 +95,7 @@ class MessageKeysTest {
             "profile.title",
             "profile.visibility",
             "profile.fields",
+            "profile.certificates.hint",
             "profile.photo.set",
             "profile.saved",
             "profile.languages.yours",
@@ -208,7 +213,6 @@ class MessageKeysTest {
             "order.officeNote",
             "order.send.error.portRequired",
             "order.send.error.neededByRequired",
-            "order.send.error.neededByPast",
             "order.send.error.tooLong",
             "order.sent",
             "order.notification.sent",
@@ -229,6 +233,40 @@ class MessageKeysTest {
             "order.past.empty.title",
             "order.past.empty.text");
 
+    /**
+     * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies
+     * and products. Matched ignoring case; everything else says "vessel" / "vessels".
+     */
+    private static final List<String> SHIP_ALLOWED = List.of("Ship Security Plan", "shipping company", "ShipServ",
+            "RightShip");
+
+    private static final Pattern SHIP_WORD = Pattern.compile("(?i)\\bships?\\b");
+
+    @Test
+    void noEnglishTextSaysShip() throws IOException {
+        Map<String, String> sayShip = new TreeMap<>();
+        Properties english = properties(ENGLISH);
+        for (String key : english.stringPropertyNames()) {
+            String value = english.getProperty(key);
+            for (String allowed : SHIP_ALLOWED) {
+                value = value.replaceAll("(?i)" + Pattern.quote(allowed), "");
+            }
+            if (SHIP_WORD.matcher(value).find()) {
+                sayShip.put(key, english.getProperty(key));
+            }
+        }
+        assertThat(sayShip).as("English texts with the word \"ship\" or \"ships\": say \"vessel\" / \"vessels\", or add "
+                + "the name to SHIP_ALLOWED").isEmpty();
+        // The check itself: a text with the word is found, in any case; one with an allowed name, a longer word or
+        // the key is not.
+        assertThat(SHIP_WORD.matcher("Add SHIP").find()).isTrue();
+        assertThat(SHIP_WORD.matcher("all ships.").find()).isTrue();
+        assertThat(SHIP_WORD.matcher("a vessel's crew, shipping, relationship").find()).isFalse();
+        // The Greek texts keep their words (Πλοίο / Πλοία), as they were.
+        assertThat(properties(GREEK).getProperty("nav.ships")).isEqualTo("Πλοία");
+        assertThat(english.getProperty("nav.ships").toLowerCase(Locale.ROOT)).isEqualTo("vessels");
+    }
+
     @Test
     void everyOfficeKeyIsInGreek() throws IOException {
         Set<String> missing = new TreeSet<>(keys(ENGLISH));
@@ -247,10 +285,14 @@ class MessageKeysTest {
     }
 
     private static Set<String> keys(Path file) throws IOException {
+        return properties(file).stringPropertyNames();
+    }
+
+    private static Properties properties(Path file) throws IOException {
         Properties properties = new Properties();
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             properties.load(reader);
         }
-        return properties.stringPropertyNames();
+        return properties;
     }
 }

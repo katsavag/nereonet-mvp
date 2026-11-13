@@ -2160,6 +2160,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     min-height: var(--nn-btn-height);
 }
 .filter-field-check .form-check { margin-bottom: 0; }
+/* A filter with its error under it (P39: the audit log's dates) is taller than the others: the fields then line up
+   by their labels, so the inputs stay on one line; a check or Apply moves down to that line (the label's height). */
+.filter-bar:has(.is-invalid) { align-items: flex-start; }
+.filter-bar:has(.is-invalid) > :is(.filter-field-check, .filter-field-apply) {
+    margin-top: calc(var(--bs-body-line-height) * 1em + .5rem);
+}
 @media (max-width: 767.98px) {
     .filter-field,
     .filter-field-search { flex: 1 1 100%; }
@@ -3550,6 +3556,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 @media (max-width: 575.98px) {
     .home-sign-out { justify-content: space-between; }
 }
+/* .from-md (P39): shown from 768px only, without JavaScript. Crew Home's "Not Demo Cook? Sign out": on phones Sign
+   out is under More, so the header keeps the name. A page header's actions holding only such a block take no room. */
+@media (max-width: 767.98px) {
+    .from-md,
+    .page-actions:has(> .from-md:only-child) { display: none; }
+}
 
 .home-section + .home-section { margin-top: var(--nn-section-gap); }
 .home-section-title {
@@ -3736,16 +3748,19 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .master-card.is-due .master-card-count { font-weight: 700; }
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Crew announcements (P27): announcement/ship-list.html and ship-detail.html.
-     - .announcement-row: one announcement, the title (a .stretched-link, so the whole row opens it) and the date
-       sent; on the right (below on phones) "To acknowledge" or "Acknowledged". One to acknowledge (.is-unread) has
-       a bold title, one acknowledged a regular one: the badge's words carry the state, weight and colour repeat it.
-     - .announcement-read: the message and the acknowledgement, at a comfortable line length (--nn-read-measure).
-     - .ack-bar-full: "I have read this" fills the reading column at every width (the library's .ack-bar only on
-       phones); pinned to the bottom of the screen on phones as there (.ack-bar.is-pinned).
+   Crew News (P27 announcements, "News" since P39): announcement/ship-list.html and ship-detail.html; read receipts
+   (P39, layout/parts :: readTicks, newsState, readReceipt) there and on the office's announcement page.
+     - .announcement-row: one news item, the title (a .stretched-link, so the whole row opens it) and the date sent;
+       on the right its state. Not read yet (.is-unread): a bold title and .news-state.is-new, a filled dot and "New"
+       in words; read: a regular title and the two ticks, with "Read" for screen readers.
+     - .read-ticks: 16px; read (.is-read) two ticks in the primary blue (9.6:1 on white), not read one grey tick
+       (--nn-text-secondary, 6.6:1). .read-receipt: the ticks, "Read" and the time, or "Not read yet".
+     - .announcement-read: the message and the read receipt, at a comfortable line length (--nn-read-measure).
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-read-measure: 48rem;        /* 768px, about 90 characters a line */
+    --nn-read-color: var(--nn-blue);
+    --nn-unread-dot: .5rem;          /* 8px, as a notification's */
 }
 
 .announcement-row {
@@ -3775,7 +3790,33 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 
 .announcement-read { max-width: var(--nn-read-measure); }
-.ack-bar-full .btn { width: 100%; }
+
+.read-ticks { flex: none; }
+.read-ticks.is-read { color: var(--nn-read-color); }
+.read-ticks.is-unread { color: var(--nn-text-secondary); }
+.news-state,
+.read-receipt {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+}
+.news-state.is-new {
+    font-size: var(--nn-font-sm);
+    font-weight: 700;
+    color: var(--nn-blue);
+}
+.news-state-dot {
+    width: var(--nn-unread-dot);
+    height: var(--nn-unread-dot);
+    border-radius: 50%;
+    background: var(--nn-blue);
+}
+.read-receipt.is-unread { color: var(--nn-text-secondary); }
+.news-read-at {
+    margin: var(--nn-space-4) 0 0;
+    font-size: var(--nn-font-sm);
+}
 
 /* ---------------------------------------------------------------------------------------------------------------
    Brand, sidebar rail, language switch and page width (P29): layout/layout.html, layout/parts :: brand, langSwitch,
@@ -3785,7 +3826,10 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - Sidebar from 768px: body.sidebar-collapsed (the default) is a 64px icon rail: the mark, one icon per entry, a
        counter as a dot (the number stays in the visually hidden text), and the label as a tooltip on hover and
        focus. The label is position: fixed, so the scrolling navigation never cuts it off; with no top set it stays
-       level with its entry. body.sidebar-expanded is the full sidebar with labels. The toggle sits at the bottom.
+       level with its entry. body.sidebar-expanded is the full sidebar with labels.
+     - The toggle (P39): at the top, a 44px icon button right of the brand (under the mark, centred, in the rail): a
+       "panel left" icon whose chevron points the way the sidebar will move. Its words ("Collapse menu" / "Expand
+       menu") are its accessible name and a tooltip on hover and keyboard focus, beside the sidebar in both states.
      - Phones: the office menu (offcanvas) has an X at the top right, next to the brand.
      - .topbar: on phones the navy bar (menu, page name, "EN | ΕΛ", bell); from 768px, for office users, a slim row
        above the content with only "EN | ΕΛ" on the right. Crew have no switch.
@@ -3853,29 +3897,31 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* Sign out in the user block: words in the full sidebar, an icon in the rail. */
 .sidebar-sign-out-icon { display: none; }
 
-/* The toggle, from 768px only. */
+/* The toggle, from 768px only: an icon on a 44px target (the icon 12:1 on the navy, white on hover). The chevron
+   points right in the rail ("Expand menu") and left in the full sidebar ("Collapse menu"). */
 .sidebar-toggle-form {
     display: none;
-    flex-shrink: 0;
-    margin-top: var(--nn-space-2);
+    flex: none;
 }
 .sidebar-toggle {
     display: flex;
     align-items: center;
-    gap: var(--nn-space-3);
-    width: 100%;
-    min-height: var(--nn-touch-target);
-    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
     color: var(--nn-sidebar-text);
-    font-size: var(--nn-font-sm);
-    text-align: left;
     background: transparent;
     border: 0;
     border-radius: var(--nn-radius-control);
 }
 .sidebar-toggle:hover { color: #fff; background-color: var(--nn-sidebar-hover); }
 .sidebar-toggle-icon { flex: none; }
-.sidebar-expanded .sidebar-toggle-icon { transform: rotate(180deg); }
+.sidebar-toggle-chevron {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+.sidebar-expanded .sidebar-toggle-chevron { transform: rotate(180deg); }
 
 @media (min-width: 768px) {
     .sidebar-close { display: none; }
@@ -3885,7 +3931,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .sidebar-collapsed .sidebar { width: var(--nn-rail-width); }
     .sidebar-collapsed .sidebar .sidebar-body { padding: var(--nn-space-3) var(--nn-space-2); }
     .sidebar-collapsed .sidebar-head {
+        flex-direction: column;
         justify-content: center;
+        gap: var(--nn-space-1);
         margin-bottom: var(--nn-space-4);
     }
     .sidebar-collapsed .sidebar-brand {
@@ -3917,8 +3965,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
         height: 0;
         margin: 0;
     }
-    .sidebar-collapsed .sidebar-link,
-    .sidebar-collapsed .sidebar-toggle {
+    .sidebar-collapsed .sidebar-link {
         justify-content: center;
         gap: 0;
         padding: 0;
@@ -3956,9 +4003,11 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     }
     .sidebar-collapsed .sidebar-sign-out-icon { display: block; }
 
-    /* Labels in the rail: read by screen readers, shown as a tooltip on hover and keyboard focus. */
+    /* Labels in the rail, and the toggle's in both states: read by screen readers, shown as a tooltip beside the
+       sidebar on hover and keyboard focus. */
     .sidebar-collapsed .sidebar-link-label,
-    .sidebar-collapsed .sidebar .sidebar-label {
+    .sidebar-collapsed .sidebar .sidebar-label,
+    .sidebar-toggle .sidebar-label {
         position: fixed;
         left: calc(var(--nn-rail-width) + var(--nn-space-2));
         z-index: 1060;               /* over the page, under Bootstrap's modals */
@@ -3971,8 +4020,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     }
     .sidebar-collapsed .sidebar-link:hover .sidebar-link-label,
     .sidebar-collapsed .sidebar-link:focus-visible .sidebar-link-label,
-    .sidebar-collapsed .sidebar-toggle:hover .sidebar-label,
-    .sidebar-collapsed .sidebar-toggle:focus-visible .sidebar-label,
+    .sidebar-toggle:hover .sidebar-label,
+    .sidebar-toggle:focus-visible .sidebar-label,
     .sidebar-collapsed .sidebar-sign-out:hover .sidebar-label,
     .sidebar-collapsed .sidebar-sign-out:focus-visible .sidebar-label {
         width: auto;
@@ -3988,6 +4037,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
         border-radius: var(--nn-radius-badge);
         box-shadow: 0 2px 8px rgba(var(--nn-navy-rgb), .25);
     }
+
+    .sidebar-expanded .sidebar-toggle .sidebar-label { left: calc(var(--nn-sidebar-width) + var(--nn-space-2)); }
 
     body.sidebar-collapsed[data-user] .offline-banner { left: var(--nn-rail-width); }
 }
@@ -4250,6 +4301,32 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     width: 20px;
     height: 20px;
     color: var(--nn-text-secondary);
+}
+
+/* My certificates (P39), under the four fields: a heading, who sees them, then the crew home's list of certificates
+   (crew/parts :: myCertificates, .cert-row) with Open (40px, 44px on phones) where the office attached the file. On
+   a phone the badge and Open wrap under the text. */
+.profile-section + .profile-section { margin-top: var(--nn-space-5); }
+.profile-section-title {
+    margin-bottom: var(--nn-space-1);
+    font-size: var(--nn-font-title);
+    font-weight: 600;
+}
+
+/* A certificate's file (P39, crew/parts :: certificateFile): a paperclip and "Open", always a button (so at least the
+   touch target). In the office's list it follows the type, small and quiet (.cert-file-inline). On the form, the
+   current file with Open and Remove sits above the file input. */
+.cert-file-link { white-space: nowrap; }
+.cert-file-inline {
+    margin-inline-start: var(--nn-space-2);
+    font-weight: 400;
+}
+.cert-file-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    margin-bottom: var(--nn-space-2);
 }
 
 /* More: who is signed in, the links, Sign out (full width on phones). */

@@ -3,7 +3,7 @@
 <body>
 <!-- The orders the ships have sent (P36): SENT, CONFIRMED and CLOSED, never OPEN; newest sent first. Filters: ship,
      status and export status (?exported=no: not exported yet, the Overview's link). Export: check rows (the header
-     checkbox checks the page) and Export CSV, a POST that answers with the file and marks the orders exported; the
+     checkbox checks the page) and Export, a POST (an Excel workbook) that answers with the file and marks the orders exported; the
      page stays as it is. Without JavaScript everything still submits; there is no select-all and no selection count,
      and the button is never disabled (nothing checked: back with a message). A row opens its order (data-row-href);
      its number stays the link for the keyboard and without the script. Model: list (ListQuery), orders (Page of
@@ -17,7 +17,7 @@
             <button type="submit" form="exportForm" class="btn btn-primary" data-needs-selection
                     aria-describedby="selectionCount">
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
-                <span th:text="#{officeorder.export}">Export CSV</span>
+                <span th:text="#{officeorder.export}">Export</span>
             </button>
         </th:block>
     </header>

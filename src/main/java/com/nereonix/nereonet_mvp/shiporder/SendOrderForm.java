@@ -4,14 +4,15 @@ import java.time.LocalDate;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.nereonix.nereonet_mvp.core.form.PlausibleDate;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The "Send to office" form of /ship/order (P35). Port and date are required; ShipOrderController checks the date is
-// not in the past (UTC), as ShipOrderService.send does.
+// The "Send to office" form of /ship/order (P35). Port and date are required; the date from today (UTC) to two years
+// ahead (P39: @PlausibleDate, which also refuses a past date, as ShipOrderService.send does).
 public class SendOrderForm {
 
     @NotBlank(message = "{order.send.error.portRequired}")
@@ -19,6 +20,7 @@ public class SendOrderForm {
     private String requestedPort;
 
     @NotNull(message = "{order.send.error.neededByRequired}")
+    @PlausibleDate(yearsBefore = 0, yearsAfter = 2)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate neededBy;
 

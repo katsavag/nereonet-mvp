@@ -22,7 +22,8 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
  * <ul>
  *   <li>q: the search text, trimmed, at most 100 characters; null when empty;</li>
  *   <li>sort and dir: one of the list's ListSorts (the first is the default), asc or desc;</li>
- *   <li>page (1-based in the URL) and size, 25 or 50.</li>
+ *   <li>page (1-based in the URL) and size: 25 or 50 for most lists, the first the default; a list may offer its own
+ *   sizes (withSizes: the audit log, 20, 50 or 100, P39).</li>
  * </ul>
  * Changing the search, a filter, the sort or the page size goes back to page 1.
  * The parameters are written in a fixed order: q, the filters in the order added, sort, dir, size, page.
@@ -49,10 +50,11 @@ public final class ListQuery {
     private final boolean sortChosen;
     private final int page;
     private final int size;
+    private final List<Integer> sizes;
     private final List<Filter> filters = new ArrayList<>();
 
     private ListQuery(String path, String q, List<ListSort> sorts, ListSort sort, boolean descending,
-                      boolean sortChosen, int page, int size) {
+                      boolean sortChosen, int page, int size, List<Integer> sizes) {
         this.path = path;
         this.q = q;
         this.sorts = sorts;
@@ -61,6 +63,7 @@ public final class ListQuery {
         this.sortChosen = sortChosen;
         this.page = page;
         this.size = size;
+        this.sizes = sizes;
     }
 
     /**
@@ -69,14 +72,21 @@ public final class ListQuery {
      * the default, so any URL shows a list.
      */
     public static ListQuery of(String path, ListRequest request, ListSort... sorts) {
+        return withSizes(path, request, SIZES, sorts);
+    }
+
+    /**
+     * As of(...), for a list with its own page sizes (P39: the audit log, 20, 50 or 100), the first the default.
+     */
+    public static ListQuery withSizes(String path, ListRequest request, List<Integer> sizes, ListSort... sorts) {
         ListRequest r = request == null ? ListRequest.EMPTY : request;
         List<ListSort> all = Arrays.asList(sorts);
         ListSort chosen = all.stream().filter(s -> s.key().equals(r.sort())).findFirst().orElse(null);
         ListSort sort = chosen == null ? all.getFirst() : chosen;
         boolean descending = "desc".equals(r.dir()) || (!"asc".equals(r.dir()) && sort.descendingFirst());
-        int size = r.size() != null && SIZES.contains(r.size()) ? r.size() : DEFAULT_SIZE;
+        int size = r.size() != null && sizes.contains(r.size()) ? r.size() : sizes.getFirst();
         int page = r.page() == null || r.page() < 1 ? 0 : r.page() - 1;
-        return new ListQuery(path, search(r.q()), all, sort, descending, chosen != null, page, size);
+        return new ListQuery(path, search(r.q()), all, sort, descending, chosen != null, page, size, List.copyOf(sizes));
     }
 
     private static String search(String q) {
@@ -191,7 +201,7 @@ public final class ListQuery {
             hidden.put("sort", sort.key());
             hidden.put("dir", descending ? "desc" : "asc");
         }
-        if (size != DEFAULT_SIZE) {
+        if (size != defaultSize()) {
             hidden.put("size", Integer.toString(size));
         }
         return hidden;
@@ -223,14 +233,18 @@ public final class ListQuery {
         return url(q, null, sortChosen, newSize, 1);
     }
 
-    /** The page sizes offered. */
+    /** The page sizes offered, the default first. */
     public List<Integer> getSizes() {
-        return SIZES;
+        return sizes;
+    }
+
+    private int defaultSize() {
+        return sizes.getFirst();
     }
 
     /** The pager is shown when there is more than the smallest page. */
     public boolean pagerShown(Page<?> rows) {
-        return rows.getTotalElements() > SIZES.getFirst();
+        return rows.getTotalElements() > sizes.stream().min(Integer::compare).orElseThrow();
     }
 
     /** "1 to 25 of 412": the first row of the page, 1-based. */
@@ -245,7 +259,7 @@ public final class ListQuery {
     /** The same search, filters and chosen sort at another path, without page and page size: the list's export
      *  (P20), e.g. /office/certificates/export?status=expired. */
     public String urlAt(String otherPath) {
-        String url = build(q, null, sortChosen, sort.key(), descending, DEFAULT_SIZE, 1, true);
+        String url = build(q, null, sortChosen, sort.key(), descending, defaultSize(), 1, true);
         return otherPath + url.substring(path.length());
     }
 
@@ -258,7 +272,7 @@ public final class ListQuery {
      *  (crew/CrewListReturn). */
     public ListRequest getRequest() {
         return new ListRequest(q, sortChosen ? sort.key() : null, sortChosen ? (descending ? "desc" : "asc") : null,
-                page > 0 ? page + 1 : null, size != DEFAULT_SIZE ? size : null);
+                page > 0 ? page + 1 : null, size != defaultSize() ? size : null);
     }
 
     // The current sort; without: the filter to leave out, or null.
@@ -284,7 +298,7 @@ public final class ListQuery {
             params.add(param("sort", sortKey));
             params.add(param("dir", desc ? "desc" : "asc"));
         }
-        if (pageSize != DEFAULT_SIZE) {
+        if (pageSize != defaultSize()) {
             params.add(param("size", Integer.toString(pageSize)));
         }
         if (page1 > 1) {

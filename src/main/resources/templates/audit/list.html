@@ -10,11 +10,15 @@
             <div th:replace="~{layout/parts :: shipFilter(${ships}, ${filter.shipId})}"></div>
             <div class="filter-field filter-field-date">
                 <label for="from" class="form-label" th:text="#{audit.filter.from}">From (UTC)</label>
-                <input type="date" id="from" name="from" th:value="${filter.from}" class="form-control">
+                <input type="date" th:field="${filter.from}" class="form-control" th:errorclass="is-invalid"
+                       th:min="${@formFields.minDate(filter, 'from')}" th:max="${@formFields.maxDate(filter, 'from')}">
+                <div class="invalid-feedback" th:errors="${filter.from}"></div>
             </div>
             <div class="filter-field filter-field-date">
                 <label for="to" class="form-label" th:text="#{audit.filter.to}">To (UTC)</label>
-                <input type="date" id="to" name="to" th:value="${filter.to}" class="form-control">
+                <input type="date" th:field="${filter.to}" class="form-control" th:errorclass="is-invalid"
+                       th:min="${@formFields.minDate(filter, 'to')}" th:max="${@formFields.maxDate(filter, 'to')}">
+                <div class="invalid-feedback" th:errors="${filter.to}"></div>
             </div>
         </th:block>
     </div>

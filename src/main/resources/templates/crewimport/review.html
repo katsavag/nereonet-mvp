@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!-- Step 3 of the crew import (P24): every crew member from the file, editable. The row filters, the plan and
      "Exclude all rows with errors" are layout/parts :: importSummary; the first two columns (row, full name) stay in
-     place when the table scrolls sideways. Every row is a new crew member (an invitation). -->
+     place when the table scrolls sideways. Every row is a new crew member (an invitation). The cells check themselves
+     as they are corrected (P39, js/import-check.js); the server checks everything again. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crewImport.review.title}, ~{::main})}">
 <body>
 <main>
@@ -45,26 +46,18 @@
                     <tr th:each="row, stat : *{rows}" th:if="${row.isShownFor(show)}"
                         th:classappend="${row.excluded} ? 'is-excluded'">
                         <td th:replace="~{layout/parts :: importRowHead(${row}, ${stat.index})}"></td>
-                        <td class="import-col-name">
-                            <input type="text" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].fullName}"
-                                   th:classappend="${row.errors['fullName']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{user.fullName}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['fullName']}"
-                                 th:text="#{${row.errors['fullName']}}"></div>
-                        </td>
-                        <td>
-                            <input type="email" class="form-control form-control-sm" th:field="*{rows[__${stat.index}__].email}"
-                                   th:classappend="${row.errors['email']} ? 'is-invalid'" autocomplete="off"
-                                   th:attr="aria-label=#{importFile.review.cell(#{user.email}, ${row.rowNumber})}">
-                            <div class="invalid-feedback" th:if="${row.errors['email']}"
-                                 th:text="#{${row.errors['email']}}"></div>
-                        </td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'fullName', #{user.fullName},
+                                'text', 'user.error.fullNameRequired', 'crewImport.error.tooLong', 'import-col-name')}"></td>
+                        <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'email', #{user.email},
+                                'email', 'invitation.error.emailRequired', 'crewImport.error.tooLong', null)}"></td>
                         <td>
                             <!-- The rank sets the role (P18): its access in short under it, "Access: Master". -->
                             <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].rank}"
                                     th:classappend="${row.errors['rank']} ? 'is-invalid'"
                                     th:attr="aria-label=#{importFile.review.cell(#{user.rank}, ${row.rowNumber})},
-                                             aria-describedby=${'rankAccess' + stat.index}, data-access-hint=${'rankAccess' + stat.index}">
+                                             aria-describedby=${'rankAccess' + stat.index}, data-access-hint=${'rankAccess' + stat.index},
+                                             data-required=#{user.error.rankRequired},
+                                             data-server-error=${row.errors['rank'] != null} ? #{${row.errors['rank']}} : null">
                                 <option value="" th:text="#{user.chooseRank}">Choose a rank</option>
                                 <!-- A value from the file that is not a rank: kept so it can be seen and corrected. -->
                                 <option th:if="${!#strings.isEmpty(row.rank) and !rankNames.contains(row.rank)}"
@@ -78,7 +71,9 @@
                         <td>
                             <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].shipImo}"
                                     th:classappend="${row.errors['shipImo']} ? 'is-invalid'"
-                                    th:attr="aria-label=#{importFile.review.cell(#{user.ship}, ${row.rowNumber})}">
+                                    th:attr="aria-label=#{importFile.review.cell(#{user.ship}, ${row.rowNumber})},
+                                             data-required=#{user.error.shipRequired},
+                                             data-server-error=${row.errors['shipImo'] != null} ? #{${row.errors['shipImo']}} : null">
                                 <option value="" th:text="#{crew.edit.chooseShip}">Choose a ship</option>
                                 <!-- A value from the file that names no active ship: kept so it can be seen. -->
                                 <option th:if="${!#strings.isEmpty(row.shipImo) and !shipImos.contains(row.shipImo)}"

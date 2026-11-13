@@ -109,9 +109,10 @@ class ShipHomeFlowTest {
     @Test
     void chiefCookSeesWhatToReadUntilAcknowledged() throws Exception {
         String html = home(cook);
-        // Header: name, rank, ship with IMO number; Sign out next to the name.
+        // Header: name, rank, ship with IMO number; Sign out next to the name, from 768px only (P39: on phones it is
+        // under More, a CSS breakpoint class, no script).
         assertThat(html).contains("<title>Home · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
-                ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>")
+                ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>", "<div class=\"home-sign-out from-md\">")
                 .containsPattern("(?s)<span class=\"home-sign-out-name\">Not Demo Cook\\?</span>\\s*"
                         + "<form action=\"/logout\" method=\"post\">.*?>Sign out</button>");
 
@@ -134,7 +135,8 @@ class ShipHomeFlowTest {
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
     }
 
-    // P27: announcements not yet acknowledged join To read, in date order with the library items, until acknowledged.
+    // P27: announcements not yet read join To read, in date order with the library items, until opened (P39: News,
+    // read by opening it).
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
     void unacknowledgedAnnouncementsAreToRead() throws Exception {
@@ -145,14 +147,13 @@ class ShipHomeFlowTest {
         String toRead = section(TO_READ, home(cook));
         // The policy was published two days ago, the announcement sent now: oldest first.
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy", "Safety drill");
-        assertThat(toRead).contains("href=\"/ship/announcements/" + id + "\"", "class=\"read-card-type\">Announcement<",
+        assertThat(toRead).contains("href=\"/ship/news/" + id + "\"", "class=\"read-card-type\">News item<",
                         "<span>Sent</span>", "<span class=\"read-card-icon\" aria-hidden=\"true\">",
-                        "href=\"/ship/announcements\">All announcements</a>");
+                        "href=\"/ship/news\">All news</a>");
 
-        mockMvc.perform(post("/ship/announcements/{id}/acknowledge", id).with(user(new CurrentUser(cook))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/announcements/" + id));
+        mockMvc.perform(get("/ship/news/{id}", id).with(user(new CurrentUser(cook)))).andExpect(status().isOk());
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
-        // Only the cook acknowledged it: still to read for the others.
+        // Only the cook opened it: still to read for the others.
         assertThat(titles(section(TO_READ, home(crew)))).containsExactly("Drug and alcohol policy", "Safety drill");
     }
 
@@ -194,7 +195,7 @@ class ShipHomeFlowTest {
         // More (P31).
         String tabBar = section(TAB_BAR, html);
         assertThat(Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
-                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/announcements", "/ship/library",
+                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/news", "/ship/library",
                 "/notifications", "/ship/more");
         assertThat(tabBar).contains("aria-label=\"Main navigation\"",
                         "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">",
