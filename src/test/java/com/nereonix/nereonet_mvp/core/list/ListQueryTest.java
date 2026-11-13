@@ -20,7 +20,12 @@ class ListQueryTest {
         assertThat(list.getSort()).isEqualTo("name");
         assertThat(list.isDescending()).isFalse();
         assertThat(list.getPage()).isZero();
-        assertThat(list.getSize()).isEqualTo(25);
+        // P43: 10 a page by default, on every list; 20, 50 and 100 on request.
+        assertThat(list.getSize()).isEqualTo(10);
+        assertThat(ListQuery.DEFAULT_SIZE).isEqualTo(10);
+        assertThat(list.getSizes()).containsExactly(10, 20, 50, 100);
+        assertThat(ListQuery.of("/x", new ListRequest(null, null, null, null, 25), SORTS).getSize()).isEqualTo(10);
+        assertThat(ListQuery.of("/x", new ListRequest(null, null, null, null, 100), SORTS).getSize()).isEqualTo(100);
         assertThat(list.isFiltered()).isFalse();
         assertThat(list.getUrl()).isEqualTo("/office/crew");
 
@@ -47,7 +52,7 @@ class ListQueryTest {
         assertThat(list.ariaSort("sentAt")).isNull();
         assertThat(list.pageUrl(0))
                 .isEqualTo("/office/crew?q=Jane+%26+co%2B&shipId=7&status=expired&sort=name&dir=desc&size=50");
-        assertThat(list.sizeUrl(25)).isEqualTo("/office/crew?q=Jane+%26+co%2B&shipId=7&status=expired&sort=name&dir=desc");
+        assertThat(list.sizeUrl(10)).isEqualTo("/office/crew?q=Jane+%26+co%2B&shipId=7&status=expired&sort=name&dir=desc");
 
         // The chips, each removing only itself; Clear all keeps sort and size.
         assertThat(list.getChips()).extracting(ListQuery.Chip::removeUrl).containsExactly(
@@ -74,14 +79,14 @@ class ListQueryTest {
     @Test
     void theRangeAndThePager() {
         ListQuery list = ListQuery.of("/office/crew", new ListRequest(null, null, null, 2, null), SORTS);
-        var secondPage = new PageImpl<>(List.of("a", "b"), PageRequest.of(1, 25), 27);
-        assertThat(list.first(secondPage)).isEqualTo(26);
-        assertThat(list.last(secondPage)).isEqualTo(27);
+        var secondPage = new PageImpl<>(List.of("a", "b"), PageRequest.of(1, 10), 12);
+        assertThat(list.first(secondPage)).isEqualTo(11);
+        assertThat(list.last(secondPage)).isEqualTo(12);
         assertThat(list.pagerShown(secondPage)).isTrue();
-        assertThat(list.pagerShown(new PageImpl<>(List.of("a"), PageRequest.of(0, 25), 25))).isFalse();
+        assertThat(list.pagerShown(new PageImpl<>(List.of("a"), PageRequest.of(0, 10), 10))).isFalse();
         // A page past the end shows the last one.
         assertThat(ListQueries.clamp(ListQuery.of("/x", new ListRequest(null, null, null, 9, null), SORTS), 27))
-                .isEqualTo(1);
+                .isEqualTo(2);
         assertThat(ListQueries.clamp(list, 0)).isZero();
     }
 }

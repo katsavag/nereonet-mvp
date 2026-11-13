@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{snooze.title}, ~{::main})}">
+<body>
+<!-- Snooze (P43): the items being snoozed, reviewed (P10: each with a checkbox when there are several, so one can be
+     left out), then the reason (Other needs the note) and how long (7 days, 30 days, until a date, until it expires
+     when every item has a date ahead). An expired item can be snoozed for 30 days at most. Snooze and Cancel go back
+     to returnTo (the list or the Overview). Model: form (SnoozeForm), items (AlertView), reasons, durations,
+     anyExpired, untilExpiryAllowed, backLabelKey. -->
+<main class="form-page">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{snooze.heading}, subtitle=#{snooze.hint}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{${backLabelKey}}, ${form.returnTo})}"></li>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:object="${form}" method="post" th:action="@{/office/alerts/snooze}" novalidate>
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <input type="hidden" name="returnTo" th:value="${form.returnTo}">
+
+                <!-- The selection, reviewed. With one item its key goes along hidden; with several, each is a
+                     checkbox, ticked, so the office can leave one out before snoozing. -->
+                <fieldset class="form-section snooze-items">
+                    <legend th:text="#{snooze.items(${items.size()})}">2 items</legend>
+                    <ul class="list-group list-group-flush snooze-item-list">
+                        <li th:each="v, st : ${items}" class="list-group-item snooze-item">
+                            <label class="snooze-item-pick" th:for="|item${st.index}|">
+                                <input th:if="${items.size() > 1}" class="form-check-input" type="checkbox" th:id="|item${st.index}|"
+                                       name="items" th:value="${v.alert().key().param()}" checked>
+                                <input th:unless="${items.size() > 1}" type="hidden" name="items" th:value="${v.alert().key().param()}">
+                                <th:block th:replace="~{alert/parts :: alertSummary(${v})}"></th:block>
+                            </label>
+                        </li>
+                    </ul>
+                </fieldset>
+
+                <div class="form-grid">
+                    <div>
+                        <label for="reason" class="form-label" th:text="#{snooze.reason}">Reason</label>
+                        <select th:field="*{reason}" class="form-select" th:errorclass="is-invalid" required>
+                            <option value="" th:text="#{snooze.reason.choose}">Choose a reason</option>
+                            <option th:each="r : ${reasons}" th:value="${r}" th:text="#{${r.messageKey()}}">Renewal in progress</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{reason}"></div>
+                    </div>
+                    <!-- The note: required for Other; with js/forms.js shown only then. -->
+                    <div data-shown-for="reason" data-shown-value="OTHER">
+                        <label for="note" class="form-label" th:text="#{snooze.note}">Note</label>
+                        <input type="text" th:field="*{note}" class="form-control" th:errorclass="is-invalid"
+                               maxlength="200" autocomplete="off" aria-describedby="noteHint noteCounter">
+                        <div class="invalid-feedback" th:errors="*{note}"></div>
+                        <div class="form-meta">
+                            <div id="noteHint" class="form-text" th:text="#{snooze.note.hint}">Required when the reason is Other.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'note', 'note')}"></div>
+                        </div>
+                    </div>
+                    <fieldset>
+                        <legend class="form-label" th:text="#{snooze.duration}">How long</legend>
+                        <div class="snooze-durations" th:classappend="${#fields.hasErrors('duration')} ? 'is-invalid'">
+                            <div th:each="d : ${durations}" class="form-check"
+                                 th:unless="${d.name() == 'UNTIL_EXPIRY' and !untilExpiryAllowed}">
+                                <input class="form-check-input" type="radio" th:field="*{duration}" th:value="${d}">
+                                <label class="form-check-label" th:for="${#ids.prev('duration')}"
+                                       th:text="${d.name() == 'DAYS_30' and anyExpired} ? #{snooze.duration.DAYS_30.max} : #{${d.messageKey()}}">30 days</label>
+                                <!-- The date, under its choice. -->
+                                <div th:if="${d.name() == 'DATE'}" class="snooze-date">
+                                    <label for="untilDate" class="visually-hidden" th:text="#{snooze.duration.DATE.label}">Snoozed until</label>
+                                    <input type="date" th:field="*{untilDate}" class="form-control" th:errorclass="is-invalid"
+                                           th:min="${@dates.today().plusDays(1)}"
+                                           th:max="${anyExpired} ? ${@dates.today().plusDays(30)} : ${@formFields.maxDate(form, 'untilDate')}"
+                                           aria-describedby="untilDateHint">
+                                    <div class="invalid-feedback" th:errors="*{untilDate}"></div>
+                                    <div id="untilDateHint" class="form-text"
+                                         th:text="${anyExpired} ? #{snooze.expiredMax} : #{snooze.duration.DATE.hint}">An expired item can be snoozed for 30 days at most.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback" th:classappend="${#fields.hasErrors('duration')} ? 'd-block'" th:errors="*{duration}"></div>
+                        <p th:if="${!untilExpiryAllowed}" class="form-text" th:text="#{snooze.duration.UNTIL_EXPIRY.unavailable}">"Until it expires" is only for items that have not expired yet.</p>
+                    </fieldset>
+                </div>
+
+                <p th:replace="~{layout/parts :: infoNote(null, #{snooze.effect})}"></p>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{snooze.submit}">Snooze</button>
+                    <a class="btn btn-ghost" th:href="@{${form.returnTo}}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

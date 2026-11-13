@@ -8,9 +8,10 @@ import org.springframework.stereotype.Repository;
 
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
+import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
-import com.nereonix.nereonet_mvp.core.vetting.InspectionOutcome;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -23,15 +24,24 @@ import jakarta.persistence.PersistenceContext;
 @Repository
 public class DashboardQueries {
 
-    /** An active ship, as the Overview shows it (name links to the ship page). */
-    public record FleetShip(Long id, String name, String imoNumber) {
+    /** An active ship, as the Overview shows it (name links to the ship page), with its crew on board (P43). */
+    public record FleetShip(Long id, String name, String imoNumber, String flag, ShipType type, long crew) {
     }
 
     public record CertificateRow(Long id, Long userId, String type, LocalDate expiresOn, Long shipId, String fullName,
                           Rank rank) {
     }
 
-    public record OrderRow(Long id, Long shipId, String sentBy, Rank rank, Instant sentAt, long lines) {
+    /**
+     * An order the office works on (P36, P43): sent and never exported (an open item), sent and not yet confirmed
+     * (the "Orders waiting" tile), or confirmed with a delivery within the next 30 days (the "Next 30 days" card).
+     */
+    public record OrderRow(Long id, Long shipId, String sentBy, Rank rank, Instant sentAt, long lines,
+                           ShipOrderStatus status, Instant exportedAt, LocalDate deliveryDate) {
+
+        public boolean notExported() {
+            return exportedAt == null;
+        }
     }
 
     public record InvitationRow(Long id, Long shipId, String fullName, Rank rank, Instant expiresAt) {
@@ -48,11 +58,6 @@ public class DashboardQueries {
                       long acknowledged) {
     }
 
-    /** A vessel's current RightShip standing (P40): id is the ShipRightShipStatus row. */
-    public record VettingRow(Long id, Long shipId, Integer safetyScore, LocalDate inspectionValidUntil,
-                             Boolean inspectionRequired, InspectionOutcome lastInspectionOutcome) {
-    }
-
     /** What exists of the setup steps (P25): ships, crew (users with a ship role, pending crew invitations), library
      *  items not retired and announcements; firstShipId is the first ship added, null without a ship. */
     public record SetupRow(long ships, long crewUsers, long crewInvitations, long libraryItems, long announcements,
@@ -62,7 +67,7 @@ public class DashboardQueries {
     @PersistenceContext
     private EntityManager entityManager;
 
-    /** The setup checklist of the Overview, in one query (not part of load()'s seven). */
+    /** The setup checklist of the Overview, in one query (not part of load()'s). */
     SetupRow setup() {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$SetupRow(
@@ -77,50 +82,51 @@ public class DashboardQueries {
                 .getSingleResult();
     }
 
+    /** The active ships by name, each with its enabled crew on board (ship roles), in one query (P43). */
     List<FleetShip> activeShips() {
         return entityManager.createQuery("""
-                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$FleetShip(s.id, s.name, s.imoNumber)
-                from Ship s where s.active = true order by s.name, s.id""", FleetShip.class).getResultList();
+                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$FleetShip(s.id, s.name, s.imoNumber,
+                    s.flag, s.type,
+                    (select count(u) from User u where u.ship = s and u.enabled = true and u.role <> :officeRole))
+                from Ship s where s.active = true order by s.name, s.id""", FleetShip.class)
+                .setParameter("officeRole", Role.OFFICE_USER)
+                .getResultList();
     }
 
-    /** Certificates of users on active ships that expire on or before "until" (expired included). */
+    /**
+     * Certificates that expire on or before "until" (expired included), with the ship of their holder (null without
+     * one). Every ship, active or not (P43: the snooze sync needs the alerts of every certificate the lists can
+     * snooze; the caller keeps the active ships' ones as open items).
+     */
     List<CertificateRow> certificatesExpiringUntil(LocalDate until) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$CertificateRow(
                     c.id, u.id, c.type, c.expiresOn, s.id, u.fullName, u.rank)
-                from Certificate c join c.user u join u.ship s
-                where c.expiresOn <= :until and s.active = true""", CertificateRow.class)
+                from Certificate c join c.user u left join u.ship s
+                where c.expiresOn <= :until""", CertificateRow.class)
                 .setParameter("until", until)
                 .getResultList();
     }
 
     /**
-     * The current RightShip standing of active vessels (P40) whose inspection is unacceptable or valid until "until"
-     * at the latest (expired included), or whose Safety Score is at most "lowScore".
+     * The orders of active ships the office works on (P36, P43): sent and never exported, sent and not yet confirmed,
+     * or confirmed with a delivery on or before "deliveriesUntil" (today or later), with their number of lines.
      */
-    List<VettingRow> vettingNeedingAttention(LocalDate until, int lowScore) {
-        return entityManager.createQuery("""
-                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$VettingRow(
-                    r.id, s.id, r.safetyScore, r.inspectionValidUntil, r.inspectionRequired, r.lastInspectionOutcome)
-                from ShipRightShipStatus r join r.ship s
-                where r.current = true and s.active = true
-                  and (r.inspectionValidUntil <= :until or r.lastInspectionOutcome = :unacceptable
-                       or r.safetyScore <= :lowScore)""", VettingRow.class)
-                .setParameter("until", until)
-                .setParameter("unacceptable", InspectionOutcome.UNACCEPTABLE)
-                .setParameter("lowScore", lowScore)
-                .getResultList();
-    }
-
-    /** Orders active ships have sent (P36) that were never exported, with their number of lines. */
-    List<OrderRow> ordersNotExported() {
+    List<OrderRow> orders(LocalDate today, LocalDate deliveriesUntil) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$OrderRow(
                     o.id, s.id, u.fullName, u.rank, o.sentAt,
-                    (select count(l) from ShipOrderLine l where l.order = o))
+                    (select count(l) from ShipOrderLine l where l.order = o), o.status, o.exportedAt, o.deliveryDate)
                 from ShipOrder o join o.ship s left join o.sentBy u
-                where o.status in :statuses and o.exportedAt is null and s.active = true""", OrderRow.class)
+                where s.active = true
+                  and ((o.status in :statuses and o.exportedAt is null)
+                    or o.status = :sent
+                    or (o.status = :confirmed and o.deliveryDate between :today and :deliveriesUntil))""", OrderRow.class)
                 .setParameter("statuses", ShipOrderService.SENT_TO_OFFICE)
+                .setParameter("sent", ShipOrderStatus.SENT)
+                .setParameter("confirmed", ShipOrderStatus.CONFIRMED)
+                .setParameter("today", today)
+                .setParameter("deliveriesUntil", deliveriesUntil)
                 .getResultList();
     }
 

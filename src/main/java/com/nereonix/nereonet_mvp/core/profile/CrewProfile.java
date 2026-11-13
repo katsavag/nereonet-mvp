@@ -111,6 +111,18 @@ public class CrewProfile {
         return updatedAt;
     }
 
+    /**
+     * The URL of the person's own photo as the crew pages serve it (P31), with the profile's version so a new photo
+     * shows at once despite the cache header (P43): "/ship/crew/12/photo/<key>/96?v=1763000000"; null without a
+     * photo. size: 96 or 512. The one place that builds it (layout/parts :: personAvatar shows it).
+     */
+    public String photoUrl(int size) {
+        if (photoKey == null) {
+            return null;
+        }
+        return "/ship/crew/" + user.getId() + "/photo/" + photoKey + "/" + size + "?v=" + updatedAt.getEpochSecond();
+    }
+
     public void touch() {
         this.updatedAt = Instant.now();
     }

@@ -138,8 +138,11 @@ class SireFlowTest {
         assertThat(names(html(get("/office/vetting").param("sort", "sire").param("dir", "desc"))))
                 .containsExactly("CEDAR", "BIRCH", "ALDER", "ELM");
 
-        // Greek office screens.
-        assertThat(html(get("/office/vetting").param("lang", "el"))).contains("Δημοσιεύθηκε · ", "Καθεστώς");
+        // Greek office screens: the regime filter is "Σύστημα αξιολόγησης" (P43; "Καθεστώς" before), the vessel
+        // types keep their English names.
+        String greek = html(get("/office/vetting").param("lang", "el"));
+        assertThat(greek).contains("Δημοσιεύθηκε · ", "Σύστημα αξιολόγησης", ">Tanker<", ">Bulk carrier<")
+                .doesNotContain("Καθεστώς", "Δεξαμενόπλοιο");
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -170,9 +173,10 @@ class SireFlowTest {
                 .containsSubsequence("id=\"regimeRightShip\"", "id=\"regimeSire\"").contains("Draft received")
                 .doesNotContain("applies to tankers");
 
-        // The vessel page header's badge row: a SIRE badge for tankers only.
+        // The vessel page header's badge row: a SIRE badge for tankers only; P43: its own link to the SIRE page.
         assertThat(html(get("/office/ships/{id}", birch.getId())))
-                .containsPattern("(?s)class=\"vetting-badges\".*?SIRE 2.0.*?Report current until");
+                .containsPattern("(?s)class=\"vetting-badges\".*?<a class=\"vetting-badge\" href=\"/office/vetting/" + birch.getId()
+                        + "/sire\">.*?SIRE 2.0.*?Report current until.*?\\(opens SIRE 2.0\\)</span>\\s*</a>");
         assertThat(html(get("/office/ships/{id}", alder.getId()))).doesNotContain("vetting-badge-label\">SIRE 2.0");
     }
 

@@ -32,8 +32,10 @@
         <span class="num" th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
         <th:block th:if="${ship.type}"><span aria-hidden="true">·</span>
             <span th:text="#{${'ship.type.' + ship.type}}">Bulk carrier</span></th:block>
+        <!-- P43: "Flag [image] Greece (GR)". -->
         <th:block th:if="${ship.flag}"><span aria-hidden="true">·</span>
-            <span th:text="#{ship.flagValue(${countries[ship.flag] ?: ship.flag})}">Flag Greece (GR)</span></th:block>
+            <span class="ship-flag"><span th:text="#{ship.flag}">Flag</span>
+                <span th:replace="~{layout/parts :: country(${ship.flag}, ${countries[ship.flag] ?: ship.flag})}">Greece (GR)</span></span></th:block>
         <span th:replace="~{layout/parts :: status(${ship.active} ? 'ok' : 'neutral', ${ship.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
     </span>
     <!-- P40: Safety Score, GHG Rating and inspection in brief, linking to the vessel's Vetting page (active only); P41:
@@ -98,7 +100,11 @@
     <dt th:text="#{ship.type}">Type</dt>
     <dd th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</dd>
     <dt th:text="#{ship.flag}">Flag</dt>
-    <dd th:text="${ship.flag} ? (${countries != null and countries[ship.flag] != null} ? ${countries[ship.flag]} : ${ship.flag}) : '—'">Greece (GR)</dd>
+    <dd>
+        <th:block th:if="${ship.flag}"><span th:replace="~{layout/parts :: country(${ship.flag},
+                ${countries != null and countries[ship.flag] != null} ? ${countries[ship.flag]} : ${ship.flag})}">Greece (GR)</span></th:block>
+        <th:block th:unless="${ship.flag}">—</th:block>
+    </dd>
 </dl>
 
 <!-- The ship a form belongs to, beside the form from 1200px (P29, main.form-page-aside; under it on smaller screens),

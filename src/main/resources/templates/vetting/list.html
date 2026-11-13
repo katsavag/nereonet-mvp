@@ -9,11 +9,19 @@
      what needs attention first); the urgency order and Needs attention include SIRE; the Regime filter (All,
      RightShip, SIRE 2.0) narrows the Status filter to one regime, and SIRE 2.0 keeps the tankers and the vessels with
      an inspection.
+     P43: a vessel's items that need attention can be snoozed (Snooze on its row takes every open item of the vessel
+     to the snooze page, where each can be left out; or its checkbox and Snooze selected). A snoozed item shows
+     "Snoozed by … until … · reason" with Undo in the last column; Status "Snoozed" lists the vessels with one, and
+     Needs attention counts only the items not snoozed. The flag's country is under the name.
      Model: list (ListQuery), rows (Page of VettingService.VettingRow), types, type, regimes, regime, statuses, status,
-     syncFailedAt. -->
+     syncFailedAt, countries. -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{vetting.list.heading}, count=${rows.totalElements},
-            subtitle=#{vetting.list.hint})}"></header>
+            subtitle=#{vetting.list.hint}, actions=${rows.isEmpty()} ? null : ~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <button th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button>
+        </th:block>
+    </header>
 
     <div th:replace="~{vetting/parts :: syncFailed(${syncFailedAt})}"></div>
 
@@ -46,16 +54,21 @@
         </th:block>
     </div>
 
+    <!-- The snooze form (P43): the checked vessels' open items go to the snooze page (a GET). -->
+    <form th:replace="~{alert/parts :: snoozeForm('snoozeForm', ${list.url})}"></form>
     <div class="card">
         <!-- No active vessel yet (P25): the vessels are added on Vessels. -->
         <th:block th:replace="~{layout/parts :: listEmpty(rows=${rows}, list=${list}, icon='vetting',
                 title=#{vetting.list.empty.title}, text=#{vetting.list.empty.text},
                 action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
 
+        <th:block th:unless="${rows.isEmpty()}"><div th:replace="~{alert/parts :: selectionLine('snoozeForm')}"></div></th:block>
+
         <div th:unless="${rows.isEmpty()}" class="table-responsive">
             <table class="table data-table data-table-stack align-middle mb-0 vetting-table">
                 <thead>
                 <tr>
+                    <th th:replace="~{alert/parts :: selectAllHeader('snoozeForm')}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{vetting.vessel})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'type', #{ship.type})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'score', #{vetting.score})}"></th>
@@ -63,15 +76,28 @@
                     <th scope="col" th:text="#{vetting.inspection}">RightShip inspection</th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'inspection', #{vetting.inspection.validUntil})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'sire', #{sire.title})}"></th>
+                    <th scope="col" th:text="#{snooze.column}">Snooze</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="r : ${rows}" th:with="v=${r.view()}"
-                    th:data-row-href="@{/office/vetting/{id}(id=${r.ship().id})}">
+                <tr th:each="r : ${rows}" th:with="v=${r.view()}, openKeys=${r.openKeys()}"
+                    th:data-row-href="@{/office/vetting/{id}(id=${r.ship().id})}"
+                    th:classappend="${r.open().isEmpty() and !r.snoozed().isEmpty()} ? 'is-snoozed'">
+                    <td class="cell-select">
+                        <label th:unless="${r.open().isEmpty()}" class="select-target">
+                            <input class="form-check-input" type="checkbox" name="items" th:value="${openKeys}" form="snoozeForm"
+                                   th:id="'select' + ${r.ship().id}" data-select-row
+                                   th:attr="aria-label=#{snooze.selectVessel(${r.ship().name}, ${r.open().size()})}">
+                        </label>
+                    </td>
                     <td class="cell-primary">
                         <a th:href="@{/office/vetting/{id}(id=${r.ship().id})}" th:text="${r.ship().name}">ALDER</a>
-                        <span class="d-block small fw-normal text-body-secondary"
+                        <!-- P43: the IMO number and, when set, the flag with its country, each on its own line. -->
+                        <span class="d-block small fw-normal text-body-secondary vetting-vessel-facts"
                               th:text="#{ship.codeValue(${r.ship().imoNumber})}">IMO 9300001</span>
+                        <span th:if="${r.ship().flag}" class="d-block small fw-normal text-body-secondary vetting-vessel-facts">
+                            <span th:replace="~{layout/parts :: country(${r.ship().flag}, ${countries[r.ship().flag]} ?: ${r.ship().flag})}">Greece (GR)</span>
+                        </span>
                     </td>
                     <td th:attr="data-label=#{ship.type}"
                         th:text="${r.ship().type} ? #{${'ship.type.' + r.ship().type}} : '—'">Bulk carrier</td>
@@ -93,6 +119,19 @@
                     <td th:attr="data-label=#{sire.title}">
                         <th:block th:replace="~{vetting/parts :: sireLatest(${r.sire()})}"></th:block>
                         <th:block th:replace="~{vetting/parts :: sireAttention(${r.sire()})}"></th:block>
+                    </td>
+                    <!-- P43: the vessel's snoozed items, each with Undo; Snooze for the open ones. -->
+                    <td class="cell-actions vetting-snooze">
+                        <ul th:unless="${r.snoozed().isEmpty()}" class="snoozed-list">
+                            <li th:each="a : ${r.snoozed()}">
+                                <span class="snoozed-kind" th:text="#{${a.alert().key().kind().messageKey()}}">RightShip inspection</span>
+                                <span th:replace="~{alert/parts :: snoozedNote(${a.snooze()}, ${list.url})}"></span>
+                            </li>
+                        </ul>
+                        <div class="row-actions" th:unless="${r.open().isEmpty()}">
+                            <a th:replace="~{alert/parts :: snoozeLink(${openKeys}, ${list.url}, 'btn btn-ghost btn-sm')}"></a>
+                        </div>
+                        <span th:if="${r.alerts().isEmpty()}" class="text-body-secondary" aria-hidden="true">—</span>
                     </td>
                 </tr>
                 </tbody>

@@ -2,10 +2,14 @@ package com.nereonix.nereonet_mvp.core.vetting;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import com.nereonix.nereonet_mvp.core.alert.Alert;
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
 import com.nereonix.nereonet_mvp.core.vetting.Subscore.Impact;
 
 /**
@@ -24,11 +28,12 @@ public record RightShipView(ShipRightShipStatus status, LocalDate today) {
     public static final int LOW_SCORE = 2;
     public static final int MAX_SCORE = 5;
 
-    /** The Vetting list's Status filter: needs attention, valid, not rated. */
+    /** The Vetting list's Status filter: needs attention, valid, not rated; P43: snoozed (an item put aside). */
     public static final String ATTENTION = "attention";
     public static final String VALID = "valid";
     public static final String NOT_RATED = "notrated";
-    public static final List<String> STATUSES = List.of(ATTENTION, VALID, NOT_RATED);
+    public static final String SNOOZED = "snoozed";
+    public static final List<String> STATUSES = List.of(ATTENTION, VALID, NOT_RATED, SNOOZED);
 
     /** One subscore row: value 1 to 5, or null when not known. */
     public record SubscoreRow(Subscore subscore, Integer value, boolean lowest) {
@@ -165,5 +170,27 @@ public record RightShipView(ShipRightShipStatus status, LocalDate today) {
             case EXPIRING -> 1;
             default -> 2;
         };
+    }
+
+    // Alerts (P43)
+
+    /** The inspection's level (AlertLevels): 0 expired or unacceptable, 1 within 30 days, 2 within 60; NONE beyond. */
+    public int inspectionLevel() {
+        if (inspection() == InspectionState.UNACCEPTABLE) {
+            return AlertLevels.EXPIRED;
+        }
+        return inspectionValidUntil() == null ? AlertLevels.NONE : AlertLevels.ofDate(inspectionValidUntil(), today);
+    }
+
+    /** The vessel's RightShip alerts right now: the inspection needing attention, the low Safety Score. */
+    public List<Alert> alerts(Long shipId) {
+        List<Alert> alerts = new ArrayList<>();
+        if (inspection().needsAttention()) {
+            alerts.add(Alert.of(AlertKind.VETTING_INSPECTION, shipId, inspectionLevel()));
+        }
+        if (lowScore()) {
+            alerts.add(Alert.of(AlertKind.VETTING_SCORE, shipId, score()));
+        }
+        return alerts;
     }
 }

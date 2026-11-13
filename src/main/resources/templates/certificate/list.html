@@ -6,10 +6,15 @@
      first. Also the List view of the ship page's Certificates tab (shipTab set, see ship/ShipFrame): the ship header
      and the Matrix / List switch instead of the page header, the ship fixed (no ship filter, no ship column).
      Export downloads an Excel workbook of the list as filtered and sorted (every page). Links to a certificate carry returnTo, so its
-     form comes back here. -->
+     form comes back here.
+     P43: a certificate expired or within 90 days can be snoozed (Snooze on its row, or its checkbox and Snooze
+     selected; the snooze page reviews them). A snoozed one (snoozes, by certificate id) is a muted row with "Snoozed
+     by … until … · reason" and Undo; the default views leave it out, Status "Snoozed" lists only those, "All" has
+     everything. The crew member's name opens their page. -->
 <!-- Empty without a filter (P25): no certificate yet (noCertificates: the empty state leads to where they are added and
      the header leaves out its actions), or none expiring within 90 days (the way to all of them). -->
-<main th:with="onShip=${shipTab != null}, empty=${list.emptyUnfiltered(certificates)}, noCertificates=${empty and !anyCertificates}">
+<main th:with="onShip=${shipTab != null}, empty=${list.emptyUnfiltered(certificates)}, noCertificates=${empty and !anyCertificates},
+               anySnoozable=${!certificates.isEmpty()}">
     <th:block th:if="${onShip}">
         <th:block th:replace="~{certificate/matrix :: tabTop('list', ${exportUrl}, ${noCertificates})}"></th:block>
     </th:block>
@@ -17,6 +22,7 @@
     <header th:replace="~{layout/parts :: pageHeader(heading=#{certificate.list.heading}, count=${certificates.totalElements},
             subtitle=#{certificate.list.hint}, actions=${noCertificates} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
+            <button th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button>
             <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
                 <span th:text="#{certificate.export}">Export</span>
@@ -51,6 +57,9 @@
         </th:block>
     </div>
 
+    <!-- The snooze form (P43): the checked rows go to the snooze page as items (a GET, so it works without
+         JavaScript); the way back is this list as it is. -->
+    <form th:replace="~{alert/parts :: snoozeForm('snoozeForm', ${returnTo})}"></form>
     <div class="card">
         <th:block th:if="${anyCertificates}">
             <th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list}, icon='certificates',
@@ -68,32 +77,46 @@
             <th:block th:unless="${empty}"><th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list})}"></th:block></th:block>
         </th:block>
 
+        <th:block th:unless="${certificates.isEmpty()}"><div th:replace="~{alert/parts :: selectionLine('snoozeForm')}"></div></th:block>
+
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
              stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls. Soonest
              expiry first unless sorted otherwise (P19). Expires: the date and how far it is ("in 23 days",
-             "expired 5 days ago"); Status: the badge with its icon. -->
+             "expired 5 days ago"); Status: the badge with its icon, or the snooze (P43). -->
         <div th:unless="${certificates.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
+                    <th th:replace="~{alert/parts :: selectAllHeader('snoozeForm')}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'type', #{certificate.type})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'crewMember', #{certificate.crewMember})}"></th>
                     <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'number', #{certificate.number})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'expiresOn', #{certificate.expiresOn})}"></th>
                     <th scope="col" th:text="#{certificate.status}">Status</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{snooze.action}">Snooze</span></th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="c : ${certificates}">
+                <tr th:each="c : ${certificates}" th:with="snooze=${snoozes.get(c.id)}, snoozable=${c.reminderThreshold(today) != null},
+                        alertKey=${snoozable} ? ((${c.isExpired(today)} ? 'CERTIFICATE_EXPIRED:' : 'CERTIFICATE_EXPIRING:') + ${c.id}) : null"
+                    th:classappend="${snooze != null} ? 'is-snoozed'">
+                    <td class="cell-select">
+                        <label th:if="${snoozable and snooze == null}" class="select-target">
+                            <input class="form-check-input" type="checkbox" name="items" th:value="${alertKey}" form="snoozeForm"
+                                   th:id="'select' + ${c.id}" data-select-row
+                                   th:attr="aria-label=#{snooze.selectRow(${c.type}, ${c.user.fullName})}">
+                        </label>
+                    </td>
                     <td class="cell-primary">
                         <a th:href="@{/office/crew/{id}/certificates/{cid}/edit(id=${c.user.id},cid=${c.id},returnTo=${returnTo})}"
                            th:text="${c.type}">STCW Basic Safety</a>
                         <!-- P39: its file, when there is one. -->
                         <a th:replace="~{crew/parts :: certificateFile(${c}, ${'/office/crew/' + c.user.id + '/certificates/' + c.id + '/file'}, 'btn btn-ghost btn-sm cert-file-inline')}"></a>
                     </td>
+                    <!-- P43: the crew member's name opens their page. -->
                     <td class="text-nowrap" th:attr="data-label=#{certificate.crewMember}">
-                        <span th:text="${c.user.fullName}">Jane Doe</span>
+                        <a th:href="@{/office/crew/{id}/edit(id=${c.user.id})}" th:text="${c.user.fullName}">Jane Doe</a>
                         <th:block th:unless="${c.user.enabled}"><span
                                 th:replace="~{layout/parts :: status('neutral', #{user.status.inactive})}">Inactive</span></th:block>
                     </td>
@@ -106,6 +129,14 @@
                             th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}">10 Jan 2027 · in 60 days</span></td>
                     <td class="cell-status">
                         <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
+                        <th:block th:if="${snooze != null}"><span th:replace="~{alert/parts :: snoozedNote(${snooze}, ${returnTo})}"></span></th:block>
+                    </td>
+                    <td class="cell-actions">
+                        <div class="row-actions">
+                            <th:block th:if="${snoozable and snooze == null}">
+                                <a th:replace="~{alert/parts :: snoozeLink(${alertKey}, ${returnTo}, 'btn btn-ghost btn-sm')}"></a>
+                            </th:block>
+                        </div>
                     </td>
                 </tr>
                 </tbody>

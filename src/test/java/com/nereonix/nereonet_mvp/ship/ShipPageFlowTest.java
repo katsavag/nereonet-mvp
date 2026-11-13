@@ -395,8 +395,12 @@ class ShipPageFlowTest {
         Matcher h1 = H1.matcher(html);
         assertThat(h1.find()).as("h1" + on).isTrue();
         assertThat(h1.group(1)).as("ship name as the heading" + on).isEqualTo(ship.getName());
+        // P43: "Flag [image] Greece (GR)", the flag's image before the country, decorative (alt="").
         assertThat(html).as("ship facts" + on).contains("<span class=\"num\">IMO 9074729</span>", "Bulk carrier",
-                "Flag Greece (GR)", "class=\"page-header ship-header\"");
+                        "class=\"page-header ship-header\"")
+                .containsPattern("(?s)<span class=\"ship-flag\"><span>Flag</span>\\s*<span class=\"country\">"
+                        + "<img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\" alt=\"\" width=\"20\" height=\"15\""
+                        + "[^>]*><span>Greece \\(GR\\)</span></span></span>");
         assertThat(html).as("Edit" + on).contains("href=\"/office/ships/" + ship.getId() + "/edit?tab=");
         assertThat(html).as("more menu" + on).contains("More actions: " + ship.getName());
         List<String> tabs = tabs(html);

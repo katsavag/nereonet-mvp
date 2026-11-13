@@ -216,6 +216,109 @@ class RequirementsFlowTest {
         assertThat(html(get("/office/requirements"))).doesNotContain("Starter template");
     }
 
+    // P43: the row toggle, the combined filter and Delete row.
+    @Test
+    void theRowToggleTicksEveryRankAlsoWithoutJavaScript() throws Exception {
+        String grid = html(get("/office/requirements"));
+        // Each row starts with "Select all ranks for <type>", a checkbox the server applies too; no placeholder on
+        // the note field.
+        assertThat(grid).contains("aria-label=\"Select all ranks for Passport\"", "name=\"rows[0].all\"", "data-row-all",
+                        "data-row-rank", "data-requirement-row")
+                .doesNotContain("placeholder=", "For example: needed before joining");
+        assertThat(checked(grid, "GMDSS Operator", Rank.COOK)).isFalse();
+
+        mockMvc.perform(post("/office/requirements").param("vesselType", "all")
+                        .param("rows[0].type", "GMDSS Operator").param("rows[0].all", "true").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vesselType=all"));
+        grid = html(get("/office/requirements"));
+        for (Rank rank : Rank.values()) {
+            assertThat(checked(grid, "GMDSS Operator", rank)).as(rank.name()).isTrue();
+        }
+        assertThat(audit("REQUIREMENTS_UPDATED")).singleElement().asString().startsWith("All vessels: GMDSS Operator +")
+                .contains("+COOK", "+WIPER").doesNotContain("+MASTER");
+
+        // On a vessel type's grid the toggle takes every rank but those already required on all vessels.
+        mockMvc.perform(post("/office/requirements").param("vesselType", "TANKER")
+                        .param("rows[0].type", "Medical First Aid").param("rows[0].all", "true").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"));
+        assertThat(requirementRepository.findAll()).filteredOn(r -> r.getShipType() == ShipType.TANKER
+                        && r.getCertificateType().equals("Medical First Aid"))
+                .singleElement().satisfies(r -> assertThat(r.getRanks()).contains(Rank.COOK, Rank.WIPER)
+                        .doesNotContain(Rank.MASTER, Rank.CHIEF_OFFICER));
+    }
+
+    @Test
+    void theCombinedFilterOffersVesselTypesAndVesselsAndAVesselShowsItsTypesGrid() throws Exception {
+        String grid = html(get("/office/requirements"));
+        // Without JavaScript: a select with two groups; each option carries its kind for the combobox.
+        assertThat(grid).contains("<optgroup label=\"Vessel types\">", "<optgroup label=\"Vessels\">",
+                "<option value=\"TANKER\" data-kind=\"vessel type\">Tanker</option>",
+                "<option value=\"ship-" + tanker.getId() + "\" data-kind=\"Tanker\">MV Tanker</option>",
+                "<option value=\"ship-" + bulk.getId() + "\" data-kind=\"Bulk carrier\">MV Bulk</option>",
+                "data-requirement-filter", "data-no-results=\"No vessel type or vessel matches.\"");
+
+        // Picking a vessel shows its type's grid, with the vessels of that type named.
+        String byVessel = html(get("/office/requirements").param("vesselType", "ship-" + bulk.getId()));
+        assertThat(byVessel).contains("Required on Bulk carrier vessels",
+                        "Rules for Bulk carrier, which apply to MV Bulk.",
+                        "<option value=\"ship-" + bulk.getId() + "\" data-kind=\"Bulk carrier\" selected=\"selected\">",
+                        "<input type=\"hidden\" name=\"vesselType\" value=\"BULK_CARRIER\">",
+                        "<input type=\"hidden\" name=\"selection\" value=\"ship-" + bulk.getId() + "\">");
+        ship("MV Grain", "9100003", ShipType.BULK_CARRIER);
+        assertThat(html(get("/office/requirements").param("vesselType", "BULK_CARRIER")))
+                .contains("Rules for Bulk carrier, which apply to MV Bulk and MV Grain.",
+                        "<option value=\"BULK_CARRIER\" data-kind=\"vessel type\" selected=\"selected\">");
+        assertThat(html(get("/office/requirements").param("vesselType", "CONTAINER")))
+                .contains("Rules for Container vessel. No active vessel has this type yet.");
+        // Saving from a vessel's grid comes back to that vessel.
+        mockMvc.perform(post("/office/requirements").param("vesselType", "BULK_CARRIER")
+                        .param("selection", "ship-" + bulk.getId())
+                        .param("rows[0].type", "Passport").param("rows[0].ranks", "COOK").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vesselType=ship-" + bulk.getId()));
+        // An unknown or inactive vessel: All vessels.
+        assertThat(html(get("/office/requirements").param("vesselType", "ship-999999"))).contains("Required on all vessels");
+        // In Greek the vessel types keep their English names.
+        assertThat(html(get("/office/requirements").param("vesselType", "TANKER").param("lang", "el")))
+                .contains("Tanker", "<optgroup label=\"Τύποι πλοίων\">").doesNotContain("Δεξαμενόπλοιο");
+    }
+
+    @Test
+    void deleteRowAsksFirstAndRemovesTheTypeForTheChosenVesselTypeOnly() throws Exception {
+        String tankers = html(get("/office/requirements").param("vesselType", "TANKER"));
+        // The icon button at the row's end names the row; its confirmation form sits after the grid form.
+        int row = tankers.indexOf("<span class=\"req-grid-type-name\">Tanker Endorsement</span>");
+        String tr = tankers.substring(row, tankers.indexOf("</tr>", row));
+        assertThat(tr).contains("class=\"btn btn-ghost btn-sm req-row-delete\"",
+                "href=\"/office/requirements/delete?type=Tanker%20Endorsement&amp;vesselType=TANKER&amp;selection=TANKER\"",
+                "data-confirm-open", "data-confirm-form=\"reqDelete", "<span class=\"visually-hidden\">Remove Tanker Endorsement from the requirements</span>");
+        assertThat(tankers).contains("data-confirm-title=\"Remove Tanker Endorsement?\"",
+                "data-confirm-body=\"Removes Tanker Endorsement from the requirements on Tanker vessels only. All vessels and the other vessel types keep theirs.\"",
+                "data-confirm-tone=\"danger\"", "<input type=\"hidden\" name=\"type\" value=\"Tanker Endorsement\">");
+        // Without the script: the plain confirmation page.
+        assertThat(html(get("/office/requirements/delete").param("type", "Tanker Endorsement").param("vesselType", "TANKER")))
+                .contains("Remove Tanker Endorsement?", "on Tanker vessels only", ">Remove</button>",
+                        "href=\"/office/requirements?vesselType=TANKER\"");
+        // The general rows name all vessels.
+        assertThat(html(get("/office/requirements"))).contains(
+                "data-confirm-body=\"Removes Passport from the requirements on all vessels. Rows of single vessel types keep it.\"");
+
+        mockMvc.perform(post("/office/requirements/delete").param("type", "Tanker Endorsement")
+                        .param("vesselType", "TANKER").param("selection", "TANKER").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"))
+                .andExpect(flash().attribute("successMessage", "requirement.row.removed"));
+        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("TANKER: Tanker Endorsement removed");
+        assertThat(requirementRepository.findAll()).noneMatch(r -> r.getCertificateType().equals("Tanker Endorsement"));
+        // Olga no longer needs it; the other types' rows are untouched.
+        assertThat(summary(html(get("/office/crew/{id}/edit", olga.getId())))).isEqualTo("10 of 10");
+        assertThat(checked(html(get("/office/requirements")), "Passport", Rank.COOK)).isTrue();
+
+        // Removing a row that has nothing of its own on this vessel type changes nothing.
+        mockMvc.perform(post("/office/requirements/delete").param("type", "Passport").param("vesselType", "TANKER").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"))
+                .andExpect(flash().attribute("errorMessage", "requirement.row.nothing"));
+        assertThat(audit("REQUIREMENTS_UPDATED")).hasSize(1);
+    }
+
     @Test
     void aSeafarerWithAllSomeOrNoneOfTheirDocuments() throws Exception {
         String list = html(get("/office/crew"));
@@ -249,7 +352,7 @@ class RequirementsFlowTest {
         String overview = html(get("/office"));
         assertThat(overview).containsSubsequence(">STCW Basic Safety Training</a>",
                         "/office/crew/" + carl.getId() + "/edit#requiredDocuments\">Carl Cook</a>",
-                        ">Medical Fitness Certificate</a>", "<span>Required documents missing</span>")
+                        ">Medical Fitness Certificate</a>", "<a class=\"category-tile\" href=\"/office/crew?status=active&amp;documents=missing\">")
                 .contains("/office/crew/" + nora.getId() + "/edit#requiredDocuments\">Nora New</a>","4 required documents missing", "5 required documents missing",
                         "href=\"/office/crew?status=active&amp;documents=missing\"")
                 .doesNotContain("/office/crew/" + bob.getId() + "/edit#requiredDocuments");

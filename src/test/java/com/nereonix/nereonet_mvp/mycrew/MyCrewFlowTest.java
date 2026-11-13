@@ -188,7 +188,9 @@ class MyCrewFlowTest {
                 "<a href=\"/ship/crew\">My crew</a>",
                 "<img class=\"photo-large\" src=\"/ship/crew/" + engineer.getId() + "/photo/" + key + "/512\"",
                 "alt=\"Photo of Nikos Pappas\" width=\"512\" height=\"512\">",
-                "<dd>Greek, English, Tagalog</dd>", "<dd>Greece</dd>",
+                "<dd>Greek, English, Tagalog</dd>",
+                // P43: the nationality with its flag before the name.
+                "<span>Greece</span></span></dd>", "/vendor/flags/gr-",
                 "<dd class=\"text-break text-pre-line\">Twenty years at sea.\nAsk me about the purifiers.</dd>",
                 "href=\"/ship/crew\">", "<span>Back to My crew</span>")
                 .doesNotContain("hasn&#39;t added anything", "hasn't added anything");
@@ -205,7 +207,8 @@ class MyCrewFlowTest {
         profile.setNationality("PH");
         profileRepository.save(profile);
         html = page(get("/ship/crew/{id}", bob.getId()), cook);
-        assertThat(html).contains("<dt>Nationality</dt>", "<dd>Philippines</dd>").doesNotContain("<dt>Languages</dt>",
+        assertThat(html).contains("<dt>Nationality</dt>", "<span>Philippines</span></span></dd>", "/vendor/flags/ph-")
+                .doesNotContain("<dt>Languages</dt>",
                 "<dt>Bio</dt>", "added anything");
         // Without a rank.
         assertThat(page(get("/ship/crew/{id}", noRank.getId()), cook)).contains("<p class=\"page-subtitle\">Rank not set</p>");

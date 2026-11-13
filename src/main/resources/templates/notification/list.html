@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{notification.title}, ~{::main})}">
 <body>
-<!-- Notifications (P23). Newest first, grouped by UTC day (Today, Yesterday, then the date), 25 to a page. Showing
+<!-- Notifications (P23). Newest first, grouped by UTC day (Today, Yesterday, then the date), 10 to a page (P43). Showing
      this page marks nothing as read. A notification is read once it is opened (its text, a POST that then follows its
      link) or marked as read; Mark all as read is in the page header while anything is unread. Unread ones have a dot,
      bold text and "Unread:" for screen readers; the type icon's shape and hidden label say what it is about.

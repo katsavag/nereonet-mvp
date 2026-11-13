@@ -22,15 +22,15 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
  * <ul>
  *   <li>q: the search text, trimmed, at most 100 characters; null when empty;</li>
  *   <li>sort and dir: one of the list's ListSorts (the first is the default), asc or desc;</li>
- *   <li>page (1-based in the URL) and size: 25 or 50 for most lists, the first the default; a list may offer its own
- *   sizes (withSizes: the audit log, 20, 50 or 100, P39).</li>
+ *   <li>page (1-based in the URL) and size: 10 (the default, P43; 25 before, and 20 on the audit log), 20, 50 or
+ *   100, the same on every list.</li>
  * </ul>
  * Changing the search, a filter, the sort or the page size goes back to page 1.
  * The parameters are written in a fixed order: q, the filters in the order added, sort, dir, size, page.
  */
 public final class ListQuery {
 
-    public static final List<Integer> SIZES = List.of(25, 50);
+    public static final List<Integer> SIZES = List.of(10, 20, 50, 100);
     public static final int DEFAULT_SIZE = SIZES.getFirst();
     static final int MAX_SEARCH_LENGTH = 100;
 
@@ -72,21 +72,14 @@ public final class ListQuery {
      * the default, so any URL shows a list.
      */
     public static ListQuery of(String path, ListRequest request, ListSort... sorts) {
-        return withSizes(path, request, SIZES, sorts);
-    }
-
-    /**
-     * As of(...), for a list with its own page sizes (P39: the audit log, 20, 50 or 100), the first the default.
-     */
-    public static ListQuery withSizes(String path, ListRequest request, List<Integer> sizes, ListSort... sorts) {
         ListRequest r = request == null ? ListRequest.EMPTY : request;
         List<ListSort> all = Arrays.asList(sorts);
         ListSort chosen = all.stream().filter(s -> s.key().equals(r.sort())).findFirst().orElse(null);
         ListSort sort = chosen == null ? all.getFirst() : chosen;
         boolean descending = "desc".equals(r.dir()) || (!"asc".equals(r.dir()) && sort.descendingFirst());
-        int size = r.size() != null && sizes.contains(r.size()) ? r.size() : sizes.getFirst();
+        int size = r.size() != null && SIZES.contains(r.size()) ? r.size() : DEFAULT_SIZE;
         int page = r.page() == null || r.page() < 1 ? 0 : r.page() - 1;
-        return new ListQuery(path, search(r.q()), all, sort, descending, chosen != null, page, size, List.copyOf(sizes));
+        return new ListQuery(path, search(r.q()), all, sort, descending, chosen != null, page, size, SIZES);
     }
 
     private static String search(String q) {

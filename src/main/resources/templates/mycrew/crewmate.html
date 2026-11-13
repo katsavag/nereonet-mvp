@@ -25,7 +25,8 @@
                 </th:block>
                 <th:block th:if="${p.nationality != null}">
                     <dt th:text="#{profile.field.nationality}">Nationality</dt>
-                    <dd th:text="${p.nationalityName()}">Philippines</dd>
+                    <!-- P43: with its flag. -->
+                    <dd><span th:replace="~{layout/parts :: country(${p.nationality}, ${p.nationalityName()})}">Philippines</span></dd>
                 </th:block>
                 <th:block th:if="${p.bio != null}">
                     <dt th:text="#{profile.field.bio}">Bio</dt>

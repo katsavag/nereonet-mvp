@@ -65,21 +65,21 @@ class AuditLogFlowTest {
                 .andExpect(content().string(Matchers.containsString("MV Aegean Spirit")));
     }
 
-    // P39: the audit log shows 20 entries a page (50 or 100 on request) with the P19 pager under the table; the
-    // search, filters and sort stay when the page changes, and a new filter starts again at page 1.
+    // P43: the audit log shows 10 entries a page (20, 50 or 100 on request; 20 since P39) with the P19 pager under
+    // the table; the search, filters and sort stay when the page changes, and a new filter starts again at page 1.
     @Test
-    void theAuditLogShows20EntriesAPageAndKeepsTheFilters() throws Exception {
+    void theAuditLogShows10EntriesAPageAndKeepsTheFilters() throws Exception {
         for (int i = 1; i <= 45; i++) {
             auditService.record("TEST_ENTRY", null, "paged entry " + i);
         }
         auditService.record("TEST_ENTRY", null, "something else");
 
         String first = html(get("/office/audit").param("q", "paged").param("sort", "when").param("dir", "asc"));
-        assertThat(rows(first)).isEqualTo(20);
-        assertThat(first).contains("1 to 20 of 45", "paged entry 1<", "paged entry 20<").doesNotContain("paged entry 21<")
-                // The page sizes: 20 (current, the default), 50 and 100.
+        assertThat(rows(first)).isEqualTo(10);
+        assertThat(first).contains("1 to 10 of 45", "paged entry 1<", "paged entry 10<").doesNotContain("paged entry 11<")
+                // The page sizes: 10 (current, the default), 20, 50 and 100.
                 .containsPattern("(?s)<ul class=\"pager-size-list\"[^>]*>\\s*<li>\\s*<span class=\"pager-size-current num\" "
-                        + "aria-current=\"true\">20</span>.*?>50</a>.*?>100</a>")
+                        + "aria-current=\"true\">10</span>.*?>20</a>.*?>50</a>.*?>100</a>")
                 // Next keeps the search and the sort; the default size is not written in the URL.
                 .contains("rel=\"next\" href=\"/office/audit?q=paged&amp;sort=when&amp;dir=asc&amp;page=2\"")
                 // The filter form sends the sort along, never the page: a new filter starts at page 1.
@@ -88,20 +88,20 @@ class AuditLogFlowTest {
 
         String second = html(get("/office/audit").param("q", "paged").param("sort", "when").param("dir", "asc")
                 .param("page", "2"));
-        assertThat(rows(second)).isEqualTo(20);
-        assertThat(second).contains("21 to 40 of 45", "paged entry 21<", "paged entry 40<")
+        assertThat(rows(second)).isEqualTo(10);
+        assertThat(second).contains("11 to 20 of 45", "paged entry 11<", "paged entry 20<")
                 .contains("rel=\"prev\" href=\"/office/audit?q=paged&amp;sort=when&amp;dir=asc\"");
 
         String last = html(get("/office/audit").param("q", "paged").param("sort", "when").param("dir", "asc")
-                .param("page", "3"));
+                .param("page", "5"));
         assertThat(rows(last)).isEqualTo(5);
         assertThat(last).contains("41 to 45 of 45");
 
         String fifty = html(get("/office/audit").param("q", "paged").param("size", "50"));
         assertThat(rows(fifty)).isEqualTo(45);
         assertThat(fifty).contains("1 to 45 of 45", "<input type=\"hidden\" name=\"size\" value=\"50\">");
-        // 25 is not a size of this list: the default, 20.
-        assertThat(rows(html(get("/office/audit").param("q", "paged").param("size", "25")))).isEqualTo(20);
+        // 25 is not a size any more: the default, 10.
+        assertThat(rows(html(get("/office/audit").param("q", "paged").param("size", "25")))).isEqualTo(10);
     }
 
     // P39: the From and To filters take a day within 30 years back and 1 year ahead, as their pickers do; another day

@@ -24,6 +24,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.alert.Alert;
+import com.nereonix.nereonet_mvp.core.alert.AlertKey;
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
+import com.nereonix.nereonet_mvp.core.alert.AlertSnooze;
+import com.nereonix.nereonet_mvp.core.alert.AlertSnoozeRepository;
+import com.nereonix.nereonet_mvp.core.alert.SnoozeService;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
@@ -75,11 +82,16 @@ public class CertificateService {
     private final ListQueries listQueries;
     private final CertificateFileStorage fileStorage;
     private final ComplianceService complianceService;
+    private final AlertSnoozeRepository snoozeRepository;
+    private final SnoozeService snoozeService;
 
     public CertificateService(CertificateRepository certificateRepository,
                               CertificateReminderRepository reminderRepository, UserRepository userRepository,
                               ShipRepository shipRepository, AuditService auditService, ListQueries listQueries,
-                              CertificateFileStorage fileStorage, ComplianceService complianceService) {
+                              CertificateFileStorage fileStorage, ComplianceService complianceService,
+                              AlertSnoozeRepository snoozeRepository, SnoozeService snoozeService) {
+        this.snoozeRepository = snoozeRepository;
+        this.snoozeService = snoozeService;
         this.certificateRepository = certificateRepository;
         this.reminderRepository = reminderRepository;
         this.userRepository = userRepository;
@@ -111,16 +123,55 @@ public class CertificateService {
      */
     @Transactional(readOnly = true)
     public Page<Certificate> findCertificates(Filter filter, ListQuery list) {
-        return listQueries.page(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
+        return listQueries.page(Certificate.class, list, where(filter, list, today(), snoozedIds(filter)), sortBy(list), FETCH);
     }
 
     /** Every certificate of the list as filtered and sorted, without pages: its export. */
     @Transactional(readOnly = true)
     public List<Certificate> findAllCertificates(Filter filter, ListQuery list) {
-        return listQueries.all(Certificate.class, list, where(filter, list, today()), sortBy(list), FETCH);
+        return listQueries.all(Certificate.class, list, where(filter, list, today(), snoozedIds(filter)), sortBy(list), FETCH);
     }
 
-    private static ListQueries.Where<Certificate> where(Filter filter, ListQuery list, LocalDate today) {
+    /**
+     * The certificates whose snooze holds today (P43), to leave out of the default views or to list alone; one
+     * query, none when the view takes every certificate.
+     */
+    private List<Long> snoozedIds(Filter filter) {
+        if (filter.status().isAll()) {
+            return List.of();
+        }
+        LocalDate today = today();
+        return snoozeRepository.snoozedCertificateIds(today, today.plusDays(30), today.plusDays(60),
+                AlertKind.CERTIFICATE_EXPIRED, AlertKind.CERTIFICATE_EXPIRING);
+    }
+
+    /** The active snoozes of the page's certificates, by certificate id (P43): the muted rows with Undo. */
+    @Transactional(readOnly = true)
+    public Map<Long, AlertSnooze> snoozesOf(List<Certificate> certificates) {
+        LocalDate today = today();
+        Map<AlertKey, AlertSnooze> active = snoozeService.active();
+        Map<Long, AlertSnooze> result = new LinkedHashMap<>();
+        for (Certificate c : certificates) {
+            Alert alert = alertOf(c, today);
+            AlertSnooze s = alert == null ? null : SnoozeService.holding(active, alert);
+            if (s != null) {
+                result.put(c.getId(), s);
+            }
+        }
+        return result;
+    }
+
+    /** The certificate's alert right now (P43): expired, or expiring at its level; null beyond 90 days (nothing to snooze). */
+    public static Alert alertOf(Certificate c, LocalDate today) {
+        int level = AlertLevels.ofDate(c.getExpiresOn(), today);
+        if (level == AlertLevels.NONE) {
+            return null;
+        }
+        return Alert.of(level == AlertLevels.EXPIRED ? AlertKind.CERTIFICATE_EXPIRED : AlertKind.CERTIFICATE_EXPIRING,
+                c.getId(), level);
+    }
+
+    private static ListQueries.Where<Certificate> where(Filter filter, ListQuery list, LocalDate today, List<Long> snoozedIds) {
         return (root, cb) -> {
             List<Predicate> where = new ArrayList<>();
             Path<LocalDate> expiresOn = root.get("expiresOn");
@@ -128,6 +179,12 @@ public class CertificateService {
             Predicate status = filter.status().predicate(cb, expiresOn, today);
             if (status != null) {
                 where.add(status);
+            }
+            // P43: the snoozed ones only, or every view but "all" without them.
+            if (filter.status().snoozed()) {
+                where.add(snoozedIds.isEmpty() ? cb.disjunction() : root.get("id").in(snoozedIds));
+            } else if (filter.status().excludesSnoozed() && !snoozedIds.isEmpty()) {
+                where.add(cb.not(root.get("id").in(snoozedIds)));
             }
             if (filter.shipId() != null) {
                 where.add(cb.equal(user.get("ship").get("id"), filter.shipId()));

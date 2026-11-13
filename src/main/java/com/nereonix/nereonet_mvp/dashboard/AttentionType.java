@@ -50,6 +50,38 @@ public enum AttentionType {
     public enum Group {
         CERTIFICATES, DOCUMENTS, VETTING, ORDERS, INVITATIONS, ACKNOWLEDGEMENTS;
 
+        /** The full list of this kind outside the Overview (P43: the By category card), or null for the Overview
+         *  filtered to it (/office?type=...). */
+        public String listUrl() {
+            return switch (this) {
+                case CERTIFICATES -> "/office/certificates?status=expired,30&activeShips=true";
+                case DOCUMENTS -> "/office/crew?status=active&documents=missing";
+                case VETTING -> "/office/vetting?status=attention";
+                case ORDERS -> "/office/orders?exported=no";
+                case INVITATIONS, ACKNOWLEDGEMENTS -> null;
+            };
+        }
+
+        /** The sidebar icon of the By category tile (layout/parts :: navIcon). */
+        public String icon() {
+            return switch (this) {
+                case CERTIFICATES, DOCUMENTS -> "certificates";
+                case VETTING -> "vetting";
+                case ORDERS -> "orders";
+                case INVITATIONS -> "crew";
+                case ACKNOWLEDGEMENTS -> "announcements";
+            };
+        }
+
+        /** The tone of the tile's status badge while it has open items: danger, warning or info. */
+        public String tone() {
+            return switch (this) {
+                case CERTIFICATES, DOCUMENTS, VETTING -> "danger";
+                case ORDERS -> "warning";
+                case INVITATIONS, ACKNOWLEDGEMENTS -> "info";
+            };
+        }
+
         /** The value of the Overview's "type" parameter. */
         public String param() {
             return name().toLowerCase(Locale.ROOT);

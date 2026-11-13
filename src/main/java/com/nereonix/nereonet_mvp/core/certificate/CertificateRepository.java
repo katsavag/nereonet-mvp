@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+
 public interface CertificateRepository extends JpaRepository<Certificate, Long> {
 
     /** One spelling of a certificate type and how many certificates use it. */
@@ -46,16 +48,31 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     // Expired or expiring on or before "until", every ship: the sidebar counter of Certificates.
     long countByExpiresOnLessThanEqual(LocalDate until);
 
+    /**
+     * A snooze of the certificate that holds today (P43, AlertSnooze): an EXPIRED snooze of an expired certificate,
+     * or an EXPIRING snooze of one not yet expired whose level (1 within 30 days, 2 within 60, 3 within 90,
+     * AlertLevels) has not dropped below the level remembered at the snooze. The same rule as
+     * AlertSnoozeRepository.snoozedCertificateIds, inside a query.
+     */
+    String SNOOZED = """
+             exists (select s.id from AlertSnooze s
+                     where s.subjectId = c.id and s.endedAt is null and s.until >= :today
+                       and ((s.kind = :expired and c.expiresOn < :today)
+                         or (s.kind = :expiring and c.expiresOn >= :today
+                             and s.level <= case when c.expiresOn <= :d30 then 1 when c.expiresOn <= :d60 then 2 else 3 end))) """;
+
+    /** As countByExpiresOnLessThanEqual, without the certificates whose snooze holds (P43): the sidebar counter. */
+    @Query("select count(c) from Certificate c where c.expiresOn <= :until and not " + SNOOZED)
+    long countOpenUntil(LocalDate until, LocalDate today, LocalDate d30, LocalDate d60, AlertKind expired,
+                        AlertKind expiring);
+
     // Whether the crew of one ship hold any certificate: the empty state of the ship's Certificates list (P25).
     boolean existsByUserShipId(Long shipId);
 
-    // Not expired yet, expiring on or before "until", of enabled users. For the reminder job.
+    // Not expired yet, expiring on or before "until", of enabled users, not snoozed (P43). For the reminder job.
     @EntityGraph(attributePaths = {"user", "user.ship"})
-    @Query("""
-            select c from Certificate c
-            where c.user.enabled = true
-              and c.expiresOn >= :today
-              and c.expiresOn <= :until
-            order by c.expiresOn asc, c.id asc""")
-    List<Certificate> findDueForReminder(LocalDate today, LocalDate until);
+    @Query("select c from Certificate c where c.user.enabled = true and c.expiresOn >= :today and c.expiresOn <= :until"
+            + " and not " + SNOOZED + " order by c.expiresOn asc, c.id asc")
+    List<Certificate> findDueForReminder(LocalDate today, LocalDate until, LocalDate d30, LocalDate d60,
+                                         AlertKind expired, AlertKind expiring);
 }

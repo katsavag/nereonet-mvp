@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.core.audit;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -25,4 +26,8 @@ public interface AuditRepository extends Repository<AuditEntry, Long> {
 
     // Whether this was ever done: the starter template of required documents is added once (P42).
     boolean existsByAction(String action);
+
+    // The newest entries with who did them and the ship, in one query: the Overview's Recent activity (P43).
+    @Query("select e from AuditEntry e left join fetch e.actor left join fetch e.ship order by e.occurredAt desc, e.id desc")
+    List<AuditEntry> findNewest(Pageable page);
 }

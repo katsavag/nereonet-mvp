@@ -6,14 +6,13 @@
      each opening its own page (Save comes back here with "Saved."). English only, no script of its own.
      Model: me (User), ship, profile (CrewProfile, empty before the first Save), certificates (theirs, P39), today. -->
 <main class="profile-page"
-      th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null,
-               languageNames=${profile.languages.isEmpty()} ? null : ${@profileNames.languages(profile.languages, null)},
+      th:with="languageNames=${profile.languages.isEmpty()} ? null : ${@profileNames.languages(profile.languages, null)},
                nationalityName=${@profileNames.country(profile.nationality, null)}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${me.fullName},
             subtitle=(${me.rank != null} ? #{${'rank.' + me.rank}} : #{department.none}) + ' · ' + ${ship.name},
             media=~{::pageMedia})}">
         <th:block th:fragment="pageMedia">
-            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${profile.photoUrl(96)}, 'lg')}"></span>
         </th:block>
     </header>
 
@@ -23,12 +22,13 @@
         <h2 class="visually-hidden" id="profileFieldsTitle" th:text="#{profile.fields}">About you</h2>
         <ul class="profile-rows">
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/languages', #{profile.field.languages},
-                    ${languageNames})}"></li>
+                    ${languageNames}, null)}"></li>
+            <!-- P43: the nationality with its flag. -->
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/nationality', #{profile.field.nationality},
-                    ${nationalityName})}"></li>
-            <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio})}"></li>
+                    ${nationalityName}, ${nationalityName != null} ? ${profile.nationality} : null)}"></li>
+            <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio}, null)}"></li>
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/photo', #{profile.field.photo},
-                    ${profile.photoKey != null} ? #{profile.photo.set} : null)}"></li>
+                    ${profile.photoKey != null} ? #{profile.photo.set} : null, null)}"></li>
         </ul>
     </section>
 

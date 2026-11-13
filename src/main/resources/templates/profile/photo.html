@@ -18,8 +18,7 @@
         <div class="card-body p-3 p-md-4">
             <div class="photo-current">
                 <p class="form-label" th:text="#{profile.photo.current}">Your photo now</p>
-                <img th:if="${profile.photoKey != null}" class="photo-large"
-                     th:src="@{/ship/crew/{id}/photo/{key}/512(id=${me.id},key=${profile.photoKey})}"
+                <img th:if="${profile.photoKey != null}" class="photo-large" th:src="@{${profile.photoUrl(512)}}"
                      th:alt="#{profile.photo.alt(${me.fullName})}" width="512" height="512">
                 <div th:unless="${profile.photoKey != null}" class="photo-none">
                     <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, null, 'lg')}"></span>

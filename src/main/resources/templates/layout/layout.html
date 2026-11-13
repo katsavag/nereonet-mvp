@@ -131,8 +131,10 @@
                     </ul>
                 </nav>
 
+                <!-- The person's picture (P43): their profile photo when a ship user has one (currentPhoto from
+                     navigation/NavigationAdvice, the 96px version), else their initials: the one shared fragment. -->
                 <div class="sidebar-user">
-                    <div class="avatar" aria-hidden="true" th:text="${#authentication.principal.initials}">JD</div>
+                    <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${currentPhoto}, 'sm')}"></span>
                     <div class="sidebar-user-text flex-grow-1 lh-sm small text-break">
                         <div class="fw-semibold" th:text="${#authentication.principal.fullName}">John Doe</div>
                         <div class="sidebar-user-role"
@@ -218,6 +220,7 @@
 <script th:src="@{/js/import-map.js}"></script>
 <script th:src="@{/js/import-check.js}"></script>
 <script th:src="@{/js/ship-picker.js}"></script>
+<script th:src="@{/js/requirements.js}"></script>
 <script th:src="@{/js/sidebar.js}"></script>
 </th:block>
 </body>

@@ -45,7 +45,7 @@ public class NotificationController {
         this.messageSource = messageSource;
     }
 
-    // listRequest: the page and page size (25 or 50; layout/parts :: pager). The list has no search, filter or sort.
+    // listRequest: the page and page size (10, 20, 50 or 100; layout/parts :: pager). The list has no search, filter or sort.
     @GetMapping(PATH)
     public String list(@AuthenticationPrincipal CurrentUser currentUser, @ModelAttribute ListRequest listRequest,
                        Model model) {

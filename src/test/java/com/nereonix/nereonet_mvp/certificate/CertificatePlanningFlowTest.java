@@ -167,20 +167,23 @@ class CertificatePlanningFlowTest {
     void eachCertificateCountOnTheOverviewLinksToAListOfExactlyThatCount() throws Exception {
         String overview = html(get("/office"));
 
-        // a. "Full lists": certificates expired or expiring within 30 days, crew of active ships.
-        Matcher full = Pattern.compile("(?s)<a href=\"(/office/certificates[^\"]*)\">\\s*<span>Certificates expired or expiring</span>"
-                + "\\s*<span class=\"title-count\"><span aria-hidden=\"true\">·</span> <span class=\"num\">(\\d+)</span>")
+        // a. The By category card (P43): certificates expired or expiring within 30 days, crew of active ships.
+        Matcher full = Pattern.compile("(?s)<a class=\"category-tile\" href=\"(/office/certificates[^\"]*)\">.*?"
+                + "<span class=\"category-tile-label\">Certificates</span>.*?<span>(\\d+) open</span>")
                 .matcher(overview);
         assertThat(full.find()).isTrue();
         assertThat(full.group(2)).isEqualTo("3");
         assertThat(count(html(url(full.group(1))))).isEqualTo(3);
 
-        // b. The fleet table: certificate issues of each active ship.
-        Matcher fleet = Pattern.compile("class=\"count-link\" href=\"(/office/certificates[^\"]*)\">(\\d+)</a>").matcher(overview);
+        // b. The Fleet card (P43): each active ship's open items link to the Overview filtered to that ship, which
+        // lists exactly that many.
+        Matcher fleet = Pattern.compile("class=\"count-link\" href=\"(/office\\?shipId=\\d+)\">(\\d+)</a>").matcher(overview);
         int links = 0;
         while (fleet.find()) {
             links++;
-            assertThat(count(html(url(fleet.group(1))))).as(fleet.group(1)).isEqualTo(Long.parseLong(fleet.group(2)));
+            String filtered = html(url(fleet.group(1)));
+            assertThat(Pattern.compile("<li class=\"list-group-item attention-item\">").matcher(filtered).results().count())
+                    .as(fleet.group(1)).isEqualTo(Long.parseLong(fleet.group(2)));
         }
         assertThat(links).isEqualTo(2); // MV Alpha 2, MV Beta 1
         assertThat(overview).contains(">2</a>", ">1</a>");

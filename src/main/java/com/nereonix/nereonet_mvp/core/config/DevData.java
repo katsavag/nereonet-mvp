@@ -114,6 +114,7 @@ public class DevData implements ApplicationRunner {
             Ship ship = new Ship();
             ship.setImoNumber("9074729");
             ship.setName("MV Demo");
+            ship.setFlag("GR"); // P43: the flag icon in the lists and headers
             ship.setCreatedAt(Instant.now());
             shipRepository.save(ship);
             log.info("Created demo ship {}", ship.getName());
@@ -159,6 +160,7 @@ public class DevData implements ApplicationRunner {
         ship.setImoNumber(SIRE_IMO);
         ship.setName("BIRCH");
         ship.setType(ShipType.TANKER);
+        ship.setFlag("LR"); // P43: the flag icon in the lists and headers
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
 
@@ -237,6 +239,7 @@ public class DevData implements ApplicationRunner {
         ship.setImoNumber(imo);
         ship.setName(name);
         ship.setType(ShipType.BULK_CARRIER);
+        ship.setFlag("MT"); // P43: the flag icon in the lists and headers
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
 

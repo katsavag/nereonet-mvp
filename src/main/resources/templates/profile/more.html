@@ -5,12 +5,11 @@
      in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then (the Master
      only, P33) Approvals with the number waiting, My profile, My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
      Model: me (User), ship, profile (CrewProfile). -->
-<main class="more-page"
-      th:with="photo=${profile.photoKey != null} ? ${'/ship/crew/' + me.id + '/photo/' + profile.photoKey + '/96'} : null">
+<main class="more-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{more.title})}"></header>
 
     <section class="more-user" aria-labelledby="moreUserName">
-        <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+        <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${profile.photoUrl(96)}, 'lg')}"></span>
         <p class="more-user-text">
             <span class="more-user-label" th:text="#{more.signedInAs}">Signed in as</span>
             <span class="more-user-name" id="moreUserName" th:text="${me.fullName}">Demo Cook</span>

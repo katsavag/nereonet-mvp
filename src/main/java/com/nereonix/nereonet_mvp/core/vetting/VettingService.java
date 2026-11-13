@@ -33,6 +33,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.alert.Alert;
+import com.nereonix.nereonet_mvp.core.alert.AlertKey;
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
+import com.nereonix.nereonet_mvp.core.alert.AlertSnooze;
+import com.nereonix.nereonet_mvp.core.alert.SnoozeService;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
@@ -69,11 +75,13 @@ public class VettingService {
     private final LibraryFileStorage fileStorage;
     private final AuditService auditService;
     private final SireService sireService;
+    private final SnoozeService snoozeService;
 
     public VettingService(ShipRepository shipRepository, ShipRightShipStatusRepository statusRepository,
                           RightShipReportRepository reportRepository, RightShipSyncRepository syncRepository,
                           RightShipSettings settings, LibraryFileStorage fileStorage, AuditService auditService,
-                          SireService sireService) {
+                          SireService sireService, SnoozeService snoozeService) {
+        this.snoozeService = snoozeService;
         this.sireService = sireService;
         this.shipRepository = shipRepository;
         this.statusRepository = statusRepository;
@@ -92,28 +100,79 @@ public class VettingService {
     // Reading
     // ---------------------------------------------------------------------------------------------------------------
 
-    /** One row of the Vetting list: an active vessel, its RightShip standing and its latest SIRE 2.0 inspection. */
-    public record VettingRow(Ship ship, RightShipView view, SireView sire) {
+    /**
+     * One alert of a vessel on the Vetting list (P43): the item and, when a snooze holds for it, that snooze.
+     */
+    public record AlertRow(Alert alert, AlertSnooze snooze) {
 
-        /** Most urgent of both regimes: 0 expired or not current (or due), 1 expiring or ending, 2 the rest. */
-        public int urgency() {
-            return Math.min(view.urgency(), sire.urgency());
+        public boolean snoozed() {
+            return snooze != null;
+        }
+
+        public boolean sire() {
+            return alert.key().kind().vetting() && alert.key().kind() != AlertKind.VETTING_INSPECTION
+                    && alert.key().kind() != AlertKind.VETTING_SCORE;
+        }
+    }
+
+    /**
+     * One row of the Vetting list: an active vessel, its RightShip standing, its latest SIRE 2.0 inspection and
+     * (P43) its alerts, each with its snooze when one holds.
+     */
+    public record VettingRow(Ship ship, RightShipView view, SireView sire, List<AlertRow> alerts) {
+
+        /** The alerts not snoozed: what needs attention. */
+        public List<AlertRow> open() {
+            return alerts.stream().filter(a -> !a.snoozed()).toList();
+        }
+
+        public List<AlertRow> snoozed() {
+            return alerts.stream().filter(AlertRow::snoozed).toList();
+        }
+
+        /** The open alerts as the snooze form's items, "VETTING_INSPECTION:3,VETTING_SCORE:3" (one checkbox value). */
+        public String openKeys() {
+            return String.join(",", open().stream().map(a -> a.alert().key().param()).toList());
         }
 
         /**
-         * The Status filter this row falls under, for the regime (null: both). Needs attention: either regime's
-         * (RightShip: inspection or low score; SIRE: report, comments or observations). Else Not rated: no RightShip
-         * score, or for the SIRE regime no SIRE inspection. Else Valid.
+         * Most urgent of both regimes, over the alerts not snoozed: 0 expired, unacceptable, not current, comments
+         * due or an observation overdue; 1 expiring or ending; 2 the rest.
+         */
+        public int urgency() {
+            int urgency = 2;
+            for (AlertRow a : open()) {
+                AlertKind kind = a.alert().key().kind();
+                if (kind == AlertKind.VETTING_SCORE) {
+                    continue;
+                }
+                boolean now = a.alert().level() == AlertLevels.EXPIRED || kind == AlertKind.SIRE_COMMENTS;
+                urgency = Math.min(urgency, now ? 0 : 1);
+            }
+            return urgency;
+        }
+
+        private boolean inRegime(AlertRow a, String regime) {
+            return regime == null || (REGIME_SIRE.equals(regime) == a.sire());
+        }
+
+        /**
+         * The Status filter this row falls under, for the regime (null: both). Needs attention: an alert not snoozed
+         * of either regime (RightShip: inspection or low score; SIRE: report, comments or observations). Else
+         * Snoozed: an alert put aside (P43). Else Not rated: no RightShip score, or for the SIRE regime no SIRE
+         * inspection. Else Valid.
          */
         public String filterStatus(String regime) {
-            if (REGIME_SIRE.equals(regime)) {
-                return sire.needsAttention() ? RightShipView.ATTENTION
-                        : sire.hasData() ? RightShipView.VALID : RightShipView.NOT_RATED;
-            }
-            if (regime == null && sire.needsAttention()) {
+            if (alerts.stream().anyMatch(a -> !a.snoozed() && inRegime(a, regime))) {
                 return RightShipView.ATTENTION;
             }
-            return view.filterStatus();
+            if (alerts.stream().anyMatch(a -> a.snoozed() && inRegime(a, regime))) {
+                return RightShipView.SNOOZED;
+            }
+            if (REGIME_SIRE.equals(regime)) {
+                return sire.hasData() ? RightShipView.VALID : RightShipView.NOT_RATED;
+            }
+            return !view.rated() ? RightShipView.NOT_RATED : RightShipView.VALID;
         }
     }
 
@@ -150,12 +209,13 @@ public class VettingService {
                 .collect(Collectors.toMap(s -> s.getShip().getId(), Function.identity()));
         Map<Long, SireView> sire = sireService.latestByShip();
         SireView noSire = new SireView(null, List.of(), sireService.settings(), today);
+        // P43: the snoozes that hold (one query), matched to each vessel's alerts.
+        Map<AlertKey, AlertSnooze> snoozes = snoozeService.active();
         String q = list.getQ() == null ? null : list.getQ().toLowerCase(Locale.ROOT);
         List<VettingRow> rows = new ArrayList<>(shipRepository.findAllByActiveTrueOrderByNameAsc().stream()
                 .filter(s -> q == null || s.getName().toLowerCase(Locale.ROOT).contains(q) || s.getImoNumber().contains(q))
                 .filter(s -> type == null || s.getType() == type)
-                .map(s -> new VettingRow(s, new RightShipView(current.get(s.getId()), today),
-                        sire.getOrDefault(s.getId(), noSire)))
+                .map(s -> row(s, new RightShipView(current.get(s.getId()), today), sire.getOrDefault(s.getId(), noSire), snoozes))
                 .filter(r -> !REGIME_SIRE.equals(regime) || sireApplies(r.ship()) || r.sire().hasData())
                 .filter(r -> status == null || r.filterStatus(regime).equals(status))
                 .toList());
@@ -165,6 +225,18 @@ public class VettingService {
         int from = Math.min(page * list.getSize(), rows.size());
         int to = Math.min(from + list.getSize(), rows.size());
         return new PageImpl<>(List.copyOf(rows.subList(from, to)), PageRequest.of(page, list.getSize()), total);
+    }
+
+    /** A vessel's row with its alerts (RightShip and SIRE 2.0) and the snoozes that hold for them (P43). */
+    public static VettingRow row(Ship ship, RightShipView view, SireView sire, Map<AlertKey, AlertSnooze> snoozes) {
+        List<AlertRow> alerts = new ArrayList<>();
+        for (Alert alert : view.alerts(ship.getId())) {
+            alerts.add(new AlertRow(alert, SnoozeService.holding(snoozes, alert)));
+        }
+        for (Alert alert : sire.alerts()) {
+            alerts.add(new AlertRow(alert, SnoozeService.holding(snoozes, alert)));
+        }
+        return new VettingRow(ship, view, sire, alerts);
     }
 
     // The sort's order, then the vessel's name (always A to Z) and id. Not rated, no GHG Rating and no date sort last
@@ -214,8 +286,10 @@ public class VettingService {
      */
     @Transactional(readOnly = true)
     public long vesselsNeedingAttention() {
+        LocalDate today = today();
+        // P43: not the vessels whose inspection snooze holds.
         Set<Long> ids = new HashSet<>(statusRepository.findShipIdsInspectionDueUntil(
-                today().plusDays(InspectionState.EXPIRING_DAYS)));
+                today.plusDays(InspectionState.EXPIRING_DAYS), today, today.plusDays(30), AlertKind.VETTING_INSPECTION));
         ids.addAll(sireService.shipIdsNeedingAttention());
         return ids.size();
     }

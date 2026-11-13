@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.library.LibraryFileStorage;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -123,9 +124,14 @@ public class SireService {
     @Transactional(readOnly = true)
     public Set<Long> shipIdsNeedingAttention() {
         LocalDate today = VettingService.today();
+        // P43: the items whose snooze holds are left out (the cut-offs give the items' levels, AlertLevels).
         Set<Long> ids = new HashSet<>(inspectionRepository.findShipIdsNeedingAttention(
-                settings.currentCutoff(today), settings.commentsCutoff(today)));
-        ids.addAll(observationRepository.findShipIdsWithOverdueOnLatest(today));
+                settings.currentCutoff(today), settings.commentsCutoff(today), today,
+                settings.latestInspectionCurrentUntil(today.minusDays(1)),
+                settings.latestInspectionCurrentUntil(today.plusDays(30)),
+                today.minusDays(1).minusDays(settings.commentDays()),
+                AlertKind.SIRE_REPORT, AlertKind.SIRE_COMMENTS));
+        ids.addAll(observationRepository.findShipIdsWithOverdueOnLatest(today, AlertKind.SIRE_OBSERVATION));
         return ids;
     }
 

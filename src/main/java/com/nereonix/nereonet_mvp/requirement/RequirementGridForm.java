@@ -22,6 +22,9 @@ public class RequirementGridForm {
 
     private String vesselType;
 
+    // What the combined filter had chosen (P43): a vessel type or a vessel ("ship-12"), so Save comes back to it.
+    private String selection;
+
     @Valid
     private List<RowForm> rows = new ArrayList<>();
 
@@ -32,6 +35,9 @@ public class RequirementGridForm {
         private String type;
 
         private Set<Rank> ranks = new HashSet<>();
+
+        // The row toggle (P43), "Select all ranks for <type>": every rank of the row, also without JavaScript.
+        private boolean all;
 
         private boolean optional;
 
@@ -44,6 +50,9 @@ public class RequirementGridForm {
         public Set<Rank> getRanks() { return ranks; }
         public void setRanks(Set<Rank> ranks) { this.ranks = ranks == null ? new HashSet<>() : ranks; }
 
+        public boolean isAll() { return all; }
+        public void setAll(boolean all) { this.all = all; }
+
         public boolean isOptional() { return optional; }
         public void setOptional(boolean optional) { this.optional = optional; }
 
@@ -53,6 +62,9 @@ public class RequirementGridForm {
 
     public String getVesselType() { return vesselType; }
     public void setVesselType(String vesselType) { this.vesselType = vesselType; }
+
+    public String getSelection() { return selection; }
+    public void setSelection(String selection) { this.selection = selection; }
 
     public List<RowForm> getRows() { return rows; }
     public void setRows(List<RowForm> rows) { this.rows = rows; }

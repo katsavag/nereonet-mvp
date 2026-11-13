@@ -62,30 +62,36 @@
     <span th:text="#{vetting.openVessel}">Open vessel</span>
 </a>
 
-<!-- The vessel page header's badge row (P40, ship/parts :: header): Safety Score, GHG Rating and inspection in brief,
-     one link to the vessel's Vetting page. Active vessels only (an inactive vessel has no Vetting page). P41: for a
-     tanker (sire not null) the SIRE 2.0 report as well. -->
-<a th:fragment="vesselBadges(ship, view, sire)" th:if="${ship.active}" class="vetting-badges"
-   th:href="@{/office/vetting/{id}(id=${ship.id})}">
+<!-- The vessel page header's badge row (P40, ship/parts :: header): Safety Score, GHG Rating and inspection in brief.
+     Active vessels only (an inactive vessel has no Vetting page). P41: for a tanker (sire not null) the SIRE 2.0
+     report as well. P43: each badge is its own link with its own hover and focus: Safety Score, GHG and the
+     inspection open the vessel's RightShip page, the SIRE badge its SIRE 2.0 page (a visually hidden suffix names
+     the page for screen readers). -->
+<div th:fragment="vesselBadges(ship, view, sire)" th:if="${ship.active}" class="vetting-badges"
+     th:with="rightShipUrl=@{/office/vetting/{id}/rightship(id=${ship.id})}, sireUrl=@{/office/vetting/{id}/sire(id=${ship.id})}">
     <span class="visually-hidden" th:text="#{vetting.badges.label}">Vetting:</span>
-    <span class="vetting-badge">
+    <a class="vetting-badge" th:href="${rightShipUrl}">
         <svg th:replace="~{layout/parts :: navIcon('vetting')}"></svg>
         <span class="vetting-badge-label" th:text="#{vetting.score.short}">Safety Score</span>
         <span th:replace="~{vetting/parts :: scoreText(${view})}">3/5</span>
-    </span>
-    <span class="vetting-badge">
+        <span class="visually-hidden" th:text="#{vetting.badges.opensRightShip}">(opens RightShip)</span>
+    </a>
+    <a class="vetting-badge" th:href="${rightShipUrl}">
         <span class="vetting-badge-label" th:text="#{vetting.ghg.short}">GHG</span>
         <span th:replace="~{vetting/parts :: ghg(${view})}">C</span>
-    </span>
-    <span class="vetting-badge">
+        <span class="visually-hidden" th:text="#{vetting.badges.opensRightShip}">(opens RightShip)</span>
+    </a>
+    <a class="vetting-badge" th:href="${rightShipUrl}">
         <span class="vetting-badge-label" th:text="#{vetting.inspection.short}">Inspection</span>
         <th:block th:replace="~{vetting/parts :: inspectionBadge(${view})}"></th:block>
-    </span>
-    <span th:if="${sire != null}" class="vetting-badge">
+        <span class="visually-hidden" th:text="#{vetting.badges.opensRightShip}">(opens RightShip)</span>
+    </a>
+    <a th:if="${sire != null}" class="vetting-badge" th:href="${sireUrl}">
         <span class="vetting-badge-label" th:text="#{sire.title}">SIRE 2.0</span>
         <th:block th:replace="~{vetting/parts :: sireReport(${sire})}"></th:block>
-    </span>
-</a>
+        <span class="visually-hidden" th:text="#{vetting.badges.opensSire}">(opens SIRE 2.0)</span>
+    </a>
+</div>
 
 <!-- SIRE 2.0 (P41). sire: a core/vetting/SireView (a vessel's latest inspection, or the one the SIRE page shows;
      inspection null when it has none). The pattern: app.css, section "SIRE 2.0 (P41)". -->

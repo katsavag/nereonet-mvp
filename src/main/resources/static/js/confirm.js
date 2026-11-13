@@ -8,7 +8,8 @@
 // Its trigger, [data-confirm-open], is a link to the plain confirmation page. This script turns a click on it into
 // the dialog; Confirm submits the form. Focus starts on Cancel; Esc, Cancel and the backdrop close the dialog and
 // put focus back where it was. Without this script, or in a browser without <dialog>, the link opens the page, so a
-// confirmForm never submits unconfirmed.
+// confirmForm never submits unconfirmed. A trigger that sits outside its form (P43: a row of a grid that is itself a
+// form) names the form's id in data-confirm-form (layout/parts :: confirmTrigger).
 // A form that asks only sometimes (P21, exporting requests exported before) has a submit button instead, and
 //   data-confirm-when     a selector: when an element of the form matches it, sending the form opens the dialog
 // Confirm then sends it with confirmed=true. Without this script the server answers such a form with the plain
@@ -48,7 +49,9 @@
 
     document.addEventListener('click', event => {
         const trigger = event.target.closest('[data-confirm-open]');
-        const target = trigger && trigger.closest('form[data-confirm-title]');
+        const target = trigger && (trigger.dataset.confirmForm
+            ? document.getElementById(trigger.dataset.confirmForm)
+            : trigger.closest('form[data-confirm-title]'));
         if (!target || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
             return;
         }

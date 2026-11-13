@@ -2,19 +2,26 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{requirement.title}, ~{::main})}">
 <body>
 <!-- Required documents (P42, Administration): which certificate types each rank needs, on all vessels or on one vessel
-     type. grid: requirement/RequirementGrid; vesselTypes: the selector's values ("all", then each ShipType);
-     noteErrors: the rows (by type key) whose note was too long when posted.
+     type. grid: requirement/RequirementGrid; selection: requirement/RequirementSelection (P43: what the combined filter
+     chose, a vessel type or a vessel, and its options); noteErrors: the rows (by type key) whose note was too long when
+     posted.
      - The starter template notice while any row is still a suggestion; the disclaimer line always: this is the
        company's own list, never a claim of what a regulation requires.
-     - Vessel type: a GET form; js/list-filter.js shows the grid as soon as the choice changes, without it Show does.
-       js/save.js asks first when the grid has unsaved changes.
+     - The filter (P43): one field for vessel types and vessels. Without JavaScript a select with two groups, Vessel
+       types and Vessels, and Show; js/requirements.js turns it into a combobox (type to search, arrow keys, Enter,
+       Esc) that shows the chosen grid at once. Picking a vessel shows its type's grid with the note "Rules for Bulk
+       carrier, which apply to ALDER, LAUREL and ROWAN." Requirements stay per vessel type.
      - The grid: a plain POST form of checkboxes, so it saves without JavaScript. Certificate types as rows (the first
        column stays put while the grid scrolls sideways inside its card, also on phones), ranks grouped by department
-       as columns (names turned upright to keep the columns narrow), then Optional and Note. On a vessel type's grid
-       a rank ticked on All vessels shows a grey tick instead of a checkbox. Each cell's checkbox fills the cell (a
-       40px target, 44px on phones) and is named "Passport, Master" for screen readers.
+       as columns (names turned upright to keep the columns narrow), then Optional, Note and (P43) Delete row. On a
+       vessel type's grid a rank ticked on All vessels shows a grey tick instead of a checkbox. Each cell's checkbox
+       fills the cell (a 40px target, 44px on phones) and is named "Passport, Master" for screen readers. P43: each
+       row starts with "Select all ranks for Passport" (js/requirements.js ticks and clears the row and shows the mixed
+       state; without it the server applies it) and ends with Delete row, a bin icon that asks first (P10) and removes
+       the type's requirement for the chosen vessel type only.
      - Add a document type: a GET form that shows the type as the first row, to tick and save. -->
-<main class="requirements-page" th:with="g=${grid}, typeLabel=${g.vesselType == null} ? #{requirement.vessel.all} : #{${'ship.type.' + g.vesselType}}">
+<main class="requirements-page" th:with="g=${grid}, sel=${selection},
+        typeLabel=${g.vesselType == null} ? #{requirement.vessel.all} : #{${'ship.type.' + g.vesselType}}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{requirement.heading}, subtitle=#{requirement.subtitle})}"></header>
 
     <section th:if="${g.suggestions}" class="alert alert-warning requirement-notice" aria-labelledby="starterTitle">
@@ -23,14 +30,22 @@
     </section>
     <p th:replace="~{layout/parts :: infoNote('requirementDisclaimer', #{requirement.disclaimer})}"></p>
 
+    <!-- The combined filter: the select is the field the form sends; the script replaces it on screen with a combobox
+         built from its options (each option carries its kind: "vessel type", or the vessel's type). -->
     <form class="filter-bar requirement-vessel" th:action="@{/office/requirements}" method="get" data-list-filter
-          th:attr="aria-label=#{requirement.vessel.label}">
-        <div class="filter-field filter-field-wide">
-            <label for="vesselType" class="form-label" th:text="#{requirement.vessel.label}">Vessel type</label>
-            <select id="vesselType" name="vesselType" class="form-select">
-                <option th:each="v : ${vesselTypes}" th:value="${v}" th:selected="${v == g.vesselTypeKey()}"
-                        th:text="${v == 'all'} ? #{requirement.vessel.all} : #{${'ship.type.' + v}}">All vessels</option>
+          th:attr="aria-label=#{requirement.filter.label}">
+        <div class="filter-field filter-field-wide requirement-filter" data-requirement-filter
+             th:data-no-results="#{requirement.filter.noResults}" th:data-search-label="#{requirement.filter.search}">
+            <label for="vesselType" class="form-label" th:text="#{requirement.filter.label}">Vessel type or vessel</label>
+            <select id="vesselType" name="vesselType" class="form-select" aria-describedby="vesselTypeHint">
+                <optgroup th:label="#{requirement.filter.types}">
+                    <option th:each="o : ${sel.options}" th:unless="${o.vessel()}" th:value="${o.value()}" th:data-kind="${o.kind()}" th:selected="${o.value() == sel.key}" th:text="${o.label()}">Tanker</option>
+                </optgroup>
+                <optgroup th:label="#{requirement.filter.vessels}">
+                    <option th:each="o : ${sel.options}" th:if="${o.vessel()}" th:value="${o.value()}" th:data-kind="${o.kind()}" th:selected="${o.value() == sel.key}" th:text="${o.label()}">ALDER</option>
+                </optgroup>
             </select>
+            <div id="vesselTypeHint" class="form-text" th:text="#{requirement.filter.hint}">Type to search a vessel type or a vessel.</div>
         </div>
         <div class="filter-field filter-field-apply" data-list-apply>
             <button type="submit" class="btn btn-outline-secondary" th:text="#{requirement.vessel.show}">Show</button>
@@ -39,10 +54,17 @@
 
     <form th:action="@{/office/requirements}" method="post" class="requirement-form">
         <input type="hidden" name="vesselType" th:value="${g.vesselTypeKey()}">
+        <input type="hidden" name="selection" th:value="${sel.key}">
         <section class="card" aria-labelledby="gridTitle">
             <div class="card-header requirement-grid-header">
                 <h2 class="h5 fw-bold mb-0" id="gridTitle"
                     th:text="${g.vesselType == null} ? #{requirement.grid.heading.all} : #{requirement.grid.heading.type(${typeLabel})}">Required on all vessels</h2>
+                <!-- P43: which vessels the chosen grid applies to. -->
+                <p class="requirement-selection-note"
+                   th:if="${!sel.vessels.isEmpty() or sel.type != null}"
+                   th:text="${sel.vessels.isEmpty()} ? #{requirement.selection.noVessels(${typeLabel})}
+                       : (${sel.type == null} ? #{requirement.selection.untyped(${sel.vesselNames(#messages.msg('requirement.selection.and'))})}
+                       : #{requirement.selection.applies(${typeLabel}, ${sel.vesselNames(#messages.msg('requirement.selection.and'))})})">Rules for Bulk carrier, which apply to ALDER, LAUREL and ROWAN.</p>
                 <p class="requirement-grid-hint" th:text="${g.vesselType == null} ? #{requirement.grid.hint.all} : #{requirement.grid.hint.type(${typeLabel})}">Tick a cell to require the document for that rank.</p>
             </div>
             <!-- A focusable region, so the keyboard can scroll it sideways; the caption names it. -->
@@ -52,7 +74,7 @@
                              th:text="${g.vesselType == null} ? #{requirement.grid.heading.all} : #{requirement.grid.heading.type(${typeLabel})}">Required on all vessels</caption>
                     <colgroup><col class="req-grid-col-type"></colgroup>
                     <colgroup th:each="grp : ${g.groups}" th:attr="span=${grp.ranks().size()}"></colgroup>
-                    <colgroup><col><col></colgroup>
+                    <colgroup><col><col><col></colgroup>
                     <thead>
                     <tr>
                         <th scope="col" rowspan="2" class="req-grid-type" th:text="#{requirement.grid.document}">Document</th>
@@ -60,6 +82,7 @@
                             th:text="#{${'rank.group.' + grp.department()}}">Deck</th>
                         <th scope="col" rowspan="2" class="req-grid-optional" th:text="#{requirement.grid.optional}">Optional</th>
                         <th scope="col" rowspan="2" class="req-grid-note" th:text="#{requirement.grid.note}">Note</th>
+                        <th scope="col" rowspan="2" class="req-grid-delete"><span class="visually-hidden" th:text="#{requirement.row.delete}">Delete row</span></th>
                     </tr>
                     <tr>
                         <th:block th:each="grp : ${g.groups}">
@@ -72,9 +95,14 @@
                     </thead>
                     <tbody>
                     <tr th:each="row, st : ${g.rows}" th:with="i=${st.index}, key=${row.key()}"
-                        th:classappend="${row.added} ? 'is-added'">
+                        th:classappend="${row.added} ? 'is-added'" data-requirement-row>
                         <th scope="row" class="req-grid-type">
                             <input type="hidden" th:name="|rows[${i}].type|" th:value="${row.type}">
+                            <!-- The row toggle (P43): ticks or clears every rank of the row. -->
+                            <label class="req-row-all" th:for="|a${i}|">
+                                <input class="form-check-input" type="checkbox" th:id="|a${i}|" th:name="|rows[${i}].all|"
+                                       value="true" data-row-all th:attr="aria-label=#{requirement.row.all(${row.type})}">
+                            </label>
                             <span class="req-grid-type-name" th:text="${row.type}">Passport</span>
                             <th:block th:if="${row.suggestion}"><span th:replace="~{layout/parts :: status('info', #{requirement.badge.suggestion})}"></span></th:block>
                             <th:block th:if="${row.added}"><span th:replace="~{layout/parts :: status('primary', #{requirement.badge.added})}"></span></th:block>
@@ -89,7 +117,7 @@
                                 </span>
                                 <label th:unless="${row.inherits(r)}" class="req-cell" th:for="|r${i}-${r}|">
                                     <input class="form-check-input" type="checkbox" th:id="|r${i}-${r}|"
-                                           th:name="|rows[${i}].ranks|" th:value="${r}" th:checked="${row.ticked(r)}">
+                                           th:name="|rows[${i}].ranks|" th:value="${r}" th:checked="${row.ticked(r)}" data-row-rank>
                                     <span class="visually-hidden" th:text="${cellLabel}">Passport, Master</span>
                                 </label>
                             </td>
@@ -106,10 +134,18 @@
                             <input type="text" class="form-control" th:id="|n${i}|" th:name="|rows[${i}].note|"
                                    th:value="${row.note}" maxlength="200" autocomplete="off"
                                    th:classappend="${noteError} ? 'is-invalid'"
-                                   th:attr="aria-describedby=${noteError} ? |n${i}Error| : null"
-                                   th:placeholder="#{requirement.grid.notePlaceholder}">
+                                   th:attr="aria-describedby=${noteError} ? |n${i}Error| : null">
                             <div th:if="${noteError}" class="invalid-feedback" th:id="|n${i}Error|"
                                  th:text="#{requirement.error.noteTooLong}">Up to 200 characters.</div>
+                        </td>
+                        <!-- Delete row (P43): the trigger of the row's confirmForm, which sits after the grid form
+                             (a form cannot hold another form). Without the script the link opens the plain
+                             confirmation page. -->
+                        <td class="req-grid-delete">
+                            <a th:replace="~{layout/parts :: confirmTrigger(formId=${'reqDelete' + i},
+                                    url=${'/office/requirements/delete?type=' + #uris.escapeQueryParam(row.type) + '&vesselType=' + g.vesselTypeKey() + '&selection=' + #uris.escapeQueryParam(sel.key)},
+                                    label=#{requirement.row.delete.label(${row.type})}, linkClass='btn btn-ghost btn-sm req-row-delete',
+                                    icon='trash')}"></a>
                         </td>
                     </tr>
                     </tbody>
@@ -123,9 +159,18 @@
         </section>
     </form>
 
+    <!-- The Delete row confirmations (P10, P43), one per row, outside the grid form. -->
+    <th:block th:each="row, st : ${g.rows}">
+        <form th:replace="~{layout/parts :: confirmForm(id=${'reqDelete' + st.index}, trigger=false, action='/office/requirements/delete',
+                fields=${ {type: row.type, vesselType: g.vesselTypeKey(), selection: sel.key} },
+                title=#{requirement.row.delete.confirm.title(${row.type})},
+                body=${g.vesselType == null} ? #{requirement.row.delete.confirm.body.all(${row.type})} : #{requirement.row.delete.confirm.body.type(${row.type}, ${typeLabel})},
+                confirm=#{requirement.row.delete.confirm.submit}, tone='danger')}"></form>
+    </th:block>
+
     <form class="requirement-add" th:action="@{/office/requirements}" method="get" aria-labelledby="addTypeTitle">
         <h2 class="h6 fw-bold mb-1" id="addTypeTitle" th:text="#{requirement.add.heading}">Add a document type</h2>
-        <input type="hidden" name="vesselType" th:value="${g.vesselTypeKey()}">
+        <input type="hidden" name="vesselType" th:value="${sel.key}">
         <div class="requirement-add-row">
             <div class="requirement-add-field">
                 <label for="addType" class="form-label" th:text="#{certificate.type}">Type</label>

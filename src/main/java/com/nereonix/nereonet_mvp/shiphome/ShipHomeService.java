@@ -13,7 +13,6 @@ import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
-import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -26,12 +25,12 @@ public class ShipHomeService {
 
     /**
      * user: the signed-in ship user (name, rank, ship).
-     * photoKey: their profile photo's key (P31), for the header; null without one.
+     * photoUrl: their profile photo's 96px URL (P31, CrewProfile.photoUrl), for the header; null without one.
      * toRead: their Required library items not acknowledged in the current version and the announcements they have
      * not acknowledged (P27), together, oldest first.
      * certificates: their own certificates, soonest expiry first (so expired, then expiring soon).
      */
-    public record Home(User user, Ship ship, String photoKey, List<ToRead> toRead, List<Certificate> certificates) {
+    public record Home(User user, Ship ship, String photoUrl, List<ToRead> toRead, List<Certificate> certificates) {
     }
 
     private final UserRepository userRepository;
@@ -62,7 +61,7 @@ public class ShipHomeService {
                 .sorted(Comparator.comparing(ToRead::date))
                 .toList();
         List<Certificate> certificates = certificateRepository.findAllByUserIdOrderByExpiresOnAsc(user.getId());
-        String photoKey = profileRepository.findByUserId(user.getId()).map(CrewProfile::getPhotoKey).orElse(null);
-        return new Home(user, ship, photoKey, toRead, certificates);
+        String photoUrl = profileRepository.findByUserId(user.getId()).map(p -> p.photoUrl(96)).orElse(null);
+        return new Home(user, ship, photoUrl, toRead, certificates);
     }
 }

@@ -67,9 +67,15 @@ Requirements: Java 25, Docker.
 
 4. Emails sent by the app appear in the Mailpit inbox at http://localhost:8025.
 
-   **Overview** (`/office`, the office home page, P09) is a work list: what needs the office, with the next step on
-   each row, so it can be cleared without visiting other pages first. Under the title one summary line ("5 ships ·
-   84 crew · 3 open items": active ships, enabled crew on them, open items); the page action is **New announcement**.
+   **Overview** (`/office`, the office home page, P09; redesigned in P43, see 27) is a work list: what needs the
+   office, with the next step on each row, so it can be cleared without visiting other pages first. The page action
+   is **New announcement**. Under the title four stat tiles, each one link with a detail line: **Active vessels**
+   ("2 with open items", to Vessels), **Crew on board** (enabled crew of active vessels; "1 invitation waiting", to
+   Crew filtered to Active), **Items needing attention** ("3 snoozed", to the list below) and **Orders waiting for
+   the office** (sent and not confirmed; "1 not exported yet", to Orders filtered to Sent). From 1200px the tiles are
+   a row of four and the page has two columns: **Needs attention** on the left (7/12) and, stacked on the right,
+   **By category**, **Next 30 days**, **Fleet** and **Recent activity**; from 768px the tiles are 2 × 2 and the
+   columns go under each other; on phones one column, the tiles two per row.
    - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
      1. certificate expired; then (P40, P41, see 25) a vessel's vetting: SIRE 2.0 operator comments overdue or due
      within 3 days, RightShip inspection expired, unacceptable or expiring within 60 days, SIRE 2.0 report no longer
@@ -86,22 +92,35 @@ Requirements: Java 25, Docker.
      the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
      (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Open order**
      (the order page, where it is confirmed and exported, see 24), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
-     has not acknowledged**. The card shows the first 50 rows ("Showing the first 50 of 63"); under it **Full lists**
-     links each kind to its full list: orders to `/office/orders?exported=no` (not exported yet), certificates to
-     `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see 12), the others
-     to this page filtered to that kind (`/office?type=invitations`, `acknowledgements`, every row, with **Show all
-     open items** to go back; `/office?type=certificates` still works). **Open certificate** opens the form, which
-     comes back to the Overview (with its filter) after Save or Cancel. With nothing open the card says "Nothing needs
-     your attention" and when it was checked.
-   - **Fleet**: one row per active ship (the name opens the ship page): crew on board, certificate issues (expired or
-     within 30 days), not acknowledged (announcements and Required library items as above), orders not exported.
-     Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
-     its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
-     `/office?type=acknowledgements&shipId=…`, `/office/orders?shipId=…&exported=no`.
-   - `DashboardService.load()` always runs the same 10 queries, whatever the size of the fleet (active ships, crew per
-     ship, and one per kind of open item, RightShip included since P40, in `dashboard/DashboardQueries`, and SIRE 2.0
-     since P41, two queries in `SireService.attention`); `DashboardFlowTest` checks it. The vetting rows link their
-     full list to `/office/vetting?status=attention`.
+     has not acknowledged**. A certificate or vetting row also has a checkbox and **Snooze** (P43, see 27); snoozed
+     items are left out. The list is paged, 10 rows at a time (20, 50 or 100, the P19 pager; `?page=2`), and sorted
+     most urgent first or, with **By date** (`?sort=date`), by the date that drives each row, earliest first. Above
+     the rows a line of filter chips, **All** and one per category with its count (Certificates, Required documents,
+     Vetting, Orders, Invitations, Announcements): links (`/office?type=certificates`, `documents`, `vetting`,
+     `orders`, `invitations`, `acknowledgements`), so they work without JavaScript; the **Fleet** card's counts
+     filter the list to one vessel (`/office?shipId=…`, "Showing only: MV Demo", with **Show all open items**; a chip
+     keeps the vessel). **Open certificate** opens the form, which comes back to this page as it was (page, sort,
+     filters) after Save or Cancel. With nothing open the card says "Nothing needs your attention" and when it was
+     checked; a chip with nothing says "Nothing needs your attention here".
+   - **By category**: one tile per category with its open count in the tone of the category ("3 open" in red for
+     certificates, amber for orders) or a green "All clear", each a link to the full list: orders to
+     `/office/orders?exported=no` (not exported yet), certificates to `/office/certificates?status=expired,30&activeShips=true`
+     (exactly the certificates counted, see 12), vetting to `/office/vetting?status=attention`, required documents to
+     `/office/crew?status=active&documents=missing`, the others to this page filtered to that kind.
+   - **Next 30 days**: the coming dates in order, at most 8 (certificates expiring, RightShip inspections ending,
+     SIRE 2.0 reports ending and operator comments due, order deliveries), each with the vessel and the record link;
+     **See all** opens the list by date. Nothing that has passed, nothing snoozed.
+   - **Fleet**: one row per active ship, those with open items first, then by name, at most 8 ("The first 8 of 12
+     vessels; those with open items first" under the table, with **All vessels** in the card header): the flag and
+     the name (the ship page) with the type under it, the RightShip Safety Score (to its Vetting page, see 25) and the
+     ship's open items, a link to this page filtered to the vessel; a zero is a muted dash and not a link.
+   - **Recent activity**: the last 5 audit entries (who, what, which vessel, the time in UTC), with **Audit log** in the
+     card header.
+   - `DashboardService.load()` always runs the same 12 queries, whatever the size of the fleet (the active ships with
+     their crew count, one per kind of open item, RightShip included since P40, in `dashboard/DashboardQueries`,
+     SIRE 2.0 since P41, two queries in `SireService.attention`, the required documents' rules (P42; two more while
+     any are set), the active snoozes and the newest audit entries); `DashboardFlowTest` checks it. The load also
+     ends the snoozes that no longer hold (27).
    With the dev data an order the Master has sent is a row until the office exports it (24); then the card says
    "Nothing needs your attention".
    - **Set up Nereonet** (first run, P25): a checklist of four steps, each with one line of help and a link to the page
@@ -114,7 +133,7 @@ Requirements: Java 25, Docker.
      checklist takes the place of the work list (Needs attention and Fleet: there is nothing to work on yet); after
      that it stays above it, and it disappears once all four steps are done. With the dev data (ship, crew and
      library, no announcement) it shows 3 of 4 above the work list until an announcement is sent.
-     `DashboardService.setup()` is one query (`DashboardQueries.setup()`), outside `load()`'s seven.
+     `DashboardService.setup()` is one query (`DashboardQueries.setup()`), outside `load()`'s twelve.
 
 5. Ships (signed in as an office user): **Vessels** in the sidebar (`/office/ships`).
    Wording (P39): every English text on screen and in emails says "vessel", not "ship" ("Add vessel", "All
@@ -128,14 +147,21 @@ Requirements: Java 25, Docker.
    P40: a **Safety Score** column (the RightShip score, "3/5", "N/A" when not rated; for an active vessel a link to its
    Vetting page, see 25). The list sorts by name (default) or by Safety Score (`?sort=score`, lowest first, then the
    other way; not rated last either way, then by name); it has no search, filters or pages.
+   P43: the **Flag** column shows the country's flag as a small icon (20 × 15, `layout/parts :: flag`, the SVGs under
+   `static/vendor/flags/`, see "Frontend assets") before the country name; the same icon with the name appears on
+   the ship page header and particulars, the Vetting list, the library's particulars (16) and, for the crew's
+   nationality, My profile, My crew and the office's crew member page.
    Inactive ships stay in the list but cannot get new crew invitations. **Deactivate** asks first ("Deactivate MV Demo?
    No new crew can be invited to MV Demo until it is activated again.", see "confirmations (P10)" below); **Activate**
    does not.
 
    **Ship page** (`/office/ships/{id}`, P08): one place per ship. Every tab starts with the same ship header:
    breadcrumbs (Ships › MV Demo), the ship's name as the heading, then IMO number, type, flag and an Active / Inactive
-   badge (P40: and, for an active vessel, a row of three compact badges, Safety Score, GHG and inspection, one link to
-   its Vetting page; there is no Vetting tab; P41: a tanker also gets a SIRE 2.0 badge, "Report current until …"), with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
+   badge (P40: and, for an active vessel, a row of three compact badges, Safety Score, GHG and inspection; there is
+   no Vetting tab; P41: a tanker also gets a SIRE 2.0 badge, "Report current until …"; P43: each badge is its own
+   link, the first three to the vessel's RightShip page and the SIRE badge to its SIRE 2.0 page, with "opens
+   RightShip" / "opens SIRE 2.0" for screen readers, and the flag is shown as a small icon before the country name,
+   `layout/parts :: country`), with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
    same form as a page) and a **⋯** menu (**Activate** or **Deactivate**). Edit, Activate and Deactivate come back to
    the tab they were started on. Under the header a tab bar of ordinary links, one URL each, so every tab can be
    bookmarked; each shows a count:
@@ -241,7 +267,7 @@ Requirements: Java 25, Docker.
    and every pending crew invitation in one list, searchable (name or email) and filterable by ship and by **Status**: Active, Invited, Invitation expired,
    Inactive (query parameters, so other pages can link to a filtered list: `/office/crew?status=expired`,
    `?shipId=1&status=invited`; an unknown value shows every status), sortable by name (the default), email, rank, ship
-   and status, 25 or 50 per page (see "lists: search, sort and pages (P19)" below; users and invitations are paged together
+   and status, 10 per page, 20, 50 or 100 on request (P43; see "lists: search, sort and pages (P19)" below; users and invitations are paged together
    in the database, one native SQL `UNION ALL` in `crew/PeopleQueries`). The ship's **Crew** tab is the same list for
    that ship, without the ship filter. An invitation shows its status with its date,
    "Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has **Resend** (one
@@ -324,9 +350,9 @@ Requirements: Java 25, Docker.
    You cannot deactivate or delete yourself.
 
 10. Audit log (signed in as an office user): **Audit log** in the sidebar (`/office/audit`). Lists who did what and
-   when, newest first, 20 rows per page by default, 50 or 100 on request (P39; paged in the database), searchable (who
+   when, newest first, 10 rows per page by default (P43; 20 since P39, 25 before), 20, 50 or 100 on request (paged in the database), searchable (who
    did it, by name or email, and the details), filterable by ship and date range (UTC days), sortable by when, who,
-   action and ship. Under the table "1 to 20 of 27" and **Previous** / **Next**; the pager, the page size and the sort
+   action and ship. Under the table "1 to 10 of 27" and **Previous** / **Next**; the pager, the page size and the sort
    keep the search and the filters. **From** and **To** accept dates from 30 years ago to 1 year ahead (see the date
    limits in 12); a date outside them is shown on the field with the limits, an impossible one (`from=2026-02-31`
    in the URL) with "Enter a date.", and the list is not filtered by it. Recorded so far: ship added,
@@ -348,7 +374,7 @@ Requirements: Java 25, Docker.
    **Add item** and the item's name (or **Edit** in the row's **⋯** menu) open a form; items can be deactivated and activated (the row's **⋯** menu), never deleted. Deactivate asks first
    ("The crew of MV Demo cannot request Basmati rice until it is activated again."). The list shows name, unit,
    category, place and status; it is searchable (name and place), filterable by status (Active, Inactive) and
-   category (Provisions, Personal items), sortable by name (the default), unit, category, place and status, 25 or 50
+   category (Provisions, Personal items), sortable by name (the default), unit, category, place and status, 10 (20, 50 or 100)
    per page (paged in the database).
    **Import** (`/office/ships/{id}/items/import`) adds and updates many items at once, from the file the purchasing
    system produces or from the template, in the same four steps as the crew import (see 8): **Upload** (`.xlsx`,
@@ -389,7 +415,7 @@ Requirements: Java 25, Docker.
    **Certificates** in the sidebar (`/office/certificates`, P20) lists every certificate, soonest expiry first. The
    **Expires on** column shows the date and how far it is ("in 23 days", "expired 5 days ago"); the status badge has
    an icon as well as a colour: a warning triangle for Expired, a clock for 30, 60 or 90 days, a tick for Valid.
-   Searchable (type, number, crew member), sortable by expiry, type, crew member, ship and number, 25 or 50 per page
+   Searchable (type, number, crew member), sortable by expiry, type, crew member, ship and number, 10 per page (20, 50 or 100)
    (paged in the database), filterable by ship, **Active ships only** (`activeShips=true`) and **Status**
    (`?status=`): `expired`; `30`, `60`, `90` (not expired, expiring within that many days, today included, so
    "Within 60 days" includes "Within 30 days"); `valid` (more than 90 days left); `all`. Without a status, or with one
@@ -397,9 +423,12 @@ Requirements: Java 25, Docker.
    to exactly what they count (each tested in `CertificatePlanningFlowTest`):
    - the sidebar counter (expired or within 30 days, every ship): the **Certificates** entry opens
      `?status=expired,30` while the counter shows; without a counter, the list as it is;
-   - the Overview's **Full lists** entry (the same, crew of active ships): `?status=expired,30&activeShips=true`;
-   - the Overview's fleet table, **Certificate issues** of a ship: `?shipId=…&status=expired,30`;
+   - the Overview's **By category** tile for certificates (the same, crew of active ships; P43, "Full lists" before):
+     `?status=expired,30&activeShips=true`;
    - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
+   P43: the crew member's name in the list links to their page (`/office/crew/{id}/edit`), as in the Crew list; each
+   row has a checkbox and **Snooze**, a snoozed certificate's row is muted with "Snoozed by … until …" and **Undo**,
+   and the Status filter has **Snoozed** (`?status=snoozed`; the other states leave snoozed certificates out, see 27).
    **Export** (page header) downloads the list as filtered, searched and sorted, every page, as an Excel workbook
    (P39; CSV before; `.xls` since P40): `certificates-<date>.xls`, sheet "Certificates", with the columns
    `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,
@@ -499,7 +528,7 @@ Requirements: Java 25, Docker.
 
 13. Notifications (any signed-in user): the bell in the top bar (phones) and **Notifications** in the sidebar (a pill,
    see "sidebar navigation" below) show the number of unread notifications. `/notifications` lists them, newest first,
-   grouped by UTC day (**Today**, **Yesterday**, then the date), 25 to a page (or 50, with the usual pager). Each shows a
+   grouped by UTC day (**Today**, **Yesterday**, then the date), 10 to a page (20, 50 or 100, with the usual pager). Each shows a
    type icon (certificate, library, announcement; the bell for notifications saved before P23), the ship or person it
    concerns ("MV Demo", "Jane Doe · MV Demo"), its text and the time in UTC ("12:40 UTC").
    Notifications stay until handled (P23):
@@ -507,7 +536,8 @@ Requirements: Java 25, Docker.
    - a notification is read once it is opened: its text is a POST (`/notifications/{id}/open`) that marks it and goes
      to its link (a library item, for example). A notification without a link (the certificate reminder) has only
      **Mark as read** (`/notifications/{id}/read`). **Mark all as read** (`/notifications/read-all`) is in the page header
-     while anything is unread. Each comes back to the same page of the list with "Notification marked as read." or
+     while anything is unread (P43 asked for it in the bell's menu too; the bell is a plain link to this page, there is
+     no menu, so the page header is its one place). Each comes back to the same page of the list with "Notification marked as read." or
      "All notifications marked as read.";
    - unread ones have a dot and bold text ("Unread:" for screen readers); read ones are regular weight, no dot, and
      their text is a plain link;
@@ -525,7 +555,7 @@ Requirements: Java 25, Docker.
    the ship's name (a link) for one ship, or "3 ships" with the names as its title (and, for screen readers, as hidden
    text; on the phone card they show under it). Filter by ship to see the announcements sent to all ships or with that
    ship among their targets; search the title; sort by sent (the default, newest first), title and target (All ships,
-   then one ship by name, then several ships, fewest first); 25 or 50 per page (paged in the database, the
+   then one ship by name, then several ships, fewest first); 10 per page, 20, 50 or 100 on request (paged in the database, the
    acknowledgement counts read for that page only, and the target ships of the page with one more query).
    **New announcement** asks for the target, a title and a plain-text message. The target (P28) is one of two options,
    nothing preselected: **All ships** ("The whole active fleet: 5 ships") or **Selected ships**, a list of the active
@@ -944,7 +974,7 @@ Requirements: Java 25, Docker.
      board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Sent, Confirmed,
      Closed) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`, `confirmed`,
      `closed`) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
-     the ship name or IMO number; 25 or 50 per page (paged in the database). A row opens its order.
+     the ship name or IMO number; 10 per page, 20, 50 or 100 on request (paged in the database). A row opens its order.
    - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
      confirmation once set (port, delivery date, by whom) and when it was last exported; then its lines by category
      (Provisions, then Personal items): item, unit, quantity. Read-only: the office never changes lines or quantities.
@@ -1020,9 +1050,12 @@ Requirements: Java 25, Docker.
    - **Upload report** (`/rightship/reports/new`): a PDF, PNG or JPEG of at most 10 MB (checked by extension and first
      bytes, stored like the library's files under `LIBRARY_STORAGE_DIR`) and the date on it (required). Recorded as
      "RightShip report uploaded".
-   - Elsewhere: the vessel page header's badge row (5), the Vessels list's Safety Score column (5) and two kinds of
-     Overview item (4): inspection expired, unacceptable or expiring within 60 days, and Safety Score 2 or below,
-     right after expired certificates, each with **Open RightShip**.
+   - Elsewhere: the vessel page header's badge row (5; P43: each badge a link to this page), the Vessels list's Safety
+     Score column (5) and two kinds of Overview item (4): inspection expired, unacceptable or expiring within 60 days,
+     and Safety Score 2 or below, right after expired certificates, each with **Open RightShip**. P43: the Vetting
+     list shows each vessel's flag under its name, its rows have a checkbox and **Snooze** for the vessel's open
+     vetting items (the inspection, the score, the SIRE 2.0 report, comments and observations; one item each), a
+     snoozed row is muted with the snooze note and **Undo**, and the Status filter has **Snoozed** (see 27).
    - **RightShip API sync** (optional, read only, off by default): set `RIGHTSHIP_BASE_URL`, `RIGHTSHIP_CLIENT_ID` and
      `RIGHTSHIP_CLIENT_SECRET` (see Configuration). With any of them empty the app makes no request to RightShip at
      all and the data is entered by hand. When set, the server (never the browser) gets an OAuth 2 client-credentials
@@ -1091,13 +1124,26 @@ Requirements: Java 25, Docker.
    are not checked, and the crew cannot upload documents themselves.
    - **Required documents** in the sidebar (Administration, after Office users; a document with a checklist),
      `/office/requirements`: a grid with the certificate types as rows and the ranks as columns, by department
-     (names turned upright), then **Optional** and **Note** (up to 200 characters). **Vessel type**: All vessels, or one
-     type; on a type's grid a rank already required on all vessels is a grey tick, not a checkbox. A plain form of
-     checkboxes, so it saves without JavaScript (**Save for Tanker**); the first column stays put while the grid
-     scrolls sideways inside its card (also on phones; the page itself never does). **Add a document type** adds a
-     row at the top to tick. Rows: the starter template's types, then every other type required or held, A to Z.
-     Saving a type's grid changes only what was posted; a row without ranks, note or Optional is removed. Recorded as
-     "Required documents changed" ("TANKER: Tanker Endorsement removed", "All vessels: Passport +COOK").
+     (names turned upright), then **Optional** and **Note** (up to 200 characters). **Vessel type or vessel** (P43,
+     one combined filter; **Vessel type** before): a select with two groups, the vessel types (All vessels first,
+     then Bulk carrier, Tanker, …) and the active vessels; choosing a vessel (`?key=ship-12`) shows the grid of its
+     type, with a line saying so ("Rules for Tanker, which apply to MV Demo and MV Other"; a vessel without a type
+     shows the rules for all vessels). With JavaScript (`js/requirements.js`) the select becomes a search box with
+     the same options ("Type a vessel type or a vessel name"), an ARIA combobox; without it the plain select and its
+     **Show** button. On a type's grid a rank already required on all vessels is a grey tick, not a checkbox. A plain
+     form of checkboxes, so it saves without JavaScript (**Save for Tanker**); the first column stays put while the
+     grid scrolls sideways inside its card (also on phones; the page itself never does). P43: each row starts with
+     an **All ranks** checkbox ("Select all ranks for Passport"): ticked, saving requires the type of every rank the
+     row can take (those inherited from all vessels stay grey); with JavaScript it ticks and unticks the row at once
+     and follows the row's boxes. Each row ends with a **Delete row** trash icon (a confirmation, see "confirmations
+     (P10)": "Remove Passport? Removes Passport from the requirements on Tanker vessels only. All vessels and the
+     other vessel types keep theirs."; `POST /office/requirements/delete`, without JavaScript a confirmation page),
+     which removes the row's own requirement for the chosen type, recorded as "Required documents changed"
+     ("TANKER: Passport removed"); a row that only inherits from all vessels has nothing to remove and says so.
+     **Add a document type** adds a row at the top to tick. Rows: the starter template's types, then every other
+     type required or held, A to Z. Saving a type's grid changes only what was posted; a row without ranks, note or
+     Optional is removed. Recorded as "Required documents changed" ("TANKER: Tanker Endorsement removed",
+     "All vessels: Passport +COOK").
    - **Starter template**: on first start with no requirements, the app adds a suggestion (marked **Suggestion**, with
      a notice to review it): STCW Basic Safety Training, Medical Fitness Certificate, Seaman's Book, Passport and
      Security Awareness for every rank; Certificate of Competency, Flag State Endorsement, Advanced Fire Fighting and
@@ -1127,6 +1173,53 @@ Requirements: Java 25, Docker.
      one, and two more when requirements are set.
    - Tests: `requirement/RequirementsFlowTest`.
 
+27. Snoozing alerts and the Overview redesign (P43, office users only). An office user can put a certificate or
+   vetting item aside for a while, with a reason, so the counters and the Overview show what still needs a decision.
+   `core/alert/` (`AlertKind`, `AlertKey`, `AlertLevels`, `Alert`, `AlertSnooze`, `AlertSnoozeRepository`,
+   `SnoozeReason`, `SnoozeEndReason`, `SnoozeService`) and `alert/` (`AlertController`, `AlertService`, `AlertView`,
+   `SnoozeForm`, `AlertReturn`); templates `alert/snooze.html` and the fragments in `alert/parts.html`; styles in
+   `app.css` section "Snoozing alerts (P43)"; `dashboard/SnoozeSyncJob`. The Overview itself is described in 4.
+   - **What can be snoozed**: a certificate expired or expiring (one item), and a vessel's open vetting items: the
+     RightShip inspection, the Safety Score, the SIRE 2.0 report, the SIRE 2.0 operator comments, the SIRE 2.0
+     observations past their target date (one item each; `AlertKind`). Orders, invitations, announcements and
+     required documents cannot be snoozed: they have an action of their own.
+   - **Where**: the Certificates list (12), the Vetting list (25) and the Overview's Needs attention list (4) have a
+     checkbox per row and a **Snooze** link per row; **Snooze selected** in the header (with JavaScript, `js/list-rows.js`:
+     the count of checked rows, select all on the page, the button disabled while nothing is checked; without it the
+     checkboxes still post, through the `form` attribute of a GET form). Both open the snooze page.
+   - **The snooze page** (`/office/alerts/snooze?items=CERTIFICATE_EXPIRING:12,…&returnTo=…`): the items reviewed
+     (type, person or vessel, how far the date is; with several, each a ticked checkbox so one can be left out), the
+     **Reason** (Renewal in progress, Crew member signs off before expiry, Not needed on this vessel, Other with a
+     required note of up to 200 characters, shown only for Other with JavaScript) and **How long**: 7 days, 30 days,
+     until a date (tomorrow to a year ahead) or until it expires (only when every item has a date ahead). An expired
+     item (the certificate, the inspection, the report; a missing or overdue one too) can be snoozed for 30 days at
+     most, and the page says so. **Snooze** and **Cancel** go back to the list or the Overview as it was
+     (`returnTo`, only local paths; "2 items snoozed."). An item that no longer needs attention is dropped from the
+     selection ("Nothing to snooze" when none is left).
+   - **While snoozed**: the item leaves the sidebar counters (Certificates, Vetting), the Overview (the list, the
+     tiles, By category, Next 30 days and the Fleet counts; the Items tile says "3 snoozed") and the certificate
+     reminder emails; it stays in its list, muted, with "Snoozed by Jane Office until 12 Dec 2026" and **Undo** (any
+     office user; POST, comes back with "Snooze undone: the item is back."). The Status filters of the two lists leave
+     snoozed items out; **Snoozed** lists them. The certificate or the vetting data do not change.
+   - **It ends by itself** (`SnoozeService.sync`, run on every Overview load and by the daily job
+     `SnoozeSyncJob` on `app.certificates.reminder-cron`): when its date passes; when the item is resolved (a renewed
+     certificate: the expiring one no longer exists as an alert; the inspection renewed; the comments entered); or
+     when it gets worse than when it was snoozed, so an expiring certificate snoozed at "within 60 days" comes back at
+     "within 30 days", and at expiry (`AlertLevels`: expired 0, within 30 days 1, 60 days 2, 90 days 3; the level at
+     the snooze is stored on the row). A snooze that ends keeps its row with `endedAt` and the reason (`SnoozeEndReason`:
+     UNDONE, DATE_PASSED, RESOLVED, WORSENED). The certificates query does the same rule in JPQL
+     (`CertificateRepository.SNOOZED`), so the counter and the reminders agree with the lists.
+   - **Audit log**: "Alert snoozed" (the item, the reason, the note, the date), "Alert snooze undone", "Alert snooze ended" (why:
+     "worsened (level 2 to 1)", "resolved", "date passed", by "System").
+   - Table `alert_snooze` (kind, subject id, ship, who, reason, note, until, level, created at, ended at, end reason;
+     Hibernate creates it on start).
+   - Also in P43: the crew Home's sign-out line no longer repeats the name (18); the sidebar shows the user's photo
+     where there is one (`NavigationAdvice`'s `currentPhoto`, `CrewProfile.photoUrl(size)` with a version
+     parameter so a new photo shows at once), initials otherwise; the Greek ship types read "Bulk carrier / Tanker /
+     Container / General cargo / Other" in Greek and the vetting filter "Σύστημα αξιολόγησης"; the page size of every
+     list is 10 by default (20, 50 or 100; `ListQuery.SIZES`).
+   - Tests: `alert/SnoozeFlowTest`, `dashboard/DashboardFlowTest`, `requirement/RequirementsFlowTest`.
+
 Run the tests (H2 in memory, no Docker needed):
 
 ```
@@ -1140,6 +1233,10 @@ The app makes no request to any other host: everything a page needs is served fr
 
 - `vendor/bootstrap/`: Bootstrap 5.3.8 (`bootstrap.min.css`, `bootstrap.bundle.min.js`), unchanged from the
   npm package, with its `LICENSE`. To upgrade, replace both files with the ones from the new release's `dist/`.
+- `vendor/flags/` (P43): one SVG per country (`gr.svg`, 4 × 3, 249 files) from the npm package `flag-icons` 7.6.0,
+  unchanged, with its `LICENSE` (MIT). `ship/Flags` (`@flags`) lists them once at start; `layout/parts :: flag(code)`
+  renders `<img src="/vendor/flags/gr.svg" width="20" height="15" alt="">` (nothing for a code without a file) and
+  `country(code, label)` the icon with the name. To upgrade, replace the folder with the new release's `flags/4x3/`.
 - `fonts/`: the Inter variable font (weights 100–900, upright), Latin and Greek subsets as WOFF2, declared with
   `@font-face` in `css/app.css` (`font-display: swap`, system fonts as fallback). Source: the npm package
   `@fontsource-variable/inter` 5.3.0, files `inter-latin-wght-normal.woff2` and `inter-greek-wght-normal.woff2`.
@@ -1197,8 +1294,9 @@ The app makes no request to any other host: everything a page needs is served fr
     remove link, and **Clear all** (it keeps the sort and page size). Sortable column headers are links
     (`layout/parts :: sortHeader`) with `aria-sort` and a direction arrow: the first click sorts the column
     (ascending, dates newest first), the next one reverses it. The server sorts; an unknown sort key falls back to the
-    list's default. Pages: 25 rows, or 50 (`size=50`), with "1 to 25 of 412", **Previous** and **Next**
-    (`layout/parts :: pager`, shown when there is more than one page of 25; a disabled link has no `href`); changing
+    list's default. Pages: 10 rows (P43; 25 before, 20 on the audit log), or 20, 50 or 100 (`size=50`), with "1 to 10 of 412",
+    **Previous** and **Next** (`layout/parts :: pager`, shown when there is more than one page of 10; a disabled link has
+    no `href`); changing
     the search, a filter, the sort or the size goes back to page 1, a page past the end shows the last page. Every
     list is counted and paged in the database (`core/list/ListQueries`: a JPA Criteria count plus a `LIMIT`/`OFFSET`
     query with the id as tie-breaker; Crew and Office users: a native `UNION ALL` of users and pending invitations in

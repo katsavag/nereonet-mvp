@@ -1004,16 +1004,11 @@ fieldset:disabled button.btn {
 }
 .sidebar-user-role { color: var(--nn-sidebar-muted); }
 
-.avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--nn-radius-control);
+/* The person's picture in the user block (P43): the shared .person-avatar (photo or initials), the initials white on a
+   translucent tint on the navy (the photo keeps its own colours). */
+.sidebar-user > .person-avatar {
     background-color: rgba(255, 255, 255, .12);
-    font-weight: 600;
+    color: #fff;
 }
 
 /* Fixed column from md up, as tall as the window (the 64px rail or the full width, P29: section "Brand, sidebar rail,
@@ -1300,23 +1295,311 @@ fieldset:disabled button.btn {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Overview (P09): dashboard/dashboard.html, the office home page as a work list.
-     - .attention: the "Needs attention" card. Header: title, and the number of open items on the right.
-       .attention-filter: what a filtered list (/office?type=...) shows, with the way back to all.
-     - .attention-item: one open item. Left: the status badge with an icon and the kind (.attention-meta), the title
-       linking to the record (.attention-title, underlined, a 40px touch target), one context line
-       (.attention-context: ship · person · date; the ship's name in the body colour and semibold, so the ship is
-       read before acting). Right: one action (.attention-action, a secondary .btn-sm); below the text when there is
-       no room (phones).
+   Overview (P09, P43): dashboard/dashboard.html, the office home page: more at a glance, less scrolling.
+     - .overview-tiles: four stat tiles (.overview-tile, one link each: icon, the number, its label, a detail line),
+       four across from 1200px, two across from 768px, two across on phones too (the numbers stay short).
+     - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
+       (.overview-side, 5/12); under each other below that, Needs attention first.
+     - .attention: the "Needs attention" card. Header: title, the number of open items and Snooze selected
+       (.attention-header-tools). .attention-chips: the filter chips by category (.chip, with its count; the current
+       one filled) and the order (Most urgent / By date, a view-switch). .attention-filter: a vessel filter
+       (/office?shipId=...), with the way back to all.
+     - .attention-item: one open item, compact: the checkbox of a snoozable item (.attention-select), then the status
+       badge with an icon and the kind (.attention-meta), the title linking to the record (.attention-title, a 40px
+       touch target) and the context (.attention-context: vessel · person · date; the vessel's name in the body
+       colour and semibold, so the vessel is read before acting), then the actions (.attention-action: the secondary
+       .btn-sm and Snooze). From 1200px the row is compact: the badge, the title over the context (each one line,
+       cut with an ellipsis) and the actions across; below that they wrap and the actions go under the text.
      - .attention-empty: "Nothing needs your attention" and the time of the last check.
-     - .attention-footer: "Showing the first 50 of 63" and the links to the full list of each kind.
+     - .overview-card: a card of the right column with a header (title and a link on the right), one of:
+       .category-tiles (two per row: icon, the kind, its open count as a status badge), .upcoming-list (the date, what,
+       the vessel), .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
+       who, the vessel, when). An empty card shows the P25 empty state, compact.
      - .status-badge-icon: a status badge (layout/parts :: statusIcon) with a 12px icon in place of the dot.
      - .count-zero / .count-link: a count in the fleet table (layout/parts :: countLink); zero is a muted dash.
-   Text pairs: context and meta text use --nn-text-secondary (6.6:1 on the surface).
+   Text pairs: context and meta text use --nn-text-secondary (6.6:1 on the surface); the tiles' numbers --nn-text.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-status-icon-size: 12px;
+    --nn-tile-number: 2rem;          /* 32px */
 }
+
+.overview-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--nn-space-3);
+    margin: 0 0 var(--nn-section-gap);
+    padding: 0;
+    list-style: none;
+}
+@media (min-width: 1200px) {
+    .overview-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.overview-tile-link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: var(--nn-space-3);
+    height: 100%;
+    padding: var(--nn-space-3) var(--nn-space-4);
+    color: var(--nn-text);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-card);
+    text-decoration: none;
+    transition: border-color .15s ease-in-out;
+}
+.overview-tile-link:hover { color: var(--nn-text); border-color: var(--nn-field-border); }
+.overview-tile-link:hover .overview-tile-label { text-decoration: underline; }
+.overview-tile-icon {
+    grid-row: 1 / span 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+}
+.overview-tile-icon > svg { width: 20px; height: 20px; }
+.overview-tile-number {
+    font-size: var(--nn-tile-number);
+    font-weight: 700;
+    line-height: 1.1;
+}
+.overview-tile-label {
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.overview-tile-detail {
+    font-size: var(--nn-font-xs);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+/* Phones: no icon, so the number, label and detail stack in one column (two columns would squeeze the label). */
+@media (max-width: 575.98px) {
+    .overview-tile-link { grid-template-columns: minmax(0, 1fr); padding: var(--nn-space-3); }
+    .overview-tile-icon { display: none; }
+}
+
+.overview-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-section-gap);
+    align-items: start;
+}
+@media (min-width: 1200px) {
+    .overview-columns { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+}
+.overview-main { min-width: 0; }
+.overview-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-section-gap);
+    min-width: 0;
+}
+.overview-card { min-width: 0; }
+.overview-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-1) var(--nn-space-3);
+    padding-block: var(--nn-space-3);
+    background-color: transparent;
+}
+.overview-card-title {
+    margin: 0;
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.overview-card-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.overview-card .empty-state { padding: var(--nn-space-4) var(--nn-card-padding); }
+.overview-card .empty-state-icon { width: 2.5rem; height: 2.5rem; margin-bottom: var(--nn-space-2); }
+.overview-card .empty-state-icon > svg { width: 20px; height: 20px; }
+.overview-card .empty-state-title { font-size: var(--nn-font-body); }
+.overview-card-foot {
+    margin: 0;
+    padding: var(--nn-space-2) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-xs);
+    color: var(--nn-text-secondary);
+}
+
+/* By category */
+.category-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background-color: var(--nn-divider);
+    border-top: 1px solid var(--nn-divider);
+    border-radius: 0 0 var(--nn-radius-card) var(--nn-radius-card);
+    overflow: hidden;
+}
+.category-tile {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    height: 100%;
+    min-height: 4rem;
+    padding: var(--nn-space-3) var(--nn-space-4);
+    background-color: var(--nn-surface);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.category-tile:hover { color: var(--nn-text); background-color: var(--nn-hover); }
+.category-tile:hover .category-tile-label { text-decoration: underline; }
+.category-tile-icon {
+    flex: none;
+    color: var(--nn-text-secondary);
+}
+.category-tile-icon > svg { width: 20px; height: 20px; }
+.category-tile-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nn-space-1);
+    min-width: 0;
+}
+.category-tile-label {
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.category-tile-count .status-badge { white-space: nowrap; }
+
+/* Next 30 days */
+.upcoming-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--nn-space-3);
+    padding-block: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+}
+.upcoming-date {
+    flex: 0 0 6.25rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.upcoming-text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--nn-space-2);
+    min-width: 0;
+}
+.upcoming-title {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+    overflow-wrap: anywhere;
+}
+.upcoming-ship {
+    align-self: center;
+    font-weight: 600;
+}
+
+/* Fleet */
+.fleet-table > tbody > tr > td { padding-block: var(--nn-space-2); }
+.fleet-vessel-name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+}
+.fleet-vessel-type {
+    display: block;
+    font-size: var(--nn-font-xs);
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+
+/* Recent activity */
+.recent-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-block: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+}
+.recent-action { font-weight: 600; }
+.recent-meta {
+    font-size: var(--nn-font-xs);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* The chips of the Needs attention list */
+.attention-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding: var(--nn-space-2) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: 2rem;
+    padding: 2px var(--nn-space-3);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+    background-color: var(--nn-surface);
+    color: var(--nn-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+    position: relative;
+}
+.chip::after {
+    content: "";
+    position: absolute;
+    top: calc((100% - var(--nn-touch-target)) / 2);
+    bottom: calc((100% - var(--nn-touch-target)) / 2);
+    left: 0;
+    right: 0;
+}
+.chip:hover { color: var(--nn-text); border-color: var(--nn-field-border); background-color: var(--nn-hover); }
+.chip.is-current {
+    color: #fff;
+    background-color: var(--nn-blue);
+    border-color: var(--nn-blue);
+}
+.chip-count {
+    padding: 0 var(--nn-space-1);
+    border-radius: var(--nn-radius-badge);
+    background-color: rgba(var(--nn-navy-rgb), .08);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+}
+.chip.is-current .chip-count { background-color: rgba(255, 255, 255, .2); }
+.attention-sort .view-switch { margin: 0; }
+.attention-header-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+}
+.attention .list-selection { border-bottom: 1px solid var(--nn-divider); }
 
 .status-badge-icon::before { display: none; }
 .status-badge-icon > svg {
@@ -1360,17 +1643,18 @@ fieldset:disabled button.btn {
 }
 
 .attention-item {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-2) var(--nn-space-4);
-    padding-block: var(--nn-space-3);
+    gap: var(--nn-space-2) var(--nn-space-3);
+    padding-block: var(--nn-space-2);
 }
-.attention-text {
-    flex: 1 1 24rem;
-    min-width: 0;
+.attention-select {
+    grid-row: 1 / span 2;
+    width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
 }
+.attention-text { min-width: 0; }
 .attention-meta {
     display: flex;
     flex-wrap: wrap;
@@ -1397,8 +1681,37 @@ fieldset:disabled button.btn {
     color: var(--nn-text);
 }
 .attention-action {
-    flex-shrink: 0;
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
     margin: 0;
+}
+/* From 1200px: the badge, then the title over the context (each one line, cut with an ellipsis), the actions on the
+   right. The card is 7/12 of the page, so two text columns side by side would be too narrow for the badges. */
+@media (min-width: 1200px) {
+    .attention-item { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .attention-select { grid-row: auto; }
+    .attention-text {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: center;
+        column-gap: var(--nn-space-3);
+    }
+    .attention-meta { grid-row: 1 / span 2; flex-wrap: nowrap; white-space: nowrap; }
+    .attention-kind { display: none; }
+    .attention-title,
+    .attention-context {
+        display: block;
+        min-width: 0; /* a grid item would otherwise keep its content's width and run under the actions */
+        min-height: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .attention-title { padding-block: var(--nn-space-1); line-height: 1.4; }
+    .attention-action { grid-column: auto; flex-wrap: nowrap; }
 }
 
 .attention-empty-title {
@@ -1412,33 +1725,34 @@ fieldset:disabled button.btn {
     color: var(--nn-text-secondary);
 }
 
-.attention-footer {
-    padding: var(--nn-space-3) var(--nn-card-padding);
-    border-top-color: var(--nn-divider);
-    font-size: var(--nn-font-sm);
-}
-.attention-truncated {
-    margin-bottom: var(--nn-space-2);
-    color: var(--nn-text-secondary);
-}
-.attention-lists-title {
-    margin: 0;
-    font-size: var(--nn-font-xs);
-    font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--nn-text-secondary);
-}
-.attention-lists {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--nn-space-5);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
 .count-zero { color: var(--nn-text-secondary); }
+
+/* A country's flag before its name (P43, layout/parts :: flag and country): 20 x 15px, a 1px subtle border so a
+   white flag (Japan, Finland) stays visible on the surface; the name follows on the same line. */
+:root {
+    --nn-flag-width: 20px;
+    --nn-flag-height: 15px;
+}
+.flag-icon {
+    display: inline-block;
+    width: var(--nn-flag-width);
+    height: var(--nn-flag-height);
+    flex: none;
+    vertical-align: -2px;
+    border: 1px solid rgba(var(--nn-navy-rgb), .18);
+    border-radius: 2px;
+    background-color: var(--nn-field);
+    object-fit: cover;
+}
+.country {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    max-width: 100%;
+    vertical-align: middle;
+}
+.country > span { min-width: 0; overflow-wrap: normal; } /* the name may wrap between words, never inside one */
+
 /* The tap area is extended by ::after (as on the breadcrumbs), so the rows keep their 52px height. */
 .count-link {
     position: relative;
@@ -3542,7 +3856,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Crew home page (P26): shiphome/home.html.
-     - .home-sign-out: "Not Demo Cook?" and Sign out, in the page header's actions next to the name (shared PCs).
+     - .home-sign-out: Sign out, in the page header's actions next to the name (shared PCs; the "Not Demo Cook?" text
+       went in P43).
      - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
        home page), card-title size.
      - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
@@ -3555,21 +3870,11 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 .home-sign-out {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--nn-space-2) var(--nn-space-3);
 }
-.home-sign-out-name {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    overflow-wrap: anywhere;
-}
-@media (max-width: 575.98px) {
-    .home-sign-out { justify-content: space-between; }
-}
-/* .from-md (P39): shown from 768px only, without JavaScript. Crew Home's "Not Demo Cook? Sign out": on phones Sign
-   out is under More, so the header keeps the name. A page header's actions holding only such a block take no room. */
+/* .from-md (P39): shown from 768px only, without JavaScript. Crew Home's Sign out: on phones Sign out is under More,
+   so the header keeps the name. A page header's actions holding only such a block take no room. */
 @media (max-width: 767.98px) {
     .from-md,
     .page-actions:has(> .from-md:only-child) { display: none; }
@@ -4620,8 +4925,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .ghg: the GHG Rating, a leaf icon in RightShip's colour of the letter (.ghg-a ... .ghg-e; .ghg-u grey), then
        the letter and Verified / Unverified in the text colour. The colour is on the icon only, so it is never the
        only carrier of the rating.
-     - .vetting-badges: the vessel page header's row of three badges (score, GHG, inspection), one link to the
-       vessel's Vetting page; a 40px touch target (44px on phones).
+     - .vetting-badges: the vessel page header's row of badges (score, GHG, inspection; SIRE 2.0 on a tanker). P43:
+       each badge is a link of its own (.vetting-badge, to the RightShip or SIRE page) with its own hover and focus
+       ring; a 40px touch target (44px on phones).
      - .regime-card: a vetting regime on a vessel's Vetting page (RightShip, SIRE 2.0); the title is a
        .stretched-link, so the whole card opens the regime's page.
      - .rightship-layout: the RightShip page, 7/12 dashboard and 5/12 document from 992px (Bootstrap's row), the
@@ -4729,9 +5035,10 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     margin-top: var(--nn-space-2);
     padding: var(--nn-space-1) 0;
     color: var(--nn-text);
-    text-decoration: none;
 }
+/* Each badge its own link (P43): hover and focus on that badge only; the tap area is the touch target (::after). */
 .vetting-badge {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: var(--nn-space-2);
@@ -4740,7 +5047,17 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     border: 1px solid var(--nn-divider);
     border-radius: var(--nn-radius-badge);
     background-color: var(--nn-surface);
+    color: var(--nn-text);
     font-size: var(--nn-font-sm);
+    text-decoration: none;
+}
+.vetting-badge::after {
+    content: "";
+    position: absolute;
+    top: calc((100% - var(--nn-touch-target)) / 2);
+    bottom: calc((100% - var(--nn-touch-target)) / 2);
+    left: 0;
+    right: 0;
 }
 .vetting-badge > .sidebar-icon {
     width: 16px;
@@ -4749,11 +5066,13 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .vetting-badge-label { color: var(--nn-text-secondary); }
 .vetting-badge .ghg-verified { display: none; }
-.vetting-badges:hover .vetting-badge { border-color: var(--nn-field-border); }
-.vetting-badges:hover .vetting-badge-label { text-decoration: underline; }
-@media (max-width: 575.98px) {
-    .vetting-badges { min-height: 44px; }
+.vetting-badge:hover {
+    color: var(--nn-text);
+    border-color: var(--nn-field-border);
+    background-color: var(--nn-hover);
 }
+.vetting-badge:hover .vetting-badge-label { text-decoration: underline; }
+.vetting-badge:focus-visible { outline-offset: 2px; }
 
 /* A regime card on a vessel's Vetting page */
 .regime-card { transition: border-color .15s ease-in-out; }
@@ -5340,6 +5659,77 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     color: var(--nn-text-secondary);
 }
 
+/* P43: the row toggle before the type's name, the Delete row icon button at the row's end, and the note under the
+   grid's title naming the vessels the chosen grid applies to. */
+.requirement-selection-note {
+    margin: var(--nn-space-2) 0 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+}
+.req-row-all {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    margin: calc(-1 * var(--nn-space-2)) 0 calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2));
+    vertical-align: middle;
+    cursor: pointer;
+}
+.req-row-all > .form-check-input { margin: 0; }
+.req-grid .req-grid-delete {
+    width: 1%;
+    text-align: center;
+    border-left: 1px solid var(--nn-divider);
+}
+.req-row-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    padding: 0;
+}
+.req-row-delete > svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* The combined filter's combobox (P43, js/requirements.js): the field, and its listbox under it with each option's
+   name and kind ("ALDER · Bulk carrier", the kind muted). The active option (arrow keys) and hover share the hover
+   tint; the chosen one is semibold. */
+.combobox { position: relative; }
+.combobox-list {
+    position: absolute;
+    z-index: 1040;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 18rem;
+    margin: 0;
+    padding: var(--nn-space-1) 0;
+    overflow-y: auto;
+    list-style: none;
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    box-shadow: var(--bs-dropdown-box-shadow, 0 .5rem 1rem rgba(0, 0, 0, .15));
+}
+.combobox-option,
+.combobox-none {
+    display: flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-1) var(--nn-space-3);
+    font-size: var(--nn-font-sm);
+}
+.combobox-option { cursor: pointer; }
+.combobox-option:hover,
+.combobox-option.is-active { background-color: var(--nn-hover); }
+.combobox-option[aria-selected="true"] .combobox-option-label { font-weight: 600; }
+.combobox-option-kind { color: var(--nn-text-secondary); }
+.combobox-none { color: var(--nn-text-secondary); }
+
 .requirement-add { margin-top: var(--nn-section-gap); }
 .requirement-add-row {
     display: flex;
@@ -5453,3 +5843,98 @@ label.req-cell:hover { background-color: var(--nn-hover); }
 @media (max-width: 767.98px) {
     :root { --nn-req-type-width: 10rem; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Snoozing alerts (P43): alert/snooze.html, alert/parts.html, the Certificates and Vetting lists and the Overview.
+     - tr.is-snoozed: a muted row (the texts keep at least 4.5:1: only the surface changes, the words say "Snoozed").
+     - .snoozed-note: "Snoozed by Jane Doe until 13 Dec 2026 · Renewal in progress" with the snooze icon and Undo
+       (a small form), on the row; .snoozed-list: a vessel's snoozed items on the Vetting list, one per line.
+     - .snooze-items: the snooze page's review of the selection: one .snooze-item per alert (its checkbox when there
+       are several), the badge, the title and the vessel and date (.snooze-item-meta).
+     - .snooze-durations: the duration choices, the date input under "Until a date" (.snooze-date).
+     - .snooze-list-form: the lists' empty GET form; the rows' checkboxes belong to it by their form attribute.
+   --------------------------------------------------------------------------------------------------------------- */
+.data-table > tbody > tr.is-snoozed > * { --bs-table-bg: var(--nn-page); }
+.data-table > tbody > tr.is-snoozed .cell-primary a,
+.data-table > tbody > tr.is-snoozed .status-badge { opacity: .75; }
+
+.snoozed-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+    margin-top: var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    color: var(--nn-text-secondary);
+    white-space: normal;
+}
+.snoozed-note > svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+}
+.snoozed-note-text { overflow-wrap: anywhere; }
+.snoozed-note-undo { margin: 0; }
+.snoozed-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    white-space: normal;
+}
+.snoozed-list > li + li { margin-top: var(--nn-space-2); }
+.snoozed-kind {
+    display: block;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.data-table .vetting-snooze { white-space: normal; }
+/* Room for the snoozed note on the table; as a stacked card (phones) the cell is as wide as its Snooze link. */
+@media (min-width: 768px) {
+    .data-table .vetting-snooze { min-width: 14rem; }
+}
+.data-table .vetting-snooze .row-actions { justify-content: flex-start; }
+
+.snooze-items { margin-bottom: var(--nn-space-4); }
+.snooze-items > legend {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.snooze-item-list {
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.snooze-item { padding: var(--nn-space-2) var(--nn-space-3); }
+.snooze-item-pick {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+.snooze-item-pick > .form-check-input { flex: none; margin: 0; }
+.snooze-item-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-3);
+    min-width: 0;
+}
+.snooze-item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.snooze-item-title { font-weight: 600; overflow-wrap: anywhere; }
+.snooze-item-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.snooze-durations .form-check { min-height: var(--nn-touch-target); }
+.snooze-date {
+    max-width: 14rem;
+    margin: var(--nn-space-1) 0 var(--nn-space-2);
+}
+.snooze-list-form { display: none; }

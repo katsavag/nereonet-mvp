@@ -20,6 +20,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
  *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
  *               acknowledged yet; null for office users and when signed out.
+ *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl, P43) for the user block's
+ *               picture; null without a photo, for office users and when signed out.
  * The one place that decides both, so no controller sets them.
  */
 @ControllerAdvice
@@ -31,11 +33,20 @@ public class NavigationAdvice {
     static final String APPROVALS_WAITING = "approvalsWaiting";
     static final String ORDER_LINES = "orderLines";
     static final String ANNOUNCEMENTS_TO_ACKNOWLEDGE = "announcementsToAcknowledge";
+    static final String CURRENT_PHOTO = "currentPhoto";
 
     private final NavigationService navigationService;
 
     public NavigationAdvice(NavigationService navigationService) {
         this.navigationService = navigationService;
+    }
+
+    @ModelAttribute(CURRENT_PHOTO)
+    public String currentPhoto(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null || currentUser.getRole() == Role.OFFICE_USER) {
+            return null;
+        }
+        return navigationService.photoUrl(currentUser.getId());
     }
 
     @ModelAttribute(SECTION)

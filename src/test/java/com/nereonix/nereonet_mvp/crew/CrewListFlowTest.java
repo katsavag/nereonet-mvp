@@ -128,20 +128,24 @@ class CrewListFlowTest {
     }
 
     @Test
-    void twentyFivePerPageWithFiftyAsAnOption() throws Exception {
+    void tenPerPageWithTwentyFiftyAndAHundredAsOptions() throws Exception {
         String first = html(get("/office/crew"));
-        assertThat(names(first)).hasSize(25).startsWith("Anna Smith", "Crew 01");
-        assertThat(first).contains("1 to 25 of 32", "href=\"/office/crew?page=2\"", "href=\"/office/crew?size=50\"",
-                "aria-disabled=\"true\"").doesNotContain("href=\"\"");
+        assertThat(names(first)).hasSize(10).startsWith("Anna Smith", "Crew 01");
+        assertThat(first).contains("1 to 10 of 32", "href=\"/office/crew?page=2\"", "href=\"/office/crew?size=20\"",
+                        "href=\"/office/crew?size=50\"", "href=\"/office/crew?size=100\"", "aria-disabled=\"true\"")
+                .doesNotContain("href=\"\"", "size=25");
 
-        String second = html(get("/office/crew").param("page", "2"));
-        assertThat(names(second)).hasSize(7).startsWith("Crew 25").endsWith("Zed Invitee");
-        // Previous goes back to page 1 (no page parameter); Next is disabled and has no link.
-        assertThat(second).contains("26 to 32 of 32", "href=\"/office/crew\"").doesNotContain("href=\"\"");
+        String fourth = html(get("/office/crew").param("page", "4"));
+        assertThat(names(fourth)).hasSize(2).startsWith("Crew 30").endsWith("Zed Invitee");
+        // Previous goes to page 3; Next is disabled and has no link.
+        assertThat(fourth).contains("31 to 32 of 32", "href=\"/office/crew?page=3\"").doesNotContain("href=\"\"");
+        // Previous from page 2 goes back to page 1 (no page parameter).
+        assertThat(html(get("/office/crew").param("page", "2"))).contains("rel=\"prev\" href=\"/office/crew\"");
 
         assertThat(names(html(get("/office/crew").param("size", "50")))).hasSize(32);
+        assertThat(names(html(get("/office/crew").param("size", "20")))).hasSize(20);
         // A page past the end shows the last page.
-        assertThat(names(html(get("/office/crew").param("page", "9")))).hasSize(7);
+        assertThat(names(html(get("/office/crew").param("page", "9")))).hasSize(2);
         // The same URL shows the same rows again.
         RequestBuilder sorted = get("/office/crew").param("sort", "status").param("page", "2");
         assertThat(names(html(sorted))).isEqualTo(names(html(sorted)));
@@ -164,11 +168,11 @@ class CrewListFlowTest {
     void theCrewTabSearchesFiltersSortsAndPagesItsShip() throws Exception {
         String tab = "/office/ships/" + alpha.getId() + "/crew";
         String first = html(get(tab));
-        assertThat(names(first)).hasSize(25);
-        assertThat(first).contains("1 to 25 of 30", "action=\"" + tab + "\"", "name=\"status\"")
+        assertThat(names(first)).hasSize(10);
+        assertThat(first).contains("1 to 10 of 30", "action=\"" + tab + "\"", "name=\"status\"")
                 .doesNotContain("id=\"filterShipId\"");
-        assertThat(names(html(get(tab).param("page", "2")))).containsExactly("Crew 26", "Crew 27", "Crew 28",
-                "Crew 29", "Crew 30");
+        assertThat(names(html(get(tab).param("page", "3")))).containsExactly("Crew 21", "Crew 22", "Crew 23",
+                "Crew 24", "Crew 25", "Crew 26", "Crew 27", "Crew 28", "Crew 29", "Crew 30");
         assertThat(names(html(get(tab).param("q", "crew 0").param("sort", "name").param("dir", "desc"))))
                 .startsWith("Crew 09", "Crew 08");
         assertThat(names(html(get(tab).param("status", "inactive")))).containsExactly("Crew 30");
@@ -196,9 +200,9 @@ class CrewListFlowTest {
         invitation("new.office@example.com", "New Office", null, 3);
         // 26 + the seeded office user + one invitation.
         String first = html(get("/office/users"));
-        assertThat(names(first)).hasSize(25);
-        assertThat(first).contains("1 to 25 of 28");
-        assertThat(names(html(get("/office/users").param("page", "2")))).hasSize(3);
+        assertThat(names(first)).hasSize(10);
+        assertThat(first).contains("1 to 10 of 28");
+        assertThat(names(html(get("/office/users").param("page", "3")))).hasSize(8);
 
         assertThat(names(html(get("/office/users").param("q", "new.office")))).containsExactly("New Office");
         assertThat(names(html(get("/office/users").param("status", "invited")))).containsExactly("New Office");

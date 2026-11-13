@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.mail.MailService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
@@ -63,6 +64,8 @@ public class CertificateReminderService {
      * For every not yet expired certificate of an enabled user, finds the smallest threshold reached
      * (days left <= 90, 60 or 30). If it has no reminder row, sends the reminder and saves rows for it
      * and every larger threshold, so a certificate entered late gets one reminder, not three.
+     * A certificate whose snooze holds (P43) is skipped: no reminder rows, so once the snooze ends the reminder of
+     * the threshold reached by then is sent.
      * Each certificate has its own transaction: a failed email does not undo the reminders already sent,
      * and the failed one is tried again on the next run.
      */
@@ -70,7 +73,8 @@ public class CertificateReminderService {
     public void sendDueReminders() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         List<Long> dueIds = transaction.execute(status -> certificateRepository
-                .findDueForReminder(today, today.plusDays(Certificate.REMINDER_DAYS.getLast()))
+                .findDueForReminder(today, today.plusDays(Certificate.REMINDER_DAYS.getLast()), today.plusDays(30),
+                        today.plusDays(60), AlertKind.CERTIFICATE_EXPIRED, AlertKind.CERTIFICATE_EXPIRING)
                 .stream().map(Certificate::getId).toList());
         for (Long id : dueIds) {
             try {

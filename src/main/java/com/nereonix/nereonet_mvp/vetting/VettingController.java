@@ -3,6 +3,7 @@ package com.nereonix.nereonet_mvp.vetting;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,7 @@ import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
 import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.Subscore;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
+import com.nereonix.nereonet_mvp.ship.Countries;
 
 /**
  * Vetting (P40), office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip (P40) and SIRE
@@ -100,6 +102,8 @@ public class VettingController {
         model.addAttribute("regimes", VettingService.REGIMES);
         model.addAttribute("regime", chosenRegime);
         model.addAttribute("syncFailedAt", vettingService.syncFailedAt());
+        // P43: the vessels' flags with their country names.
+        model.addAttribute("countries", Countries.labels(LocaleContextHolder.getLocale()));
         return "vetting/list";
     }
 

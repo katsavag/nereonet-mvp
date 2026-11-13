@@ -5,19 +5,19 @@
      phone screen. English only, as every crew screen. Read only except Sign out. No images (but the person's own
      profile photo, P31), no script of its own.
      Phones: one column (To read, My certificates); from 992px To read on the left, the certificates on the right.
-     The header says who is signed in, their rank and ship; on a shared PC "Not Demo Cook? Sign out" sits next to the
-     name, from 768px only (P39, .from-md: on phones Sign out is under More). P31: the person's profile photo (96px version) or initials before the name. -->
-<main class="crew-home" th:with="u=${home.user}, today=${@dates.today()},
-        photo=${home.photoKey != null} ? ${'/ship/crew/' + u.id + '/photo/' + home.photoKey + '/96'} : null">
+     The header says who is signed in, their rank and ship; on a shared PC Sign out sits next to the name, from
+     768px only (P39, .from-md: on phones Sign out is under More; P43: the "Not Demo Cook?" text went). P31: the
+     person's profile photo (96px version, with its version so a new photo shows at once, P43) or initials before the
+     name. -->
+<main class="crew-home" th:with="u=${home.user}, today=${@dates.today()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
             subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}, actions=~{::pageActions},
             media=~{::pageMedia})}">
         <th:block th:fragment="pageMedia">
-            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${photo}, 'lg')}"></span>
+            <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${home.photoUrl}, 'lg')}"></span>
         </th:block>
         <th:block th:fragment="pageActions">
             <div class="home-sign-out from-md">
-                <span class="home-sign-out-name" th:text="#{home.notYou(${u.fullName})}">Not Demo Cook?</span>
                 <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary')}"></form>
             </div>
         </th:block>

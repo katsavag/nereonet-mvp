@@ -7,6 +7,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+
 public interface ShipRightShipStatusRepository extends JpaRepository<ShipRightShipStatus, Long> {
 
     Optional<ShipRightShipStatus> findByShipIdAndCurrentTrue(Long shipId);
@@ -21,12 +23,18 @@ public interface ShipRightShipStatusRepository extends JpaRepository<ShipRightSh
 
     /**
      * The sidebar counter of Vetting: active vessels whose inspection is expired or valid until "until" at most. Ids,
-     * so VettingService counts each vessel once together with its SIRE 2.0 items (P41).
+     * so VettingService counts each vessel once together with its SIRE 2.0 items (P41). P43: not the vessels whose
+     * VETTING_INSPECTION snooze holds, at the inspection's level today (0 expired, 1 within 30 days, else 2;
+     * AlertLevels).
      */
     @Query("""
             select s.ship.id from ShipRightShipStatus s
-            where s.current = true and s.ship.active = true and s.inspectionValidUntil <= :until""")
-    List<Long> findShipIdsInspectionDueUntil(LocalDate until);
+            where s.current = true and s.ship.active = true and s.inspectionValidUntil <= :until
+              and not exists (select a.id from AlertSnooze a
+                              where a.kind = :kind and a.subjectId = s.ship.id and a.endedAt is null and a.until >= :today
+                                and a.level <= case when s.inspectionValidUntil < :today then 0
+                                                    when s.inspectionValidUntil <= :d30 then 1 else 2 end)""")
+    List<Long> findShipIdsInspectionDueUntil(LocalDate until, LocalDate today, LocalDate d30, AlertKind kind);
 
     boolean existsByShipId(Long shipId);
 }

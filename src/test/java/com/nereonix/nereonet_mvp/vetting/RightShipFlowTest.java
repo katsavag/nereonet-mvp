@@ -327,10 +327,14 @@ class RightShipFlowTest {
         Ship ship = vessel("ALDER");
         alder(ship);
 
+        // P43: each badge is its own link (own hover and focus); the three RightShip badges open the RightShip page.
         String page = html(get("/office/ships/{id}", ship.getId()));
-        assertThat(page).containsPattern("(?s)<a class=\"vetting-badges\"\\s+href=\"/office/vetting/" + ship.getId() + "\">.*?"
-                        + "3/5.*?ghg-c.*?Expires in 38 days.*?</a>")
-                .doesNotContain("/office/ships/" + ship.getId() + "/vetting");
+        String rightShip = "/office/vetting/" + ship.getId() + "/rightship";
+        assertThat(page).containsPattern("(?s)<div class=\"vetting-badges\">.*?"
+                        + "<a class=\"vetting-badge\" href=\"" + rightShip + "\">.*?3/5.*?\\(opens RightShip\\)</span>\\s*</a>\\s*"
+                        + "<a class=\"vetting-badge\" href=\"" + rightShip + "\">.*?ghg-c.*?</a>\\s*"
+                        + "<a class=\"vetting-badge\" href=\"" + rightShip + "\">.*?Expires in 38 days.*?</a>\\s*</div>")
+                .doesNotContain("/office/ships/" + ship.getId() + "/vetting", "<a class=\"vetting-badges\"");
         // An inactive vessel has no Vetting page, so no badges.
         ship.setActive(false);
         assertThat(html(get("/office/ships/{id}", ship.getId()))).doesNotContain("vetting-badges");
@@ -345,7 +349,7 @@ class RightShipFlowTest {
 
         String overview = html(get("/office"));
         assertThat(overview).contains("RightShip inspection", "Expires in 38 days", "Open RightShip",
-                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "Vetting needs attention",
+                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "<span class=\"category-tile-label\">Vetting</span>",
                 "href=\"/office/vetting?status=attention\"");
 
         String ships = html(get("/office/ships").param("sort", "score"));

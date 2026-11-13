@@ -117,12 +117,16 @@ class ListsFlowTest {
         assertThat(names(html(get("/office/certificates").param("sort", "type").param("dir", "desc"))))
                 .startsWith("Old Pass", "Medical", "Cert 27");
 
+        // 10 a page (P43), 20, 50 or 100 on request.
         String first = html(get("/office/certificates"));
-        assertThat(names(first)).hasSize(25).startsWith("Old Pass", "Cert 01");
-        assertThat(first).contains("1 to 25 of 29", "href=\"/office/certificates?page=2\"");
-        String second = html(get("/office/certificates").param("page", "2"));
-        assertThat(names(second)).containsExactly("Cert 25", "Cert 26", "Cert 27", "Medical");
-        assertThat(second).contains("26 to 29 of 29");
+        assertThat(names(first)).hasSize(10).startsWith("Old Pass", "Cert 01");
+        assertThat(first).contains("1 to 10 of 29", "href=\"/office/certificates?page=2\"",
+                "href=\"/office/certificates?size=20\"", "href=\"/office/certificates?size=100\"");
+        String third = html(get("/office/certificates").param("page", "3"));
+        assertThat(names(third)).containsExactly("Cert 20", "Cert 21", "Cert 22", "Cert 23", "Cert 24",
+                "Cert 25", "Cert 26", "Cert 27", "Medical");
+        assertThat(third).contains("21 to 29 of 29");
+        assertThat(names(html(get("/office/certificates").param("size", "50")))).hasSize(29);
 
         String none = html(get("/office/certificates").param("q", "nothing like it"));
         assertThat(names(none)).isEmpty();
@@ -140,7 +144,8 @@ class ListsFlowTest {
         assertThat(names(html(get(tab).param("sort", "type")))).containsExactly("Medical", "Old Pass");
 
         String alphaTab = "/office/ships/" + alpha.getId() + "/certificates/list";
-        assertThat(names(html(get(alphaTab).param("page", "2")))).containsExactly("Cert 26", "Cert 27");
+        assertThat(names(html(get(alphaTab).param("page", "3")))).containsExactly("Cert 21", "Cert 22", "Cert 23",
+                "Cert 24", "Cert 25", "Cert 26", "Cert 27");
     }
 
     // Items ----------------------------------------------------------------------------------------------------------
@@ -162,9 +167,10 @@ class ListsFlowTest {
                 .startsWith("Old flour", "Item 26");
 
         String first = html(get(tab));
-        assertThat(names(first)).hasSize(25).startsWith("Eggs", "Item 01").doesNotContain("Coffee");
-        assertThat(first).contains("1 to 25 of 28");
-        assertThat(names(html(get(tab).param("page", "2")))).containsExactly("Item 25", "Item 26", "Old flour");
+        assertThat(names(first)).hasSize(10).startsWith("Eggs", "Item 01").doesNotContain("Coffee");
+        assertThat(first).contains("1 to 10 of 28");
+        assertThat(names(html(get(tab).param("page", "3")))).containsExactly("Item 20", "Item 21",
+                "Item 22", "Item 23", "Item 24", "Item 25", "Item 26", "Old flour");
         assertThat(html(get(tab).param("q", "caviar"))).contains("No results for these filters");
     }
 
@@ -188,16 +194,16 @@ class ListsFlowTest {
         assertThat(names(html(get("/office/orders").param("shipId", beta.getId().toString()))))
                 .containsExactly(number(exported.getId()));
         String notExported = html(get("/office/orders").param("exported", "no"));
-        assertThat(names(notExported)).hasSize(25).doesNotContain(number(exported.getId()));
+        assertThat(names(notExported)).hasSize(10).doesNotContain(number(exported.getId()));
         assertThat(notExported).contains("class=\"filter-chip\"", "Export status: Not exported yet");
         // Newest sent first.
         String first = html(get("/office/orders"));
         assertThat(names(first).getFirst()).isEqualTo(number(alphaOrders.getLast().getId()));
-        assertThat(first).contains("1 to 25 of 27");
+        assertThat(first).contains("1 to 10 of 27");
 
-        String second = html(get("/office/orders").param("page", "2"));
-        assertThat(names(second)).containsExactly(number(firstId), number(exported.getId()));
-        assertThat(second).contains("26 to 27 of 27");
+        String third = html(get("/office/orders").param("page", "3"));
+        assertThat(names(third)).hasSize(7).endsWith(number(firstId), number(exported.getId()));
+        assertThat(third).contains("21 to 27 of 27");
         assertThat(html(get("/office/orders").param("q", "nothing like it"))).contains("No results for these filters");
     }
 
@@ -217,10 +223,10 @@ class ListsFlowTest {
                 .startsWith("Fleet drill", "Notice 01");
 
         String first = html(get("/office/announcements"));
-        assertThat(names(first)).hasSize(25).startsWith("Notice 26");
-        assertThat(first).contains("1 to 25 of 27");
-        assertThat(names(html(get("/office/announcements").param("page", "2"))))
-                .containsExactly("Notice 01", "Fleet drill");
+        assertThat(names(first)).hasSize(10).startsWith("Notice 26");
+        assertThat(first).contains("1 to 10 of 27");
+        assertThat(names(html(get("/office/announcements").param("page", "3"))))
+                .containsExactly("Notice 06", "Notice 05", "Notice 04", "Notice 03", "Notice 02", "Notice 01", "Fleet drill");
 
         String tab = "/office/ships/" + beta.getId() + "/announcements";
         assertThat(names(html(get(tab)))).containsExactly("Fleet drill");
@@ -247,10 +253,10 @@ class ListsFlowTest {
         assertThat(byWho.getFirst()).contains("p19 beta entry");
 
         String first = html(get("/office/audit").param("q", "p19"));
-        // 20 a page on the audit log (P39).
-        assertThat(rows(first)).hasSize(20);
-        assertThat(first).contains("1 to 20 of 27", "href=\"/office/audit?q=p19&amp;page=2\"");
-        assertThat(rows(html(get("/office/audit").param("q", "p19").param("page", "2")))).hasSize(7);
+        // 10 a page on the audit log too (P43; 20 since P39).
+        assertThat(rows(first)).hasSize(10);
+        assertThat(first).contains("1 to 10 of 27", "href=\"/office/audit?q=p19&amp;page=2\"");
+        assertThat(rows(html(get("/office/audit").param("q", "p19").param("page", "3")))).hasSize(7);
         assertThat(html(get("/office/audit").param("q", "p19").param("from", TODAY.plusDays(1).toString())))
                 .contains("No results for these filters");
     }

@@ -40,7 +40,11 @@
                     <td class="text-nowrap" th:attr="data-label=#{ship.code}"
                         th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
                     <td th:attr="data-label=#{ship.type}" th:text="${s.type} ? #{${'ship.type.' + s.type}} : '—'">Bulk carrier</td>
-                    <td th:attr="data-label=#{ship.flag}" th:text="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : '—'">Greece (GR)</td>
+                    <!-- P43: the flag's image before the country. -->
+                    <td th:attr="data-label=#{ship.flag}">
+                        <th:block th:if="${s.flag}"><span th:replace="~{layout/parts :: country(${s.flag}, ${countries[s.flag]} ?: ${s.flag})}">Greece (GR)</span></th:block>
+                        <th:block th:unless="${s.flag}">—</th:block>
+                    </td>
                     <!-- The RightShip Safety Score (P40); for an active vessel a link to its Vetting page. -->
                     <td th:attr="data-label=#{vetting.score}" th:with="v=${rightShip[s.id] ?: noVetting}">
                         <a th:if="${s.active}" class="score-cell score-link" th:href="@{/office/vetting/{id}(id=${s.id})}">

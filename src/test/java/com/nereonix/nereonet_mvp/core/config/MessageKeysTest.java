@@ -49,7 +49,6 @@ class MessageKeysTest {
             "nav.home",
             "nav.library",
             "home.title",
-            "home.notYou",
             "home.toRead.heading",
             "home.toRead.kind.LIBRARY",
             "home.toRead.kind.ANNOUNCEMENT",

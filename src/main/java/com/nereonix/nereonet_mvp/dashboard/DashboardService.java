@@ -18,15 +18,28 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.core.alert.Alert;
+import com.nereonix.nereonet_mvp.core.alert.AlertKey;
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
+import com.nereonix.nereonet_mvp.core.alert.AlertSnooze;
+import com.nereonix.nereonet_mvp.core.alert.SnoozeService;
+import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
+import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
-import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -34,6 +47,8 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.vetting.InspectionState;
 import com.nereonix.nereonet_mvp.core.vetting.ObservationType;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
+import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatus;
+import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatusRepository;
 import com.nereonix.nereonet_mvp.core.vetting.SireObservation;
 import com.nereonix.nereonet_mvp.core.vetting.SireReportState;
 import com.nereonix.nereonet_mvp.core.vetting.SireService;
@@ -45,20 +60,25 @@ import com.nereonix.nereonet_mvp.requirement.ComplianceService;
 import com.nereonix.nereonet_mvp.requirement.RequiredDocument;
 
 /**
- * The office Overview (P09): a work list of open items ("Needs attention") and a fleet table, and the Overview tab of
- * the ship page. Read only.
+ * The office Overview (P09, P43): four stat tiles, a work list of open items ("Needs attention", paged, filtered by
+ * category or vessel), and the cards By category, Next 30 days, Fleet and Recent activity; also the Overview tab of
+ * the ship page.
  *
- * load() always runs the same 10 queries, whatever the size of the fleet: active ships, crew on board per ship, and
- * one per kind of open item (certificates, RightShip vetting, orders, invitations, announcements, library items).
- * See DashboardQueries. SIRE 2.0 (P41) adds two, from SireService.attention: reports and comments, observations.
- * Required documents (P42) add one, the requirements, and when any is set two more: the crew on board with their
- * vessels, and their certificates (ComplianceService.onBoard). DashboardFlowTest counts them.
+ * load() always runs the same 12 queries, whatever the size of the fleet: the active ships with their crew, the
+ * certificates, the required documents' rules, the vessels' RightShip rows, SIRE 2.0 (two, SireService.attention),
+ * the orders, the invitations, the announcements, the library items, the snoozes (SnoozeService.sync, which also
+ * ends the snoozes that no longer apply: a write, so load() is not read-only) and the newest audit entries.
+ * Required documents (P42) add two more when any rule is set: the crew on board and their certificates
+ * (ComplianceService.onBoard). DashboardFlowTest counts them. Snoozed items (P43) are left out of everything but
+ * the "snoozed" detail of the Items tile.
  */
 @Service
 public class DashboardService {
 
     /** A certificate is an open item when it has expired or expires within this many days (UTC). */
     public static final int OPEN_ITEM_CERTIFICATE_DAYS = 30;
+    /** The snooze sync (P43) looks this far ahead for certificates: as far as the Certificates list alerts. */
+    public static final int SYNC_CERTIFICATE_DAYS = 90;
 
     /** A pending crew invitation is an open item this long after it was (last) sent, or once it has expired. */
     public static final Duration INVITATION_PENDING_LIMIT = Duration.ofHours(48);
@@ -66,8 +86,17 @@ public class DashboardService {
     /** An announcement or a Required library item is an open item this long after it was sent / published. */
     public static final Duration ACKNOWLEDGEMENT_LIMIT = Duration.ofDays(7);
 
-    /** The "Needs attention" card shows at most this many rows; the full lists are linked from it. */
-    public static final int SHOWN_ITEMS = 50;
+    /** The "Next 30 days" card looks this far ahead and shows at most UPCOMING_SHOWN dates. */
+    public static final int UPCOMING_DAYS = 30;
+    public static final int UPCOMING_SHOWN = 8;
+
+    /** The Fleet card shows at most this many vessels; Recent activity this many audit entries. */
+    public static final int FLEET_SHOWN = 8;
+    public static final int RECENT_SHOWN = 5;
+
+    /** The sort keys of the "Needs attention" list: most urgent first (the default), or by date. */
+    public static final String SORT_URGENCY = "urgency";
+    public static final String SORT_DATE = "date";
 
     private final DashboardQueries queries;
     private final UserRepository userRepository;
@@ -75,6 +104,9 @@ public class DashboardService {
     private final ShipOrderService orderService;
     private final SireService sireService;
     private final ComplianceService complianceService;
+    private final ShipRightShipStatusRepository rightShipRepository;
+    private final SnoozeService snoozeService;
+    private final AuditRepository auditRepository;
     // The same setting InvitationService uses for an invitation's expiry date.
     private final int invitationValidDays;
     private final Clock clock = Clock.systemUTC();
@@ -82,9 +114,14 @@ public class DashboardService {
     public DashboardService(DashboardQueries queries, UserRepository userRepository,
                             CertificateRepository certificateRepository, ShipOrderService orderService,
                             SireService sireService, ComplianceService complianceService,
+                            ShipRightShipStatusRepository rightShipRepository, SnoozeService snoozeService,
+                            AuditRepository auditRepository,
                             @Value("${app.invitation.valid-days:7}") int invitationValidDays) {
         this.sireService = sireService;
         this.complianceService = complianceService;
+        this.rightShipRepository = rightShipRepository;
+        this.snoozeService = snoozeService;
+        this.auditRepository = auditRepository;
         this.queries = queries;
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
@@ -110,6 +147,16 @@ public class DashboardService {
 
         /** Orders the items of one type, smallest first: the most overdue or the oldest. */
         long sortKey();
+
+        /** The item as an alert the office can snooze (P43), or null for the kinds that cannot be. */
+        default Alert alert() {
+            return null;
+        }
+
+        /** The date that drives the item (an expiry, a deadline), or null: the date sort and the Next 30 days card. */
+        default LocalDate dueDate() {
+            return null;
+        }
     }
 
     /** An expired certificate, or one expiring within 30 days (type tells which); daysLeft is negative once expired. */
@@ -123,6 +170,15 @@ public class DashboardService {
 
         public long sortKey() {
             return expiresOn.toEpochDay();
+        }
+
+        public Alert alert() {
+            return Alert.of(type == AttentionType.CERTIFICATE_EXPIRED ? AlertKind.CERTIFICATE_EXPIRED
+                    : AlertKind.CERTIFICATE_EXPIRING, id, AlertLevels.ofDaysLeft(daysLeft));
+        }
+
+        public LocalDate dueDate() {
+            return expiresOn;
         }
     }
 
@@ -144,6 +200,10 @@ public class DashboardService {
         public long sortKey() {
             return -missing;
         }
+
+        public Alert alert() {
+            return Alert.of(AlertKind.DOCUMENTS_MISSING, id, (int) -missing);
+        }
     }
 
     /**
@@ -153,7 +213,7 @@ public class DashboardService {
      * SIRE_OBSERVATION: an open observation (question, observationType) past its target date; id the observation.
      */
     public record SireItem(AttentionType type, Long id, FleetShip ship, LocalDate date, long daysLeft,
-                           SireReportState state, String question, ObservationType observationType)
+                           SireReportState state, String question, ObservationType observationType, int level)
             implements AttentionItem {
 
         public Set<Long> shipIds() {
@@ -163,6 +223,18 @@ public class DashboardService {
         public long sortKey() {
             return date.toEpochDay();
         }
+
+        public Alert alert() {
+            return Alert.of(switch (type) {
+                case SIRE_COMMENTS -> AlertKind.SIRE_COMMENTS;
+                case SIRE_REPORT -> AlertKind.SIRE_REPORT;
+                default -> AlertKind.SIRE_OBSERVATION;
+            }, id, level);
+        }
+
+        public LocalDate dueDate() {
+            return date;
+        }
     }
 
     /**
@@ -171,7 +243,7 @@ public class DashboardService {
      * VETTING_SCORE: the Safety Score is 2 or below (score). id: the vessel's current ShipRightShipStatus row.
      */
     public record VettingItem(AttentionType type, Long id, FleetShip ship, InspectionState state, LocalDate validUntil,
-                              long daysLeft, Integer score) implements AttentionItem {
+                              long daysLeft, Integer score, int level) implements AttentionItem {
 
         public Set<Long> shipIds() {
             return Set.of(ship.id());
@@ -182,6 +254,15 @@ public class DashboardService {
                 return score;
             }
             return validUntil == null ? Long.MIN_VALUE : validUntil.toEpochDay();
+        }
+
+        public Alert alert() {
+            return Alert.of(type == AttentionType.VETTING_SCORE ? AlertKind.VETTING_SCORE : AlertKind.VETTING_INSPECTION,
+                    ship.id(), level);
+        }
+
+        public LocalDate dueDate() {
+            return type == AttentionType.VETTING_INSPECTION ? validUntil : null;
         }
     }
 
@@ -216,6 +297,10 @@ public class DashboardService {
 
         public long sortKey() {
             return expiresAt.getEpochSecond();
+        }
+
+        public LocalDate dueDate() {
+            return LocalDate.ofInstant(expiresAt, ZoneOffset.UTC);
         }
     }
 
@@ -265,73 +350,126 @@ public class DashboardService {
             .thenComparingLong(AttentionItem::sortKey)
             .thenComparing(AttentionItem::id);
 
+    /** By the date that drives the item, soonest first; items without one last, in urgency order. */
+    static final Comparator<AttentionItem> BY_DATE = Comparator
+            .comparing(AttentionItem::dueDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(URGENCY);
+
     // ---------------------------------------------------------------------------------------------------------------
     // The page
     // ---------------------------------------------------------------------------------------------------------------
 
-    /** One active ship in the fleet table. openItems counts every kind of open item, invitations included. */
-    public record FleetRow(FleetShip ship, long crew, long certificateIssues, long notAcknowledged,
+    /**
+     * One active ship in the fleet card (P43): its RightShip standing (the Safety Score badge) and its open items,
+     * not snoozed. certificateIssues and ordersNotExported are the ship page's rule (ShipPageFlowTest).
+     */
+    public record FleetRow(FleetShip ship, long crew, RightShipView view, long certificateIssues, long notAcknowledged,
                            long ordersNotExported, long openItems) {
     }
 
-    /** A kind of open item with its number, for the links to the full lists. */
+    /** A kind of open item with its number (not snoozed), for the chips and the By category card. */
     public record GroupCount(Group group, long count) {
+    }
+
+    /** A coming date of the Next 30 days card: what, which vessel, when, and the page it opens. kind: a message
+     *  key's suffix (dashboard.upcoming.<kind>). */
+    public record Upcoming(LocalDate date, String kind, String title, FleetShip ship, String url) {
     }
 
     /**
      * The Overview.
-     * fleet        active ships, those with open items first, then by name
-     * crewOnBoard  enabled crew on the active ships
-     * openItems    every open item of the fleet (the summary line), whatever the filter
-     * items        the open items the filter keeps, most urgent first
-     * groups       the number of open items per kind (unfiltered), kinds without any left out
-     * group, ship  the filter (/office?type=...&shipId=...), each null when not set
-     * checkedAt    when this was loaded
+     * fleet          active ships, those with open items first, then by name (the Fleet card shows FLEET_SHOWN)
+     * crewOnBoard    enabled crew on the active ships
+     * openItems      every open item of the fleet, not snoozed, whatever the filter (the Items tile)
+     * snoozedItems   the items a snooze holds (the tile's detail line)
+     * ordersWaiting  orders sent and not yet confirmed (the Orders tile)
+     * items          one page of the open items the filter keeps, in the chosen order (ListQuery: page, sort)
+     * groups         the number of open items per kind (unfiltered), every kind, zero included
+     * group, ship    the filter (/office?type=...&shipId=...), each null when not set
+     * upcoming       the Next 30 days card's dates, soonest first
+     * recent         the newest audit entries
+     * checkedAt      when this was loaded
      */
-    public record Dashboard(List<FleetRow> fleet, long crewOnBoard, long openItems, List<AttentionItem> items,
-                            List<GroupCount> groups, Group group, FleetShip ship, Instant checkedAt) {
+    public record Dashboard(List<FleetRow> fleet, long crewOnBoard, long openItems, long snoozedItems,
+                            long ordersWaiting, Page<AttentionItem> items, List<GroupCount> groups, Group group,
+                            FleetShip ship, List<Upcoming> upcoming, List<AuditEntry> recent, Instant checkedAt) {
+
+        /** A filter chip's URL: this page with the kind (null for All), keeping the vessel filter and the sort. */
+        public String chipUrl(Group kind, boolean byDate) {
+            List<String> params = new ArrayList<>();
+            if (kind != null) {
+                params.add("type=" + kind.param());
+            }
+            if (ship != null) {
+                params.add("shipId=" + ship.id());
+            }
+            if (byDate) {
+                params.add("sort=" + SORT_DATE);
+            }
+            return params.isEmpty() ? "/office" : "/office?" + String.join("&", params);
+        }
 
         public boolean filtered() {
             return group != null || ship != null;
         }
 
-        /** The rows on the card: all of them in a filtered (full) list, else the first SHOWN_ITEMS. */
-        public List<AttentionItem> shown() {
-            return filtered() || items.size() <= SHOWN_ITEMS ? items : items.subList(0, SHOWN_ITEMS);
+        public long countOf(Group group) {
+            return groups.stream().filter(g -> g.group() == group).mapToLong(GroupCount::count).sum();
         }
 
-        public boolean truncated() {
-            return shown().size() < items.size();
+        /** As countOf, by the group's name: for the templates, where a static reference is not allowed. */
+        public long countOf(String group) {
+            return countOf(Group.valueOf(group));
+        }
+
+        /** The vessels with open items. */
+        public long vesselsWithOpenItems() {
+            return fleet.stream().filter(row -> row.openItems() > 0).count();
+        }
+
+        /** The Fleet card's rows: at most FLEET_SHOWN. */
+        public List<FleetRow> fleetShown() {
+            return fleet.size() <= FLEET_SHOWN ? fleet : fleet.subList(0, FLEET_SHOWN);
         }
     }
 
-    /** The unfiltered Overview. */
-    @Transactional(readOnly = true)
+    /** The unfiltered Overview, page 1, most urgent first. */
+    @Transactional
     public Dashboard load() {
-        return load(null, null);
+        return load(null, null, ListQuery.of("/office", null, com.nereonix.nereonet_mvp.core.list.ListSort.asc(SORT_URGENCY),
+                com.nereonix.nereonet_mvp.core.list.ListSort.asc(SORT_DATE)));
     }
 
     /**
      * The Overview, its open items filtered to one kind (group) and / or one active ship (shipId); null keeps all.
-     * An unknown or inactive shipId filters nothing.
+     * An unknown or inactive shipId filters nothing. list: the page and sort of the "Needs attention" list.
+     * Not read-only: the snoozes that no longer apply are ended here (SnoozeService.sync).
      */
-    @Transactional(readOnly = true)
-    public Dashboard load(Group group, Long shipId) {
+    @Transactional
+    public Dashboard load(Group group, Long shipId, ListQuery list) {
         Instant now = clock.instant();
         LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
 
         List<FleetShip> ships = queries.activeShips();
         Map<Long, FleetShip> shipsById = ships.stream()
                 .collect(Collectors.toMap(FleetShip::id, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-        Map<Long, Long> crew = userRepository.countEnabledByShip().stream()
-                .collect(Collectors.toMap(ShipCount::shipId, ShipCount::count));
 
         List<AttentionItem> all = new ArrayList<>();
-        for (DashboardQueries.CertificateRow c : queries.certificatesExpiringUntil(today.plusDays(OPEN_ITEM_CERTIFICATE_DAYS))) {
-            AttentionType type = c.expiresOn().isBefore(today)
-                    ? AttentionType.CERTIFICATE_EXPIRED : AttentionType.CERTIFICATE_EXPIRING;
-            all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(),
-                    ChronoUnit.DAYS.between(today, c.expiresOn()), shipsById.get(c.shipId()), c.fullName(), c.rank()));
+        // P43: the certificates up to 90 days ahead, every ship: the Certificates list can snooze any of them, so
+        // the snooze sync below needs all their alerts (else a snooze of one 45 days ahead would end as "resolved").
+        // Only those of active ships within OPEN_ITEM_CERTIFICATE_DAYS are open items.
+        List<Alert> otherAlerts = new ArrayList<>();
+        for (DashboardQueries.CertificateRow c : queries.certificatesExpiringUntil(today.plusDays(SYNC_CERTIFICATE_DAYS))) {
+            long daysLeft = ChronoUnit.DAYS.between(today, c.expiresOn());
+            FleetShip vessel = c.shipId() == null ? null : shipsById.get(c.shipId());
+            if (daysLeft > OPEN_ITEM_CERTIFICATE_DAYS || vessel == null) {
+                otherAlerts.add(Alert.of(daysLeft < 0 ? AlertKind.CERTIFICATE_EXPIRED : AlertKind.CERTIFICATE_EXPIRING,
+                        c.id(), AlertLevels.ofDaysLeft(daysLeft)));
+                continue;
+            }
+            AttentionType type = daysLeft < 0 ? AttentionType.CERTIFICATE_EXPIRED : AttentionType.CERTIFICATE_EXPIRING;
+            all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(), daysLeft, vessel,
+                    c.fullName(), c.rank()));
         }
         // P42: required documents, worked out on this read; ranked right after expired certificates.
         for (Compliance c : complianceService.onBoard()) {
@@ -341,20 +479,23 @@ public class DashboardService {
                         c.missing(), c.required(), c.missingDocuments().stream().map(RequiredDocument::type).toList()));
             }
         }
-        for (DashboardQueries.VettingRow v : queries.vettingNeedingAttention(
-                today.plusDays(InspectionState.EXPIRING_DAYS), RightShipView.LOW_SCORE)) {
-            FleetShip vessel = shipsById.get(v.shipId());
-            InspectionState state = InspectionState.of(v.lastInspectionOutcome(), v.inspectionValidUntil(),
-                    v.inspectionRequired(), today);
-            if (state.needsAttention()) {
-                long daysLeft = v.inspectionValidUntil() == null ? 0
-                        : ChronoUnit.DAYS.between(today, v.inspectionValidUntil());
-                all.add(new VettingItem(AttentionType.VETTING_INSPECTION, v.id(), vessel, state,
-                        v.inspectionValidUntil(), daysLeft, v.safetyScore()));
+        // P40, P43: every vessel's current RightShip row, for the Fleet card's badge and the vetting items.
+        Map<Long, RightShipView> views = new LinkedHashMap<>();
+        for (ShipRightShipStatus row : rightShipRepository.findAllCurrent()) {
+            FleetShip vessel = shipsById.get(row.getShip().getId());
+            if (vessel == null) {
+                continue;
             }
-            if (v.safetyScore() != null && v.safetyScore() <= RightShipView.LOW_SCORE) {
-                all.add(new VettingItem(AttentionType.VETTING_SCORE, v.id(), vessel, state, v.inspectionValidUntil(),
-                        0, v.safetyScore()));
+            RightShipView view = new RightShipView(row, today);
+            views.put(vessel.id(), view);
+            InspectionState state = view.inspection();
+            if (state.needsAttention()) {
+                all.add(new VettingItem(AttentionType.VETTING_INSPECTION, row.getId(), vessel, state,
+                        view.inspectionValidUntil(), view.inspectionDaysLeft(), view.score(), view.inspectionLevel()));
+            }
+            if (view.lowScore()) {
+                all.add(new VettingItem(AttentionType.VETTING_SCORE, row.getId(), vessel, state, view.inspectionValidUntil(),
+                        0, view.score(), view.score()));
             }
         }
         SireService.Attention sire = sireService.attention(today);
@@ -362,20 +503,24 @@ public class DashboardService {
             FleetShip vessel = shipsById.get(s.inspection().getShip().getId());
             if (s.commentsUrgent()) {
                 all.add(new SireItem(AttentionType.SIRE_COMMENTS, s.inspection().getId(), vessel, s.commentsDueOn(),
-                        s.commentsDaysLeft(), s.reportState(), null, null));
+                        s.commentsDaysLeft(), s.reportState(), null, null, s.commentsLevel()));
             }
             if (s.reportState().needsAttention()) {
                 all.add(new SireItem(AttentionType.SIRE_REPORT, s.inspection().getId(), vessel, s.currentUntil(),
-                        s.currentDaysLeft(), s.reportState(), null, null));
+                        s.currentDaysLeft(), s.reportState(), null, null, s.reportLevel()));
             }
         }
         for (SireObservation o : sire.overdueObservations()) {
             all.add(new SireItem(AttentionType.SIRE_OBSERVATION, o.getId(),
                     shipsById.get(o.getInspection().getShip().getId()), o.getTargetDate(),
-                    ChronoUnit.DAYS.between(today, o.getTargetDate()), null, o.getQuestionNumber(), o.getType()));
+                    ChronoUnit.DAYS.between(today, o.getTargetDate()), null, o.getQuestionNumber(), o.getType(),
+                    AlertLevels.EXPIRED));
         }
-        for (DashboardQueries.OrderRow o : queries.ordersNotExported()) {
-            all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
+        List<DashboardQueries.OrderRow> orders = queries.orders(today, today.plusDays(UPCOMING_DAYS));
+        for (DashboardQueries.OrderRow o : orders) {
+            if (o.notExported()) {
+                all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
+            }
         }
         // expiresAt is (last) sent + the validity, so "sent more than 48 hours ago" is a bound on expiresAt.
         // It includes the expired ones: they were sent at least the validity ago.
@@ -390,26 +535,94 @@ public class DashboardService {
             all.add(new LibraryAttentionItem(l.id(), l.title(), shipsById.get(l.shipId()), l.versionLabel(),
                     l.publishedAt(), l.onBoard(), l.acknowledged()));
         }
-        all.sort(URGENCY);
+
+        // P43: the snoozes, ended where they no longer apply; the items a snooze holds are left out of everything.
+        List<Alert> alerts = new ArrayList<>(otherAlerts);
+        all.stream().map(AttentionItem::alert).filter(a -> a != null).forEach(alerts::add);
+        Map<AlertKey, AlertSnooze> snoozes = snoozeService.sync(alerts, today);
+        List<AttentionItem> open = new ArrayList<>();
+        long snoozed = 0;
+        for (AttentionItem item : all) {
+            if (item.alert() != null && SnoozeService.holding(snoozes, item.alert()) != null) {
+                snoozed++;
+            } else {
+                open.add(item);
+            }
+        }
+        open.sort(URGENCY);
 
         List<FleetRow> fleet = ships.stream()
-                .map(ship -> fleetRow(ship, crew.getOrDefault(ship.id(), 0L), all))
+                .map(ship -> fleetRow(ship, views.getOrDefault(ship.id(), new RightShipView(null, today)), open))
                 .sorted(Comparator.comparing(row -> row.openItems() == 0)) // stable: keeps the name order
                 .toList();
 
         Map<Group, Long> perGroup = new EnumMap<>(Group.class);
-        all.forEach(item -> perGroup.merge(item.type().group(), 1L, Long::sum));
+        for (Group g : Group.values()) {
+            perGroup.put(g, 0L);
+        }
+        open.forEach(item -> perGroup.merge(item.type().group(), 1L, Long::sum));
         List<GroupCount> groups = perGroup.entrySet().stream()
                 .map(e -> new GroupCount(e.getKey(), e.getValue())).toList();
 
         FleetShip ship = shipId == null ? null : shipsById.get(shipId);
-        List<AttentionItem> items = all.stream()
+        List<AttentionItem> filtered = new ArrayList<>(open.stream()
                 .filter(item -> group == null || item.type().group() == group)
                 .filter(item -> ship == null || item.shipIds().contains(ship.id()))
-                .toList();
+                .toList());
+        if (SORT_DATE.equals(list.getSort())) {
+            filtered.sort(list.isDescending() ? BY_DATE.reversed() : BY_DATE);
+        } else if (list.isDescending()) {
+            filtered.sort(URGENCY.reversed());
+        }
+        Page<AttentionItem> page = page(filtered, list);
 
-        return new Dashboard(fleet, fleet.stream().mapToLong(FleetRow::crew).sum(), all.size(), items, groups,
-                group, ship, now);
+        long ordersWaiting = orders.stream().filter(o -> o.status() == ShipOrderStatus.SENT).count();
+        List<AuditEntry> recent = auditRepository.findNewest(PageRequest.of(0, RECENT_SHOWN));
+
+        return new Dashboard(fleet, ships.stream().mapToLong(FleetShip::crew).sum(), open.size(), snoozed,
+                ordersWaiting, page, groups, group, ship, upcoming(open, orders, shipsById, today), recent, now);
+    }
+
+    private static Page<AttentionItem> page(List<AttentionItem> items, ListQuery list) {
+        int page = ListQueries.clamp(list, items.size());
+        int from = Math.min(page * list.getSize(), items.size());
+        int to = Math.min(from + list.getSize(), items.size());
+        return new PageImpl<>(List.copyOf(items.subList(from, to)), PageRequest.of(page, list.getSize()), items.size());
+    }
+
+    /**
+     * The Next 30 days card (P43): the dates ahead among the open items (certificate expiries, RightShip inspections
+     * ending, SIRE 2.0 reports ending and comments due) and the confirmed deliveries, soonest first, at most
+     * UPCOMING_SHOWN. Nothing that has passed, nothing snoozed.
+     */
+    private static List<Upcoming> upcoming(List<AttentionItem> open, List<DashboardQueries.OrderRow> orders,
+                                           Map<Long, FleetShip> ships, LocalDate today) {
+        LocalDate until = today.plusDays(UPCOMING_DAYS);
+        List<Upcoming> dates = new ArrayList<>();
+        for (AttentionItem item : open) {
+            LocalDate date = item.dueDate();
+            if (date == null || date.isBefore(today) || date.isAfter(until)) {
+                continue;
+            }
+            switch (item) {
+                case CertificateItem c -> dates.add(new Upcoming(date, "certificate", c.certificateType(), c.ship(),
+                        "/office/crew/" + c.userId() + "/certificates/" + c.id() + "/edit?returnTo=/office"));
+                case VettingItem v -> dates.add(new Upcoming(date, "inspection", null, v.ship(),
+                        "/office/vetting/" + v.ship().id() + "/rightship"));
+                case SireItem s -> dates.add(new Upcoming(date, s.type() == AttentionType.SIRE_COMMENTS ? "comments" : "report",
+                        null, s.ship(), "/office/vetting/" + s.ship().id() + "/sire"));
+                default -> { }
+            }
+        }
+        for (DashboardQueries.OrderRow o : orders) {
+            if (o.status() == ShipOrderStatus.CONFIRMED && o.deliveryDate() != null && !o.deliveryDate().isBefore(today)
+                    && !o.deliveryDate().isAfter(until)) {
+                dates.add(new Upcoming(o.deliveryDate(), "delivery", "#" + o.id(), ships.get(o.shipId()),
+                        "/office/orders/" + o.id()));
+            }
+        }
+        dates.sort(Comparator.comparing(Upcoming::date).thenComparing(Upcoming::kind));
+        return dates.size() <= UPCOMING_SHOWN ? dates : List.copyOf(dates.subList(0, UPCOMING_SHOWN));
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -487,7 +700,7 @@ public class DashboardService {
         return items;
     }
 
-    private static FleetRow fleetRow(FleetShip ship, long crew, List<AttentionItem> items) {
+    private static FleetRow fleetRow(FleetShip ship, RightShipView view, List<AttentionItem> items) {
         long certificates = 0;
         long acknowledgements = 0;
         long orders = 0;
@@ -504,7 +717,7 @@ public class DashboardService {
                 case INVITATIONS, VETTING, DOCUMENTS -> { }
             }
         }
-        return new FleetRow(ship, crew, certificates, acknowledgements, orders, open);
+        return new FleetRow(ship, ship.crew(), view, certificates, acknowledgements, orders, open);
     }
 
     // ---------------------------------------------------------------------------------------------------------------

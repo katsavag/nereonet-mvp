@@ -93,7 +93,8 @@
                 </dd>
                 <dt th:text="#{profile.field.nationality}">Nationality</dt>
                 <dd th:with="country=${@profileNames.country(profile.nationality, #locale)}">
-                    <span th:if="${country != null}" th:text="${country}">Greece</span>
+                    <!-- P43: with its flag. -->
+                    <th:block th:if="${country != null}"><span th:replace="~{layout/parts :: country(${profile.nationality}, ${country})}">Greece</span></th:block>
                     <span th:if="${country == null}" class="text-body-secondary" th:text="#{profile.notGiven}">Not given</span>
                 </dd>
                 <dt th:text="#{profile.field.bio}">Bio</dt>

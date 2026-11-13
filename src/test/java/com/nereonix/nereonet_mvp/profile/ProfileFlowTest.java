@@ -107,9 +107,11 @@ class ProfileFlowTest {
                 "Your crewmates and the office can see what you fill in.",
                 "href=\"/ship/profile/languages\"", "href=\"/ship/profile/nationality\"",
                 "href=\"/ship/profile/bio\"", "href=\"/ship/profile/photo\"")
-                // No photo: the initials.
+                // No photo: the initials, in the header and (P43) in the sidebar's user block, the one shared fragment.
                 .containsPattern("<span class=\"person-avatar person-avatar-lg\" aria-hidden=\"true\">\\s*DC\\s*</span>")
                 .doesNotContain("cook@example.com");
+        assertThat(sidebarUser(html)).containsPattern("<span class=\"person-avatar person-avatar-sm\" aria-hidden=\"true\">\\s*DC\\s*</span>")
+                .doesNotContain("class=\"avatar\"");
         assertThat(count(html, "class=\"profile-row-value is-empty\">Not given<")).isEqualTo(4);
         // Name, rank and ship are never a field here: nothing to edit them with.
         assertThat(main(html)).doesNotContain("<input", "<select", "<textarea");
@@ -173,7 +175,7 @@ class ProfileFlowTest {
 
         save("/ship/profile/nationality", "nationality", "GR", cook);
         assertThat(profile(cook).getNationality()).isEqualTo("GR");
-        assertThat(page(get("/ship/profile"), cook)).contains("<span class=\"profile-row-value\">Greece</span>");
+        assertThat(page(get("/ship/profile"), cook)).containsPattern("<span class=\"profile-row-value\"><span class=\"country\"><img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\"[^>]*><span>Greece</span></span></span>");
         assertThat(page(get("/ship/profile/nationality"), cook)).contains("<option value=\"GR\" selected=\"selected\">Greece (GR)</option>");
 
         mockMvc.perform(post("/ship/profile/nationality").param("nationality", "XX").with(user(new CurrentUser(cook))).with(csrf()))
@@ -252,13 +254,19 @@ class ProfileFlowTest {
         assertThat(thumb.getHeight()).isEqualTo(96);
         assertNoMetadata(small);
 
-        // My profile, the crew home header and the Photo page show it; the audit entry has its size, no image data.
-        String photo96 = "/ship/crew/" + cook.getId() + "/photo/" + key + "/96";
-        assertThat(page(get("/ship/profile"), cook)).contains("<img src=\"" + photo96 + "\"",
-                "<span class=\"profile-row-value\">Added</span>");
+        // My profile, the crew home header, the Photo page and (P43) the sidebar's user block and More show it, with
+        // the profile's version after the key (?v=, so a new photo shows at once); the audit entry has its size, no
+        // image data.
+        String photo96 = "/ship/crew/" + cook.getId() + "/photo/" + key + "/96?v=" + profile(cook).getUpdatedAt().getEpochSecond();
+        String profilePage = page(get("/ship/profile"), cook);
+        assertThat(profilePage).contains("<img src=\"" + photo96 + "\"", "<span class=\"profile-row-value\">Added</span>");
+        assertThat(sidebarUser(profilePage)).contains("<img src=\"" + photo96 + "\"").doesNotContain("DC");
         assertThat(page(get("/ship"), cook)).contains("<div class=\"page-header-media\">", "<img src=\"" + photo96 + "\"");
-        assertThat(page(get("/ship/profile/photo"), cook)).contains("/ship/crew/" + cook.getId() + "/photo/" + key + "/512",
+        assertThat(page(get("/ship/more"), cook)).contains("<img src=\"" + photo96 + "\"");
+        assertThat(page(get("/ship/profile/photo"), cook)).contains("/ship/crew/" + cook.getId() + "/photo/" + key + "/512?v=",
                 "alt=\"Photo of Demo Cook\"", "Delete my profile photo");
+        assertThat(mockMvc.perform(get(photo96).with(user(new CurrentUser(cook)))).andReturn().getResponse().getStatus())
+                .isEqualTo(200);
         assertThat(audit("PROFILE_PHOTO_UPLOADED")).extracting(AuditEntry::getDetails).containsExactly("384x512 JPEG");
 
         // A new photo replaces it: a new key, the old URL is gone.
@@ -349,11 +357,15 @@ class ProfileFlowTest {
         profile.setBio("Line one.\nLine two.");
         profileRepository.save(profile);
         html = page(get("/office/crew/{id}/edit", cook.getId()));
+        // P43: the nationality with its flag (the image before the name, decorative).
         assertThat(html).contains("<span>English, Greek</span>", "<span>Greece</span>",
-                "<span class=\"text-break text-pre-line\">Line one.\nLine two.</span>");
+                "<span class=\"text-break text-pre-line\">Line one.\nLine two.</span>")
+                .containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\" alt=\"\" width=\"20\" height=\"15\"");
         // In Greek on the Greek office screens.
         assertThat(page(get("/office/crew/{id}/edit", cook.getId()).param("lang", "el")))
                 .contains("<span>Αγγλικά, Ελληνικά</span>", "<span>Ελλάδα</span>", ">Προφίλ</h2>");
+        // On the seafarer's own My profile, the nationality row has the flag too.
+        assertThat(page(get("/ship/profile"), cook)).containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\"[^>]*><span>Greece</span>");
         // Read only: no field of it in the form, and the crew's pages are not the office's.
         assertThat(html).doesNotContain("name=\"bio\"", "name=\"languages\"", "name=\"nationality\"");
         mockMvc.perform(post("/ship/profile/bio").param("bio", "Office text").with(csrf())).andExpect(status().isForbidden());
@@ -453,6 +465,13 @@ class ProfileFlowTest {
 
     private static String main(String html) {
         Matcher m = Pattern.compile("(?s)<main.*?</main>").matcher(html);
+        assertThat(m.find()).isTrue();
+        return m.group();
+    }
+
+    // The sidebar's user block (P43): the person's picture, name and role.
+    private static String sidebarUser(String html) {
+        Matcher m = Pattern.compile("(?s)<div class=\"sidebar-user\">.*?</form>\\s*</div>").matcher(html);
         assertThat(m.find()).isTrue();
         return m.group();
     }

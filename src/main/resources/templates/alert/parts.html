@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- Fragments of snoozing alerts (P43): alert/snooze.html, the Certificates and Vetting lists, the Overview.
+     The pattern: app.css, section "Snoozing alerts (P43)". -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- One alert as the snooze page reviews it: its kind as a badge (the P09 icons), what names it, the vessel and the
+     date. v: an alert/AlertView. -->
+<span th:fragment="alertSummary(v)" class="snooze-item-main" th:with="k=${v.kind().name()}">
+    <span th:replace="~{layout/parts :: statusIcon(${v.expired()} ? 'danger' : 'warning', #{${v.kind().messageKey()}}, ${v.expired()} ? 'alert' : 'clock')}"></span>
+    <span class="snooze-item-text">
+        <span class="snooze-item-title">
+            <th:block th:if="${k == 'CERTIFICATE_EXPIRING' or k == 'CERTIFICATE_EXPIRED'}" th:text="${v.subject()} + ' · ' + ${v.person()}">STCW · Jane Doe</th:block>
+            <th:block th:if="${k == 'DOCUMENTS_MISSING'}" th:text="${v.person()} + ' · ' + #{dashboard.item.documentsMissing(${v.number()})}">Jane Doe · 2 required documents missing</th:block>
+            <th:block th:if="${k == 'VETTING_INSPECTION'}" th:text="#{dashboard.item.inspection}">RightShip inspection</th:block>
+            <th:block th:if="${k == 'VETTING_SCORE'}" th:text="#{dashboard.item.score(${v.number()})}">Safety Score 2/5</th:block>
+            <th:block th:if="${k == 'SIRE_COMMENTS'}" th:text="#{dashboard.item.sireComments}">Operator comments</th:block>
+            <th:block th:if="${k == 'SIRE_REPORT'}" th:text="#{dashboard.item.sireReport}">SIRE 2.0 report</th:block>
+            <th:block th:if="${k == 'SIRE_OBSERVATION'}" th:text="#{dashboard.item.sireObservation(${v.subject()})}">Observation 9.1.2</th:block>
+        </span>
+        <span class="snooze-item-meta">
+            <span class="attention-ship" th:if="${v.ship() != null}" th:text="${v.ship().name}">MV Demo</span>
+            <th:block th:if="${v.date() != null}"><span aria-hidden="true">·</span>
+                <span th:replace="~{layout/parts :: expiryDate(${v.date()})}">20 Nov 2026 · in 9 days</span></th:block>
+        </span>
+    </span>
+</span>
+
+<!-- "Snoozed by Jane Doe until 13 Dec 2026 · Renewal in progress" with Undo (a POST that comes back to returnTo), on
+     a muted row of the Certificates or Vetting list. s: the AlertSnooze; returnTo: this page's URL. -->
+<span th:fragment="snoozedNote(s, returnTo)" class="snoozed-note">
+    <svg th:replace="~{layout/parts :: icon('snooze')}"></svg>
+    <span class="snoozed-note-text">
+        <span th:text="#{snooze.note.by(${s.snoozedBy != null} ? ${s.snoozedBy.fullName} : #{audit.deletedUser}, ${@dates.date(s.until)})}">Snoozed by Jane Doe until 13 Dec 2026</span>
+        <span aria-hidden="true">·</span>
+        <span th:text="${s.note != null} ? #{${s.reason.messageKey()}} + ': ' + ${s.note} : #{${s.reason.messageKey()}}">Renewal in progress</span>
+    </span>
+    <form class="snoozed-note-undo" method="post" th:action="@{/office/alerts/snooze/{id}/undo(id=${s.id})}">
+        <input type="hidden" name="returnTo" th:value="${returnTo}">
+        <button type="submit" class="btn btn-ghost btn-sm" th:data-busy-label="#{snooze.undoing}" th:text="#{snooze.undo}">Undo</button>
+    </form>
+</span>
+
+<!-- A row's Snooze link: the snooze page with the item(s) and the way back. items: AlertKey params, joined with a
+     comma for several; returnTo: this page's URL; label: the link's text, or null for "Snooze". -->
+<a th:fragment="snoozeLink(items, returnTo, linkClass)" th:class="${linkClass}"
+   th:href="@{/office/alerts/snooze(items=${items}, returnTo=${returnTo})}">
+    <svg th:replace="~{layout/parts :: icon('snooze')}"></svg>
+    <span th:text="#{snooze.action}">Snooze</span>
+</a>
+
+<!-- "Snooze selected" for a list of checked rows (P10: the snooze page reviews them): a page header button that
+     submits the list's GET form (form attribute), disabled by js/list-rows.js while nothing is checked. formId: the
+     form's id. -->
+<button th:fragment="snoozeSelected(formId)" type="submit" th:form="${formId}" class="btn btn-outline-secondary"
+        data-needs-selection aria-describedby="selectionCount">
+    <svg th:replace="~{layout/parts :: icon('snooze')}"></svg>
+    <span th:text="#{snooze.selected}">Snooze selected</span>
+</button>
+
+<!-- The snooze form of a list (P43): a GET to the snooze page, empty but for the way back; the rows' checkboxes and
+     the header's Snooze selected belong to it by their form attribute (the rows hold forms of their own, Undo or
+     Resend, and a form cannot hold another form). formId: its id; returnTo: this page's URL. -->
+<form th:fragment="snoozeForm(formId, returnTo)" th:id="${formId}" th:action="@{/office/alerts/snooze}" method="get" data-selection class="snooze-list-form">
+    <input type="hidden" name="returnTo" th:value="${returnTo}">
+</form>
+
+<!-- The selection line of such a list (as the Orders list, P36): how many are checked and, on phones, the select-all
+     checkbox. Shown by js/list-rows.js only. formId: the snooze form's id. -->
+<div th:fragment="selectionLine(formId)" class="list-selection" hidden data-selection-only th:data-selection-for="${formId}">
+    <div class="form-check list-selection-all">
+        <input class="form-check-input" type="checkbox" id="selectAllPhone" data-select-all th:form="${formId}">
+        <label class="form-check-label" for="selectAllPhone" th:text="#{snooze.selectAll.short}">Select all on this page</label>
+    </div>
+    <p id="selectionCount" class="list-selection-count" role="status" data-selection-count th:data-selection-for="${formId}"
+       th:data-none="#{snooze.selection.none}" th:data-one="#{snooze.selection.one}"
+       th:data-many="#{snooze.selection.many('{count}')}" th:text="#{snooze.selection.none}">Select the items to snooze</p>
+</div>
+
+<!-- The select-all checkbox of the table header. formId: the snooze form's id. -->
+<th th:fragment="selectAllHeader(formId)" scope="col" class="cell-select">
+    <span class="visually-hidden" th:text="#{snooze.select}">Select</span>
+    <label class="select-target" hidden data-selection-only th:data-selection-for="${formId}">
+        <input class="form-check-input" type="checkbox" data-select-all th:form="${formId}"
+               th:attr="aria-label=#{snooze.selectAll}">
+    </label>
+</th>
+
+</body>
+</html>

@@ -26,8 +26,10 @@ import jakarta.persistence.criteria.Predicate;
  * </ul>
  * Labels: certificate.filter.status.&lt;key&gt; (a combination: its own key with "-" for ",", else the states'
  * labels joined).
+ * P43: "snoozed" lists only the certificates whose snooze holds (AlertSnooze), whatever their state; every other
+ * value but "all" leaves them out.
  */
-public record CertificateStatus(Set<State> states) {
+public record CertificateStatus(Set<State> states, boolean snoozed) {
 
     /** One state of the filter. Days are counted from today (UTC). */
     public enum State {
@@ -75,25 +77,31 @@ public record CertificateStatus(Set<State> states) {
     /** "all": every certificate. */
     public static final String ALL = "all";
 
+    /** "snoozed": only the certificates whose snooze holds (P43). */
+    public static final String SNOOZED = "snoozed";
+
     /** Without a status: expired and within 90 days, what the list showed before P20. */
-    public static final CertificateStatus DEFAULT = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_90));
+    public static final CertificateStatus DEFAULT = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_90), false);
 
     /** Expired or within 30 days: what the Overview and the sidebar counter count (?status=expired,30). */
-    public static final CertificateStatus OPEN_ITEMS = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_30));
+    public static final CertificateStatus OPEN_ITEMS = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_30), false);
 
     /** The options of the Status select, in order, after the default ("" ). */
-    public static final List<String> OPTIONS = List.of("expired", "30", "60", "90", "valid", ALL);
+    public static final List<String> OPTIONS = List.of("expired", "30", "60", "90", "valid", SNOOZED, ALL);
 
     /**
-     * The filter in the URL: null or blank is the default, "all" every certificate, else one or more state keys
-     * joined with a comma. Anything it does not know is the default, so any URL shows a list.
+     * The filter in the URL: null or blank is the default, "all" every certificate, "snoozed" the snoozed ones, else
+     * one or more state keys joined with a comma. Anything it does not know is the default, so any URL shows a list.
      */
     public static CertificateStatus of(String value) {
         if (value == null || value.isBlank()) {
             return DEFAULT;
         }
         if (value.strip().equals(ALL)) {
-            return new CertificateStatus(EnumSet.allOf(State.class));
+            return new CertificateStatus(EnumSet.allOf(State.class), false);
+        }
+        if (value.strip().equals(SNOOZED)) {
+            return new CertificateStatus(EnumSet.allOf(State.class), true);
         }
         Set<State> states = EnumSet.noneOf(State.class);
         for (String key : value.split(",")) {
@@ -103,7 +111,7 @@ public record CertificateStatus(Set<State> states) {
             }
             states.add(state.get());
         }
-        return new CertificateStatus(states);
+        return new CertificateStatus(states, false);
     }
 
     public CertificateStatus {
@@ -111,17 +119,25 @@ public record CertificateStatus(Set<State> states) {
     }
 
     public boolean isDefault() {
-        return states.equals(DEFAULT.states);
+        return !snoozed && states.equals(DEFAULT.states);
     }
 
     public boolean isAll() {
-        return states.equals(EnumSet.allOf(State.class));
+        return !snoozed && states.equals(EnumSet.allOf(State.class));
     }
 
-    /** The value of ?status=, in a fixed order: "expired,30"; "all"; null for the default (no parameter). */
+    /** Snoozed certificates are left out: every view but "all" and "snoozed" (P43). */
+    public boolean excludesSnoozed() {
+        return !snoozed && !isAll();
+    }
+
+    /** The value of ?status=, in a fixed order: "expired,30"; "all"; "snoozed"; null for the default (no parameter). */
     public String key() {
         if (isDefault()) {
             return null;
+        }
+        if (snoozed) {
+            return SNOOZED;
         }
         if (isAll()) {
             return ALL;
@@ -150,9 +166,9 @@ public record CertificateStatus(Set<State> states) {
         return states.stream().anyMatch(state -> state.matches(expiresOn, today));
     }
 
-    /** The condition on the expiry date; null when every certificate matches. */
+    /** The condition on the expiry date; null when every certificate matches (also for "snoozed"). */
     Predicate predicate(CriteriaBuilder cb, Expression<LocalDate> expiresOn, LocalDate today) {
-        if (isAll()) {
+        if (isAll() || snoozed) {
             return null;
         }
         return cb.or(states.stream().map(state -> state.predicate(cb, expiresOn, today)).toArray(Predicate[]::new));

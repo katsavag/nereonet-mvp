@@ -30,6 +30,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.core.certificate.Certificate;
+import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.notification.Notification;
 import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
@@ -39,6 +41,8 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
+
+import jakarta.persistence.EntityManager;
 
 /**
  * P23: notifications stay unread until handled. Showing the list marks nothing; opening one, its Mark as read and
@@ -64,6 +68,12 @@ class NotificationFlowTest {
 
     @Autowired
     NotificationRepository notificationRepository;
+
+    @Autowired
+    CertificateRepository certificateRepository;
+
+    @Autowired
+    EntityManager entityManager;
 
     Ship ship;
     User crew;
@@ -160,6 +170,39 @@ class NotificationFlowTest {
         assertThat(unread()).isZero();
     }
 
+    // P43: Mark all as read clears the bell for the signed-in user only; no certificate or vetting state changes,
+    // so the Certificates counter (what needs the office) stays as it was.
+    @Test
+    void markAllAsReadClearsTheBellOnlyAndChangesNoCounter() throws Exception {
+        User office = userService.createUser("office2@example.com", "Office Two", "secret123", Role.OFFICE_USER, null, null);
+        CurrentUser me2 = new CurrentUser(office);
+        notification(office, "Your certificate STCW expires in 30 days", null, Instant.now());
+        notification(crew, "Not mine", null, Instant.now());
+        Certificate certificate = new Certificate();
+        certificate.setUser(crew);
+        certificate.setType("STCW");
+        certificate.setExpiresOn(LocalDate.now(ZoneOffset.UTC).plusDays(10));
+        certificate.setCreatedAt(Instant.now());
+        certificateRepository.save(certificate);
+
+        String before = page("/notifications", me2);
+        assertThat(sidebarCount(before)).isEqualTo("1");
+        assertThat(before).containsPattern("(?s)>Certificates</span>\\s*<span class=\"nav-count num\" aria-hidden=\"true\">1</span>");
+
+        mockMvc.perform(post("/notifications/read-all").with(user(me2)).with(csrf()))
+                .andExpect(redirectedUrl("/notifications"));
+        entityManager.clear(); // the bulk update does not touch the entities loaded in this test's transaction
+
+        String after = page("/notifications", me2);
+        assertThat(sidebarCount(after)).isNull();
+        assertThat(after).containsPattern("(?s)>Certificates</span>\\s*<span class=\"nav-count num\" aria-hidden=\"true\">1</span>")
+                .doesNotContain("is-unread", "Mark all as read");
+        assertThat(certificateRepository.findById(certificate.getId()).orElseThrow().getExpiresOn())
+                .isEqualTo(LocalDate.now(ZoneOffset.UTC).plusDays(10));
+        // The crew member's own unread notification is untouched.
+        assertThat(unread()).isEqualTo(1);
+    }
+
     @Test
     void onlyTheirOwnNotificationsAndOnlyByPost() throws Exception {
         User other = userService.createUser("other@example.com", "Other Member", "secret123", Role.CREW_MEMBER, ship, null);
@@ -187,7 +230,7 @@ class NotificationFlowTest {
     }
 
     @Test
-    void groupedByDayAndPagedAt25() throws Exception {
+    void groupedByDayAndPagedAt10() throws Exception {
         Instant now = Instant.now();
         LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
         Instant startOfToday = today.atStartOfDay(ZoneOffset.UTC).toInstant();
@@ -198,17 +241,19 @@ class NotificationFlowTest {
             notification(crew, "Old " + i, null, startOfToday.minus(Duration.ofDays(30)));
         }
 
+        // 10 a page (P43; 25 before).
         String first = page("/notifications");
         assertThat(first).containsSubsequence(">Today</h2>", "From today", ">Yesterday</h2>", "From yesterday",
                 ">" + date(today.minusDays(6)) + "</h2>", "From last week", ">" + date(today.minusDays(30)) + "</h2>");
-        assertThat(count(first, "data-notification>")).isEqualTo(25);
-        assertThat(first).contains("1 to 25 of 28", "href=\"/notifications?page=2\"");
+        assertThat(count(first, "data-notification>")).isEqualTo(10);
+        assertThat(first).contains("1 to 10 of 28", "href=\"/notifications?page=2\"", "href=\"/notifications?size=20\"");
         // Every row says its time in UTC.
         assertThat(first).containsPattern("<time class=\"local-time text-nowrap\" datetime=\"[^\"]+\">\\d\\d:\\d\\d UTC</time>");
 
-        String second = page("/notifications?page=2");
-        assertThat(count(second, "data-notification>")).isEqualTo(3);
-        assertThat(second).contains(">" + date(today.minusDays(30)) + "</h2>").doesNotContain("From today");
+        String third = page("/notifications?page=3");
+        assertThat(count(third, "data-notification>")).isEqualTo(8);
+        assertThat(third).contains(">" + date(today.minusDays(30)) + "</h2>").doesNotContain("From today");
+        assertThat(count(page("/notifications?size=50"), "data-notification>")).isEqualTo(28);
         assertThat(unread()).isEqualTo(28);
     }
 

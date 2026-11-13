@@ -76,7 +76,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
-// The office Overview (P09): "Needs attention" work list, fleet table, summary line.
+// The office Overview (P09, P43): the stat tiles, the "Needs attention" work list (paged, filter chips, sortable by
+// date), the By category, Next 30 days, Fleet and Recent activity cards, and a fixed number of queries.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -85,11 +86,13 @@ import jakarta.persistence.EntityManagerFactory;
 class DashboardFlowTest {
 
     private static final Pattern ATTENTION_LIST =
-            Pattern.compile("(?s)<ul class=\"list-group list-group-flush attention-list\">(.*?)</ul>");
+            Pattern.compile("(?s)<ul class=\"list-group list-group-flush attention-list\">(.*?)</ul>\\s*(?:<nav|</section>)");
     private static final Pattern ATTENTION_ROW = Pattern.compile("(?s)<li class=\"list-group-item attention-item\">");
-    private static final Pattern FLEET_TABLE = Pattern.compile("(?s)<table class=\"table data-table[^\"]*\">(.*?)</table>");
-    private static final Pattern MAIN = Pattern.compile("(?s)<main>(.*)</main>");
+    private static final Pattern FLEET_TABLE = Pattern.compile("(?s)<table class=\"table data-table fleet-table[^\"]*\">(.*?)</table>");
+    private static final Pattern MAIN = Pattern.compile("(?s)<main class=\"overview\">(.*)</main>");
     private static final Pattern HREF = Pattern.compile("href=\"([^\"#]*)");
+    private static final Pattern TILE = Pattern.compile("(?s)<li class=\"overview-tile\">.*?<span class=\"overview-tile-number num\">(\\d+)</span>"
+            + "\\s*<span class=\"overview-tile-label\">([^<]*)</span>\\s*<span class=\"overview-tile-detail\">([^<]*)</span>");
 
     @Autowired MockMvc mockMvc;
     @Autowired EntityManager entityManager;
@@ -128,10 +131,22 @@ class DashboardFlowTest {
         String html = html(get("/office"));
 
         assertThat(html).contains("Nothing needs your attention", "Last checked", "class=\"local-time")
-                .contains("1 vessel · 2 crew · 0 open items")
-                .doesNotContain("attention-list", "attention-footer");
+                .doesNotContain("attention-list", "attention-footer", "Showing the first");
         assertThat(html).contains("<span class=\"visually-hidden\">Open items:</span>")
                 .containsPattern("(?s)attention-total.*?<span class=\"num\">0</span>");
+        // P43: the four tiles instead of a summary line; each a link with a detail line.
+        assertThat(tiles(html)).containsExactly(
+                "1 Active vessels none with open items",
+                "2 Crew on board no invitations waiting",
+                "0 Items needing attention none snoozed",
+                "0 Orders waiting for the office none to export");
+        assertThat(html).contains("<a class=\"overview-tile-link\" href=\"/office/ships\">",
+                "<a class=\"overview-tile-link\" href=\"/office/crew?status=active\">",
+                "<a class=\"overview-tile-link\" href=\"#attention\">",
+                "<a class=\"overview-tile-link\" href=\"/office/orders?status=sent\">");
+        // Every card has its empty state (P25); By category says all clear.
+        assertThat(html).contains("Nothing due in the next 30 days", "Nothing recorded yet", "All clear",
+                "id=\"fleetTitle\"", "MV Calm");
     }
 
     @Test
@@ -170,8 +185,27 @@ class DashboardFlowTest {
         assertThat(list).containsSubsequence("Medical fitness", "STCW Basic Safety", "Order #" + order.getId(),
                 "Eve Expired", "Wes Waiting", "Fire drill on Friday", "Drug and alcohol policy");
         assertThat(list).doesNotContain("Food hygiene", "Fay Fresh", "All read", "Too new", "Optional reading");
-        assertThat(html).contains("1 vessel · 3 crew · 7 open items")
-                .containsPattern("(?s)attention-total.*?<span class=\"num\">7</span>");
+        assertThat(tiles(html)).containsExactly(
+                "1 Active vessels 1 with open items",
+                "3 Crew on board 2 invitations waiting",
+                "7 Items needing attention none snoozed",
+                "2 Orders waiting for the office 1 not exported yet");
+        assertThat(html).containsPattern("(?s)attention-total.*?<span class=\"num\">7</span>");
+        // The filter chips (P43), each with its count, links that work without JavaScript.
+        assertThat(html).contains("<a class=\"chip is-current\" href=\"/office\" aria-current=\"true\">",
+                        "href=\"/office?type=certificates\"", "href=\"/office?type=documents\"",
+                        "href=\"/office?type=vetting\"", "href=\"/office?type=orders\"",
+                        "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"")
+                .containsPattern("(?s)<span>Certificates</span>\\s*<span class=\"chip-count num\">2</span>")
+                .containsPattern("(?s)<span>Invitations</span>\\s*<span class=\"chip-count num\">2</span>")
+                .containsPattern("(?s)<span>Announcements</span>\\s*<span class=\"chip-count num\">2</span>")
+                .containsPattern("(?s)<span>Vetting</span>\\s*<span class=\"chip-count num\">0</span>");
+        // By category: each kind with its open count and the link to its list; Next 30 days: the expiring one.
+        assertThat(html).containsPattern("(?s)<a class=\"category-tile\" href=\"/office/orders\\?exported=no\">.*?<span>1 open</span>")
+                .containsPattern("(?s)<a class=\"category-tile\" href=\"/office/vetting\\?status=attention\">.*?<span>All clear</span>")
+                .contains("STCW Basic Safety expires", "href=\"/office?sort=date\"");
+        // Recent activity: the newest audit entries with the time.
+        assertThat(html).contains("id=\"recentTitle\"", "href=\"/office/audit\"", "Nothing recorded yet"); // nothing here went through the audit log
 
         // a. expired certificate
         String certificateUrl = "/office/crew/" + cook.getId() + "/certificates/" + gone.getId() + "/edit";
@@ -199,7 +233,7 @@ class DashboardFlowTest {
         assertThat(list).contains("status-badge-icon", "<svg viewBox=\"0 0 24 24\"")
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
-        // The full list of each kind.
+        // The full list of each kind (the By category card and the chips).
         assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/orders?exported=no\"",
                 "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
     }
@@ -267,12 +301,17 @@ class DashboardFlowTest {
         String html = html(get("/office"));
         assertThat(count(attentionList(html), ">Vessel order</span>")).isEqualTo(1);
         assertThat(attentionList(html)).contains("Order #" + sent.getId()).doesNotContain("Order #" + open.getId());
-        assertThat(group(FLEET_TABLE, html)).contains("href=\"/office/orders?shipId=" + ship.getId() + "&amp;exported=no\"");
+        // The Fleet card (P43): the ship's open items link to the Overview filtered to it; the Orders tile counts the
+        // order sent and not confirmed.
+        assertThat(group(FLEET_TABLE, html)).contains("class=\"count-link\" href=\"/office?shipId=" + ship.getId() + "\">1</a>");
+        assertThat(tiles(html)).contains("1 Orders waiting for the office 1 not exported yet");
 
         mockMvc.perform(post("/office/orders/export").param("ids", sent.getId().toString()).with(csrf()))
                 .andExpect(status().isOk());
 
-        assertThat(html(get("/office"))).doesNotContain(">Vessel order</span>", "orders?shipId=" + ship.getId());
+        String after = html(get("/office"));
+        assertThat(after).doesNotContain(">Vessel order</span>");
+        assertThat(tiles(after)).contains("1 Orders waiting for the office none to export");
     }
 
     @Test
@@ -292,8 +331,9 @@ class DashboardFlowTest {
                 .andExpect(redirectedUrl("/office/users"));
     }
 
+    // P43: 10 a page with the P19 pager; a chip filters to one kind, the vessel filter to one ship.
     @Test
-    void theCardShowsTheFirst50AndTheFilteredListShowsAll() throws Exception {
+    void theListIsPagedTenAtATimeAndTheChipsFilterIt() throws Exception {
         Ship ship = ship("MV Alpha");
         User bosun = crew(ship, "Bob Bosun", Rank.BOSUN);
         for (int i = 0; i < 51; i++) {
@@ -302,26 +342,37 @@ class DashboardFlowTest {
         invitation(ship, "Eve Expired", null, days(-1));
 
         String html = html(get("/office"));
-        assertThat(ATTENTION_ROW.matcher(attentionList(html)).results().count()).isEqualTo(50);
-        assertThat(html).contains("Showing the first 50 of 52.", "1 vessel · 1 crew · 52 open items")
+        assertThat(ATTENTION_ROW.matcher(attentionList(html)).results().count()).isEqualTo(10);
+        assertThat(html).contains("1 to 10 of 52", "href=\"/office?page=2\"", "href=\"/office?size=20\"")
                 .containsPattern("(?s)attention-total.*?<span class=\"num\">52</span>")
-                .doesNotContain("Eve Expired"); // the least urgent, past the first 50
+                .doesNotContain("Eve Expired", "Showing the first"); // the least urgent, on the last page
+        assertThat(tiles(html)).contains("52 Items needing attention none snoozed");
         // The most overdue first.
-        assertThat(attentionList(html)).containsSubsequence("Certificate 50", "Certificate 49", "Certificate 1<")
-                .doesNotContain("Certificate 0<");
+        assertThat(attentionList(html)).containsSubsequence("Certificate 50", "Certificate 49", "Certificate 41<")
+                .doesNotContain("Certificate 40<");
+        String last = html(get("/office").param("page", "6"));
+        assertThat(ATTENTION_ROW.matcher(attentionList(last)).results().count()).isEqualTo(2);
+        assertThat(last).contains("51 to 52 of 52", "Eve Expired", "Certificate 0<");
+        // The actions and the certificate form come back to the same page.
+        assertThat(last).contains("returnTo=/office?page%3D6", "name=\"returnTo\" value=\"/office?page=6\"");
 
         String certificates = html(get("/office").param("type", "certificates"));
-        assertThat(ATTENTION_ROW.matcher(attentionList(certificates)).results().count()).isEqualTo(51);
-        assertThat(certificates).contains("Showing only:", "Certificates expired or expiring", "href=\"/office\"")
-                .doesNotContain("Eve Expired", "Showing the first");
+        assertThat(certificates).contains("1 to 10 of 51", "<a class=\"chip is-current\" href=\"/office?type=certificates\" aria-current=\"true\">",
+                        "href=\"/office?type=certificates&amp;page=2\"")
+                .doesNotContain("Eve Expired", "Showing only:");
 
         String invitations = html(get("/office").param("type", "invitations"));
         assertThat(ATTENTION_ROW.matcher(attentionList(invitations)).results().count()).isEqualTo(1);
-        assertThat(invitations).contains("Eve Expired", "Crew invitations not accepted");
+        assertThat(invitations).contains("Eve Expired").doesNotContain("pager-range");
+        // A chip of a kind without items: the list says so.
+        assertThat(html(get("/office").param("type", "vetting"))).contains("Nothing needs your attention here");
+        // By date: the earliest date first (Certificate 50 expired 52 days ago; the invitation yesterday).
+        assertThat(attentionList(html(get("/office").param("sort", "date")))).containsSubsequence("Certificate 50", "Certificate 49");
+        assertThat(html(get("/office").param("sort", "date").param("page", "6"))).contains("Eve Expired", "Certificate 0<");
     }
 
     @Test
-    void theFleetTableListsShipsWithOpenItemsFirstAndLinksOnlyNonZeroCounts() throws Exception {
+    void theFleetCardListsShipsWithOpenItemsFirstAndLinksOnlyNonZeroCounts() throws Exception {
         Ship calm = ship("MV Aaa Calm");
         crew(calm, "Anna Able", Rank.ABLE_SEAMAN);
         Ship busy = ship("MV Zzz Busy");
@@ -337,24 +388,28 @@ class DashboardFlowTest {
         String fleet = group(FLEET_TABLE, html);
 
         assertThat(fleet).containsSubsequence("MV Zzz Busy", "MV Aaa Calm").doesNotContain("MV Laid Up");
-        assertThat(html).doesNotContain("Ivan Idle", "Passport").contains("2 vessels · 2 crew · 3 open items");
+        assertThat(html).doesNotContain("Ivan Idle", "Passport");
+        assertThat(tiles(html)).containsExactly(
+                "2 Active vessels 1 with open items",
+                "2 Crew on board no invitations waiting",
+                "3 Items needing attention none snoozed",
+                "1 Orders waiting for the office 1 not exported yet");
         long busyId = busy.getId();
-        assertThat(fleet).contains("href=\"/office/ships/" + busyId + "\"",
-                "href=\"/office/crew?shipId=" + busyId + "\"",
-                "href=\"/office/certificates?shipId=" + busyId + "&amp;status=expired,30\"",
-                "href=\"/office?type=acknowledgements&amp;shipId=" + busyId + "\"",
-                "href=\"/office/orders?shipId=" + busyId + "&amp;exported=no\"");
-        // The calm ship: crew linked, every other count a muted dash and no link.
+        // Each row: the name (to the ship page), the Safety Score (to its Vetting page) and the open items (to the
+        // Overview filtered to the ship); a zero is a muted dash.
+        assertThat(fleet).contains("href=\"/office/ships/" + busyId + "\"", "href=\"/office/vetting/" + busyId + "\"",
+                "class=\"count-link\" href=\"/office?shipId=" + busyId + "\">3</a>", "N/A");
         long calmId = calm.getId();
-        assertThat(fleet).contains("href=\"/office/crew?shipId=" + calmId + "\"")
-                .doesNotContain("certificates?shipId=" + calmId, "type=acknowledgements&amp;shipId=" + calmId,
-                        "orders?shipId=" + calmId);
-        assertThat(count(fleet, "class=\"count-zero\"")).isEqualTo(3);
+        assertThat(fleet).contains("href=\"/office/ships/" + calmId + "\"").doesNotContain("href=\"/office?shipId=" + calmId + "\"");
+        assertThat(count(fleet, "class=\"count-zero\"")).isEqualTo(1);
 
-        // The ship and condition filter of a count: only that ship's items of that kind.
+        // The ship filter: only that ship's items, with a chip to narrow to one kind.
+        String ofBusy = html(get("/office").param("shipId", "" + busyId));
+        assertThat(ATTENTION_ROW.matcher(attentionList(ofBusy)).results().count()).isEqualTo(3);
+        assertThat(ofBusy).contains("Showing only:", "<strong>MV Zzz Busy</strong>", "href=\"/office\"",
+                "href=\"/office?type=acknowledgements&amp;shipId=" + busyId + "\"");
         String acknowledgements = html(get("/office").param("type", "acknowledgements").param("shipId", "" + busyId));
         assertThat(attentionList(acknowledgements)).contains("Fire drill").doesNotContain("Medical fitness");
-        assertThat(acknowledgements).contains("Showing only:", "Not acknowledged", "<strong>MV Zzz Busy</strong>");
     }
 
     @Test
@@ -369,7 +424,8 @@ class DashboardFlowTest {
         libraryItem(ship, "Drug and alcohol policy", true, days(-10));
 
         String main = group(MAIN, html(get("/office")));
-        List<String> lists = List.of("/office", "/office/crew", "/office/certificates", "/office/announcements",
+        // This page itself (the "All" chip, the page anchor) is the one unfiltered link.
+        List<String> lists = List.of("/office/crew", "/office/certificates", "/office/announcements",
                 "/office/orders", "/office/users");
         Matcher hrefs = HREF.matcher(main);
         List<String> found = new ArrayList<>();
@@ -380,15 +436,15 @@ class DashboardFlowTest {
     }
 
     @Test
-    void thePageHasOnePrimaryActionAndASummaryLineInsteadOfTiles() throws Exception {
+    void thePageHasOnePrimaryActionAndTilesInsteadOfASummaryLine() throws Exception {
         completeSetup();
         String html = html(get("/office"));
         assertThat(count(html, "btn btn-primary")).isEqualTo(1);
-        assertThat(html).contains("href=\"/office/announcements/new\"", "New announcement")
-                .contains("<p class=\"page-subtitle\">1 vessel · 1 crew · 0 open items</p>")
-                .doesNotContain("fs-2 fw-bold", "Active crew", "Open items needing attention", "Set up Nereonet");
+        assertThat(html).contains("href=\"/office/announcements/new\"", "New announcement", "class=\"overview-tiles\"")
+                .doesNotContain("fs-2 fw-bold", "Active crew", "page-subtitle", "Set up Nereonet");
         assertThat(html(get("/office").param("lang", "el")))
-                .contains("1 πλοίο · 1 μέλος πληρώματος · 0 ανοιχτά θέματα", "Τίποτα δεν χρειάζεται την προσοχή σας");
+                .contains("Ενεργά πλοία", "Πλήρωμα επί των πλοίων", "Τίποτα δεν χρειάζεται την προσοχή σας",
+                        "Ανά κατηγορία", "Επόμενες 30 ημέρες", "Πρόσφατη δραστηριότητα");
     }
 
     // First run (P25) ------------------------------------------------------------------------------------------------
@@ -400,8 +456,8 @@ class DashboardFlowTest {
         assertThat(html).contains("Set up Nereonet", "0 of 4 done", "<ol class=\"setup-steps\">")
                 .contains("Add a vessel", "Add or import its crew", "Add the vessel&#39;s first library document",
                         "Send a first announcement")
-                .contains("<p class=\"page-subtitle\">0 vessels · 0 crew · 0 open items</p>")
-                .doesNotContain("Needs attention", "id=\"fleetTitle\"", "New announcement", "Done</span>");
+                .doesNotContain("Needs attention", "id=\"fleetTitle\"", "New announcement", "Done</span>",
+                        "overview-tiles");
         // The next step is the page's one primary button; the others link to their pages.
         assertThat(count(html, "btn btn-primary")).isEqualTo(1);
         assertThat(html).contains("aria-current=\"step\"", "<a class=\"btn btn-primary setup-step-action\" href=\"/office/ships\">Go to Vessels</a>")
@@ -464,7 +520,7 @@ class DashboardFlowTest {
     }
 
     @Test
-    void loadRunsTheSameElevenQueriesWhateverTheFleetSize() {
+    void loadRunsTheSameTwelveQueriesWhateverTheFleetSize() {
         addShipWithOpenItems();
         long small = queriesOfLoad();
         for (int i = 0; i < 4; i++) {
@@ -473,8 +529,10 @@ class DashboardFlowTest {
         long large = queriesOfLoad();
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
-        // P42: one more, the required documents (none set here: nobody is then checked, so no queries for them).
-        assertThat(small).isEqualTo(11);
+        // P43: the ships with their crew (one), the certificates, the required documents' rules (none set here:
+        // nobody is then checked, so no queries for them), the RightShip rows, SIRE 2.0 (two), the orders, the
+        // invitations, the announcements, the library items, the snoozes and the newest audit entries: 12.
+        assertThat(small).isEqualTo(12);
         assertThat(large).isEqualTo(small);
     }
 
@@ -510,6 +568,11 @@ class DashboardFlowTest {
 
     private static String attentionList(String html) {
         return group(ATTENTION_LIST, html);
+    }
+
+    // The four tiles as "number label detail".
+    private static List<String> tiles(String html) {
+        return TILE.matcher(html).results().map(m -> m.group(1) + " " + m.group(2) + " " + m.group(3)).toList();
     }
 
     private static String group(Pattern pattern, String html) {

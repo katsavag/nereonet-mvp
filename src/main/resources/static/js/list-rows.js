@@ -5,7 +5,9 @@
 //    are half-checked when some are. [data-selection-count] says how many are selected (its data-none, data-one and
 //    data-many texts, "{count} selected"); it is a live region. The form's buttons with data-needs-selection,
 //    also those outside it (form="..."), are disabled while nothing is selected. [data-selection-only] elements
-//    (select-all, the selection line) are hidden until this script runs.
+//    (select-all, the selection line) are hidden until this script runs. The checkboxes may sit outside the form
+//    element and belong to it by their form attribute (P43: a list whose rows hold forms of their own, such as Undo),
+//    so the form's elements are read through form.elements and change events through the document.
 //  - A table row with data-row-href opens that page when clicked anywhere except on a control (a link, a button, a
 //    checkbox or the cell around it). Ctrl or Cmd click and middle click open it in a new tab; selecting text does
 //    not open it. The row's main link stays the way to it for the keyboard and screen readers.
@@ -15,10 +17,12 @@
     const lang = document.documentElement.lang || undefined;
 
     document.querySelectorAll('form[data-selection]').forEach(form => {
-        const rows = () => Array.from(form.querySelectorAll('input[type=checkbox][data-select-row]'));
-        const all = Array.from(form.querySelectorAll('input[type=checkbox][data-select-all]'));
-        const count = form.querySelector('[data-selection-count]');
-        const needing = Array.from(form.elements).filter(element => element.hasAttribute('data-needs-selection'));
+        const elements = () => Array.from(form.elements);
+        const rows = () => elements().filter(element => element.matches('input[type=checkbox][data-select-row]'));
+        const all = elements().filter(element => element.matches('input[type=checkbox][data-select-all]'));
+        const count = form.querySelector('[data-selection-count]')
+            || document.querySelector('[data-selection-count][data-selection-for="' + form.id + '"]');
+        const needing = elements().filter(element => element.hasAttribute('data-needs-selection'));
 
         function update() {
             const boxes = rows();
@@ -43,8 +47,12 @@
             }
         }
 
-        form.querySelectorAll('[data-selection-only]').forEach(element => {
-            element.hidden = false;
+        document.querySelectorAll('[data-selection-only]').forEach(element => {
+            const owner = element.closest('form[data-selection]') || (element.dataset.selectionFor
+                ? document.getElementById(element.dataset.selectionFor) : null);
+            if (owner === form || element.querySelector('[form="' + form.id + '"]')) {
+                element.hidden = false;
+            }
         });
         all.forEach(box => box.addEventListener('change', () => {
             rows().forEach(row => {
@@ -52,8 +60,8 @@
             });
             update();
         }));
-        form.addEventListener('change', event => {
-            if (event.target.matches('[data-select-row]')) {
+        document.addEventListener('change', event => {
+            if (event.target.matches('[data-select-row]') && event.target.form === form) {
                 update();
             }
         });

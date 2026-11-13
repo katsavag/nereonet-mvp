@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.nereonix.nereonet_mvp.core.alert.Alert;
+import com.nereonix.nereonet_mvp.core.alert.AlertKind;
+import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
+
 /**
  * A SIRE 2.0 inspection as the pages show it (P41): a vessel's latest one (or, on the SIRE page, an earlier one the
  * office opened), its observations, the company policy (SireSettings) and today's UTC date. inspection is null when
@@ -172,6 +176,41 @@ public record SireView(SireInspection inspection, List<SireObservation> observat
             return 0;
         }
         return reportState() == SireReportState.ENDING ? 1 : 2;
+    }
+
+    // Alerts (P43)
+
+    /** The report's level (AlertLevels): 0 no longer current, 1 ending within 30 days, 2 within 60; NONE beyond. */
+    public int reportLevel() {
+        return inspection == null ? AlertLevels.NONE : AlertLevels.ofDate(currentUntil(), today);
+    }
+
+    /** The operator comments' level: 0 overdue, 1 due; NONE without a deadline. */
+    public int commentsLevel() {
+        return commentsDueOn() == null ? AlertLevels.NONE : commentsOverdue() ? AlertLevels.EXPIRED : 1;
+    }
+
+    /**
+     * The inspection's alerts right now: the comments due within 3 days or overdue and the report ending or no
+     * longer current (the inspection's id), and each overdue observation (its id).
+     */
+    public List<Alert> alerts() {
+        List<Alert> alerts = new ArrayList<>();
+        if (inspection == null) {
+            return alerts;
+        }
+        if (commentsUrgent()) {
+            alerts.add(Alert.of(AlertKind.SIRE_COMMENTS, inspection.getId(), commentsLevel()));
+        }
+        if (reportState().needsAttention()) {
+            alerts.add(Alert.of(AlertKind.SIRE_REPORT, inspection.getId(), reportLevel()));
+        }
+        for (SireObservation o : observations) {
+            if (o.status(today) == ObservationStatus.OVERDUE) {
+                alerts.add(Alert.of(AlertKind.SIRE_OBSERVATION, o.getId(), AlertLevels.EXPIRED));
+            }
+        }
+        return alerts;
     }
 
     // "5.4.1" before "5.10.1": by each number, then as text.

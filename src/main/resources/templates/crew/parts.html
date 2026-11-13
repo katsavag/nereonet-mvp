@@ -175,12 +175,15 @@
 
 <!-- One field of My profile: the whole row is one link to the field's page, at least 56px high: the field's name, its
      value under it ("Not given" in the secondary colour when empty) and a chevron. value: text, or null when empty.
-     Use: <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio})}"></li> -->
-<li th:fragment="profileRow(url, label, value)" class="profile-row-item">
+     flag (P43): the ISO code of a country value, shown as its flag before the name (the nationality row), else null.
+     Use: <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio}, null)}"></li> -->
+<li th:fragment="profileRow(url, label, value, flag)" class="profile-row-item">
     <a class="profile-row" th:href="@{${url}}">
         <span class="profile-row-main">
             <span class="profile-row-label" th:text="${label}">Bio</span>
-            <span th:if="${value != null}" class="profile-row-value" th:text="${value}">Cook from Piraeus.</span>
+            <th:block th:if="${value != null and flag != null}"><span class="profile-row-value"><span
+                    th:replace="~{layout/parts :: country(${flag}, ${value})}">Greece</span></span></th:block>
+            <span th:if="${value != null and flag == null}" class="profile-row-value" th:text="${value}">Cook from Piraeus.</span>
             <span th:unless="${value != null}" class="profile-row-value is-empty" th:text="#{profile.notGiven}">Not given</span>
         </span>
         <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

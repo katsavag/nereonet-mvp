@@ -6,11 +6,14 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,8 @@ import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirement;
 import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirementRepository;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
@@ -40,19 +45,87 @@ public class RequirementService {
 
     private final DocumentRequirementRepository requirementRepository;
     private final CertificateRepository certificateRepository;
+    private final ShipRepository shipRepository;
     private final AuditService auditService;
+    private final MessageSource messageSource;
 
     public RequirementService(DocumentRequirementRepository requirementRepository,
-                              CertificateRepository certificateRepository, AuditService auditService) {
+                              CertificateRepository certificateRepository, ShipRepository shipRepository,
+                              AuditService auditService, MessageSource messageSource) {
         this.requirementRepository = requirementRepository;
         this.certificateRepository = certificateRepository;
+        this.shipRepository = shipRepository;
         this.auditService = auditService;
+        this.messageSource = messageSource;
     }
 
     /** The vessel type of a URL value: null (All vessels) for "all", nothing or anything unknown. */
     public static ShipType vesselType(String key) {
         return key == null ? null
                 : Arrays.stream(ShipType.values()).filter(t -> t.name().equals(key)).findFirst().orElse(null);
+    }
+
+    /**
+     * What the combined filter chose (P43): a vessel type ("all", "TANKER"), or an active vessel ("ship-12"), whose
+     * type's grid is shown; anything unknown is All vessels. One query: the active vessels, which are also the
+     * filter's options after the types. The options name each vessel's type in the given language.
+     */
+    @Transactional(readOnly = true)
+    public RequirementSelection select(String key, Locale locale) {
+        List<Ship> active = shipRepository.findAllByActiveTrueOrderByNameAsc();
+        Ship ship = null;
+        if (key != null && key.startsWith("ship-")) {
+            try {
+                long id = Long.parseLong(key.substring("ship-".length()));
+                ship = active.stream().filter(s -> s.getId().equals(id)).findFirst().orElse(null);
+            } catch (NumberFormatException e) {
+                ship = null;
+            }
+        }
+        ShipType type = ship != null ? ship.getType() : vesselType(key);
+        String chosen = ship != null ? RequirementSelection.shipKey(ship) : key(type);
+        List<Ship> vessels = active.stream().filter(s -> s.getType() == type).toList();
+
+        List<RequirementSelection.Option> options = new ArrayList<>();
+        String typeKind = messageSource.getMessage("requirement.filter.kind.type", null, locale);
+        options.add(new RequirementSelection.Option(ALL, messageSource.getMessage("requirement.vessel.all", null, locale),
+                typeKind, false));
+        for (ShipType t : ShipType.values()) {
+            options.add(new RequirementSelection.Option(t.name(),
+                    messageSource.getMessage("ship.type." + t.name(), null, locale), typeKind, false));
+        }
+        for (Ship s : active) {
+            String kind = s.getType() == null ? messageSource.getMessage("requirement.filter.noType", null, locale)
+                    : messageSource.getMessage("ship.type." + s.getType().name(), null, locale);
+            options.add(new RequirementSelection.Option(RequirementSelection.shipKey(s), s.getName(), kind, true));
+        }
+        return new RequirementSelection(chosen, type, ship, vessels, options);
+    }
+
+    /** A message in the request's language (the vessel type's name in a confirmation). */
+    public String label(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
+
+    /**
+     * Removes the certificate type's requirement of one vessel type (null: All vessels) only (P43): the other vessel
+     * types keep theirs. Recorded as "Required documents changed" ("TANKER: Tanker Endorsement removed"). Returns
+     * false when there was none to remove.
+     */
+    @Transactional
+    public boolean delete(ShipType vesselType, String certificateType) {
+        if (certificateType == null || certificateType.isBlank()) {
+            return false;
+        }
+        String key = CertificateTypes.sameTypeKey(certificateType);
+        DocumentRequirement saved = byKey(requirementRepository.findAllWithRanks(), vesselType).get(key);
+        if (saved == null) {
+            return false;
+        }
+        requirementRepository.delete(saved);
+        String scope = vesselType == null ? "All vessels" : vesselType.name();
+        auditService.record("REQUIREMENTS_UPDATED", null, scope + ": " + saved.getCertificateType() + " removed");
+        return true;
     }
 
     public static String key(ShipType vesselType) {
@@ -162,10 +235,20 @@ public class RequirementService {
                 sent.putIfAbsent(CertificateTypes.sameTypeKey(row.getType()), row);
             }
         }
+        // The row toggle (P43) sent without JavaScript: every rank, less those already required on all vessels on a
+        // vessel type's grid (there they are grey ticks, not checkboxes).
+        Map<String, DocumentRequirement> general = vesselType == null ? Map.of() : byKey(all, null);
         for (Map.Entry<String, RequirementGridForm.RowForm> entry : sent.entrySet()) {
             RequirementGridForm.RowForm row = entry.getValue();
             DocumentRequirement saved = own.get(entry.getKey());
             Set<Rank> ranks = row.getRanks().isEmpty() ? EnumSet.noneOf(Rank.class) : EnumSet.copyOf(row.getRanks());
+            if (row.isAll()) {
+                ranks = EnumSet.allOf(Rank.class);
+                DocumentRequirement inherited = general.get(entry.getKey());
+                if (inherited != null) {
+                    ranks.removeAll(inherited.getRanks());
+                }
+            }
             boolean keep = !ranks.isEmpty() || row.getNote() != null || row.isOptional();
             if (saved == null && !keep) {
                 continue;
@@ -217,11 +300,4 @@ public class RequirementService {
         }
     }
 
-    /** The vessel types the grid can show as URL values: "all" first, then each ShipType. */
-    public static List<String> vesselTypeKeys() {
-        List<String> keys = new ArrayList<>();
-        keys.add(ALL);
-        Arrays.stream(ShipType.values()).forEach(t -> keys.add(t.name()));
-        return keys;
-    }
 }

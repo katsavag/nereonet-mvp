@@ -110,11 +110,12 @@ class ShipHomeFlowTest {
     void chiefCookSeesWhatToReadUntilAcknowledged() throws Exception {
         String html = home(cook);
         // Header: name, rank, ship with IMO number; Sign out next to the name, from 768px only (P39: on phones it is
-        // under More, a CSS breakpoint class, no script).
+        // under More, a CSS breakpoint class, no script). P43: no "Not Demo Cook?" text any more.
         assertThat(html).contains("<title>Home · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
                 ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>", "<div class=\"home-sign-out from-md\">")
-                .containsPattern("(?s)<span class=\"home-sign-out-name\">Not Demo Cook\\?</span>\\s*"
-                        + "<form action=\"/logout\" method=\"post\">.*?>Sign out</button>");
+                .containsPattern("(?s)<div class=\"home-sign-out from-md\">\\s*"
+                        + "<form action=\"/logout\" method=\"post\">.*?>Sign out</button>")
+                .doesNotContain("home-sign-out-name", "Not Demo Cook");
 
         String toRead = section(TO_READ, html);
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy");

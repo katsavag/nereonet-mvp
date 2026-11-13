@@ -28,8 +28,10 @@
             <p th:if="${office}" class="fw-semibold mb-0 text-break"><a th:replace="~{layout/parts :: shipLink(${ship})}">MV Demo</a></p>
             <p class="text-body-secondary small mb-0">
                 <span th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
+                <!-- P43: the flag's image, then "Flag GR" as before. -->
                 <th:block th:if="${ship.flag}">
-                    · <span th:text="#{library.flag(${ship.flag})}">Flag GR</span>
+                    · <span class="country"><img th:replace="~{layout/parts :: flag(${ship.flag})}"><span
+                        th:text="#{library.flag(${ship.flag})}">Flag GR</span></span>
                 </th:block>
             </p>
             <div th:if="${ship.particularsText}" class="mt-3 text-break text-pre-line"
@@ -388,7 +390,10 @@
             <dt th:text="#{ship.code}">IMO number</dt>
             <dd class="num" th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</dd>
             <dt th:text="#{ship.flag}">Flag</dt>
-            <dd th:text="${ship.flag} ?: '—'">GR</dd>
+            <dd>
+                <th:block th:if="${ship.flag}"><span th:replace="~{layout/parts :: country(${ship.flag}, ${ship.flag})}">GR</span></th:block>
+                <th:block th:unless="${ship.flag}">—</th:block>
+            </dd>
         </dl>
         <div>
             <label for="text" class="form-label">[[#{library.particulars}]] <span th:replace="~{layout/parts :: optional}"></span></label>

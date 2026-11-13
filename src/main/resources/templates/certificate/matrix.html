@@ -64,12 +64,14 @@
      view: 'matrix' or 'list'; exportUrl: this view's export (an Excel workbook, P39). Needs returnTo (this view's URL) in the model. -->
 <th:block th:fragment="tabTop(view, exportUrl, noCertificates)">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
-    <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ${noCertificates} ? null : ~{certificate/matrix :: tabActions(${exportUrl})})}"></div>
+    <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ${noCertificates} ? null : ~{certificate/matrix :: tabActions(${exportUrl}, ${view})})}"></div>
     <nav th:replace="~{layout/parts :: viewSwitch(#{certificate.view.label}, ~{certificate/matrix :: viewLinks(${view})})}"></nav>
     <p class="tab-hint" th:text="${view == 'matrix'} ? #{certificate.matrix.hint} : #{certificate.list.hint}">Active crew on board ...</p>
 </th:block>
 
-<th:block th:fragment="tabActions(exportUrl)">
+<!-- P43: the list view adds Snooze selected (its form is in certificate/list.html). -->
+<th:block th:fragment="tabActions(exportUrl, view)">
+    <th:block th:if="${view == 'list'}"><button th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button></th:block>
     <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
         <svg th:replace="~{layout/parts :: icon('download')}"></svg>
         <span th:text="#{certificate.export}">Export</span>

@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -162,7 +163,10 @@ public class CertificateController {
     private String showList(CertificateService.Filter filter, ListQuery list, Model model) {
         CertificateStatus status = filter.status();
         model.addAttribute("list", list);
-        model.addAttribute("certificates", certificateService.findCertificates(filter, list));
+        Page<Certificate> certificates = certificateService.findCertificates(filter, list);
+        model.addAttribute("certificates", certificates);
+        // P43: the snoozed rows of the page (muted, with Undo); the others get Snooze.
+        model.addAttribute("snoozes", certificateService.snoozesOf(certificates.getContent()));
         // Empty without a filter (P25): no certificate yet at all, or none expiring within 90 days.
         model.addAttribute("anyCertificates", certificateService.anyCertificates(filter.shipId()));
         model.addAttribute("status", status.key());
