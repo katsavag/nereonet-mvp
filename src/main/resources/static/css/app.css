@@ -5202,3 +5202,254 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     gap: var(--nn-space-2) var(--nn-space-4);
 }
 .sire-type-options .form-check-inline { margin-right: 0; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Required documents (P42): requirement/grid.html, crew/parts :: documentsSummary, requiredDocumentsCard,
+   documentsMissingLink, myMissingDocuments; the Missing cell of certificate/matrix.html.
+     - .requirement-notice: the starter template notice, in the warning pair, above the disclaimer (.info-note).
+     - .req-grid: certificate types as rows, ranks as columns. Like .cert-matrix, the first column (.req-grid-type)
+       stays put while the grid scrolls sideways inside its card (also on phones: the page itself never scrolls
+       sideways), with a divider on its right edge. Rank names are turned upright (.req-grid-rank-label, read bottom
+       to top) so the columns stay one checkbox wide; each department starts with a divider (.req-grid-group-start).
+       Each cell's label (.req-cell) fills the cell, at least the touch target (40px, 44px on phones) in both
+       directions; a rank already required on all vessels shows a muted tick (.req-cell-inherited) and says so to
+       screen readers. A row just added (.is-added) has the primary tint.
+     - .requirement-actions: Save and its hint, under the grid. .requirement-add: Add a document type, under the card.
+     - .requirement-card-*, .requirement-row-*: the office crew member page's Required documents card: type, note and
+       expiry on the left, the state badge, then Open and Add certificate, wrapping under the text on phones.
+     - .documents-summary: the Crew list's "5 of 7" badge, kept on one line.
+     - .cert-matrix-missing: a required cell not held shows the Missing badge in place of the muted dash.
+     - .cert-row-required: on My profile, a missing or expired required document, with a danger rule on its start
+       edge (the badge says it in words); .cert-row-contact: "Contact the office to add it."
+     - .documents-missing-link: crew Home and the Master's home, "2 required documents missing": one link in the
+       danger pair with the warning triangle and a chevron, at least 44px high.
+   Text pairs: names 15:1, hints and the inherited tick 6.6:1 on the surface; badges and the danger pair as everywhere.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-req-type-width: 14rem;
+    --nn-req-rank-height: 15rem;     /* the upright rank names, upper case: "Electro-Technical Officer" fits */
+    --nn-req-note-width: 13rem;
+    --nn-req-rule-width: 3px;
+}
+
+.requirement-notice { margin-bottom: var(--nn-space-4); }
+.requirement-notice-title {
+    margin-bottom: var(--nn-space-1);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.requirements-page > .info-note { margin-bottom: var(--nn-space-4); }
+
+.requirement-grid-header {
+    padding-block: var(--nn-space-3);
+    background-color: transparent;
+}
+.requirement-grid-hint {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.req-grid { border-collapse: separate; border-spacing: 0; }
+.req-grid > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
+.req-grid > tbody > tr:last-child > * { border-bottom: 0; }
+.req-grid > thead > tr > th { vertical-align: bottom; }
+.req-grid .req-grid-type {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: var(--nn-req-type-width);
+    max-width: var(--nn-req-type-width);
+    background-color: var(--nn-surface);
+    box-shadow: none;
+    text-align: left;
+}
+/* The divider on the first column's right edge; a pseudo-element, so it moves with the sticky cell. */
+.req-grid .req-grid-type::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--nn-divider);
+}
+.req-grid > tbody > tr > .req-grid-type {
+    vertical-align: middle;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.req-grid > tbody > tr > .req-grid-type > .status-badge { margin-inline-start: var(--nn-space-1); }
+.req-grid > tbody > tr.is-added > * { --bs-table-bg-state: var(--nn-primary-bg); }
+.req-grid > tbody > tr.is-added > .req-grid-type { background-color: var(--nn-primary-bg); }
+.req-grid-group { text-align: left; }
+.req-grid .req-grid-group,
+.req-grid .req-grid-group-start { border-left: 1px solid var(--nn-divider); }
+.req-grid .req-grid-rank { padding-inline: var(--nn-space-1); }
+.req-grid-rank-label {
+    display: inline-block;
+    max-height: var(--nn-req-rank-height);
+    overflow: hidden;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+.data-table.req-grid > tbody > tr > .req-grid-cell {
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+}
+/* position: relative keeps the visually hidden label inside the scroll box (see .cert-matrix-link). */
+.req-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    margin: 0;
+}
+label.req-cell { cursor: pointer; }
+label.req-cell:hover { background-color: var(--nn-hover); }
+.req-cell > .form-check-input { margin: 0; }
+.req-cell-inherited { color: var(--nn-text-secondary); }
+.req-cell-inherited > svg {
+    width: 16px;
+    height: 16px;
+}
+.req-grid .req-grid-optional { border-left: 1px solid var(--nn-divider); }
+.req-grid .req-grid-note { min-width: var(--nn-req-note-width); }
+/* position: relative contains the visually hidden labels of the Note column and the caption: without it they take
+   the card as their box, escape the scroll box and widened the page on phones. */
+.req-grid-scroll { position: relative; }
+.req-grid-scroll:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
+
+.requirement-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding-block: var(--nn-space-3);
+    background-color: transparent;
+}
+.requirement-actions-hint {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.requirement-add { margin-top: var(--nn-section-gap); }
+.requirement-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--nn-space-2) var(--nn-space-3);
+}
+.requirement-add-field {
+    flex: 1 1 16rem;
+    max-width: 28rem;
+}
+
+.requirement-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-3);
+}
+.requirement-card-context {
+    margin: 0;
+    padding: var(--nn-space-3) var(--nn-card-padding) 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.requirement-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    padding-block: var(--nn-space-3);
+}
+.requirement-row-main {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+.requirement-row-type {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.requirement-row-type > .form-label-optional { margin-inline-start: var(--nn-space-1); }
+.requirement-row-note,
+.requirement-row-meta {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.requirement-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+.requirement-row-actions:empty { display: none; }
+.requirement-card-foot {
+    margin: 0;
+    padding: var(--nn-space-1) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-sm);
+}
+.requirement-card-foot > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+@media (max-width: 575.98px) {
+    .requirement-row-actions { flex-basis: 100%; }
+}
+
+.documents-summary {
+    display: inline-flex;
+    white-space: nowrap;
+}
+
+.cert-matrix-link.cert-matrix-missing { color: var(--nn-text); }
+
+.cert-row-required { box-shadow: inset var(--nn-req-rule-width) 0 0 var(--nn-danger-border); }
+.cert-row-contact {
+    color: var(--nn-text);
+    font-weight: 500;
+}
+
+.documents-missing-link {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: 44px;
+    margin-bottom: var(--nn-space-3);
+    padding: var(--nn-space-2) var(--nn-space-4);
+    background-color: var(--nn-danger-bg);
+    color: var(--nn-danger-text);
+    border: 1px solid var(--nn-danger-border);
+    border-radius: var(--nn-radius-card);
+    font-weight: 600;
+    text-decoration: none;
+}
+.documents-missing-link:hover {
+    color: var(--nn-danger-text);
+    text-decoration: underline;
+}
+.documents-missing-link > svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+.documents-missing-link > .profile-row-chevron {
+    margin-inline-start: auto;
+    color: currentColor;
+}
+.master-home > .documents-missing-link { margin-bottom: var(--nn-space-4); }
+@media (max-width: 767.98px) {
+    :root { --nn-req-type-width: 10rem; }
+}

@@ -114,6 +114,29 @@
                     </div>
                 </th:block>
 
+                <!-- Required documents (P42): a seafarer on board missing required documents (expired included), right
+                     after expired certificates. The title opens the crew member's page at the card, where each has
+                     Add certificate. -->
+                <th:block th:if="${type == 'DOCUMENTS_MISSING'}"
+                          th:with="url=@{/office/crew/{id}/edit(id=${item.id})} + '#requiredDocuments'">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon('danger', #{dashboard.item.documentsMissing(${item.missing})}, 'alert')}"></span>
+                            <span th:text="#{dashboard.kind.documents}">Required documents</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}" th:text="${item.fullName}">Jane Doe</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            <th:block th:if="${item.rank != null}">· <span th:text="#{${'rank.' + item.rank}}">Chief Officer</span></th:block>
+                            · <span th:text="${#strings.listJoin(item.types, ', ')}">Passport, Tanker Endorsement</span>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openCrewMember}">Open crew member</a>
+                    </div>
+                </th:block>
+
                 <!-- RightShip (P40): an inspection expired, unacceptable or expiring within 60 days, or a Safety Score
                      of 2 or below. The title and Open RightShip lead to the vessel's RightShip page. -->
                 <th:block th:if="${type == 'VETTING_INSPECTION' or type == 'VETTING_SCORE'}"
@@ -276,7 +299,8 @@
         </ul>
 
         <!-- The full list of each kind: orders not exported on Orders; certificates on Certificates, filtered to
-             exactly what is counted here (expired or within 30 days, crew of active ships, P20); RightShip on
+             exactly what is counted here (expired or within 30 days, crew of active ships, P20); required documents
+             (P42) on Crew, active people with Missing documents (which also lists crew of inactive vessels); RightShip on
              Vetting, filtered to Needs attention (P40); the other kinds on this page filtered to them
              (/office?type=...). -->
         <div th:if="${!d.filtered() and !d.groups.isEmpty()}" class="card-footer attention-footer">
@@ -285,7 +309,7 @@
             <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
             <ul class="attention-lists" aria-labelledby="attentionListsTitle">
                 <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
-                    <a th:href="${name == 'ORDERS'} ? @{/office/orders(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : (${name == 'VETTING'} ? @{/office/vetting(status='attention')} : @{/office(type=${g.group.param()})}))">
+                    <a th:href="${name == 'ORDERS'} ? @{/office/orders(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : (${name == 'VETTING'} ? @{/office/vetting(status='attention')} : (${name == 'DOCUMENTS'} ? @{/office/crew(status='active', documents='missing')} : @{/office(type=${g.group.param()})})))">
                         <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
                     </a>

@@ -24,6 +24,8 @@ public enum NavSection {
     ORDERS("orders", List.of("/office/orders")),
     // Office, Administration. Office invitations are part of the Office users page.
     USERS("users", List.of("/office/users", "/office/invitations")),
+    // Which documents each rank needs, per vessel type (P42).
+    REQUIREMENTS("requirements", List.of("/office/requirements")),
     AUDIT("audit", List.of("/office/audit")),
     // Ship. Home is /ship itself only (P26), see of().
     HOME("home", List.of()),

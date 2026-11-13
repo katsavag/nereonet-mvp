@@ -69,7 +69,9 @@
             <!-- The person's own certificates, soonest expiry first (expired, then expiring soon). Read only. -->
             <section class="home-section" aria-labelledby="certificatesTitle">
                 <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
-                <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false)}"></div>
+                <!-- P42: "2 required documents missing", to My profile; only when something is. -->
+                <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
+                <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false, null)}"></div>
                 <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>
             </section>
         </div>

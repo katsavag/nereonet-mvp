@@ -14,6 +14,7 @@
         <!-- Add crew member: the same modal as on the Crew page, with this ship preselected. Not for an inactive ship. -->
         <div th:replace="~{ship/parts :: tabHeading(#{crew.list.heading}, ${ship.active and !noCrew} ? ~{::tabActions} : null)}">
             <th:block th:fragment="tabActions">
+                <th:block th:if="${anyRequirements}"><a th:replace="~{crew/list :: documentsExport}"></a></th:block>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCrewModal">
                     <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                     <span th:text="#{crew.list.add}">Add crew member</span>
@@ -32,6 +33,7 @@
                 <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
                 <span th:text="#{crew.list.import}">Import from file</span>
             </a>
+            <th:block th:if="${anyRequirements}"><a th:replace="~{crew/list :: documentsExport}"></a></th:block>
         </th:block>
     </header>
 
@@ -49,6 +51,14 @@
                     <option th:each="st : ${statuses}" th:value="${st.key()}" th:selected="${st.key() == status}"
                             th:text="#{${'crew.filter.status.' + st.key()}}">Invitation expired</option>
                 </select>
+            </div>
+            <!-- P42: only the people missing a required document (expired counts as missing). -->
+            <div th:if="${anyRequirements}" class="filter-field filter-field-check">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="filterDocuments" name="documents"
+                           value="missing" th:checked="${missingDocuments}">
+                    <label class="form-check-label" for="filterDocuments" th:text="#{crew.filter.missingDocuments}">Missing documents</label>
+                </div>
             </div>
         </th:block>
     </div>
@@ -83,6 +93,8 @@
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'rank', #{user.rank})}"></th>
                     <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'status', #{user.status})}"></th>
+                    <!-- P42: required documents held, "5 of 7"; first click puts the most missing first. -->
+                    <th:block th:if="${anyRequirements}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'documents', #{crew.documents})}"></th></th:block>
                     <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
                 </tr>
                 </thead>
@@ -101,6 +113,9 @@
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <th:block th:replace="~{crew/parts :: invitationStatus(${inv})}"></th:block>
+                    </td>
+                    <td th:if="${anyRequirements}" th:attr="data-label=#{crew.documents}">
+                        <th:block th:replace="~{crew/parts :: documentsSummary(null)}"></th:block>
                     </td>
                     <td class="cell-actions">
                         <div th:replace="~{crew/parts :: invitationActions(${inv})}"></div>
@@ -121,6 +136,9 @@
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${u.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>
+                    </td>
+                    <td th:if="${anyRequirements}" th:attr="data-label=#{crew.documents}">
+                        <th:block th:replace="~{crew/parts :: documentsSummary(${compliance.get(u.id)})}"></th:block>
                     </td>
                     <td class="cell-actions">
                         <div class="row-actions">
@@ -207,5 +225,12 @@
         </div>
     </div>
 </main>
+
+<!-- P42: the required documents of the people of this list as filtered (every page, no invitations) as an .xls: one
+     row per person and document. -->
+<a th:fragment="documentsExport" class="btn btn-outline-secondary" th:href="@{${documentsExportUrl}}" download>
+    <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+    <span th:text="#{crew.documents.export}">Export documents</span>
+</a>
 </body>
 </html>

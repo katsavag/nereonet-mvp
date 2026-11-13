@@ -120,7 +120,7 @@ class NavigationFlowTest {
                 "/office/crew/" + crew.getId() + "/edit", "/office/crew/" + crew.getId() + "/certificates/new",
                 "/office/certificates", "/office/vetting", "/office/vetting/" + id, "/office/vetting/" + id + "/rightship",
                 "/office/vetting/" + id + "/rightship/edit", "/office/announcements", "/office/announcements/new", "/office/orders",
-                "/office/users", "/office/audit", "/office/ships/" + id + "/items", "/office/ships/" + id + "/library",
+                "/office/users", "/office/requirements", "/office/audit", "/office/ships/" + id + "/items", "/office/ships/" + id + "/library",
                 "/office/ships/" + id + "/crew", "/notifications");
         for (String page : pages) {
             String nav = sidebar(get(page));
@@ -132,7 +132,8 @@ class NavigationFlowTest {
         String nav = sidebar(get("/office/ships"));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList()).containsExactly(
                 "/office", "/office/ships", "/office/crew", "/office/certificates", "/office/vetting",
-                "/office/announcements", "/office/orders", "/office/users", "/office/audit", "/notifications");
+                "/office/announcements", "/office/orders", "/office/users", "/office/requirements", "/office/audit",
+                "/notifications");
         // The language switch moved to the top bar (P29).
         assertThat(nav).containsSubsequence(">Operations</p>", ">Administration</p>", ">Account</p>").doesNotContain("lang=el")
                 .contains("aria-labelledby=\"navGroupOperations\"", "aria-labelledby=\"navGroupAdministration\"",
@@ -208,6 +209,7 @@ class NavigationFlowTest {
         assertThat(NavSection.of("/office/orders/12")).isEqualTo(NavSection.ORDERS);
         assertThat(NavSection.of("/office/vetting")).isEqualTo(NavSection.VETTING);
         assertThat(NavSection.of("/office/vetting/3/rightship")).isEqualTo(NavSection.VETTING);
+        assertThat(NavSection.of("/office/requirements")).isEqualTo(NavSection.REQUIREMENTS);
         assertThat(NavSection.of("/office/crewing")).isNull();
         assertThat(NavSection.of("/ship")).isEqualTo(NavSection.HOME);
         assertThat(NavSection.of("/ship/library/3")).isEqualTo(NavSection.LIBRARY);

@@ -13,6 +13,9 @@
     <header th:replace="~{layout/parts :: pageHeader(heading=${h.ship.name},
             subtitle=#{ship.codeValue(${h.ship.imoNumber})})}"></header>
 
+    <!-- P42: the Master's own required documents missing, to My profile; only when something is. -->
+    <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
+
     <section class="home-section" aria-labelledby="masterCardsTitle">
         <h2 class="visually-hidden" id="masterCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
         <ul class="master-cards">

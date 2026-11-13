@@ -40,6 +40,9 @@ import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.SireView;
 import com.nereonix.nereonet_mvp.dashboard.AttentionType.Group;
 import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
+import com.nereonix.nereonet_mvp.requirement.Compliance;
+import com.nereonix.nereonet_mvp.requirement.ComplianceService;
+import com.nereonix.nereonet_mvp.requirement.RequiredDocument;
 
 /**
  * The office Overview (P09): a work list of open items ("Needs attention") and a fleet table, and the Overview tab of
@@ -48,6 +51,8 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
  * load() always runs the same 10 queries, whatever the size of the fleet: active ships, crew on board per ship, and
  * one per kind of open item (certificates, RightShip vetting, orders, invitations, announcements, library items).
  * See DashboardQueries. SIRE 2.0 (P41) adds two, from SireService.attention: reports and comments, observations.
+ * Required documents (P42) add one, the requirements, and when any is set two more: the crew on board with their
+ * vessels, and their certificates (ComplianceService.onBoard). DashboardFlowTest counts them.
  */
 @Service
 public class DashboardService {
@@ -69,15 +74,17 @@ public class DashboardService {
     private final CertificateRepository certificateRepository;
     private final ShipOrderService orderService;
     private final SireService sireService;
+    private final ComplianceService complianceService;
     // The same setting InvitationService uses for an invitation's expiry date.
     private final int invitationValidDays;
     private final Clock clock = Clock.systemUTC();
 
     public DashboardService(DashboardQueries queries, UserRepository userRepository,
                             CertificateRepository certificateRepository, ShipOrderService orderService,
-                            SireService sireService,
+                            SireService sireService, ComplianceService complianceService,
                             @Value("${app.invitation.valid-days:7}") int invitationValidDays) {
         this.sireService = sireService;
+        this.complianceService = complianceService;
         this.queries = queries;
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
@@ -91,7 +98,7 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, VettingItem, SireItem, OrderItem, InvitationItem, AnnouncementItem,
+            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, InvitationItem, AnnouncementItem,
             LibraryAttentionItem {
 
         AttentionType type();
@@ -116,6 +123,26 @@ public class DashboardService {
 
         public long sortKey() {
             return expiresOn.toEpochDay();
+        }
+    }
+
+    /**
+     * A seafarer on board (enabled, with a rank, on an active vessel) missing required documents, an expired one
+     * included (P42): missing of required, and the types (most urgent first). id: the user. Most missing first.
+     */
+    public record DocumentsItem(Long id, String fullName, Rank rank, FleetShip ship, long missing, long required,
+                                List<String> types) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.DOCUMENTS_MISSING;
+        }
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return -missing;
         }
     }
 
@@ -306,6 +333,14 @@ public class DashboardService {
             all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(),
                     ChronoUnit.DAYS.between(today, c.expiresOn()), shipsById.get(c.shipId()), c.fullName(), c.rank()));
         }
+        // P42: required documents, worked out on this read; ranked right after expired certificates.
+        for (Compliance c : complianceService.onBoard()) {
+            FleetShip vessel = shipsById.get(c.user().getShip().getId());
+            if (c.missing() > 0 && vessel != null) {
+                all.add(new DocumentsItem(c.user().getId(), c.user().getFullName(), c.user().getRank(), vessel,
+                        c.missing(), c.required(), c.missingDocuments().stream().map(RequiredDocument::type).toList()));
+            }
+        }
         for (DashboardQueries.VettingRow v : queries.vettingNeedingAttention(
                 today.plusDays(InspectionState.EXPIRING_DAYS), RightShipView.LOW_SCORE)) {
             FleetShip vessel = shipsById.get(v.shipId());
@@ -466,7 +501,7 @@ public class DashboardService {
                 case CERTIFICATES -> certificates++;
                 case ACKNOWLEDGEMENTS -> acknowledgements++;
                 case ORDERS -> orders++;
-                case INVITATIONS, VETTING -> { }
+                case INVITATIONS, VETTING, DOCUMENTS -> { }
             }
         }
         return new FleetRow(ship, crew, certificates, acknowledgements, orders, open);

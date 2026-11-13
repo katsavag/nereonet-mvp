@@ -66,6 +66,10 @@
         </div>
     </div>
 
+    <!-- Required documents (P42): what their rank needs on their vessel's type, missing and expired first, each with
+         Add certificate (comes back here) or Open. -->
+    <section th:replace="~{crew/parts :: requiredDocumentsCard(${compliance})}"></section>
+
     <!-- Profile (P31): what the crew member chose to share with their ship, read only; the office does not edit it.
          "Not given" where empty. Languages and nationality in the page language. -->
     <section class="card form-box mt-4" aria-labelledby="profileCardTitle">

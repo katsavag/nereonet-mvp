@@ -22,3 +22,6 @@ app:
     office-password: office123
   library:
     storage-dir: ${java.io.tmpdir}/nereonet-test-library
+  # P42: no starter template of required documents in tests; RequirementsFlowTest seeds it where it needs it.
+  requirements:
+    starter-template: false

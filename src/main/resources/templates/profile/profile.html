@@ -37,7 +37,7 @@
     <section class="profile-section" aria-labelledby="myCertificatesTitle">
         <h2 class="profile-section-title" id="myCertificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
         <p class="form-text mt-0" th:text="#{profile.certificates.hint}">Only you and the office see your certificates.</p>
-        <div th:replace="~{crew/parts :: myCertificates(${certificates}, ${today}, true)}"></div>
+        <div th:replace="~{crew/parts :: myCertificates(${certificates}, ${today}, true, ${compliance.missingDocuments()})}"></div>
     </section>
 </main>
 </body>

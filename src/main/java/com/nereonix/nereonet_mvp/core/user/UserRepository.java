@@ -43,6 +43,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // The crew of a chosen set of ships (an announcement to selected ships, P28).
     List<User> findAllByShipInAndRoleNotAndEnabledTrue(Collection<Ship> ships, Role role);
 
+    // Enabled crew with a rank on the active ships, each with their ship, in one query: whose required documents
+    // the Overview checks (P42).
+    @Query("""
+            select u from User u join fetch u.ship s
+            where s.active = true and u.enabled = true and u.role <> :office and u.rank is not null
+            order by u.id""")
+    List<User> findRankedCrewOnActiveShips(Role office);
+
+    // Users by id with their ship, in one query (the Crew list's page, P42: a fixed number of queries).
+    @Query("select u from User u left join fetch u.ship where u.id in :ids")
+    List<User> findAllWithShipByIdIn(Collection<Long> ids);
+
     // Enabled users per ship (ship roles only: office users have no ship).
     @Query("""
             select new com.nereonix.nereonet_mvp.core.ship.ShipCount(u.ship.id, count(u))

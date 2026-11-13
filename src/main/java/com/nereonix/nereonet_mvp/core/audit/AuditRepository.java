@@ -22,4 +22,7 @@ public interface AuditRepository extends Repository<AuditEntry, Long> {
     void detachActor(Long userId);
 
     List<AuditEntry> findAll();
+
+    // Whether this was ever done: the starter template of required documents is added once (P42).
+    boolean existsByAction(String action);
 }

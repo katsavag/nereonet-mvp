@@ -231,7 +231,10 @@ class MessageKeysTest {
             "order.past.title",
             "order.past.hint",
             "order.past.empty.title",
-            "order.past.empty.text");
+            "order.past.empty.text",
+            // P42: the crew's own missing required documents, on My profile and the home pages.
+            "profile.required.contact",
+            "home.documents.missing");
 
     /**
      * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies

@@ -94,6 +94,8 @@
                         <p class="nav-group-label" id="navGroupAdministration" th:text="#{nav.group.administration}">Administration</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupAdministration">
                             <li th:replace="~{layout/parts :: navItem('users', '/office/users', #{nav.officeUsers}, null, null)}"></li>
+                            <!-- Required documents per rank and vessel type (P42). -->
+                            <li th:replace="~{layout/parts :: navItem('requirements', '/office/requirements', #{nav.requirements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
                         </ul>
                     </th:block>

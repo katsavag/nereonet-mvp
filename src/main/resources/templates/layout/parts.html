@@ -279,6 +279,8 @@
     <th:block th:if="${name == 'announcements'}"><path d="M3 10v4h4l7 5V5L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/></th:block>
     <th:block th:if="${name == 'orders'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></th:block>
     <th:block th:if="${name == 'users'}"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M14 10h4M14 14h3"/></th:block>
+    <!-- Required documents (P42): a page with a checklist, two ticked lines and one open. -->
+    <th:block th:if="${name == 'requirements'}"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5"/><path d="m8 11.5 1.2 1.2 2-2.2M13 12h3M8 16.5l1.2 1.2 2-2.2M13 17h3"/></th:block>
     <th:block th:if="${name == 'audit'}"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></th:block>
     <th:block th:if="${name == 'library'}"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/></th:block>
     <th:block th:if="${name == 'notifications'}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></th:block>

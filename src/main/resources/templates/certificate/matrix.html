@@ -6,6 +6,7 @@
      Rows: the active crew on board by department and rank; columns: the certificate types they hold. Each cell is the
      expiry date and the state badge of the certificate that expires last, and opens it; a dash when the person has
      none, which opens Add certificate with the person and the type filled in. Both come back here (returnTo).
+     P42: the types required of anyone on board are columns too; an empty cell required of that person says Missing.
      The crew column stays put while the table scrolls sideways (.cert-matrix). The tab's List view is
      certificate/list.html; both start with tabTop. -->
 <main>
@@ -41,9 +42,13 @@
                             <time th:replace="~{layout/parts :: localDate(${c.expiresOn})}"></time>
                             <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                         </a>
+                        <!-- P42: a required document not held is Missing (danger, with its icon and the word); a cell
+                             not required of this person stays a muted dash. Both add one. -->
                         <a th:unless="${cell.certificate}" class="cert-matrix-link cert-matrix-add"
+                           th:classappend="${cell.missing()} ? 'cert-matrix-missing'"
                            th:href="@{/office/ships/{s}/certificates/new(s=${ship.id}, userId=${m.id}, type=${cell.type}, returnTo=${returnTo})}">
-                            <span aria-hidden="true">—</span>
+                            <th:block th:if="${cell.missing()}"><span th:replace="~{layout/parts :: statusIcon('danger', #{requirement.state.MISSING}, 'alert')}"></span></th:block>
+                            <span th:unless="${cell.missing()}" aria-hidden="true">—</span>
                             <span class="visually-hidden" th:text="#{certificate.matrix.add(${cell.type}, ${m.fullName})}">Add STCW Basic Safety Training for Jane Doe</span>
                         </a>
                     </td>

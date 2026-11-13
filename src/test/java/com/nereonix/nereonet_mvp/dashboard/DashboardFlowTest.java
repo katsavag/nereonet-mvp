@@ -464,7 +464,7 @@ class DashboardFlowTest {
     }
 
     @Test
-    void loadRunsTheSameTenQueriesWhateverTheFleetSize() {
+    void loadRunsTheSameElevenQueriesWhateverTheFleetSize() {
         addShipWithOpenItems();
         long small = queriesOfLoad();
         for (int i = 0; i < 4; i++) {
@@ -473,7 +473,8 @@ class DashboardFlowTest {
         long large = queriesOfLoad();
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
-        assertThat(small).isEqualTo(10);
+        // P42: one more, the required documents (none set here: nobody is then checked, so no queries for them).
+        assertThat(small).isEqualTo(11);
         assertThat(large).isEqualTo(small);
     }
 

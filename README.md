@@ -74,7 +74,9 @@ Requirements: Java 25, Docker.
      1. certificate expired; then (P40, P41, see 25) a vessel's vetting: SIRE 2.0 operator comments overdue or due
      within 3 days, RightShip inspection expired, unacceptable or expiring within 60 days, SIRE 2.0 report no longer
      current or ending within 60 days, a SIRE 2.0 observation past its target date, and a RightShip Safety Score of 2
-     or below, each with **Open RightShip** or **Open SIRE 2.0**;
+     or below, each with **Open RightShip** or **Open SIRE 2.0**; (P42, see 26) right after the expired certificates,
+     one row per seafarer on board with required documents missing or expired ("2 required documents missing", the
+     types, **Open crew member**);
      2. certificate expiring within 30 days (UTC dates); 3. order sent by a ship and not
      exported (P36: SENT, CONFIRMED or CLOSED, `exportedAt` empty);
      4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
@@ -257,6 +259,9 @@ Requirements: Java 25, Docker.
    the access of the rank above."). Saving there applies the mapping. Under the form a **Profile** card (P31) shows,
    read only, what the crew member has filled in about themselves (photo, languages, nationality, bio; "Not given"
    where empty): only they can change it (see 20). Deleting a crew member also deletes their photo files.
+   P42 (see 26): a **Documents** column ("5 of 7" required documents held, sortable), the **Missing documents**
+   filter (`?documents=missing`), **Export required documents** and a **Required documents** card on the member's
+   page; the Rank needs review notice also lists crew without a vessel.
 
    **Import from file** (`/office/crew/import`) invites many crew members at once, from the file the crewing system
    produces or from the template. Four steps, shown at the top of every page (**Upload**, **Map columns**,
@@ -466,6 +471,8 @@ Requirements: Java 25, Docker.
    ships only). **Export** downloads the view on screen (P39: Excel, see the export format above): the matrix as
    `certificate-matrix-<IMO>-<date>.xls`, sheet "Certificate matrix" (`crew_member, rank`, then one column per type
    with the expiry date as a date cell, empty when there is none), the list as `certificates-<IMO>-<date>.xls`.
+   P42 (see 26): the types required of someone on board are columns too, and a required cell with no certificate
+   shows **Missing** (danger, icon and word; `missing` in the export) instead of the dash.
 
    Certificate type is free text with suggestions (a datalist): the types already used, most used first, then the
    starter list (STCW Basic Safety Training, Certificate of Competency, Flag State Endorsement, GMDSS Operator,
@@ -737,7 +744,8 @@ Requirements: Java 25, Docker.
      valid): type, "Expires 3 Nov 2026 · expired 8 days ago", the number when set, and the expiry badge of the office
      lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
      office to update a certificate." Without any: "No certificates on record." (`crew/parts :: myCertificates`,
-     shared with My profile, 20, which adds the file links.)
+     shared with My profile, 20, which adds the file links.) P42 (see 26): when required documents are missing or
+     expired, one line above them, "2 required documents missing", links to My profile; the Master's home has it too.
    - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
      the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
      acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
@@ -794,6 +802,8 @@ Requirements: Java 25, Docker.
      with "Only you and the office see your certificates. The office keeps them up to date: tell them when
      you renew one." and, for a certificate with a scan, a paperclip **Open**
      link (`/ship/profile/certificates/{id}/file`, see 12). Their crewmates never see them (My crew is unchanged).
+     P42 (see 26): the required documents missing or expired come first, marked **Missing** or **Expired**, with the
+     office's note and "Contact the office to add it."
    - **Where**: on phones the tab bar's fifth tab is **More** (`/ship/more`): who is signed in, **My profile**, **My
      crew** and **Sign out**. From 768 px the sidebar has **My crew** under On board and **My profile** under Account.
      The person's photo (or initials) is next to their name on Home (18) and on My profile.
@@ -1069,6 +1079,53 @@ Requirements: Java 25, Docker.
        RightShip inspection), report no longer current or ending within 60 days, and an observation past its target
        date (linking to its row), both before the Safety Score.
      - Tests: `vetting/SireFlowTest`.
+
+26. Required documents (P42, office users only): which certificates and documents each rank needs, on all vessels or
+   on one vessel type, and who is missing what. `core/requirement/` (`DocumentRequirement`,
+   `DocumentRequirementRepository`) and `requirement/` (`RequirementController`, `RequirementService`,
+   `RequirementGrid`, `RequirementGridForm`, `RequirementRules`, `RequirementState`, `RequiredDocument`, `Compliance`,
+   `ComplianceService`, `ComplianceExport`, `StarterRequirements`); template `templates/requirement/grid.html`, the
+   shared fragments in `crew/parts.html` (`documentsSummary`, `documentState`, `requiredDocumentsCard`,
+   `documentsMissingLink`, `myMissingDocuments`); styles in `app.css` section "Required documents (P42)". This is the
+   company's own list: the page says it does not state what any regulation requires; flag-state and charterer rules
+   are not checked, and the crew cannot upload documents themselves.
+   - **Required documents** in the sidebar (Administration, after Office users; a document with a checklist),
+     `/office/requirements`: a grid with the certificate types as rows and the ranks as columns, by department
+     (names turned upright), then **Optional** and **Note** (up to 200 characters). **Vessel type**: All vessels, or one
+     type; on a type's grid a rank already required on all vessels is a grey tick, not a checkbox. A plain form of
+     checkboxes, so it saves without JavaScript (**Save for Tanker**); the first column stays put while the grid
+     scrolls sideways inside its card (also on phones; the page itself never does). **Add a document type** adds a
+     row at the top to tick. Rows: the starter template's types, then every other type required or held, A to Z.
+     Saving a type's grid changes only what was posted; a row without ranks, note or Optional is removed. Recorded as
+     "Required documents changed" ("TANKER: Tanker Endorsement removed", "All vessels: Passport +COOK").
+   - **Starter template**: on first start with no requirements, the app adds a suggestion (marked **Suggestion**, with
+     a notice to review it): STCW Basic Safety Training, Medical Fitness Certificate, Seaman's Book, Passport and
+     Security Awareness for every rank; Certificate of Competency, Flag State Endorsement, Advanced Fire Fighting and
+     Medical First Aid for the Master, deck officers, engineers and ETO; GMDSS Operator for the Master and deck
+     officers; Tanker Endorsement for every rank on tankers. Saving a vessel type's grid confirms its rows. Added once
+     (recorded as "Required documents starter template added"), so a template the office cleared stays clear;
+     `app.requirements.starter-template: false` turns it off (tests).
+   - **States**, worked out on every read, nothing derived stored: the certificate of that type (same type ignoring
+     case and surrounding spaces) that expires last; **Valid**, **Expires in 12 days** (within 30), **Expired**
+     (counts as missing), **Missing**. A certificate whose expiry is beyond the P39 plausible range (30 years) is ignored. An optional
+     document is shown, last and marked "Optional", never counted. Without a rank or a vessel nothing applies: the
+     person is listed under **Rank needs review** (8).
+   - **Where it shows**: the office's crew member page, card **Required documents** ("For Chief Officer on MV Demo
+     (vessel type: Tanker)", missing and expired first, each with its badge, **Open** for a file and **Add
+     certificate** with the person and type filled in, coming back to the page; **Change what is required**); the Crew
+     list and a vessel's Crew tab (8: **Documents** "5 of 7" with an icon, sortable, most missing first; **Missing
+     documents** filter, `?documents=missing`; the column, filter and export only once any requirement is set); the
+     vessel's certificate matrix (12, **Missing**); the Overview (4); and for the seafarer My profile (20) and Home
+     (18).
+   - **Export required documents** (`/office/crew/documents/export`, `/office/ships/{id}/crew/documents/export`, the
+     list as filtered, every page): `required-documents[-<IMO>]-<date>.xls`, sheet "Required documents", one row per
+     person and document in the card's order: `imo_number, ship_name, crew_member, rank, requirement, required` (yes,
+     or no for an optional one)`, state` (missing, expired, expiring, valid)`, expires_on` (a date cell). People
+     without required documents have no row.
+   - Queries: the Crew list adds two whatever its size (the requirements, and the certificates of the page's people;
+     its sort and filter apply the same rules in SQL, `crew/PeopleQueries`), 15 for the whole page; the Overview adds
+     one, and two more when requirements are set.
+   - Tests: `requirement/RequirementsFlowTest`.
 
 Run the tests (H2 in memory, no Docker needed):
 

@@ -10,6 +10,8 @@ public enum AttentionType {
 
     /** A certificate past its expiry date. */
     CERTIFICATE_EXPIRED(Group.CERTIFICATES),
+    /** A seafarer on board missing a required document, an expired one included (P42): one item per person. */
+    DOCUMENTS_MISSING(Group.DOCUMENTS),
     /** A vessel's SIRE 2.0 operator comments due within 3 days, or overdue (P41): a deadline that cannot be missed. */
     SIRE_COMMENTS(Group.VETTING),
     /** A vessel's RightShip inspection expired, unacceptable or expiring within 60 days (P40). */
@@ -46,7 +48,7 @@ public enum AttentionType {
      * links to its full list: see the "full lists" links in dashboard/dashboard.html.
      */
     public enum Group {
-        CERTIFICATES, VETTING, ORDERS, INVITATIONS, ACKNOWLEDGEMENTS;
+        CERTIFICATES, DOCUMENTS, VETTING, ORDERS, INVITATIONS, ACKNOWLEDGEMENTS;
 
         /** The value of the Overview's "type" parameter. */
         public String param() {

@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.certificate.CertificateService;
+import com.nereonix.nereonet_mvp.requirement.ComplianceService;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 import com.nereonix.nereonet_mvp.core.profile.Languages;
@@ -49,17 +50,21 @@ public class ProfileController {
     private final ProfileService profileService;
     private final ConfirmPages confirmPages;
     private final CertificateService certificateService;
+    private final ComplianceService complianceService;
 
     public ProfileController(ProfileService profileService, ConfirmPages confirmPages,
-                             CertificateService certificateService) {
+                             CertificateService certificateService, ComplianceService complianceService) {
         this.profileService = profileService;
         this.confirmPages = confirmPages;
         this.certificateService = certificateService;
+        this.complianceService = complianceService;
     }
 
     @GetMapping("/ship/profile")
     public String profile(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
-        own(currentUser, model);
+        ProfileService.Own own = own(currentUser, model);
+        // P42: their required documents missing or expired, listed first under My certificates.
+        model.addAttribute("compliance", complianceService.of(own.user()));
         model.addAttribute("certificates", certificateService.ownCertificates(currentUser.getId()));
         model.addAttribute("today", certificateService.today());
         return "profile/profile";

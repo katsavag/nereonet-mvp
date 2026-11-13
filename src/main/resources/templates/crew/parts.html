@@ -51,11 +51,125 @@
     <ul class="rank-review-list">
         <li th:each="u : ${users}">
             <a class="alert-link" th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
-            <span class="rank-review-detail"><span aria-hidden="true">·</span> <span th:text="${u.ship.name}">MV Demo</span>
+            <span class="rank-review-detail"><span aria-hidden="true">·</span> <span th:text="${u.ship != null} ? ${u.ship.name} : #{crew.rankReview.noVessel}">MV Demo</span>
                 <span aria-hidden="true">·</span> <span th:text="#{crew.rankReview.detail(${u.rank} ? ${#messages.msg('rank.' + u.rank)} : ${#messages.msg('crew.rankReview.noRank')}, ${#messages.msg('role.' + u.role)})}">Rank: not set · access now: Master</span></span>
         </li>
     </ul>
+    <!-- P42: without a rank or a vessel no required documents apply, so their Documents column is a dash. -->
+    <p class="mt-2 mb-0" th:text="#{crew.rankReview.documents}">Without a rank and a vessel, no required documents apply to them.</p>
 </section>
+
+<!-- Required documents (P42) -->
+
+<!-- The Crew list's Documents column: "5 of 7" required documents held (expired counts as missing), with an icon and
+     the state in words for screen readers: a warning triangle while one is missing or expired, a clock while one
+     expires within 30 days, a tick when all are valid. A muted dash without required documents (no rank, no vessel,
+     or nothing applies). c: the person's requirement/Compliance, or null (an invitation). -->
+<th:block th:fragment="documentsSummary(c)">
+    <th:block th:if="${c == null or c.required() == 0}"><span class="count-zero" aria-hidden="true">–</span><span
+            class="visually-hidden" th:text="#{requirement.summary.none}">No required documents</span></th:block>
+    <th:block th:unless="${c == null or c.required() == 0}" th:with="s=${c.summary()}">
+        <span class="documents-summary">
+            <span th:replace="~{layout/parts :: statusIcon(${s.tone()}, #{requirement.summary(${c.held()}, ${c.required()})}, ${s.icon()})}"></span>
+            <span class="visually-hidden" th:text="${s.name() == 'MISSING'} ? #{requirement.summary.missing(${c.missing()})}
+                    : (${s.name() == 'EXPIRING'} ? #{requirement.summary.expiring} : #{requirement.summary.valid})">2 missing or expired</span>
+        </span>
+    </th:block>
+</th:block>
+
+<!-- The badge of one required document: Missing, Expired (warning triangle, danger), "Expires in 12 days" (clock,
+     warning), Valid (tick); the words carry the meaning. d: a requirement/RequiredDocument. -->
+<th:block th:fragment="documentState(d)">
+    <span th:replace="~{layout/parts :: statusIcon(${d.state().tone()},
+            ${d.state().name() == 'EXPIRING'} ? #{requirement.state.EXPIRING(${d.certificate().daysLeft(today)})} : #{${'requirement.state.' + d.state()}},
+            ${d.state().icon()})}"></span>
+</th:block>
+
+<!-- The office crew member page's "Required documents" card (P42): the documents their rank needs on their vessel's
+     type, missing and expired first, then expiring and valid, optional ones last ("Optional", never counted). Each:
+     the type, the office's note, the certificate's expiry date, the state badge; Add certificate (the P20 form with
+     the person and the type filled in, coming back here) for one missing or expired, Open for one with a file (P39).
+     Without required documents: why (no rank or vessel, or nothing set for them) and the way to Required documents.
+     c: the person's Compliance; member: the user; today: the UTC date. -->
+<section th:fragment="requiredDocumentsCard(c)" class="card form-box mt-4" id="requiredDocuments"
+         aria-labelledby="requiredDocumentsTitle">
+    <div class="card-header bg-transparent requirement-card-header py-3">
+        <h2 class="h5 fw-bold mb-0" id="requiredDocumentsTitle" th:text="#{requirement.card.heading}">Required documents</h2>
+        <th:block th:if="${c.required() > 0}"><span th:replace="~{crew/parts :: documentsSummary(${c})}"></span></th:block>
+    </div>
+    <th:block th:unless="${c.hasRequirements()}">
+        <p class="card-body mb-0 text-body-secondary"
+           th:text="${member.rank == null or member.ship == null} ? #{requirement.card.noRankOrVessel} : #{requirement.card.none}">No documents are required for this rank on this vessel.</p>
+    </th:block>
+    <th:block th:if="${c.hasRequirements()}">
+        <p class="requirement-card-context" th:text="#{requirement.card.context(${#messages.msg('rank.' + member.rank)},
+                ${member.ship.type != null} ? ${#messages.msg('ship.type.' + member.ship.type)} : ${#messages.msg('ship.type.none')}, ${member.ship.name})}">Chief Officer on a Tanker (MV Demo)</p>
+        <ul class="list-group list-group-flush">
+            <li th:each="d : ${c.documents()}" class="list-group-item requirement-row"
+                th:with="cert=${d.certificate()}">
+                <div class="requirement-row-main">
+                    <p class="requirement-row-type">
+                        <span th:text="${d.type()}">Tanker Endorsement</span>
+                        <span th:if="${d.optional()}" class="form-label-optional" th:text="#{requirement.optional}">Optional</span>
+                    </p>
+                    <p th:if="${d.note() != null}" class="requirement-row-note" th:text="${d.note()}">Needed before joining.</p>
+                    <p th:if="${cert != null}" class="requirement-row-meta">
+                        <span th:text="#{certificate.expiresOn}">Expires</span>
+                        <span th:replace="~{layout/parts :: expiryDate(${cert.expiresOn})}"></span>
+                    </p>
+                </div>
+                <th:block th:replace="~{crew/parts :: documentState(${d})}"></th:block>
+                <div class="requirement-row-actions">
+                    <th:block th:if="${cert != null}">
+                        <a th:replace="~{crew/parts :: certificateFile(${cert}, ${'/office/crew/' + member.id + '/certificates/' + cert.id + '/file'}, 'btn btn-ghost btn-sm')}"></a>
+                    </th:block>
+                    <a th:if="${d.state().needsAction()}" class="btn btn-outline-secondary btn-sm"
+                       th:href="@{/office/crew/{id}/certificates/new(id=${member.id}, type=${d.type()}, returnTo=${'/office/crew/' + member.id + '/edit'})}"
+                       th:attr="aria-label=#{requirement.card.addFor(${d.type()})}"
+                       th:text="#{certificate.add}">Add certificate</a>
+                </div>
+            </li>
+        </ul>
+    </th:block>
+    <p class="requirement-card-foot">
+        <a th:href="@{/office/requirements(vesselType=${member.ship != null and member.ship.type != null} ? ${member.ship.type} : 'all')}"
+           th:text="#{requirement.card.manage}">Change what is required</a>
+    </p>
+</section>
+
+<!-- Crew Home and the Master's home (P42): one line, "2 required documents missing" (expired included), linking to My
+     profile's My certificates, where they are listed; nothing when none is missing. A warning triangle and the words,
+     the whole line one link at least 44px high. English only. count: the number missing. -->
+<th:block th:fragment="documentsMissingLink(count)">
+    <a th:if="${count != null and count > 0}" class="documents-missing-link" th:href="@{/ship/profile} + '#myCertificatesTitle'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></svg>
+        <span th:text="#{home.documents.missing(${count})}">2 required documents missing</span>
+        <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+    </a>
+</th:block>
+
+<!-- The crew's own missing and expired required documents (P42), at the top of My certificates on My profile: each
+     with "Missing" or "Expired", the office's note, and "Contact the office to add it." English only. docs: the
+     required documents missing or expired (Compliance.missingDocuments()). -->
+<th:block th:fragment="myMissingDocuments(docs)">
+    <li th:each="d : ${docs}" class="list-group-item cert-row cert-row-required" th:with="cert=${d.certificate()}">
+        <div class="cert-row-main">
+            <p class="cert-row-type" th:text="${d.type()}">Tanker Endorsement</p>
+            <p th:if="${cert != null}" class="cert-row-meta">
+                <span th:text="#{home.certificates.expires}">Expires</span>
+                <span th:replace="~{layout/parts :: expiryDate(${cert.expiresOn})}"></span>
+            </p>
+            <p th:if="${d.note() != null}" class="cert-row-meta" th:text="${d.note()}">Needed before joining.</p>
+            <p class="cert-row-meta cert-row-contact" th:text="#{profile.required.contact}">Contact the office to add it.</p>
+        </div>
+        <th:block th:replace="~{crew/parts :: documentState(${d})}"></th:block>
+        <th:block th:if="${cert != null}">
+            <a th:replace="~{crew/parts :: certificateFile(${cert}, ${'/ship/profile/certificates/' + cert.id + '/file'}, 'btn btn-outline-secondary')}"></a>
+        </th:block>
+    </li>
+</th:block>
 
 <!-- My profile and My crew (P31): the crew's own pages (profile/*.html, mycrew/*.html). English only. -->
 
@@ -89,12 +203,17 @@
 <!-- The signed-in crew member's own certificates, read only, soonest expiry first (so expired, then expiring soon): a
      card of rows (.cert-row) with the type, "Expires 10 Jan 2027 · in 60 days", the number when set and the P20 badge
      (icon and words, not colour alone). On crew Home (P26) and on My profile (P39), where withFile adds Open for a
-     certificate whose file the office attached. certificates: the person's; today: the UTC date. -->
-<div th:fragment="myCertificates(certificates, today, withFile)" class="card">
-    <p th:if="${certificates.isEmpty()}" class="card-body mb-0"
+     certificate whose file the office attached. certificates: the person's; today: the UTC date.
+     required (P42, My profile): their required documents missing or expired, listed first (myMissingDocuments); an
+     expired certificate listed there is not repeated below. null on Home. -->
+<div th:fragment="myCertificates(certificates, today, withFile, required)" class="card"
+     th:with="shownAbove=${required == null} ? null : ${required.![certificate() != null ? certificate().id : null]},
+              none=${certificates.isEmpty() and (required == null or required.isEmpty())}">
+    <p th:if="${none}" class="card-body mb-0"
        th:text="#{home.certificates.empty}">No certificates on record.</p>
-    <ul th:unless="${certificates.isEmpty()}" class="list-group list-group-flush">
-        <li th:each="c : ${certificates}" class="list-group-item cert-row">
+    <ul th:unless="${none}" class="list-group list-group-flush">
+        <th:block th:if="${required != null}"><th:block th:replace="~{crew/parts :: myMissingDocuments(${required})}"></th:block></th:block>
+        <li th:each="c : ${certificates}" th:unless="${shownAbove != null and shownAbove.contains(c.id)}" class="list-group-item cert-row">
             <div class="cert-row-main">
                 <p class="cert-row-type" th:text="${c.type}">STCW Basic Safety</p>
                 <p class="cert-row-meta">

@@ -66,20 +66,26 @@ public class CrewService {
      * status may be null) and sorted, all in the database (PeopleQueries).
      */
     @Transactional(readOnly = true)
-    public Page<PeopleQueries.Row> findCrew(Long shipId, CrewStatus status, ListQuery list) {
-        return peopleQueries.page(false, shipId, status, list);
+    public Page<PeopleQueries.Row> findCrew(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
+        return peopleQueries.page(false, shipId, status, missingDocuments, list);
     }
 
     /** P18's "Rank needs review" notice: the users of the Crew list as filtered (every page, not only this one). */
     @Transactional(readOnly = true)
-    public List<User> findRankNeedsReview(Long shipId, CrewStatus status, ListQuery list) {
-        return peopleQueries.rankNeedsReview(shipId, status, list);
+    public List<User> findRankNeedsReview(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
+        return peopleQueries.rankNeedsReview(shipId, status, missingDocuments, list);
+    }
+
+    /** Every user of the Crew list as filtered and sorted (all pages, no invitations): its export (P42). */
+    @Transactional(readOnly = true)
+    public List<User> findAllCrewUsers(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
+        return peopleQueries.allUsers(shipId, status, missingDocuments, list);
     }
 
     /** One page of Office users: office users and pending office invitations, the same way (P19). */
     @Transactional(readOnly = true)
     public Page<PeopleQueries.Row> findOfficeUsers(CrewStatus status, ListQuery list) {
-        return peopleQueries.page(true, null, status, list);
+        return peopleQueries.page(true, null, status, false, list);
     }
 
     /**

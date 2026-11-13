@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -35,6 +37,10 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
+import com.nereonix.nereonet_mvp.requirement.ComplianceService;
+import com.nereonix.nereonet_mvp.requirement.RequiredDocument;
+import com.nereonix.nereonet_mvp.requirement.RequirementRules;
+import com.nereonix.nereonet_mvp.requirement.RequirementState;
 
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
@@ -68,11 +74,12 @@ public class CertificateService {
     private final AuditService auditService;
     private final ListQueries listQueries;
     private final CertificateFileStorage fileStorage;
+    private final ComplianceService complianceService;
 
     public CertificateService(CertificateRepository certificateRepository,
                               CertificateReminderRepository reminderRepository, UserRepository userRepository,
                               ShipRepository shipRepository, AuditService auditService, ListQueries listQueries,
-                              CertificateFileStorage fileStorage) {
+                              CertificateFileStorage fileStorage, ComplianceService complianceService) {
         this.certificateRepository = certificateRepository;
         this.reminderRepository = reminderRepository;
         this.userRepository = userRepository;
@@ -80,6 +87,7 @@ public class CertificateService {
         this.auditService = auditService;
         this.listQueries = listQueries;
         this.fileStorage = fileStorage;
+        this.complianceService = complianceService;
     }
 
     // 404 if there is no such user or it is an office user.
@@ -197,6 +205,24 @@ public class CertificateService {
         List<Column> columns = new ArrayList<>();
         byType.forEach((key, list) -> columns.add(new Column(key, mostUsedSpelling(list),
                 list.stream().map(c -> c.getUser().getId()).distinct().count())));
+
+        // P42: per person, the types they are required to hold; a required type nobody holds is a column too.
+        RequirementRules rules = complianceService.rules();
+        LocalDate today = today();
+        Map<Long, Set<String>> required = new LinkedHashMap<>();
+        for (User member : crew) {
+            Set<String> keys = new LinkedHashSet<>();
+            for (RequiredDocument d : rules.compliance(member, certificates, today).documents()) {
+                if (!d.optional()) {
+                    String key = CertificateTypes.sameTypeKey(d.type());
+                    keys.add(key);
+                    if (!byType.containsKey(key) && columns.stream().noneMatch(c -> c.key().equals(key))) {
+                        columns.add(new Column(key, d.type(), 0));
+                    }
+                }
+            }
+            required.put(member.getId(), keys);
+        }
         columns.sort(Comparator.comparingLong(Column::holders).reversed()
                 .thenComparing(Column::name, String.CASE_INSENSITIVE_ORDER));
 
@@ -209,8 +235,10 @@ public class CertificateService {
         }
         List<CertificateMatrix.Row> rows = crew.stream().map(member -> {
             Map<String, Certificate> held = current.getOrDefault(member.getId(), Map.of());
+            Set<String> requiredOf = required.getOrDefault(member.getId(), Set.of());
             return new CertificateMatrix.Row(member, columns.stream()
-                    .map(column -> new CertificateMatrix.Cell(column.name(), held.get(column.key()))).toList());
+                    .map(column -> new CertificateMatrix.Cell(column.name(), held.get(column.key()),
+                            requiredOf.contains(column.key()))).toList());
         }).toList();
         return new CertificateMatrix(columns.stream().map(Column::name).toList(), rows);
     }
@@ -245,14 +273,15 @@ public class CertificateService {
     }
 
     /** The matrix as a workbook (P20, P39), sheet "Certificate matrix": crew_member, rank, then one column per type
-     *  with the expiry date (a date), or empty. */
+     *  with the expiry date (a date), "missing" for a required document not held (P42), or empty. */
     public XlsExport.File matrixXls(String name, CertificateMatrix matrix) {
         List<String> header = new ArrayList<>(List.of("crew_member", "rank"));
         header.addAll(matrix.types());
         XlsExport sheet = XlsExport.sheet("Certificate matrix", header);
         for (CertificateMatrix.Row row : matrix.rows()) {
             List<Object> values = new ArrayList<>(Arrays.asList(row.member().getFullName(), rank(row.member())));
-            row.cells().forEach(cell -> values.add(cell.certificate() == null ? null : cell.certificate().getExpiresOn()));
+            row.cells().forEach(cell -> values.add(cell.certificate() != null ? cell.certificate().getExpiresOn()
+                    : cell.missing() ? RequirementState.MISSING.export() : null));
             sheet.row(values);
         }
         return sheet.file(name + "-" + today());
