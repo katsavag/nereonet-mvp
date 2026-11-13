@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
-import com.nereonix.nereonet_mvp.core.export.XlsxExport;
+import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
@@ -59,7 +59,7 @@ public class ShipOrderService {
     public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
             ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
 
-    /** The columns of the office's export (P36; an Excel workbook since P39, the same columns), one row per order
+    /** The columns of the office's export (P36; an Excel workbook since P39, .xls since P40, the same columns), one row per order
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
@@ -363,15 +363,15 @@ public class ShipOrderService {
     }
 
     /**
-     * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel workbook
-     * (P39; CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
+     * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
+     * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
      * category (Provisions, then Personal items) and item name; order_id and quantity are numbers, sent_at a date and
      * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
      * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
      */
     @Transactional
-    public Optional<XlsxExport.File> export(User officeUser, Collection<Long> ids) {
+    public Optional<XlsExport.File> export(User officeUser, Collection<Long> ids) {
         checkOffice(officeUser);
         List<ShipOrder> orders = ids == null || ids.isEmpty() ? List.of()
                 : orderRepository.findAllByIdInAndStatusInOrderBySentAtDescIdDesc(ids, SENT_TO_OFFICE);
@@ -379,7 +379,7 @@ public class ShipOrderService {
             return Optional.empty();
         }
         Instant now = Instant.now();
-        XlsxExport sheet = XlsxExport.sheet("Orders", EXPORT_HEADER);
+        XlsExport sheet = XlsExport.sheet("Orders", EXPORT_HEADER);
         int lineCount = 0;
         for (ShipOrder order : orders) {
             for (ShipOrderLine line : byCategoryAndName(order.getLines())) {

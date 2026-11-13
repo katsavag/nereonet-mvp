@@ -35,6 +35,13 @@ Requirements: Java 25, Docker.
    on **Orders** (24).
    While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
    "Drug and alcohol policy" (Company policies, required).
+   Since P40 (once, while there is no ship with IMO 9300001) three bulk carriers with RightShip data entered by hand,
+   calculated 21 Oct 2026, each with its sample report from `samples/rightship/` (read from the working directory, so
+   start the app from the project folder): **ALDER** (9300001, Safety Score 3/5, GHG C unverified, inspection valid
+   for 38 more days), **LAUREL** (9400007, 5/5, A+ verified, 9 months) and **ROWAN** (9500003, 4/5, B verified,
+   6 months). MV Demo has no RightShip data. So the sidebar shows **Vetting 1** and the Overview lists ALDER's
+   inspection (see 25). The sample reports are synthetic images made for the demo, not RightShip documents. The demo
+   ship is found by its IMO number 9074729 (the vetting vessels sort before it by name).
 
    The schema is updated by Hibernate, which cannot add a required column to a table that already has
    rows (you get "column ... does not exist" errors). Then either add the column by hand or empty the
@@ -60,7 +67,9 @@ Requirements: Java 25, Docker.
    each row, so it can be cleared without visiting other pages first. Under the title one summary line ("5 ships ·
    84 crew · 3 open items": active ships, enabled crew on them, open items); the page action is **New announcement**.
    - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
-     1. certificate expired; 2. certificate expiring within 30 days (UTC dates); 3. order sent by a ship and not
+     1. certificate expired; then (P40, see 25) a vessel's RightShip inspection expired, unacceptable or expiring
+     within 60 days, and a RightShip Safety Score of 2 or below, each with **Open RightShip**;
+     2. certificate expiring within 30 days (UTC dates); 3. order sent by a ship and not
      exported (P36: SENT, CONFIRMED or CLOSED, `exportedAt` empty);
      4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
      date and `app.invitation.valid-days`); 5. announcement sent, or Required library item published (current
@@ -81,8 +90,9 @@ Requirements: Java 25, Docker.
      Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
      its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
      `/office?type=acknowledgements&shipId=…`, `/office/orders?shipId=…&exported=no`.
-   - `DashboardService.load()` always runs the same 7 queries, whatever the size of the fleet (active ships, crew per
-     ship, and one per kind of open item, in `dashboard/DashboardQueries`); `DashboardFlowTest` checks it.
+   - `DashboardService.load()` always runs the same 8 queries, whatever the size of the fleet (active ships, crew per
+     ship, and one per kind of open item, RightShip included since P40, in `dashboard/DashboardQueries`);
+     `DashboardFlowTest` checks it. The RightShip rows link their full list to `/office/vetting?status=attention`.
    With the dev data an order the Master has sent is a row until the office exports it (24); then the card says
    "Nothing needs your attention".
    - **Set up Nereonet** (first run, P25): a checklist of four steps, each with one line of help and a link to the page
@@ -106,13 +116,17 @@ Requirements: Java 25, Docker.
    type and flag (type to filter the countries, e.g. "Greece (GR)"; only the code `GR` is stored). Ships can be
    edited in a pop-up (except the IMO number) and deactivated or activated, never deleted: on the list both are in the
    row's **⋯** menu (**Edit**, then **Activate** or **Deactivate**). The ship's name opens its ship page.
+   P40: a **Safety Score** column (the RightShip score, "3/5", "N/A" when not rated; for an active vessel a link to its
+   Vetting page, see 25). The list sorts by name (default) or by Safety Score (`?sort=score`, lowest first, then the
+   other way; not rated last either way, then by name); it has no search, filters or pages.
    Inactive ships stay in the list but cannot get new crew invitations. **Deactivate** asks first ("Deactivate MV Demo?
    No new crew can be invited to MV Demo until it is activated again.", see "confirmations (P10)" below); **Activate**
    does not.
 
    **Ship page** (`/office/ships/{id}`, P08): one place per ship. Every tab starts with the same ship header:
    breadcrumbs (Ships › MV Demo), the ship's name as the heading, then IMO number, type, flag and an Active / Inactive
-   badge, with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
+   badge (P40: and, for an active vessel, a row of three compact badges, Safety Score, GHG and inspection, one link to
+   its Vetting page; there is no Vetting tab), with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
    same form as a page) and a **⋯** menu (**Activate** or **Deactivate**). Edit, Activate and Deactivate come back to
    the tab they were started on. Under the header a tab bar of ordinary links, one URL each, so every tab can be
    bookmarked; each shows a count:
@@ -375,21 +389,26 @@ Requirements: Java 25, Docker.
    - the Overview's fleet table, **Certificate issues** of a ship: `?shipId=…&status=expired,30`;
    - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
    **Export** (page header) downloads the list as filtered, searched and sorted, every page, as an Excel workbook
-   (P39; CSV before): `certificates-<date>.xlsx`, sheet "Certificates", with the columns
+   (P39; CSV before; `.xls` since P40): `certificates-<date>.xls`, sheet "Certificates", with the columns
    `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,
    `SECOND_OFFICER`; `expires_on` a date cell, `days_left` a number, negative once expired; status `expired`,
    `30_days`, `60_days`, `90_days` or `valid`, the badge). It is a plain link (GET, nothing changes, not in the audit
    log).
 
    **The export format** (P39, every office export: certificates, the certificate matrix and ship orders, see 24;
-   `core/export/XlsxExport`, Apache POI, already used by the imports): one `.xlsx` workbook with one sheet named after
+   `core/export/XlsExport`, Apache POI, already used by the imports): since P40 one `.xls` workbook (Excel 97-2003,
+   POI's `HSSFWorkbook`, so it also opens in older spreadsheet programs) with one sheet named after
    the list; the first row holds the column names (never translated: they are the format), bold, frozen (it stays on
    screen while scrolling) and with an autofilter on every column; then one row per record. Dates are real date
    cells shown as `13 Nov 2026` (`dd mmm yyyy`), a date and time as `10 Nov 2026 09:30` (UTC), numbers are numbers,
    anything else is text (an IMO number stays text: it is an identifier); an empty value is an empty cell. Column
    widths fit the longest value (8 to 60 characters). The file name is the list's name and the UTC date,
-   `<name>-2026-11-13.xlsx`; the response is `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
-   an attachment that is never cached. Tests read the workbook back (`XlsxSheet` in the tests).
+   `<name>-2026-11-13.xls`; the response is `application/vnd.ms-excel`, an attachment that is never cached. The
+   format's limits: at most 65,535 rows of data and 256 columns; a bigger export is refused and the page says "Too
+   many rows for one file: narrow the filters" (nothing is downloaded); a text over 32,767 characters is shortened
+   and ends with "…". Tests read the workbook back (`XlsSheet` in the tests; `XlsExportTest` for the limits). The
+   imports still read `.xlsx`, `.xls` and `.csv`, and the import templates (8, 11) stay `.xlsx`: they are not
+   exports.
 
    **Certificate file** (P39): on **Add certificate** and **Edit** an optional scan of the certificate, PDF, JPEG or
    PNG, at most 10 MB (said before choosing; with `js/forms.js` the chosen file's name and size show, with a warning before a file
@@ -438,8 +457,8 @@ Requirements: Java 25, Docker.
    sideways (also on phones; the table is a keyboard-focusable region). **Matrix** / **List** switch between the
    matrix and the list above for this ship (`/certificates/list`, without the ship filter, the Ship column and Active
    ships only). **Export** downloads the view on screen (P39: Excel, see the export format above): the matrix as
-   `certificate-matrix-<IMO>-<date>.xlsx`, sheet "Certificate matrix" (`crew_member, rank`, then one column per type
-   with the expiry date as a date cell, empty when there is none), the list as `certificates-<IMO>-<date>.xlsx`.
+   `certificate-matrix-<IMO>-<date>.xls`, sheet "Certificate matrix" (`crew_member, rank`, then one column per type
+   with the expiry date as a date cell, empty when there is none), the list as `certificates-<IMO>-<date>.xls`.
 
    Certificate type is free text with suggestions (a datalist): the types already used, most used first, then the
    starter list (STCW Basic Safety Training, Certificate of Competency, Flag State Endorsement, GMDSS Operator,
@@ -921,7 +940,7 @@ Requirements: Java 25, Docker.
      time recorded and notified, until the order is CLOSED; then the form is gone and a confirmation changes nothing.
      The order's row is locked while confirming.
    - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
-     `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xlsx` (P39; CSV before; the
+     `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xls` (P39; CSV before; `.xls` since P40; the
      format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
      and item name: `imo_number,ship_name,order_id,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
      (`sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
@@ -933,6 +952,72 @@ Requirements: Java 25, Docker.
    - Tests: `officeorder/OfficeOrderFlowTest`; the Overview's rows and counts in `DashboardFlowTest`.
    - To try it: send the order as in 23, then as `office@example.com` open **Orders**, confirm a port and date
      (the Master and the Chief cook see the notification) and export it.
+
+25. Vetting (P40, office users only): how charterers vet each vessel, starting with RightShip. `core/vetting/`
+   (`ShipRightShipStatus`, `RightShipReport`, `VettingService`, `RightShipView`, `RightShipSyncService`,
+   `RightShipClient`) and `vetting/` (`VettingController`, `RightShipForm`, `RightShipReportForm`); templates in
+   `templates/vetting/`, styles in `app.css` section "Vetting (P40)".
+   - **Vetting** in the sidebar (Operations, after Certificates; a shield with a tick), with the number of active
+     vessels whose RightShip inspection has expired or expires within 60 days ("1 expired or expiring").
+   - **`/office/vetting`**: every active vessel: name (and IMO number), type, Safety Score ("3/5" with a five-segment
+     bar, "0/5", or "N/A" when not rated), GHG Rating, RightShip inspection (a badge with icon and words: "Valid until
+     21 Dec 2026", "Expires in 38 days", "Expired", "Unacceptable", "Not required", "No inspection") and valid-until
+     date. Most urgent first: inspection expired or unacceptable, then expiring, then the lowest Safety Score (not
+     rated last), then name. Search (name or IMO number), filters **Vessel type** and **Status** (All, Needs
+     attention: inspection expired / unacceptable / expiring or Safety Score 2 or below; Valid; Not rated), sorting by
+     column and pages (P19); the list is worked out in memory (the fleet is small). The whole row opens the vessel's
+     Vetting page. A "SIRE 2.0" column is reserved for P41.
+   - **`/office/vetting/{shipId}`**: a card per vetting regime (RightShip now; SIRE 2.0 in P41), the whole card opening
+     the regime's page. Breadcrumbs Vetting › vessel; **Open vessel** goes to the vessel page. An inactive or unknown
+     vessel is a 404 on every Vetting page below it.
+   - **`/office/vetting/{shipId}/rightship`**: from 992 px two columns, the dashboard (7/12) and the official document
+     (5/12); below that the document comes after the dashboard. No chart library and no script needed.
+     - Score header: the vessel, "RightShip Safety Score", the bar and the large "3/5", type and calculation date.
+       0/5 shows "No safety score" (error icon; sanctioned), an indicative score "Indicative" (warning icon). Without
+       data "N/A" and the empty state **Add RightShip data**.
+     - **Subscore summary**: the six subscores in three groups, Highest impact (Vessel incident performance, DOC
+       company performance), Medium (PSC deficiencies, Detentions), Lowest (Flag performance, Class performance), each
+       a bar and "4/5"; the lowest one(s) in the warning tone and marked "Lowest" (in words; not marked when every
+       known one is 5/5), an unknown one a muted dash ("Not known" for screen readers).
+     - **GHG Rating** (the letter, "A+" with a plus, Verified / Unverified, "N/A" for U; RightShip's colour of the letter
+       on the leaf icon only: A `#00763B` … E `#D71920`) and **RightShip Inspection** (badge, valid until, last outcome,
+       required).
+     - **Official document**: the newest report (by document date) as an image at the card's width, or for a PDF a link
+       that opens it in a new tab (P22); its date, who uploaded it and when, **Open** and **Download**
+       (`/rightship/reports/{id}/file`, `?download=true`; private, cached 1 day). Earlier reports listed under it,
+       newest first. Without one the empty state **Upload report**.
+     - Header: **Open in RightShip** (when a platform link is set, new tab), **Refresh from RightShip** (only while the
+       API is configured), **Open vessel**, **Edit RightShip data** and **Upload report** (the primary). An empty state
+       that holds an action takes it out of the header (P25), so the page keeps one primary button.
+     - Who entered the data and when ("Entered by Jane Doe", or "Updated from RightShip"); a restricted vessel shows
+       "Restricted by RightShip" and RightShip's comments.
+   - **Edit RightShip data** (`/rightship/edit`): Safety Score (Not rated, 0/5 to 5/5), Indicative, calculated on; the
+     six subscores (1 to 5 or Not known); GHG Rating (A–E or U), A+, Verified, rated on; inspection required, last
+     outcome, valid until; restricted, RightShip comments (up to 2,000 characters) and the link to the vessel on the
+     platform (`https://` only). Every field may stay empty. Dates: calculated and rated on within the last 20 years
+     and not in the future, valid until 10 years back to 5 years ahead. Each save adds a row (the history); only the
+     newest is current. Recorded as "RightShip data updated".
+   - **Upload report** (`/rightship/reports/new`): a PDF, PNG or JPEG of at most 10 MB (checked by extension and first
+     bytes, stored like the library's files under `LIBRARY_STORAGE_DIR`) and the date on it (required). Recorded as
+     "RightShip report uploaded".
+   - Elsewhere: the vessel page header's badge row (5), the Vessels list's Safety Score column (5) and two kinds of
+     Overview item (4): inspection expired, unacceptable or expiring within 60 days, and Safety Score 2 or below,
+     right after expired certificates, each with **Open RightShip**.
+   - **RightShip API sync** (optional, read only, off by default): set `RIGHTSHIP_BASE_URL`, `RIGHTSHIP_CLIENT_ID` and
+     `RIGHTSHIP_CLIENT_SECRET` (see Configuration). With any of them empty the app makes no request to RightShip at
+     all and the data is entered by hand. When set, the server (never the browser) gets an OAuth 2 client-credentials
+     token (`RIGHTSHIP_TOKEN_URL`, default `<base-url>/oauth/token`) and, nightly at 02:30 UTC
+     (`RIGHTSHIP_SYNC_CRON`), calls `GET /vessel/v2/updates?SinceDate=<day of the last run that worked>` and then
+     `POST /vessel/v2/info` (`{"imos": [...]}`, 100 at a time) for the changed IMO numbers of the active vessels; on the
+     first run, or when the last run that worked is more than 7 days ago, for every active vessel. A vessel whose data
+     did not change gets no new row. The API gives the Safety Score, the DOC subscore, GHG Rating, inspection and
+     restrictions, not the other five subscores: those are kept from the vessel's last manual entry and marked "from
+     report, 21 Oct 2026"; the API's values are marked "from RightShip". **Refresh from RightShip** does the same for one
+     vessel at once. A failure is logged and saved, never an error page: the Vetting list and the RightShip page show
+     "Last sync failed at …" until a run works again. Recorded as "RightShip data synced" (by the system) or "RightShip
+     data refreshed". The JSON field names are read leniently in `HttpRightShipClient`, the one place to adjust them.
+   - Tests: `vetting/RightShipFlowTest` (a fake `RightShipClient`), the counter in `layout/NavigationFlowTest`, the dev
+     data and the Overview's query count in `DashboardFlowTest`.
 
 Run the tests (H2 in memory, no Docker needed):
 
@@ -1111,7 +1196,7 @@ The app makes no request to any other host: everything a page needs is served fr
 
   - sidebar navigation (P07): the navy sidebar (`layout/layout.html`, entries `layout/parts :: navItem`) has small
     uppercase group labels:
-    - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Announcements, Requests),
+    - office: **Operations** (Overview `/office`, Ships, Crew, Certificates, Vetting (P40, see 25), Announcements, Requests),
       **Administration** (Office users, Audit log), **Account** (Notifications; the language switch moved to the top
       bar, P29); crew: **On board**
       (Home `/ship`, Announcements `/ship/announcements`, Library) and **Account** (Notifications). The user block (name,
@@ -1124,7 +1209,8 @@ The app makes no request to any other host: everything a page needs is served fr
       `navigation/NavigationAdvice` (model attribute `navSection`, from the URL via `NavSection`); controllers do not set it;
     - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
-      exactly those, `/office/certificates?status=expired,30`, P20), **Orders** sent by the ships and
+      exactly those, `/office/certificates?status=expired,30`, P20), **Vetting** active vessels whose RightShip
+      inspection has expired or expires within 60 days (P40, "2 expired or expiring"), **Orders** sent by the ships and
       not exported (P36), **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
@@ -1325,6 +1411,11 @@ Set these environment variables:
 | `CERTIFICATE_REMINDER_CRON` | optional; when the certificate reminder job runs (UTC), default `0 0 6 * * *` |
 | `LIBRARY_STORAGE_DIR` | folder for library files, created if missing, e.g. `/var/lib/nereonet/library`; back it up with the database |
 | `INVITATION_JWT_SECRET` | random secret, at least 32 characters, for signing invitation and password reset links |
+| `RIGHTSHIP_BASE_URL` | optional (P40); the address of the RightShip API (from RightShip); the sync is off while it, the client id or the secret is empty (see 25) |
+| `RIGHTSHIP_CLIENT_ID` | optional; the RightShip API client id |
+| `RIGHTSHIP_CLIENT_SECRET` | optional; the RightShip API client secret |
+| `RIGHTSHIP_TOKEN_URL` | optional; where the OAuth token comes from, default `<RIGHTSHIP_BASE_URL>/oauth/token` |
+| `RIGHTSHIP_SYNC_CRON` | optional; when the nightly RightShip sync runs (UTC), default `0 30 2 * * *` |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
 | `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page and as "Questions? Contact: …" in the footer of the invitation and password reset emails, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |

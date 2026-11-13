@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- Fragments of Vetting (P40): the Vetting list, a vessel's Vetting page, its RightShip page, and the badge row of
+     the vessel page's header. view: a core/vetting/RightShipView (a vessel's standing; status null without data).
+     The pattern: app.css, section "Vetting (P40)". -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- A score as five segments (Safety Score and subscores): the first "value" filled in the tone's colour, the rest
+     neutral grey. Decorative: the text next to it ("3/5") carries the value. tone: ok, warning, danger or neutral;
+     size: null, or 'lg' for the score header.
+     Use: <span th:replace="~{vetting/parts :: scoreBar(${view.score()}, ${view.scoreTone()}, null)}"></span> -->
+<span th:fragment="scoreBar(value, tone, size)" class="score-bar" aria-hidden="true"
+      th:classappend="'score-bar-' + ${tone} + (${size != null} ? ' score-bar-' + ${size} : '')">
+    <span th:each="i : ${#numbers.sequence(1, 5)}" class="score-seg"
+          th:classappend="${value != null and i <= value} ? 'is-on'"></span>
+</span>
+
+<!-- The Safety Score as text: "3/5", "0/5", or "N/A" (muted) when not rated. -->
+<span th:fragment="scoreText(view)" class="score-text num" th:classappend="${!view.rated()} ? 'is-na'"
+      th:text="${view.rated()} ? #{vetting.score.value(${view.score()})} : #{vetting.notAvailable}">3/5</span>
+
+<!-- The GHG Rating: RightShip's colour for the letter on the icon only, then the letter ("A+", "C"; "N/A" when not
+     rated) and Verified / Unverified in the page's text colour. -->
+<span th:fragment="ghg(view)" class="ghg" th:classappend="${view.ghgClass()}">
+    <svg class="ghg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M5 19c0-8 5.5-13.5 14-14-.5 8.5-6 14-14 14z"/><path class="ghg-icon-vein" d="M5 19 13 11"/>
+    </svg>
+    <span class="ghg-letter" th:text="${view.ghgRated()} ? ${view.ghgLetter()} : #{vetting.notAvailable}">C</span>
+    <span th:if="${view.ghgRated()}" class="ghg-verified"
+          th:text="${view.ghgVerified()} ? #{vetting.ghg.verified} : #{vetting.ghg.unverified}">Unverified</span>
+</span>
+
+<!-- The RightShip inspection as a badge: an icon and words (never colour alone). "Valid until 21 Dec 2026",
+     "Expires in 38 days", "Expired", "Unacceptable", "Not required", "No inspection". -->
+<!-- The label is worked out in th:with: fragment parameters are evaluated in restricted mode (no bean calls). -->
+<th:block th:fragment="inspectionBadge(view)" th:with="state=${view.inspection()},
+        badgeLabel=${state.name() == 'VALID'} ? #{vetting.inspection.VALID(${@dates.date(view.inspectionValidUntil())})}
+            : (${state.name() == 'EXPIRING'} ? #{vetting.inspection.EXPIRING(${view.inspectionDaysLeft()})}
+            : #{${'vetting.inspection.' + state.name()}})">
+    <span th:replace="~{layout/parts :: statusIcon(${state.tone()}, ${badgeLabel}, ${state.icon()})}"></span>
+</th:block>
+
+<!-- "Last sync failed at 13 Nov 2026 · 02:30 UTC" (the Vetting list, the RightShip page): only while the RightShip
+     API is configured and its last run failed. at: the time of the failure, or null. -->
+<div th:fragment="syncFailed(at)" th:if="${at != null}" class="alert alert-warning vetting-sync-failed" role="status">
+    <span class="fw-semibold" th:text="#{vetting.sync.failed}">Last sync failed at</span>
+    <time th:replace="~{layout/parts :: localTime(${at})}"></time>.
+    <span th:text="#{vetting.sync.failed.text}">The RightShip data shown may be out of date.</span>
+</div>
+
+<!-- The breadcrumbs of a vessel's Vetting pages: Vetting, then the vessel when withShip. -->
+<th:block th:fragment="crumbs(ship, withShip)">
+    <li th:replace="~{layout/parts :: crumb(#{nav.vetting}, '/office/vetting')}"></li>
+    <th:block th:if="${withShip}">
+        <li th:replace="~{layout/parts :: crumb(${ship.name}, ${'/office/vetting/' + ship.id})}"></li>
+    </th:block>
+</th:block>
+
+<!-- "Open vessel": the page header's secondary link to the vessel page, on every Vetting page of a vessel. -->
+<a th:fragment="openVessel(ship)" class="btn btn-outline-secondary" th:href="@{/office/ships/{id}(id=${ship.id})}">
+    <svg th:replace="~{layout/parts :: navIcon('ships')}"></svg>
+    <span th:text="#{vetting.openVessel}">Open vessel</span>
+</a>
+
+<!-- The vessel page header's badge row (P40, ship/parts :: header): Safety Score, GHG Rating and inspection in brief,
+     one link to the vessel's Vetting page. Active vessels only (an inactive vessel has no Vetting page). -->
+<a th:fragment="vesselBadges(ship, view)" th:if="${ship.active}" class="vetting-badges"
+   th:href="@{/office/vetting/{id}(id=${ship.id})}">
+    <span class="visually-hidden" th:text="#{vetting.badges.label}">Vetting:</span>
+    <span class="vetting-badge">
+        <svg th:replace="~{layout/parts :: navIcon('vetting')}"></svg>
+        <span class="vetting-badge-label" th:text="#{vetting.score.short}">Safety Score</span>
+        <span th:replace="~{vetting/parts :: scoreText(${view})}">3/5</span>
+    </span>
+    <span class="vetting-badge">
+        <span class="vetting-badge-label" th:text="#{vetting.ghg.short}">GHG</span>
+        <span th:replace="~{vetting/parts :: ghg(${view})}">C</span>
+    </span>
+    <span class="vetting-badge">
+        <span class="vetting-badge-label" th:text="#{vetting.inspection.short}">Inspection</span>
+        <th:block th:replace="~{vetting/parts :: inspectionBadge(${view})}"></th:block>
+    </span>
+</a>
+
+</body>
+</html>

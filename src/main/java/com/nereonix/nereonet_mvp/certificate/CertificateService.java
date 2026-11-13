@@ -27,7 +27,7 @@ import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateReminderRepository;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.export.XlsxExport;
+import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -54,7 +54,7 @@ public class CertificateService {
     public record Filter(Long shipId, boolean activeShips, CertificateStatus status) {
     }
 
-    // The export's columns (P20; an Excel workbook since P39, the same columns): a file format, never translated.
+    // The export's columns (P20; an Excel workbook since P39, .xls since P40, the same columns): a file format, never translated.
     private static final List<String> LIST_HEADER = List.of("imo_number", "ship_name", "crew_member", "rank", "type",
             "number", "expires_on", "days_left", "status");
 
@@ -225,14 +225,14 @@ public class CertificateService {
     }
 
     /**
-     * The list as an Excel workbook (P20; .xlsx since P39), sheet "Certificates", one row per certificate:
+     * The list as an Excel workbook (P20; .xls since P40, .xlsx in P39), sheet "Certificates", one row per certificate:
      * imo_number, ship_name, crew_member, rank (Rank's name), type, number, expires_on (a date), days_left (a number,
      * negative once expired) and status (expired, 30_days, 60_days, 90_days or valid: the badge). name: the file name
      * before the date, e.g. "certificates".
      */
-    public XlsxExport.File listXlsx(String name, List<Certificate> certificates) {
+    public XlsExport.File listXls(String name, List<Certificate> certificates) {
         LocalDate today = today();
-        XlsxExport sheet = XlsxExport.sheet("Certificates", LIST_HEADER);
+        XlsExport sheet = XlsExport.sheet("Certificates", LIST_HEADER);
         for (Certificate c : certificates) {
             Ship ship = c.getUser().getShip();
             Integer threshold = c.reminderThreshold(today);
@@ -246,10 +246,10 @@ public class CertificateService {
 
     /** The matrix as a workbook (P20, P39), sheet "Certificate matrix": crew_member, rank, then one column per type
      *  with the expiry date (a date), or empty. */
-    public XlsxExport.File matrixXlsx(String name, CertificateMatrix matrix) {
+    public XlsExport.File matrixXls(String name, CertificateMatrix matrix) {
         List<String> header = new ArrayList<>(List.of("crew_member", "rank"));
         header.addAll(matrix.types());
-        XlsxExport sheet = XlsxExport.sheet("Certificate matrix", header);
+        XlsExport sheet = XlsExport.sheet("Certificate matrix", header);
         for (CertificateMatrix.Row row : matrix.rows()) {
             List<Object> values = new ArrayList<>(Arrays.asList(row.member().getFullName(), rank(row.member())));
             row.cells().forEach(cell -> values.add(cell.certificate() == null ? null : cell.certificate().getExpiresOn()));

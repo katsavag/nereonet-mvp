@@ -30,7 +30,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Confirmation;
-import com.nereonix.nereonet_mvp.core.export.XlsxExport;
+import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -122,8 +122,9 @@ public class OfficeOrderController {
     }
 
     /**
-     * The workbook of the checked orders (the list), or of one order (its page): a .xlsx download, one row per order
-     * line (P39; CSV before). It marks them exported now. Nothing checked, or none of them an order the ships sent:
+     * The workbook of the checked orders (the list), or of one order (its page): a .xls download, one row per order
+     * line (P40; .xlsx in P39, CSV before). It marks them exported now. Too many lines for one .xls sheet: back to the
+     * list with "Too many rows for one file", nothing marked. Nothing checked, or none of them an order the ships sent:
      * back to the list with a message.
      */
     @PostMapping(LIST + "/export")
@@ -134,7 +135,13 @@ public class OfficeOrderController {
             redirectAttributes.addFlashAttribute("errorMessage", "officeorder.export.noneSelected");
             return "redirect:" + LIST;
         }
-        XlsxExport.File file = orderService.export(user(currentUser), chosen).orElse(null);
+        XlsExport.File file;
+        try {
+            file = orderService.export(user(currentUser), chosen).orElse(null);
+        } catch (XlsExport.TooManyRowsException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", XlsExport.TooManyRowsException.MESSAGE);
+            return "redirect:" + LIST;
+        }
         if (file == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "officeorder.export.nothing");
             return "redirect:" + LIST;

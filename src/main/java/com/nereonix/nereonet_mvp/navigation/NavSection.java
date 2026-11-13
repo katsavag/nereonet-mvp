@@ -15,6 +15,8 @@ public enum NavSection {
     // The office's Crew and, for the crew, My crew (P31): the same entry key and icon.
     CREW("crew", List.of("/office/crew", "/ship/crew")),
     CERTIFICATES("certificates", List.of("/office/certificates")),
+    // How charterers vet a vessel: RightShip (P40), SIRE 2.0 (P41).
+    VETTING("vetting", List.of("/office/vetting")),
     // The office list and, for the crew, their own announcements (P27), called News since P39 (/ship/news; the old
     // /ship/announcements URLs redirect there): the same entry key and icon.
     ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/news", "/ship/announcements")),

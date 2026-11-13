@@ -10,6 +10,7 @@ import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
+import com.nereonix.nereonet_mvp.core.vetting.InspectionOutcome;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -45,6 +46,11 @@ public class DashboardQueries {
 
     public record LibraryRow(Long id, String title, Long shipId, String versionLabel, Instant publishedAt, long onBoard,
                       long acknowledged) {
+    }
+
+    /** A vessel's current RightShip standing (P40): id is the ShipRightShipStatus row. */
+    public record VettingRow(Long id, Long shipId, Integer safetyScore, LocalDate inspectionValidUntil,
+                             Boolean inspectionRequired, InspectionOutcome lastInspectionOutcome) {
     }
 
     /** What exists of the setup steps (P25): ships, crew (users with a ship role, pending crew invitations), library
@@ -85,6 +91,24 @@ public class DashboardQueries {
                 from Certificate c join c.user u join u.ship s
                 where c.expiresOn <= :until and s.active = true""", CertificateRow.class)
                 .setParameter("until", until)
+                .getResultList();
+    }
+
+    /**
+     * The current RightShip standing of active vessels (P40) whose inspection is unacceptable or valid until "until"
+     * at the latest (expired included), or whose Safety Score is at most "lowScore".
+     */
+    List<VettingRow> vettingNeedingAttention(LocalDate until, int lowScore) {
+        return entityManager.createQuery("""
+                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$VettingRow(
+                    r.id, s.id, r.safetyScore, r.inspectionValidUntil, r.inspectionRequired, r.lastInspectionOutcome)
+                from ShipRightShipStatus r join r.ship s
+                where r.current = true and s.active = true
+                  and (r.inspectionValidUntil <= :until or r.lastInspectionOutcome = :unacceptable
+                       or r.safetyScore <= :lowScore)""", VettingRow.class)
+                .setParameter("until", until)
+                .setParameter("unacceptable", InspectionOutcome.UNACCEPTABLE)
+                .setParameter("lowScore", lowScore)
                 .getResultList();
     }
 

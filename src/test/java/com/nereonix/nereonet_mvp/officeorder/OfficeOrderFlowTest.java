@@ -31,10 +31,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nereonix.nereonet_mvp.XlsxSheet;
+import com.nereonix.nereonet_mvp.XlsSheet;
 import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
-import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -149,11 +148,11 @@ class OfficeOrderFlowTest {
         MvcResult export = mockMvc.perform(post("/office/orders/export").param("ids", order.getId().toString())
                         .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", XlsxExport.CONTENT_TYPE.toString()))
+                .andExpect(header().string("Content-Type", "application/vnd.ms-excel"))
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.matchesPattern(
-                        "attachment; filename=\"ship-orders-\\d{4}-\\d{2}-\\d{2}\\.xlsx\"")))
+                        "attachment; filename=\"ship-orders-\\d{4}-\\d{2}-\\d{2}\\.xls\"")))
                 .andReturn();
-        XlsxSheet sheet = XlsxSheet.of(export.getResponse().getContentAsByteArray());
+        XlsSheet sheet = XlsSheet.of(export.getResponse().getContentAsByteArray());
         assertThat(sheet.name()).isEqualTo("Orders");
         List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(),
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));

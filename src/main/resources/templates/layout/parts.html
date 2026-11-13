@@ -274,6 +274,8 @@
     <th:block th:if="${name == 'ships'}"><path d="M3 14h18l-2.5 5h-13z"/><path d="M6 14V9h12v5M12 9V4"/></th:block>
     <th:block th:if="${name == 'crew'}"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></th:block>
     <th:block th:if="${name == 'certificates'}"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M8 7h8M8 11h5M10 16l-1.5 5 3.5-2 3.5 2-1.5-5"/></th:block>
+    <!-- Vetting (P40): a shield with a check mark. -->
+    <th:block th:if="${name == 'vetting'}"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6z"/><path d="m8.8 12.2 2.3 2.3 4.3-4.5"/></th:block>
     <th:block th:if="${name == 'announcements'}"><path d="M3 10v4h4l7 5V5L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/></th:block>
     <th:block th:if="${name == 'orders'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></th:block>
     <th:block th:if="${name == 'users'}"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M14 10h4M14 14h3"/></th:block>
@@ -570,7 +572,7 @@
 <!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows, P09). Same tones as
      status; the text still carries the meaning. icon: 'alert' (expired), 'clock' (expiring, waiting), 'export'
      (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank, P18), 'check'
-     (valid, P20).
+     (valid, P20), 'dash' (nothing known, P40: no RightShip inspection).
      Use: <span th:replace="~{layout/parts :: statusIcon('danger', #{...}, 'alert')}"></span> -->
 <span th:fragment="statusIcon(tone, label, icon)" class="badge status-badge status-badge-icon"
       th:classappend="'status-' + ${tone}">
@@ -583,6 +585,7 @@
         <th:block th:if="${icon == 'key'}"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M16 7l3 3M14 9l2 2"/></th:block>
         <th:block th:if="${icon == 'eye'}"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></th:block>
         <path th:if="${icon == 'check'}" d="m4.5 12.5 5 5 10-11"/>
+        <path th:if="${icon == 'dash'}" d="M6 12h12"/>
     </svg>
     <span th:text="${label}">Expired</span>
 </span>
@@ -755,8 +758,8 @@
      title, one sentence of help and the list's first action, centred in the card. Distinct from the filtered-empty
      line of listEmpty ("No results for these filters"), which is left aligned, has no icon and offers Clear all.
      Named parameters:
-       icon    a navIcon name: 'ships', 'crew', 'certificates', 'announcements', 'orders', 'users', 'audit',
-               'library', 'notifications', 'items', 'approvals', 'order'
+       icon    a navIcon name: 'ships', 'crew', 'certificates', 'vetting', 'announcements', 'orders', 'users',
+               'audit', 'library', 'notifications', 'items', 'approvals', 'order'
        title   "No ships yet"
        text    one sentence: what the list is for and what to do first, "Add your first ship to invite its crew."
        action  the buttons, ~{::pageActions} (usually the page header's own, which the header then leaves out), or

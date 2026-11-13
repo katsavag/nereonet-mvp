@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
  * The frame of every tab of the ship page (ship/parts :: header): the ship header, the inactive banner and the tab
@@ -16,15 +17,18 @@ import com.nereonix.nereonet_mvp.core.ship.ShipType;
  *   shipTab        the key of the active tab (ShipTab.key())
  *   shipTabs       every ShipTab, in order
  *   shipTabCounts  ShipTabCounts, the number shown on each tab
+ *   vetting        the vessel's RightShip standing (RightShipView) for the header's badge row (P40)
  *   editForm, types, countries   for the Edit ship pop-up of the header (ship/parts :: editModal)
  */
 @Component
 public class ShipFrame {
 
     private final ShipService shipService;
+    private final VettingService vettingService;
 
-    public ShipFrame(ShipService shipService) {
+    public ShipFrame(ShipService shipService, VettingService vettingService) {
         this.shipService = shipService;
+        this.vettingService = vettingService;
     }
 
     /** The ship, or 404 if there is none. For tabs whose controller has no ship lookup of its own. */
@@ -37,6 +41,7 @@ public class ShipFrame {
         model.addAttribute("shipTab", tab.key());
         model.addAttribute("shipTabs", ShipTab.values());
         model.addAttribute("shipTabCounts", shipService.tabCounts(ship));
+        model.addAttribute("vetting", vettingService.view(ship));
         addEditForm(model, ship);
     }
 

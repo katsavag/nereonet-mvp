@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{vetting.edit}, ~{::main})}">
+<body>
+<!-- "Edit RightShip data" (P40): a vessel's RightShip standing, as the office reads it off the RightShip report or
+     platform. Every field may stay empty (not known); a select's empty option is "not known". Saving adds a row
+     to the vessel's history and makes it the current one (VettingService.saveManual).
+     Sections: Safety Score, Subscores (in their impact groups), GHG Rating, RightShip inspection, Restrictions.
+     Model: ship, form (RightShipForm), impacts, ghgRatings, outcomes. -->
+<main class="form-page" th:with="action=${'/office/vetting/' + ship.id + '/rightship/edit'},
+                                 backUrl=${'/office/vetting/' + ship.id + '/rightship'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{vetting.edit}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: crumbs(${ship}, true)}"></th:block>
+            <li th:replace="~{layout/parts :: crumb(#{vetting.rightship}, ${backUrl})}"></li>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{vetting.score.title}">RightShip Safety Score</legend>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="safetyScore" class="form-label">[[#{vetting.score}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{safetyScore}" class="form-select" th:errorclass="is-invalid"
+                                    aria-describedby="safetyScoreHint">
+                                <option value="" th:text="#{vetting.form.notRated}">Not rated</option>
+                                <option value="0" th:text="#{vetting.form.score0}">0/5 · no safety score</option>
+                                <option th:each="i : ${#numbers.sequence(1, 5)}" th:value="${i}"
+                                        th:text="#{vetting.score.value(${i})}">3/5</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{safetyScore}"></div>
+                            <div id="safetyScoreHint" class="form-text" th:text="#{vetting.form.scoreHint}">0/5: sanctioned, no safety score.</div>
+                        </div>
+                        <div class="field-half">
+                            <label for="calculatedAt" class="form-label">[[#{vetting.score.calculatedAt}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{calculatedAt}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'calculatedAt')}"
+                                   th:max="${@formFields.maxDate(form, 'calculatedAt')}">
+                            <div class="invalid-feedback" th:errors="*{calculatedAt}"></div>
+                        </div>
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{indicative}">
+                                <label class="form-check-label" th:for="${#ids.prev('indicative')}"
+                                       th:text="#{vetting.form.indicative}">Indicative score</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{vetting.subscores.title}">Subscore summary</legend>
+                    <th:block th:each="g : ${impacts}">
+                        <p class="form-subhead" th:text="#{${g.messageKey()}}">Highest impact</p>
+                        <div class="form-grid rs-form-group">
+                            <div th:each="s : ${g.subscores()}" class="field-half" th:with="f=${s.key()}">
+                                <label th:for="${f}" class="form-label">[[#{${s.messageKey()}}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                                <select th:field="*{__${f}__}" class="form-select" th:errorclass="is-invalid">
+                                    <option value="" th:text="#{vetting.subscore.unknown}">Not known</option>
+                                    <option th:each="i : ${#numbers.sequence(1, 5)}" th:value="${i}"
+                                            th:text="#{vetting.score.value(${i})}">4/5</option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{__${f}__}"></div>
+                            </div>
+                        </div>
+                    </th:block>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{vetting.ghg}">GHG Rating</legend>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="ghgRating" class="form-label">[[#{vetting.form.ghgRating}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{ghgRating}" class="form-select" th:errorclass="is-invalid">
+                                <option value="" th:text="#{vetting.subscore.unknown}">Not known</option>
+                                <option th:each="r : ${ghgRatings}" th:value="${r}"
+                                        th:text="${r.rated()} ? ${r.name()} : #{vetting.form.ghgU}">C</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{ghgRating}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="ghgRatedAt" class="form-label">[[#{vetting.ghg.ratedAt}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{ghgRatedAt}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'ghgRatedAt')}"
+                                   th:max="${@formFields.maxDate(form, 'ghgRatedAt')}">
+                            <div class="invalid-feedback" th:errors="*{ghgRatedAt}"></div>
+                        </div>
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{ghgPlus}"
+                                       th:classappend="${#fields.hasErrors('ghgPlusValid')} ? 'is-invalid'"
+                                       aria-describedby="ghgPlusHint">
+                                <label class="form-check-label" th:for="${#ids.prev('ghgPlus')}" th:text="#{vetting.form.ghgPlus}">A+ (plus)</label>
+                                <div class="invalid-feedback" th:errors="*{ghgPlusValid}"></div>
+                                <div id="ghgPlusHint" class="form-text" th:text="#{vetting.form.ghgPlusHint}">For an A rating only.</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{ghgVerified}">
+                                <label class="form-check-label" th:for="${#ids.prev('ghgVerified')}" th:text="#{vetting.ghg.verified}">Verified</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{vetting.inspection.title}">RightShip Inspection</legend>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="inspectionRequired" class="form-label">[[#{vetting.inspection.required}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{inspectionRequired}" class="form-select">
+                                <option value="" th:text="#{vetting.subscore.unknown}">Not known</option>
+                                <option value="true" th:text="#{vetting.yes}">Yes</option>
+                                <option value="false" th:text="#{vetting.no}">No</option>
+                            </select>
+                        </div>
+                        <div class="field-half">
+                            <label for="lastInspectionOutcome" class="form-label">[[#{vetting.inspection.outcome}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{lastInspectionOutcome}" class="form-select">
+                                <option value="" th:text="#{vetting.subscore.unknown}">Not known</option>
+                                <option th:each="o : ${outcomes}" th:value="${o}"
+                                        th:text="#{${'vetting.outcome.' + o}}">Acceptable</option>
+                            </select>
+                        </div>
+                        <div class="field-half">
+                            <label for="inspectionValidUntil" class="form-label">[[#{vetting.inspection.validUntil}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{inspectionValidUntil}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'inspectionValidUntil')}"
+                                   th:max="${@formFields.maxDate(form, 'inspectionValidUntil')}"
+                                   aria-describedby="inspectionValidUntilHint">
+                            <div class="invalid-feedback" th:errors="*{inspectionValidUntil}"></div>
+                            <div id="inspectionValidUntilHint" class="form-text" th:text="#{vetting.form.validUntilHint}">Shown as expiring 60 days before.</div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{vetting.form.restrictions}">Restrictions and link</legend>
+                    <div class="form-grid">
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{restricted}">
+                                <label class="form-check-label" th:for="${#ids.prev('restricted')}" th:text="#{vetting.restricted}">Restricted by RightShip</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="restrictionComments" class="form-label">[[#{vetting.form.comments}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <textarea th:field="*{restrictionComments}" class="form-control" rows="3" th:errorclass="is-invalid"
+                                      aria-describedby="restrictionCommentsCounter"></textarea>
+                            <div class="invalid-feedback" th:errors="*{restrictionComments}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'restrictionComments', 'restrictionComments')}"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="platformLink" class="form-label">[[#{vetting.form.link}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="url" th:field="*{platformLink}" class="form-control" autocomplete="off" inputmode="url"
+                                   th:classappend="${#fields.hasErrors('platformLink') or #fields.hasErrors('platformLinkValid')} ? 'is-invalid'"
+                                   aria-describedby="platformLinkHint platformLinkCounter">
+                            <div class="invalid-feedback" th:errors="*{platformLink}"></div>
+                            <div class="invalid-feedback" th:errors="*{platformLinkValid}"></div>
+                            <div class="form-meta">
+                                <div id="platformLinkHint" class="form-text" th:text="#{vetting.form.linkHint}">The vessel page on the RightShip platform.</div>
+                                <div th:replace="~{layout/parts :: counter(${form}, 'platformLink', 'platformLink')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
+                    <a class="btn btn-ghost" th:href="@{${backUrl}}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

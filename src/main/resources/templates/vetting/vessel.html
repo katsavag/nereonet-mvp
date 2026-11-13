@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{nav.vetting}, ~{::main})}">
+<body>
+<!-- One vessel's Vetting page (P40): a card per vetting regime, how charterers vet the vessel. RightShip now; the
+     "SIRE 2.0" card joins in P41. The whole card opens the regime's page (a stretched link on its title, so it works
+     without JavaScript and the link has the card's name). Model: ship, rightShip (RightShipView). -->
+<main th:with="rs=${rightShip}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${ship.name}, crumbs=~{::pageCrumbs},
+            subtitleParts=~{::pageSubtitle}, actions=~{::pageActions})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: crumbs(${ship}, false)}"></th:block>
+        </th:block>
+        <th:block th:fragment="pageSubtitle">
+            <span class="num" th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9300001</span>
+            <th:block th:if="${ship.type}"><span aria-hidden="true">·</span>
+                <span th:text="#{${'ship.type.' + ship.type}}">Bulk carrier</span></th:block>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <a th:replace="~{vetting/parts :: openVessel(${ship})}"></a>
+        </th:block>
+    </header>
+
+    <div class="card-grid">
+        <section class="card regime-card" aria-labelledby="regimeRightShip">
+            <div class="card-body">
+                <div class="regime-card-head">
+                    <h2 class="regime-card-title" id="regimeRightShip">
+                        <a class="stretched-link" th:href="@{/office/vetting/{id}/rightship(id=${ship.id})}"
+                           th:text="#{vetting.rightship}">RightShip</a>
+                    </h2>
+                    <svg class="regime-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 6 6 6-6 6"/></svg>
+                </div>
+                <p th:unless="${rs.hasData()}" class="regime-card-empty" th:text="#{vetting.rightship.noData}">No RightShip data yet.</p>
+                <dl th:if="${rs.hasData()}" class="regime-facts">
+                    <div>
+                        <dt th:text="#{vetting.score}">Safety Score</dt>
+                        <dd class="score-cell">
+                            <span th:replace="~{vetting/parts :: scoreBar(${rs.score()}, ${rs.scoreTone()}, null)}"></span>
+                            <span th:replace="~{vetting/parts :: scoreText(${rs})}">3/5</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt th:text="#{vetting.ghg}">GHG Rating</dt>
+                        <dd><span th:replace="~{vetting/parts :: ghg(${rs})}">C</span></dd>
+                    </div>
+                    <div>
+                        <dt th:text="#{vetting.inspection}">RightShip inspection</dt>
+                        <dd><th:block th:replace="~{vetting/parts :: inspectionBadge(${rs})}"></th:block></dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+        <!-- P41: the "SIRE 2.0" card. -->
+    </div>
+</main>
+</body>
+</html>

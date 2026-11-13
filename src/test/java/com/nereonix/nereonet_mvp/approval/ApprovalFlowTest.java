@@ -38,6 +38,7 @@ import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
 import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
@@ -66,6 +67,7 @@ class ApprovalFlowTest {
     @Autowired ItemRepository itemRepository;
     @Autowired ItemRequestRepository requestRepository;
     @Autowired RequestService requestService;
+    @Autowired VettingService vettingService;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditRepository auditRepository;
     @Autowired UserRepository userRepository;
@@ -186,7 +188,7 @@ class ApprovalFlowTest {
     @Test
     void theDevDataSeedsTwoPendingRequestsOnce() throws Exception {
         DevData devData = new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                libraryItemRepository, versionRepository, profileRepository, requestService);
+                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService);
         devData.run(null);
         devData.run(null);
 

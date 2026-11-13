@@ -13,6 +13,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 // The sidebar counters: one count query each, on every page, so nothing is loaded to count.
 @Service
@@ -25,15 +26,18 @@ public class NavigationService {
     private final ShipOrderLineRepository orderLineRepository;
     private final ShipOrderService orderService;
     private final AnnouncementRecipientRepository announcementRecipientRepository;
+    private final VettingService vettingService;
 
     public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
                              ShipOrderLineRepository orderLineRepository, ShipOrderService orderService,
-                             AnnouncementRecipientRepository announcementRecipientRepository) {
+                             AnnouncementRecipientRepository announcementRecipientRepository,
+                             VettingService vettingService) {
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
         this.orderLineRepository = orderLineRepository;
         this.orderService = orderService;
         this.announcementRecipientRepository = announcementRecipientRepository;
+        this.vettingService = vettingService;
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +45,7 @@ public class NavigationService {
         // UTC days, as the certificate badges and the reminder job.
         LocalDate until = LocalDate.now(ZoneOffset.UTC).plusDays(CERTIFICATE_DAYS);
         return new NavCounts(certificateRepository.countByExpiresOnLessThanEqual(until),
-                orderService.countNotExported());
+                orderService.countNotExported(), vettingService.inspectionsDue());
     }
 
     /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */

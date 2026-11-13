@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -20,7 +22,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -28,31 +29,52 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 /**
- * The office's exports as Excel workbooks (P39; CSV before): one sheet named after the list, the header row bold and
- * frozen with an autofilter, then one row per record. Cell types follow the values: a LocalDate is a real date cell
- * shown "dd MMM yyyy", an Instant a date and time cell in UTC ("dd MMM yyyy hh:mm"), a number a number, anything else
- * text (an IMO number stays text, as an identifier), null an empty cell. Column widths fit the longest value (between
- * 8 and 60 characters), worked out from the text itself, so no fonts are needed on the server.
+ * The office's exports as Excel 97-2003 workbooks (.xls, P40; .xlsx in P39, CSV before), so the files open everywhere:
+ * one sheet named after the list (at most 31 characters), the header row bold and frozen with an autofilter, then one
+ * row per record. Cell types follow the values: a LocalDate is a real date cell shown "dd MMM yyyy", an Instant a date
+ * and time cell in UTC ("dd MMM yyyy hh:mm"), a number a number, anything else text (an IMO number stays text, as an
+ * identifier), null an empty cell. Column widths fit the longest value (between 8 and 60 characters), worked out from
+ * the text itself, so no fonts are needed on the server.
+ * The format's limits: at most 65,535 rows after the header and 256 columns. A bigger export is refused
+ * (TooManyRowsException), never cut short; a text longer than 32,767 characters is shortened, ending in "…".
  * The column names are the file format, never translated.
  */
-public final class XlsxExport {
+public final class XlsExport {
 
-    /** The content type of a .xlsx file. */
-    public static final MediaType CONTENT_TYPE =
-            MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    /** The content type of a .xls file. */
+    public static final MediaType CONTENT_TYPE = MediaType.parseMediaType("application/vnd.ms-excel");
+
+    /** The data rows a sheet can hold under its header row (65,536 rows in all). */
+    public static final int MAX_ROWS = SpreadsheetVersion.EXCEL97.getMaxRows() - 1;
+    /** The columns a sheet can hold. */
+    public static final int MAX_COLUMNS = SpreadsheetVersion.EXCEL97.getMaxColumns();
+    /** The longest text a cell can hold. */
+    public static final int MAX_TEXT_LENGTH = SpreadsheetVersion.EXCEL97.getMaxTextLength();
 
     static final String DATE_FORMAT = "dd mmm yyyy";
     static final String DATE_TIME_FORMAT = "dd mmm yyyy hh:mm";
+    private static final String ELLIPSIS = "…";
     private static final int MIN_WIDTH = 8;
     private static final int MAX_WIDTH = 60;
     // The width of a value as Excel shows it, for the column widths.
     private static final DateTimeFormatter DATE_TEXT = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter DATE_TIME_TEXT = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.ENGLISH);
 
-    /** A workbook to download: its file name (e.g. certificates-2026-11-13.xlsx) and content. */
+    /** The export does not fit in one .xls sheet: the office narrows the filters ("export.tooManyRows"). */
+    public static class TooManyRowsException extends RuntimeException {
+
+        /** The message key the controllers show. */
+        public static final String MESSAGE = "export.tooManyRows";
+
+        TooManyRowsException(int rows, int columns) {
+            super("Too many rows for one .xls file: " + rows + " rows, " + columns + " columns");
+        }
+    }
+
+    /** A workbook to download: its file name (e.g. certificates-2026-11-13.xls) and content. */
     public record File(String filename, byte[] content) {
 
-        /** The download: attachment, the .xlsx content type, never stored by a cache. */
+        /** The download: attachment, the .xls content type, never stored by a cache. */
         public ResponseEntity<byte[]> response() {
             return ResponseEntity.ok()
                     .contentType(CONTENT_TYPE)
@@ -67,29 +89,36 @@ public final class XlsxExport {
     private final List<String> header;
     private final List<List<?>> rows = new ArrayList<>();
 
-    private XlsxExport(String sheetName, List<String> header) {
+    private XlsExport(String sheetName, List<String> header) {
         this.sheetName = sheetName;
         this.header = List.copyOf(header);
     }
 
     /** sheetName: the list's name, e.g. "Certificates"; header: the column names, in order. */
-    public static XlsxExport sheet(String sheetName, List<String> header) {
-        return new XlsxExport(sheetName, header);
+    public static XlsExport sheet(String sheetName, List<String> header) {
+        return new XlsExport(sheetName, header);
     }
 
     /** One record, its values in the header's order. */
-    public XlsxExport row(List<?> values) {
+    public XlsExport row(List<?> values) {
         rows.add(values);
         return this;
     }
 
-    /** The workbook as a file named baseName + ".xlsx", e.g. "certificates-2026-11-13". */
+    /**
+     * The workbook as a file named baseName + ".xls", e.g. "certificates-2026-11-13". TooManyRowsException when it
+     * has more rows or columns than one .xls sheet holds.
+     */
     public File file(String baseName) {
-        return new File(baseName + ".xlsx", bytes());
+        return new File(baseName + ".xls", bytes());
     }
 
     byte[] bytes() {
-        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        int columns = Math.max(header.size(), rows.stream().mapToInt(List::size).max().orElse(0));
+        if (rows.size() > MAX_ROWS || columns > MAX_COLUMNS) {
+            throw new TooManyRowsException(rows.size(), columns);
+        }
+        try (HSSFWorkbook workbook = new HSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Font boldFont = workbook.createFont();
             boldFont.setBold(true);
             CellStyle bold = workbook.createCellStyle();
@@ -99,12 +128,13 @@ public final class XlsxExport {
             CellStyle dateTime = workbook.createCellStyle();
             dateTime.setDataFormat(workbook.createDataFormat().getFormat(DATE_TIME_FORMAT));
 
+            // createSafeSheetName also keeps the name within 31 characters.
             Sheet sheet = workbook.createSheet(WorkbookUtil.createSafeSheetName(sheetName));
             int[] widths = new int[header.size()];
             Row head = sheet.createRow(0);
             for (int i = 0; i < header.size(); i++) {
                 Cell cell = head.createCell(i);
-                cell.setCellValue(header.get(i));
+                cell.setCellValue(text(header.get(i)));
                 cell.setCellStyle(bold);
                 widths[i] = header.get(i).length();
             }
@@ -139,7 +169,7 @@ public final class XlsxExport {
                             shown = n.toString();
                         }
                         default -> {
-                            shown = value.toString();
+                            shown = text(value.toString());
                             cell.setCellValue(shown);
                         }
                     }
@@ -161,5 +191,18 @@ public final class XlsxExport {
         } catch (IOException e) {
             throw new UncheckedIOException(e); // never happens with a ByteArrayOutputStream
         }
+    }
+
+    /** The text as it fits in one cell: at most MAX_TEXT_LENGTH characters, a longer one ending in "…". */
+    static String text(String value) {
+        if (value.length() <= MAX_TEXT_LENGTH) {
+            return value;
+        }
+        int end = MAX_TEXT_LENGTH - ELLIPSIS.length();
+        // Never between the two halves of a character outside the Basic Multilingual Plane.
+        if (Character.isHighSurrogate(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(0, end) + ELLIPSIS;
     }
 }

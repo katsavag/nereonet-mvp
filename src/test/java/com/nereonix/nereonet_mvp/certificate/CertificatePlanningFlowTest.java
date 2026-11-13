@@ -35,12 +35,11 @@ import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 
-import com.nereonix.nereonet_mvp.XlsxSheet;
+import com.nereonix.nereonet_mvp.XlsSheet;
 import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.export.XlsxExport;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -290,7 +289,7 @@ class CertificatePlanningFlowTest {
                 .doesNotContain("/office/ships/" + emptyId + "/certificates/new", "/certificates/export");
     }
 
-    // 5. Excel exports (CSV until P39) --------------------------------------------------------------------------------
+    // 5. Excel exports (CSV until P39; .xls since P40) ---------------------------------------------------------------
 
     @Test
     void theListAndTheMatrixExportAsExcel() throws Exception {
@@ -298,8 +297,8 @@ class CertificatePlanningFlowTest {
         assertThat(list).contains("href=\"/office/certificates/export?status=expired\"");
 
         // Dates are date cells, days left a number, the IMO number text; a missing number an empty cell.
-        XlsxSheet sheet = xlsx(get("/office/certificates/export").param("status", "expired"),
-                "certificates-" + today() + ".xlsx");
+        XlsSheet sheet = xls(get("/office/certificates/export").param("status", "expired"),
+                "certificates-" + today() + ".xls");
         assertThat(sheet.name()).isEqualTo("Certificates");
         assertThat(sheet.rows()).containsExactly(
                 List.of("imo_number", "ship_name", "crew_member", "rank", "type", "number", "expires_on", "days_left",
@@ -309,13 +308,13 @@ class CertificatePlanningFlowTest {
                 Arrays.asList("1000003", "MV Gamma", "Ivan Idle", "OILER", "Passport", null, today().minusDays(1), -1.0,
                         "expired"));
 
-        XlsxSheet tabList = xlsx(get("/office/ships/{id}/certificates/list/export", alpha.getId()).param("status", "60"),
-                "certificates-1000001-" + today() + ".xlsx");
+        XlsSheet tabList = xls(get("/office/ships/{id}/certificates/list/export", alpha.getId()).param("status", "60"),
+                "certificates-1000001-" + today() + ".xls");
         assertThat(tabList.body()).hasSize(2);
         assertThat(tabList.body().getLast()).endsWith(today().plusDays(45), 45.0, "60_days");
 
-        XlsxSheet matrix = xlsx(get("/office/ships/{id}/certificates/export", alpha.getId()),
-                "certificate-matrix-1000001-" + today() + ".xlsx");
+        XlsSheet matrix = xls(get("/office/ships/{id}/certificates/export", alpha.getId()),
+                "certificate-matrix-1000001-" + today() + ".xls");
         assertThat(matrix.name()).isEqualTo("Certificate matrix");
         // Medical and STCW are held by two each: by name.
         assertThat(matrix.rows()).containsExactly(
@@ -518,10 +517,10 @@ class CertificatePlanningFlowTest {
                 .andExpect(redirectedUrl("/office/crew/" + user.getId() + "/edit"));
     }
 
-    private XlsxSheet xlsx(RequestBuilder request, String filename) throws Exception {
-        return XlsxSheet.of(mockMvc.perform(request)
+    private XlsSheet xls(RequestBuilder request, String filename) throws Exception {
+        return XlsSheet.of(mockMvc.perform(request)
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", XlsxExport.CONTENT_TYPE.toString()))
+                .andExpect(header().string("Content-Type", "application/vnd.ms-excel"))
                 .andExpect(header().string("Content-Disposition", "attachment; filename=\"" + filename + "\""))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andReturn().getResponse().getContentAsByteArray());

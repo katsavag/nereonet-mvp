@@ -43,6 +43,9 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
+import com.nereonix.nereonet_mvp.core.vetting.RightShipSource;
+import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatus;
+import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatusRepository;
 import com.nereonix.nereonet_mvp.navigation.NavSection;
 
 import jakarta.servlet.http.Cookie;
@@ -79,6 +82,9 @@ class NavigationFlowTest {
     @Autowired
     ShipOrderRepository orderRepository;
 
+    @Autowired
+    ShipRightShipStatusRepository rightShipRepository;
+
     Ship ship;
     User crew;
     User master;
@@ -100,6 +106,8 @@ class NavigationFlowTest {
         assertActive(get("/office"), "/office", "Overview");
         assertActive(get("/office/crew/{id}/edit", crew.getId()), "/office/crew", "Crew");
         assertActive(get("/office/ships/{id}/items", ship.getId()), "/office/ships", "Vessels");
+        // P40: the pages below Vetting.
+        assertActive(get("/office/vetting/{id}/rightship", ship.getId()), "/office/vetting", "Vetting");
         // And for the crew: a page below Library.
         assertActive(get("/ship/library/new").with(user(new CurrentUser(master))), "/ship/library", "Library");
         assertActive(get("/notifications"), "/notifications", "Notifications");
@@ -110,7 +118,8 @@ class NavigationFlowTest {
         long id = ship.getId();
         List<String> pages = List.of("/office", "/office/ships", "/office/crew", "/office/crew/import",
                 "/office/crew/" + crew.getId() + "/edit", "/office/crew/" + crew.getId() + "/certificates/new",
-                "/office/certificates", "/office/announcements", "/office/announcements/new", "/office/orders",
+                "/office/certificates", "/office/vetting", "/office/vetting/" + id, "/office/vetting/" + id + "/rightship",
+                "/office/vetting/" + id + "/rightship/edit", "/office/announcements", "/office/announcements/new", "/office/orders",
                 "/office/users", "/office/audit", "/office/ships/" + id + "/items", "/office/ships/" + id + "/library",
                 "/office/ships/" + id + "/crew", "/notifications");
         for (String page : pages) {
@@ -122,8 +131,8 @@ class NavigationFlowTest {
         // The office groups, in order, each a labelled list. Office invitations are part of Office users.
         String nav = sidebar(get("/office/ships"));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList()).containsExactly(
-                "/office", "/office/ships", "/office/crew", "/office/certificates", "/office/announcements",
-                "/office/orders", "/office/users", "/office/audit", "/notifications");
+                "/office", "/office/ships", "/office/crew", "/office/certificates", "/office/vetting",
+                "/office/announcements", "/office/orders", "/office/users", "/office/audit", "/notifications");
         // The language switch moved to the top bar (P29).
         assertThat(nav).containsSubsequence(">Operations</p>", ">Administration</p>", ">Account</p>").doesNotContain("lang=el")
                 .contains("aria-labelledby=\"navGroupOperations\"", "aria-labelledby=\"navGroupAdministration\"",
@@ -162,6 +171,9 @@ class NavigationFlowTest {
         order(ShipOrderStatus.SENT, null);              // sent, not exported
         order(ShipOrderStatus.CONFIRMED, Instant.now()); // exported
         order(ShipOrderStatus.OPEN, null);              // still on board: not counted
+        rightShip(today.minusDays(1));     // inspection expired
+        rightShip(today.plusDays(60));     // expiring within 60 days
+        rightShip(today.plusDays(61));     // not yet
 
         String nav = sidebar(get("/office"));
         // Certificates opens what its counter counts (P20); without a count, the list as it is.
@@ -171,8 +183,13 @@ class NavigationFlowTest {
                         + "<span class=\"visually-hidden\">2 expired or expiring within 30 days</span>")
                 .containsPattern("(?s)href=\"/office/orders\">.*?>Orders</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">1</span>\\s*"
-                        + "<span class=\"visually-hidden\">1 sent, not exported</span>");
-        assertThat(count(nav, "nav-count")).as("no unread notifications, no pill").isEqualTo(2);
+                        + "<span class=\"visually-hidden\">1 sent, not exported</span>")
+                // P40: Vetting, right after Certificates, counts the vessels whose inspection expired or expires within
+                // 60 days.
+                .containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"
+                        + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
+                        + "<span class=\"visually-hidden\">2 expired or expiring</span>");
+        assertThat(count(nav, "nav-count")).as("no unread notifications, no pill").isEqualTo(3);
 
         // Office counters only: the crew sidebar has none of them.
         assertThat(sidebar(get("/ship/library").with(user(new CurrentUser(crew))))).doesNotContain("nav-count");
@@ -189,6 +206,8 @@ class NavigationFlowTest {
         assertThat(NavSection.of("/office/crew/12/edit")).isEqualTo(NavSection.CREW);
         assertThat(NavSection.of("/office/invitations")).isEqualTo(NavSection.USERS);
         assertThat(NavSection.of("/office/orders/12")).isEqualTo(NavSection.ORDERS);
+        assertThat(NavSection.of("/office/vetting")).isEqualTo(NavSection.VETTING);
+        assertThat(NavSection.of("/office/vetting/3/rightship")).isEqualTo(NavSection.VETTING);
         assertThat(NavSection.of("/office/crewing")).isNull();
         assertThat(NavSection.of("/ship")).isEqualTo(NavSection.HOME);
         assertThat(NavSection.of("/ship/library/3")).isEqualTo(NavSection.LIBRARY);
@@ -332,6 +351,23 @@ class NavigationFlowTest {
         }
         order.setExportedAt(exportedAt);
         orderRepository.save(order);
+    }
+
+    // P40: a vessel of its own whose RightShip inspection is valid until that date.
+    private void rightShip(LocalDate inspectionValidUntil) {
+        Ship vessel = new Ship();
+        vessel.setImoNumber(String.valueOf(9_300_000 + shipRepository.count()));
+        vessel.setName("Vessel " + shipRepository.count());
+        vessel.setCreatedAt(Instant.now());
+        shipRepository.save(vessel);
+        ShipRightShipStatus status = new ShipRightShipStatus();
+        status.setShip(vessel);
+        status.setCurrent(true);
+        status.setSafetyScore(4);
+        status.setInspectionValidUntil(inspectionValidUntil);
+        status.setSource(RightShipSource.MANUAL);
+        status.setUpdatedAt(Instant.now());
+        rightShipRepository.save(status);
     }
 
     private static int count(String text, String part) {

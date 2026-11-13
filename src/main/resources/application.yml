@@ -81,3 +81,13 @@ app:
   # Optional free text (e.g. "Crewing department, crewing@example.com, +30 210 000 0000"), shown on the
   # "link is invalid or has expired" page. Not shown when empty.
   support-contact: ${SUPPORT_CONTACT:}
+  # Optional (P40): the RightShip API, read only, for the nightly sync of the vessels' RightShip data and
+  # "Refresh from RightShip". Off while any of the three is empty: then the app makes no request to RightShip and
+  # the office enters the data by hand. The OAuth token address defaults to <base-url>/oauth/token.
+  rightship:
+    base-url: ${RIGHTSHIP_BASE_URL:}
+    client-id: ${RIGHTSHIP_CLIENT_ID:}
+    client-secret: ${RIGHTSHIP_CLIENT_SECRET:}
+    token-url: ${RIGHTSHIP_TOKEN_URL:}
+    # The nightly sync (Spring cron), in UTC.
+    sync-cron: ${RIGHTSHIP_SYNC_CRON:0 30 2 * * *}

@@ -62,6 +62,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -109,6 +110,7 @@ class DashboardFlowTest {
     @Autowired LibraryAcknowledgementRepository acknowledgementRepository;
     @Autowired CrewProfileRepository profileRepository;
     @Autowired RequestService requestService;
+    @Autowired VettingService vettingService;
 
     @MockitoBean
     MailService mailService;
@@ -222,12 +224,34 @@ class DashboardFlowTest {
                         + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">MV Beta</span>");
     }
 
+    // P40: the dev data adds, once, three bulk carriers with RightShip data and each its sample report; ALDER's
+    // inspection expires in 38 days, so the sidebar shows Vetting 1 and the Overview lists it.
+    @Test
+    void theDevDataSeedsThreeRightShipVesselsOnce() throws Exception {
+        devData().run(null);
+        devData().run(null);
+
+        assertThat(shipRepository.findAllByOrderByNameAsc()).extracting(Ship::getName)
+                .containsExactly("ALDER", "LAUREL", "MV Demo", "ROWAN");
+        Ship alder = shipRepository.findByImoNumber("9300001").orElseThrow();
+        assertThat(vettingService.view(alder).score()).isEqualTo(3);
+        assertThat(vettingService.view(alder).inspectionDaysLeft()).isEqualTo(38);
+        assertThat(vettingService.view(shipRepository.findByImoNumber("9400007").orElseThrow()).ghgLetter()).isEqualTo("A+");
+        assertThat(vettingService.reports(alder.getId())).singleElement()
+                .satisfies(r -> assertThat(r.getFileName()).isEqualTo("alder-3-of-5.png"));
+        assertThat(vettingService.view(shipRepository.findByImoNumber("9074729").orElseThrow()).hasData()).isFalse();
+
+        String html = html(get("/office"));
+        assertThat(html).containsPattern("(?s)>Vetting</span>\\s*<span class=\"nav-count num\" aria-hidden=\"true\">1</span>");
+        assertThat(attentionList(html)).contains("RightShip inspection", "ALDER", "Expires in 38 days");
+    }
+
     // P36: the office works on the orders the ships send, no longer on single approved requests.
     @Test
     void aSentOrderIsOpenUntilExportedAndAnOpenOrApprovedRequestNever() throws Exception {
         // The dev data seeds only requests waiting for the Master: nothing for the office yet.
         devData().run(null);
-        Ship seeded = shipRepository.findAllByOrderByNameAsc().getFirst();
+        Ship seeded = shipRepository.findByImoNumber("9074729").orElseThrow();
         assertThat(requestRepository.countByStatusAndShipId(RequestStatus.APPROVED, seeded.getId())).isZero();
         assertThat(requestRepository.countByStatusAndShipId(RequestStatus.PENDING, seeded.getId())).isEqualTo(2);
         assertThat(html(get("/office"))).doesNotContain(">Vessel order</span>");
@@ -437,7 +461,7 @@ class DashboardFlowTest {
     }
 
     @Test
-    void loadRunsTheSameSevenQueriesWhateverTheFleetSize() {
+    void loadRunsTheSameEightQueriesWhateverTheFleetSize() {
         addShipWithOpenItems();
         long small = queriesOfLoad();
         for (int i = 0; i < 4; i++) {
@@ -446,7 +470,7 @@ class DashboardFlowTest {
         long large = queriesOfLoad();
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
-        assertThat(small).isEqualTo(7);
+        assertThat(small).isEqualTo(8);
         assertThat(large).isEqualTo(small);
     }
 
@@ -623,6 +647,6 @@ class DashboardFlowTest {
 
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                libraryItemRepository, versionRepository, profileRepository, requestService);
+                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService);
     }
 }

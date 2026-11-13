@@ -114,6 +114,38 @@
                     </div>
                 </th:block>
 
+                <!-- RightShip (P40): an inspection expired, unacceptable or expiring within 60 days, or a Safety Score
+                     of 2 or below. The title and Open RightShip lead to the vessel's RightShip page. -->
+                <th:block th:if="${type == 'VETTING_INSPECTION' or type == 'VETTING_SCORE'}"
+                          th:with="url=@{/office/vetting/{id}/rightship(id=${item.ship.id})}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <th:block th:if="${type == 'VETTING_INSPECTION'}">
+                                <span th:replace="~{layout/parts :: statusIcon(${item.state.tone()},
+                                        ${item.state.name() == 'EXPIRING'} ? #{dashboard.item.expiresIn(${item.daysLeft})}
+                                        : #{${'vetting.inspection.' + item.state.name()}}, ${item.state.icon()})}"></span>
+                            </th:block>
+                            <th:block th:if="${type == 'VETTING_SCORE'}">
+                                <span th:replace="~{layout/parts :: statusIcon('danger', #{dashboard.item.lowScore}, 'alert')}"></span>
+                            </th:block>
+                            <span th:text="#{dashboard.kind.rightship}">RightShip</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="${type == 'VETTING_INSPECTION'} ? #{dashboard.item.inspection} : #{dashboard.item.score(${item.score})}">RightShip inspection</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">ALDER</span>
+                            <th:block th:if="${type == 'VETTING_INSPECTION' and item.validUntil != null}">
+                                · <span th:text="#{dashboard.item.validUntil}">valid until</span>
+                                <time th:replace="~{layout/parts :: localDate(${item.validUntil})}"></time>
+                            </th:block>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openRightShip}">Open RightShip</a>
+                    </div>
+                </th:block>
+
                 <!-- c. Order a ship has sent and the office has not exported (P36): Open order, where it is confirmed
                      and exported. -->
                 <th:block th:if="${type == 'ORDER_NOT_EXPORTED'}" th:with="url=@{/office/orders/{id}(id=${item.id})}">
@@ -212,15 +244,16 @@
         </ul>
 
         <!-- The full list of each kind: orders not exported on Orders; certificates on Certificates, filtered to
-             exactly what is counted here (expired or within 30 days, crew of active ships, P20); the other kinds on
-             this page filtered to them (/office?type=...). -->
+             exactly what is counted here (expired or within 30 days, crew of active ships, P20); RightShip on
+             Vetting, filtered to Needs attention (P40); the other kinds on this page filtered to them
+             (/office?type=...). -->
         <div th:if="${!d.filtered() and !d.groups.isEmpty()}" class="card-footer attention-footer">
             <p th:if="${d.truncated()}" class="attention-truncated"
                th:text="#{dashboard.attention.truncated(${d.shown().size()}, ${d.items.size()})}">Showing the first 50 of 63.</p>
             <h3 class="attention-lists-title" id="attentionListsTitle" th:text="#{dashboard.attention.fullLists}">Full lists</h3>
             <ul class="attention-lists" aria-labelledby="attentionListsTitle">
                 <li th:each="g : ${d.groups}" th:with="name=${g.group.name()}">
-                    <a th:href="${name == 'ORDERS'} ? @{/office/orders(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : @{/office(type=${g.group.param()})})">
+                    <a th:href="${name == 'ORDERS'} ? @{/office/orders(exported='no')} : (${name == 'CERTIFICATES'} ? @{/office/certificates(status='expired,30', activeShips=true)} : (${name == 'VETTING'} ? @{/office/vetting(status='attention')} : @{/office(type=${g.group.param()})}))">
                         <span th:text="#{${'dashboard.group.' + name}}">Certificates</span>
                         <span class="title-count"><span aria-hidden="true">·</span> <span class="num" th:text="${g.count}">3</span></span>
                     </a>

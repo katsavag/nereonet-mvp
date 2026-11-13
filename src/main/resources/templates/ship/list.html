@@ -23,10 +23,11 @@
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
-                    <th scope="col" th:text="#{ship.name}">Name</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{ship.name})}"></th>
                     <th scope="col" th:text="#{ship.code}">Ship code</th>
                     <th scope="col" th:text="#{ship.type}">Type</th>
                     <th scope="col" th:text="#{ship.flag}">Flag</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'score', #{vetting.score})}"></th>
                     <th scope="col" th:text="#{ship.status}">Status</th>
                     <th scope="col"><span class="visually-hidden" th:text="#{ship.actions}">Actions</span></th>
                 </tr>
@@ -40,6 +41,15 @@
                         th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
                     <td th:attr="data-label=#{ship.type}" th:text="${s.type} ? #{${'ship.type.' + s.type}} : '—'">Bulk carrier</td>
                     <td th:attr="data-label=#{ship.flag}" th:text="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : '—'">Greece (GR)</td>
+                    <!-- The RightShip Safety Score (P40); for an active vessel a link to its Vetting page. -->
+                    <td th:attr="data-label=#{vetting.score}" th:with="v=${rightShip[s.id] ?: noVetting}">
+                        <a th:if="${s.active}" class="score-cell score-link" th:href="@{/office/vetting/{id}(id=${s.id})}">
+                            <span th:replace="~{vetting/parts :: scoreBar(${v.score()}, ${v.scoreTone()}, null)}"></span>
+                            <span th:replace="~{vetting/parts :: scoreText(${v})}">3/5</span>
+                            <span class="visually-hidden" th:text="#{vetting.score.linkHint(${s.name})}">RightShip of MV Demo</span>
+                        </a>
+                        <th:block th:unless="${s.active}"><span th:replace="~{vetting/parts :: scoreText(${v})}">3/5</span></th:block>
+                    </td>
                     <td class="cell-status">
                         <span th:replace="~{layout/parts :: status(${s.active} ? 'ok' : 'neutral', ${s.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
                     </td>

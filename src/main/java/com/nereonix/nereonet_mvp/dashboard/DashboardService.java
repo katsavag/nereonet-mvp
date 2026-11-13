@@ -31,6 +31,8 @@ import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
+import com.nereonix.nereonet_mvp.core.vetting.InspectionState;
+import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
 import com.nereonix.nereonet_mvp.dashboard.AttentionType.Group;
 import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
 
@@ -38,8 +40,9 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
  * The office Overview (P09): a work list of open items ("Needs attention") and a fleet table, and the Overview tab of
  * the ship page. Read only.
  *
- * load() always runs the same 7 queries, whatever the size of the fleet: active ships, crew on board per ship, and
- * one per kind of open item (certificates, orders, invitations, announcements, library items). See DashboardQueries.
+ * load() always runs the same 8 queries, whatever the size of the fleet: active ships, crew on board per ship, and
+ * one per kind of open item (certificates, RightShip vetting, orders, invitations, announcements, library items).
+ * See DashboardQueries.
  */
 @Service
 public class DashboardService {
@@ -80,7 +83,7 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, OrderItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
+            permits CertificateItem, VettingItem, OrderItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
 
         AttentionType type();
 
@@ -104,6 +107,26 @@ public class DashboardService {
 
         public long sortKey() {
             return expiresOn.toEpochDay();
+        }
+    }
+
+    /**
+     * A vessel's RightShip standing that needs attention (P40). VETTING_INSPECTION: the inspection is expired,
+     * unacceptable or expiring (state; validUntil and daysLeft, negative once expired, when there is a date).
+     * VETTING_SCORE: the Safety Score is 2 or below (score). id: the vessel's current ShipRightShipStatus row.
+     */
+    public record VettingItem(AttentionType type, Long id, FleetShip ship, InspectionState state, LocalDate validUntil,
+                              long daysLeft, Integer score) implements AttentionItem {
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            if (type == AttentionType.VETTING_SCORE) {
+                return score;
+            }
+            return validUntil == null ? Long.MIN_VALUE : validUntil.toEpochDay();
         }
     }
 
@@ -255,6 +278,22 @@ public class DashboardService {
             all.add(new CertificateItem(type, c.id(), c.userId(), c.type(), c.expiresOn(),
                     ChronoUnit.DAYS.between(today, c.expiresOn()), shipsById.get(c.shipId()), c.fullName(), c.rank()));
         }
+        for (DashboardQueries.VettingRow v : queries.vettingNeedingAttention(
+                today.plusDays(InspectionState.EXPIRING_DAYS), RightShipView.LOW_SCORE)) {
+            FleetShip vessel = shipsById.get(v.shipId());
+            InspectionState state = InspectionState.of(v.lastInspectionOutcome(), v.inspectionValidUntil(),
+                    v.inspectionRequired(), today);
+            if (state.needsAttention()) {
+                long daysLeft = v.inspectionValidUntil() == null ? 0
+                        : ChronoUnit.DAYS.between(today, v.inspectionValidUntil());
+                all.add(new VettingItem(AttentionType.VETTING_INSPECTION, v.id(), vessel, state,
+                        v.inspectionValidUntil(), daysLeft, v.safetyScore()));
+            }
+            if (v.safetyScore() != null && v.safetyScore() <= RightShipView.LOW_SCORE) {
+                all.add(new VettingItem(AttentionType.VETTING_SCORE, v.id(), vessel, state, v.inspectionValidUntil(),
+                        0, v.safetyScore()));
+            }
+        }
         for (DashboardQueries.OrderRow o : queries.ordersNotExported()) {
             all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
         }
@@ -382,7 +421,7 @@ public class DashboardService {
                 case CERTIFICATES -> certificates++;
                 case ACKNOWLEDGEMENTS -> acknowledgements++;
                 case ORDERS -> orders++;
-                case INVITATIONS -> { }
+                case INVITATIONS, VETTING -> { }
             }
         }
         return new FleetRow(ship, crew, certificates, acknowledgements, orders, open);

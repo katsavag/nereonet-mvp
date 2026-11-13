@@ -83,6 +83,10 @@
                             <li th:replace="~{layout/parts :: navItem('certificates',
                                     ${navCounts.certificates > 0} ? '/office/certificates?status=expired,30' : '/office/certificates', #{nav.certificates},
                                     ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
+                            <!-- Vetting (P40): RightShip, SIRE 2.0 from P41; the number of vessels whose RightShip
+                                 inspection is expired or expires within 60 days. -->
+                            <li th:replace="~{layout/parts :: navItem('vetting', '/office/vetting', #{nav.vetting},
+                                    ${navCounts.vetting}, #{nav.count.vetting(${navCounts.vetting})})}"></li>
                             <li th:replace="~{layout/parts :: navItem('announcements', '/office/announcements', #{nav.announcements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('orders', '/office/orders', #{nav.orders},
                                     ${navCounts.orders}, #{nav.count.orders(${navCounts.orders})})}"></li>

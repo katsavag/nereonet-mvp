@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{vetting.rightship}, ~{::main})}">
+<body>
+<!-- A vessel's RightShip page (P40). From 992px two columns: the dashboard (7/12) and the official document (5/12);
+     below that one column, the document after the dashboard. No chart library: the bars are HTML and CSS
+     (vetting/parts :: scoreBar), and the page works without JavaScript.
+       a. score header: the vessel, "RightShip Safety Score", the bar and "3/5", vessel type, calculation date;
+          "Indicative" (warning icon) and "No safety score" (0/5, error icon). No data: an empty state with
+          "Add RightShip data".
+       b. Subscore summary: the six subscores under Highest, Medium and Lowest impact; the lowest one(s) in the
+          warning tone with "Lowest", as the lowest one limits the score; an unknown one a muted dash. On data from
+          the API, where each value comes from ("from RightShip", "from report, 21 Oct 2026").
+       c. GHG Rating and RightShip Inspection.
+       d. Official document: the newest report (an image inline; a PDF as a link that opens it in a new tab), its
+          date and uploader, Open and Download; the earlier reports under it, newest first.
+     Header actions: Open in RightShip (with a platform link), Refresh from RightShip (API configured), Open vessel,
+     Edit RightShip data, Upload report (the primary). An empty state that holds an action takes it out of the header
+     (P25), so the page keeps one primary button.
+     Model: ship, rightShip (RightShipView), report (the newest RightShipReport or null), earlierReports,
+     apiConfigured, syncFailedAt, impacts. -->
+<main th:with="rs=${rightShip}, st=${rightShip.status()}, hasData=${rightShip.hasData()}, hasReport=${report != null},
+               fileBase=${'/office/vetting/' + ship.id + '/rightship/reports/'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{vetting.rightship}, crumbs=~{::pageCrumbs},
+            actions=~{::pageActions})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: crumbs(${ship}, true)}"></th:block>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <a th:if="${hasData and st.platformLink != null}" class="btn btn-ghost" th:href="${st.platformLink}"
+               target="_blank" rel="noopener noreferrer">
+                <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+                <span th:text="#{vetting.openInRightShip}">Open in RightShip</span>
+                <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+            </a>
+            <form th:if="${apiConfigured}" th:action="@{/office/vetting/{id}/rightship/refresh(id=${ship.id})}"
+                  method="post">
+                <button type="submit" class="btn btn-outline-secondary" th:data-busy-label="#{vetting.refresh.busy}"
+                        th:text="#{vetting.refresh}">Refresh from RightShip</button>
+            </form>
+            <a th:replace="~{vetting/parts :: openVessel(${ship})}"></a>
+            <a th:if="${hasData}" class="btn btn-outline-secondary"
+               th:href="@{/office/vetting/{id}/rightship/edit(id=${ship.id})}" th:text="#{vetting.edit}">Edit RightShip data</a>
+            <a th:if="${hasReport}" class="btn" th:classappend="${hasData} ? 'btn-primary' : 'btn-outline-secondary'"
+               th:href="@{/office/vetting/{id}/rightship/reports/new(id=${ship.id})}">
+                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                <span th:text="#{vetting.report.upload}">Upload report</span>
+            </a>
+        </th:block>
+    </header>
+
+    <div th:replace="~{vetting/parts :: syncFailed(${syncFailedAt})}"></div>
+
+    <!-- Restricted by RightShip: the comments as RightShip gives them. -->
+    <div th:if="${hasData and st.restricted}" class="alert alert-danger vetting-restricted" role="note">
+        <p class="fw-semibold mb-1" th:text="#{vetting.restricted}">Restricted by RightShip</p>
+        <p th:if="${st.restrictionComments != null}" class="mb-0 text-pre-line text-break"
+           th:text="${st.restrictionComments}">Comments</p>
+    </div>
+
+    <div class="row g-4 rightship-layout">
+        <div class="col-lg-7 rightship-dashboard">
+            <!-- a. Score header -->
+            <section class="card rs-score mb-4" aria-labelledby="rsScoreTitle">
+                <div class="card-body rs-score-body">
+                    <p class="rs-score-vessel" th:text="${ship.name}">ALDER</p>
+                    <div class="rs-score-main">
+                        <h2 class="rs-score-title" id="rsScoreTitle" th:text="#{vetting.score.title}">RightShip Safety Score</h2>
+                        <p class="rs-score-value">
+                            <span th:replace="~{vetting/parts :: scoreBar(${rs.score()}, ${rs.scoreTone()}, 'lg')}"></span>
+                            <span class="rs-score-number" th:replace="~{vetting/parts :: scoreText(${rs})}">3/5</span>
+                        </p>
+                        <p th:if="${rs.sanctioned()}" class="rs-score-note">
+                            <span th:replace="~{layout/parts :: statusIcon('danger', #{vetting.score.sanctioned}, 'alert')}"></span>
+                        </p>
+                        <p th:if="${rs.indicative()}" class="rs-score-note">
+                            <span th:replace="~{layout/parts :: statusIcon('warning', #{vetting.score.indicative}, 'alert')}"></span>
+                        </p>
+                        <p th:if="${hasData and !rs.rated()}" class="rs-score-note text-body-secondary"
+                           th:text="#{vetting.score.notRated}">Not rated by RightShip.</p>
+                    </div>
+                    <dl class="rs-score-facts">
+                        <div>
+                            <dt th:text="#{ship.type}">Type</dt>
+                            <dd th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{vetting.score.calculatedAt}">Calculated</dt>
+                            <dd><th:block th:if="${rs.calculatedAt() != null}"><time
+                                    th:replace="~{layout/parts :: localDate(${rs.calculatedAt()})}"></time></th:block>
+                                <th:block th:unless="${rs.calculatedAt() != null}">—</th:block></dd>
+                        </div>
+                    </dl>
+                    <!-- Who entered it, or that it came from the API, and when. -->
+                    <p th:if="${hasData}" class="rs-updated">
+                        <th:block th:if="${rs.fromApi()}" th:text="#{vetting.updated.api}">Updated from RightShip</th:block>
+                        <th:block th:unless="${rs.fromApi()}"
+                                  th:text="${st.updatedBy != null} ? #{vetting.updated.by(${st.updatedBy.fullName})} : #{vetting.updated.manual}">Entered by Jane Doe</th:block>
+                        <span aria-hidden="true">·</span>
+                        <time th:replace="~{layout/parts :: localTime(${st.updatedAt})}"></time>
+                    </p>
+                </div>
+                <!-- No RightShip data yet: what to do first. -->
+                <th:block th:unless="${hasData}">
+                    <div th:replace="~{layout/parts :: emptyState(icon='vetting', title=#{vetting.empty.title},
+                            text=#{vetting.empty.text}, action=~{::addData})}">
+                        <th:block th:fragment="addData">
+                            <a class="btn btn-primary" th:href="@{/office/vetting/{id}/rightship/edit(id=${ship.id})}"
+                               th:text="#{vetting.add}">Add RightShip data</a>
+                        </th:block>
+                    </div>
+                </th:block>
+            </section>
+
+            <th:block th:if="${hasData}">
+                <!-- b. Subscore summary -->
+                <section class="card mb-4" aria-labelledby="rsSubscoresTitle">
+                    <div class="card-header">
+                        <h2 class="h5 fw-bold mb-0" id="rsSubscoresTitle" th:text="#{vetting.subscores.title}">Subscore summary</h2>
+                    </div>
+                    <div class="card-body rs-subscores">
+                        <p class="rs-subscores-hint" th:text="#{vetting.subscores.hint}">The lowest subscore limits the Safety Score.</p>
+                        <th:block th:each="g : ${rs.groups()}">
+                            <h3 class="rs-impact" th:id="${'rsImpact' + g.impact()}" th:text="#{${g.impact().messageKey()}}">Highest impact</h3>
+                            <ul class="rs-subscore-list" th:attr="aria-labelledby=${'rsImpact' + g.impact()}">
+                                <li th:each="r : ${g.rows()}" class="rs-subscore" th:classappend="${r.lowest()} ? 'is-lowest'">
+                                    <span class="rs-subscore-name">
+                                        <span th:text="#{${r.subscore().messageKey()}}">Vessel incident performance</span>
+                                        <!-- Where the value comes from, on data from the API. -->
+                                        <th:block th:if="${rs.fromApi() and r.known()}">
+                                            <span th:if="${r.subscore().fromApi()}" class="rs-source" th:text="#{vetting.source.api}">from RightShip</span>
+                                            <span th:if="${!r.subscore().fromApi() and st.subscoresReportDate != null}" class="rs-source"
+                                                  th:text="#{vetting.source.report(${@dates.date(st.subscoresReportDate)})}">from report, 21 Oct 2026</span>
+                                        </th:block>
+                                    </span>
+                                    <th:block th:if="${r.known()}">
+                                        <span th:replace="~{vetting/parts :: scoreBar(${r.value()}, ${r.tone()}, null)}"></span>
+                                        <span class="rs-subscore-value num" th:text="#{vetting.score.value(${r.value()})}">4/5</span>
+                                    </th:block>
+                                    <th:block th:unless="${r.known()}">
+                                        <span class="rs-subscore-unknown" aria-hidden="true">—</span>
+                                        <span class="rs-subscore-value is-unknown"><span aria-hidden="true">—</span><span
+                                                class="visually-hidden" th:text="#{vetting.subscore.unknown}">Not known</span></span>
+                                    </th:block>
+                                    <span th:if="${r.lowest()}" class="rs-subscore-flag"><span
+                                            th:replace="~{layout/parts :: status('warning', #{vetting.subscore.lowest})}">Lowest</span></span>
+                                </li>
+                            </ul>
+                        </th:block>
+                    </div>
+                </section>
+
+                <!-- c. GHG Rating and RightShip Inspection -->
+                <div class="row g-4">
+                    <div class="col-sm-6">
+                        <section class="card h-100 rs-small" aria-labelledby="rsGhgTitle">
+                            <div class="card-body">
+                                <h2 class="rs-small-title" id="rsGhgTitle" th:text="#{vetting.ghg}">GHG Rating</h2>
+                                <p class="rs-ghg"><span th:replace="~{vetting/parts :: ghg(${rs})}">C</span></p>
+                                <p th:if="${st.ghgRatedAt != null}" class="rs-small-meta">
+                                    <span th:text="#{vetting.ghg.ratedAt}">Rated</span>
+                                    <time th:replace="~{layout/parts :: localDate(${st.ghgRatedAt})}"></time>
+                                </p>
+                                <p th:if="${rs.fromApi()}" class="rs-source" th:text="#{vetting.source.api}">from RightShip</p>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="col-sm-6">
+                        <section class="card h-100 rs-small" aria-labelledby="rsInspectionTitle">
+                            <div class="card-body">
+                                <h2 class="rs-small-title" id="rsInspectionTitle" th:text="#{vetting.inspection.title}">RightShip Inspection</h2>
+                                <p class="rs-inspection"><th:block th:replace="~{vetting/parts :: inspectionBadge(${rs})}"></th:block></p>
+                                <dl class="rs-small-facts">
+                                    <div>
+                                        <dt th:text="#{vetting.inspection.validUntil}">Valid until</dt>
+                                        <dd><th:block th:if="${st.inspectionValidUntil != null}"><time
+                                                th:replace="~{layout/parts :: localDate(${st.inspectionValidUntil})}"></time></th:block>
+                                            <th:block th:unless="${st.inspectionValidUntil != null}">—</th:block></dd>
+                                    </div>
+                                    <div>
+                                        <dt th:text="#{vetting.inspection.outcome}">Last outcome</dt>
+                                        <dd th:text="${st.lastInspectionOutcome != null} ? #{${'vetting.outcome.' + st.lastInspectionOutcome}} : '—'">Acceptable</dd>
+                                    </div>
+                                    <div>
+                                        <dt th:text="#{vetting.inspection.required}">Required</dt>
+                                        <dd th:text="${st.inspectionRequired == null} ? '—' : (${st.inspectionRequired} ? #{vetting.yes} : #{vetting.no})">Yes</dd>
+                                    </div>
+                                </dl>
+                                <p th:if="${rs.fromApi()}" class="rs-source" th:text="#{vetting.source.api}">from RightShip</p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <!-- d. Official document -->
+        <div class="col-lg-5 rightship-document">
+            <section class="card rs-document" aria-labelledby="rsDocumentTitle">
+                <div class="card-header">
+                    <h2 class="h5 fw-bold mb-0" id="rsDocumentTitle" th:text="#{vetting.report.title}">Official document</h2>
+                </div>
+                <th:block th:unless="${hasReport}">
+                    <div th:replace="~{layout/parts :: emptyState(icon='library', title=#{vetting.report.empty.title},
+                            text=#{vetting.report.empty.text}, action=~{::uploadFirst})}">
+                        <th:block th:fragment="uploadFirst">
+                            <a class="btn" th:classappend="${hasData} ? 'btn-primary' : 'btn-outline-secondary'"
+                               th:href="@{/office/vetting/{id}/rightship/reports/new(id=${ship.id})}">
+                                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                                <span th:text="#{vetting.report.upload}">Upload report</span>
+                            </a>
+                        </th:block>
+                    </div>
+                </th:block>
+                <div th:if="${hasReport}" class="card-body"
+                     th:with="fileUrl=${fileBase + report.id + '/file'}">
+                    <!-- The preview: an image at the card's width, opening at full size in a new tab; a PDF as a link
+                         that opens it in the browser in a new tab (P22). -->
+                    <a th:if="${report.image}" class="rs-preview" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                        <img class="rs-preview-image" th:src="@{${fileUrl}}" loading="lazy" decoding="async"
+                             th:alt="#{vetting.report.alt(${ship.name}, ${@dates.date(report.documentDate)})}"
+                             alt="RightShip report of ALDER, 21 Oct 2026">
+                        <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                    </a>
+                    <a th:if="${report.pdf}" class="rs-preview rs-preview-pdf" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                        <span class="file-type file-type-pdf" aria-hidden="true">
+                            <svg viewBox="0 0 32 40" focusable="false">
+                                <path d="M5 1.5h16l7.5 7.5v27.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+                                <path d="M21 1.5V9h7.5"/>
+                            </svg>
+                            <span class="file-type-label">PDF</span>
+                        </span>
+                        <span class="rs-preview-pdf-text">
+                            <span class="fw-semibold" th:text="#{vetting.report.openPdf}">Open the report (PDF)</span>
+                            <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                        </span>
+                    </a>
+                    <dl class="rs-small-facts rs-report-facts">
+                        <div>
+                            <dt th:text="#{vetting.report.date}">Document date</dt>
+                            <dd><time th:replace="~{layout/parts :: localDate(${report.documentDate})}"></time></dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{vetting.report.uploadedLabel}">Uploaded</dt>
+                            <dd><th:block th:text="${report.uploadedBy != null} ? ${report.uploadedBy.fullName} : #{vetting.report.uploadedBySystem}">Jane Doe</th:block>
+                                <span aria-hidden="true">·</span>
+                                <time th:replace="~{layout/parts :: localTime(${report.uploadedAt})}"></time></dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{vetting.report.file}">File</dt>
+                            <dd class="text-break"><th:block th:text="${report.fileName}">alder.png</th:block>
+                                <span aria-hidden="true">·</span>
+                                <span th:replace="~{core/library/parts :: fileSize(${report.fileSize})}"></span></dd>
+                        </div>
+                    </dl>
+                    <div class="rs-report-actions">
+                        <a class="btn btn-outline-secondary" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                            <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+                            <span th:text="#{vetting.report.open}">Open</span>
+                            <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                        </a>
+                        <a class="btn btn-ghost" th:href="@{${fileUrl}(download=true)}" download>
+                            <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                            <span th:text="#{library.download}">Download</span>
+                        </a>
+                    </div>
+
+                    <!-- Earlier reports, newest first. -->
+                    <th:block th:unless="${earlierReports.isEmpty()}">
+                        <h3 class="rs-earlier-title" id="rsEarlierTitle" th:text="#{vetting.report.earlier}">Earlier reports</h3>
+                        <ul class="rs-earlier" aria-labelledby="rsEarlierTitle">
+                            <li th:each="e : ${earlierReports}" class="rs-earlier-item"
+                                th:with="earlierUrl=${fileBase + e.id + '/file'}">
+                                <span class="rs-earlier-text">
+                                    <time class="fw-semibold" th:replace="~{layout/parts :: localDate(${e.documentDate})}"></time>
+                                    <span class="d-block small text-body-secondary text-break" th:text="${e.fileName}">alder-2025.pdf</span>
+                                </span>
+                                <a class="btn btn-ghost btn-sm" th:href="@{${earlierUrl}}" target="_blank" rel="noopener">
+                                    <span th:text="#{vetting.report.open}">Open</span>
+                                    <span class="visually-hidden" th:text="#{vetting.report.openEarlier(${@dates.date(e.documentDate)})}">report of 21 Oct 2025, opens in a new tab</span>
+                                </a>
+                                <a class="btn btn-ghost btn-sm" th:href="@{${earlierUrl}(download=true)}" download>
+                                    <span th:text="#{library.download}">Download</span>
+                                    <span class="visually-hidden" th:text="#{vetting.report.downloadEarlier(${@dates.date(e.documentDate)})}">report of 21 Oct 2025</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </th:block>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

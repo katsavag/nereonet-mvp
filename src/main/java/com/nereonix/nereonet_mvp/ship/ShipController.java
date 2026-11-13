@@ -2,6 +2,11 @@ package com.nereonix.nereonet_mvp.ship;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
@@ -15,8 +20,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 
 import jakarta.validation.Valid;
@@ -33,13 +43,18 @@ public class ShipController {
     private final ShipFrame shipFrame;
     private final DashboardService dashboardService;
     private final ConfirmPages confirmPages;
+    private final VettingService vettingService;
+
+    private static final String LIST = "/office/ships";
+    private static final ListSort[] SORTS = {ListSort.asc("name"), ListSort.asc("score")};
 
     public ShipController(ShipService shipService, ShipFrame shipFrame, DashboardService dashboardService,
-                          ConfirmPages confirmPages) {
+                          ConfirmPages confirmPages, VettingService vettingService) {
         this.shipService = shipService;
         this.shipFrame = shipFrame;
         this.dashboardService = dashboardService;
         this.confirmPages = confirmPages;
+        this.vettingService = vettingService;
     }
 
     // The ship page's Overview tab: open items, crew on board by department, particulars.
@@ -59,9 +74,11 @@ public class ShipController {
         return showEditPage(shipService.get(id), tab, model);
     }
 
+    // Sorted by name (the default) or by RightShip Safety Score (P40: lowest first; not rated last either way). The
+    // fleet is small: no search, filters or pages.
     @GetMapping("/office/ships")
-    public String list(Model model) {
-        return showList(model);
+    public String list(@ModelAttribute ListRequest listRequest, Model model) {
+        return showList(listRequest, model);
     }
 
     @PostMapping("/office/ships/new")
@@ -147,15 +164,33 @@ public class ShipController {
         return "ship/edit";
     }
 
-    // Keeps a posted form (with its errors) and adds an empty one for the other modal.
     private String showList(Model model) {
+        return showList(ListRequest.EMPTY, model);
+    }
+
+    // Keeps a posted form (with its errors) and adds an empty one for the other modal.
+    private String showList(ListRequest listRequest, Model model) {
+        ListQuery list = ListQuery.of(LIST, listRequest, SORTS);
+        Map<Long, RightShipView> vetting = vettingService.viewsByShip();
+        List<Ship> ships = new ArrayList<>(shipService.findAll());
+        if ("score".equals(list.getSort())) {
+            Comparator<Integer> scores = list.isDescending() ? Comparator.<Integer>reverseOrder() : Comparator.naturalOrder();
+            // A stable sort: equal scores stay in name order.
+            ships.sort(Comparator.comparing((Ship s) -> vetting.containsKey(s.getId()) ? vetting.get(s.getId()).score() : null,
+                    Comparator.nullsLast(scores)));
+        } else if (list.isDescending()) {
+            Collections.reverse(ships);
+        }
+        model.addAttribute("list", list);
+        model.addAttribute("rightShip", vetting);
+        model.addAttribute("noVetting", new RightShipView(null, VettingService.today()));
         if (!model.containsAttribute("newForm")) {
             model.addAttribute("newForm", new NewShipForm());
         }
         if (!model.containsAttribute("editForm")) {
             model.addAttribute("editForm", new EditShipForm());
         }
-        model.addAttribute("ships", shipService.findAll());
+        model.addAttribute("ships", ships);
         model.addAttribute("types", ShipType.values());
         model.addAttribute("countries", Countries.labels(LocaleContextHolder.getLocale()));
         return "ship/list";

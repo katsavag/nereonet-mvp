@@ -8,30 +8,34 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.hssf.usermodel.HSSFName;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
- * The one sheet of an exported workbook (P39), read back with POI for the export tests: its name, and each row's
- * cells as values: text as a String, a number as a Double, a date cell as a LocalDate (date only) or LocalDateTime
- * (with a time), an empty cell as null. of(...) also checks the export's form: one sheet, a bold header row that is
- * frozen and has the autofilter, dates shown "dd mmm yyyy", every column wide enough for its header.
+ * The one sheet of an exported workbook (P39; Excel 97-2003, .xls, since P40), read back with POI's HSSFWorkbook for
+ * the export tests: its name, and each row's cells as values: text as a String, a number as a Double, a date cell as
+ * a LocalDate (date only) or LocalDateTime (with a time), an empty cell as null. of(...) also checks the export's
+ * form: an .xls file with one sheet, a bold header row that is frozen and has the autofilter, dates shown
+ * "dd mmm yyyy", every column wide enough for its header.
  */
-public record XlsxSheet(String name, List<List<Object>> rows) {
+public record XlsSheet(String name, List<List<Object>> rows) {
 
-    public static XlsxSheet of(byte[] xlsx) throws IOException {
-        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(xlsx))) {
+    public static XlsSheet of(byte[] xls) throws IOException {
+        // HSSFWorkbook reads only the Excel 97-2003 format: an .xlsx file fails here.
+        try (HSSFWorkbook workbook = new HSSFWorkbook(new ByteArrayInputStream(xls))) {
             assertThat(workbook.getNumberOfSheets()).as("sheets").isEqualTo(1);
-            XSSFSheet sheet = workbook.getSheetAt(0);
+            HSSFSheet sheet = workbook.getSheetAt(0);
             Row header = sheet.getRow(0);
             assertThat(sheet.getPaneInformation()).as("frozen header").isNotNull();
             assertThat(sheet.getPaneInformation().getHorizontalSplitPosition()).isEqualTo((short) 1);
-            assertThat(sheet.getCTWorksheet().getAutoFilter()).as("autofilter").isNotNull();
-            assertThat(sheet.getCTWorksheet().getAutoFilter().getRef()).startsWith("A1:");
+            // The autofilter is the sheet's built-in name _FilterDatabase over the header row.
+            assertThat(workbook.getAllNames()).as("autofilter")
+                    .anySatisfy(name -> assertAutoFilter((HSSFName) name, sheet.getSheetName()));
             List<List<Object>> rows = new ArrayList<>();
             for (Row row : sheet) {
                 List<Object> values = new ArrayList<>();
@@ -47,8 +51,14 @@ public record XlsxSheet(String name, List<List<Object>> rows) {
                 }
                 rows.add(values);
             }
-            return new XlsxSheet(sheet.getSheetName(), rows);
+            return new XlsSheet(sheet.getSheetName(), rows);
         }
+    }
+
+    private static void assertAutoFilter(HSSFName name, String sheetName) {
+        assertThat(name.getNameName()).isEqualTo("_FilterDatabase");
+        // "Orders!$A$1:$L$3", or quoted when the name has a space: "'Certificate matrix'!$A$1:$E$5".
+        assertThat(name.getRefersToFormula().replace("'", "")).as("from A1").startsWith(sheetName + "!$A$1:");
     }
 
     public List<Object> header() {

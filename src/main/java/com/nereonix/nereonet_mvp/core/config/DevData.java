@@ -1,8 +1,13 @@
 package com.nereonix.nereonet_mvp.core.config;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -30,11 +35,17 @@ import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
+import com.nereonix.nereonet_mvp.core.vetting.GhgRating;
+import com.nereonix.nereonet_mvp.core.vetting.InspectionOutcome;
+import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatus;
+import com.nereonix.nereonet_mvp.core.vetting.Subscore;
+import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 // Dev profile only: creates one demo ship if there are no ships yet, a demo Master on the first ship while there are
 // no requests and it has none, and two library items on that ship (one of them required) if its library is empty. P31: the demo
@@ -42,6 +53,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 // board, so My crew shows its departments. P33: while that ship has no PENDING request, two waiting for its Master:
 // one from the Chief cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's
 // request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
+// P40: once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -49,6 +61,11 @@ public class DevData implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(DevData.class);
 
     private static final String DEMO_CREW_PASSWORD = "crew123";
+
+    private static final String DEMO_SHIP_IMO = "9074729";
+    // P40: ALDER, LAUREL and ROWAN, the RightShip demo vessels.
+    private static final List<String> VETTING_IMOS = List.of("9300001", "9400007", "9500003");
+    private static final LocalDate RIGHTSHIP_DATE = LocalDate.of(2026, 10, 21);
 
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
@@ -59,11 +76,14 @@ public class DevData implements ApplicationRunner {
     private final LibraryItemVersionRepository libraryVersionRepository;
     private final CrewProfileRepository profileRepository;
     private final RequestService requestService;
+    private final VettingService vettingService;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    LibraryItemRepository libraryItemRepository, LibraryItemVersionRepository libraryVersionRepository,
-                   CrewProfileRepository profileRepository, RequestService requestService) {
+                   CrewProfileRepository profileRepository, RequestService requestService,
+                   VettingService vettingService) {
+        this.vettingService = vettingService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -86,7 +106,10 @@ public class DevData implements ApplicationRunner {
             shipRepository.save(ship);
             log.info("Created demo ship {}", ship.getName());
         }
-        Ship firstShip = shipRepository.findAllByOrderByNameAsc().getFirst();
+        // The demo ship by its IMO number: the RightShip demo vessels (P40) sort before it by name.
+        Ship firstShip = shipRepository.findByImoNumber(DEMO_SHIP_IMO).orElseGet(() -> shipRepository
+                .findAllByOrderByNameAsc().stream().filter(s -> !VETTING_IMOS.contains(s.getImoNumber())).findFirst()
+                .orElseGet(() -> shipRepository.findAllByOrderByNameAsc().getFirst()));
         if (requestRepository.count() == 0) {
             // A fresh database: the Master who approves the seeded requests (the Chief cook comes with them).
             crewUser(firstShip, Role.MASTER, "master.demo@example.com", "Demo Master");
@@ -105,6 +128,60 @@ public class DevData implements ApplicationRunner {
         if (requestRepository.countByStatusAndShipId(RequestStatus.PENDING, firstShip.getId()) == 0) {
             createPendingRequests(firstShip);
         }
+        if (!shipRepository.existsByImoNumber(VETTING_IMOS.getFirst())) {
+            vettingDemo();
+        }
+    }
+
+    // P40: three bulk carriers with RightShip data (entered by hand, calculated 21 Oct 2026) and each its synthetic
+    // sample report (samples/rightship, read from the working directory). ALDER's inspection expires in 38 days, so
+    // the sidebar shows "Vetting 1" and the Overview lists it; the demo ship stays without RightShip data.
+    private void vettingDemo() {
+        LocalDate today = VettingService.today();
+        vettingVessel("ALDER", VETTING_IMOS.get(0), 3, List.of(4, 2, 3, 4, 4, 5), GhgRating.C, false, false,
+                today.plusDays(38), "alder-3-of-5.png");
+        vettingVessel("LAUREL", VETTING_IMOS.get(1), 5, List.of(5, 5, 4, 5, 5, 5), GhgRating.A, true, true,
+                today.plusMonths(9), "laurel-5-of-5.png");
+        vettingVessel("ROWAN", VETTING_IMOS.get(2), 4, List.of(4, 4, 3, 5, 4, 5), GhgRating.B, false, true,
+                today.plusMonths(6), "rowan-4-of-5.png");
+    }
+
+    private void vettingVessel(String name, String imo, int score, List<Integer> subscores, GhgRating ghg,
+                               boolean ghgPlus, boolean ghgVerified, LocalDate inspectionValidUntil, String report) {
+        Ship ship = new Ship();
+        ship.setImoNumber(imo);
+        ship.setName(name);
+        ship.setType(ShipType.BULK_CARRIER);
+        ship.setCreatedAt(Instant.now());
+        shipRepository.save(ship);
+
+        ShipRightShipStatus values = new ShipRightShipStatus();
+        values.setSafetyScore(score);
+        values.setCalculatedAt(RIGHTSHIP_DATE);
+        Subscore[] all = Subscore.values();
+        for (int i = 0; i < all.length; i++) {
+            values.setSubscore(all[i], subscores.get(i));
+        }
+        values.setGhgRating(ghg);
+        values.setGhgPlus(ghgPlus);
+        values.setGhgVerified(ghgVerified);
+        values.setGhgRatedAt(RIGHTSHIP_DATE);
+        values.setInspectionRequired(true);
+        values.setLastInspectionOutcome(InspectionOutcome.ACCEPTABLE);
+        values.setInspectionValidUntil(inspectionValidUntil);
+        vettingService.saveManual(ship, values, null);
+
+        Path file = Path.of("samples", "rightship", report);
+        if (!Files.isRegularFile(file)) {
+            log.warn("No sample RightShip report {}: {} gets none (run from the project folder)", file, name);
+        } else {
+            try (InputStream in = Files.newInputStream(file)) {
+                vettingService.saveReport(ship, in, report, "image/png", Files.size(file), RIGHTSHIP_DATE, null);
+            } catch (IOException e) {
+                log.warn("Could not read the sample RightShip report {}", file, e);
+            }
+        }
+        log.info("Created RightShip demo vessel {}", name);
     }
 
     // P33: submitted as the Chief cook and the crew would, so the Master also gets the two notifications.

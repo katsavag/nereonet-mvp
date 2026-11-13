@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.certificate;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -18,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.list.ListSort;
@@ -30,7 +32,7 @@ import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
 // Certificates (P20): every certificate, filtered by status (?status=), ship and "active ships only", with an Excel
-// export of the list as filtered (CSV before P39). The ship page's Certificates tab is a matrix of the crew on board and the types
+// export of the list as filtered (.xls since P40; .xlsx in P39, CSV before). The ship page's Certificates tab is a matrix of the crew on board and the types
 // they hold (/office/ships/{id}/certificates), or the list for that ship (/certificates/list), each with its export.
 // A crew member's certificates are listed on the crew edit page. A certificate can have a file, its scan (P39):
 // added, replaced or removed on its form, opened from the lists. Add and edit return to the page they were opened
@@ -78,15 +80,15 @@ public class CertificateController {
     }
 
     @GetMapping("/office/certificates/export")
-    public ResponseEntity<byte[]> export(@RequestParam(required = false) Long shipId,
-                                         @RequestParam(required = false) String status,
-                                         @RequestParam(defaultValue = "false") boolean activeShips,
-                                         @ModelAttribute ListRequest listRequest) {
+    public Object export(@RequestParam(required = false) Long shipId,
+                         @RequestParam(required = false) String status,
+                         @RequestParam(defaultValue = "false") boolean activeShips,
+                         @ModelAttribute ListRequest listRequest, RedirectAttributes redirectAttributes) {
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = fleetList(shipId, filter, activeShips, listRequest, certificateService.findAllShips());
         List<Certificate> rows = certificateService.findAllCertificates(
                 new CertificateService.Filter(shipId, activeShips, filter), list);
-        return certificateService.listXlsx("certificates", rows).response();
+        return download(() -> certificateService.listXls("certificates", rows), list.getUrl(), redirectAttributes);
     }
 
     private ListQuery fleetList(Long shipId, CertificateStatus status, boolean activeShips, ListRequest listRequest,
@@ -111,10 +113,10 @@ public class CertificateController {
     }
 
     @GetMapping("/office/ships/{id}/certificates/export")
-    public ResponseEntity<byte[]> exportMatrix(@PathVariable Long id) {
+    public Object exportMatrix(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         Ship ship = shipFrame.ship(id);
-        return certificateService.matrixXlsx("certificate-matrix-" + ship.getImoNumber(),
-                certificateService.matrix(ship)).response();
+        return download(() -> certificateService.matrixXls("certificate-matrix-" + ship.getImoNumber(),
+                certificateService.matrix(ship)), ShipTab.CERTIFICATES.url(id), redirectAttributes);
     }
 
     // The fleet list for one ship, without the ship filter and column.
@@ -131,14 +133,26 @@ public class CertificateController {
     }
 
     @GetMapping("/office/ships/{id}/certificates/list/export")
-    public ResponseEntity<byte[]> exportShipList(@PathVariable Long id, @RequestParam(required = false) String status,
-                                                 @ModelAttribute ListRequest listRequest) {
+    public Object exportShipList(@PathVariable Long id, @RequestParam(required = false) String status,
+                                 @ModelAttribute ListRequest listRequest, RedirectAttributes redirectAttributes) {
         Ship ship = shipFrame.ship(id);
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
         List<Certificate> rows = certificateService.findAllCertificates(
                 new CertificateService.Filter(id, false, filter), list);
-        return certificateService.listXlsx("certificates-" + ship.getImoNumber(), rows).response();
+        return download(() -> certificateService.listXls("certificates-" + ship.getImoNumber(), rows), list.getUrl(),
+                redirectAttributes);
+    }
+
+    // The workbook as a download or, when it has more rows than one .xls sheet holds (P40), back to the list it was
+    // exported from with "Too many rows for one file: narrow the filters".
+    private static Object download(Supplier<XlsExport.File> file, String back, RedirectAttributes redirectAttributes) {
+        try {
+            return file.get().response();
+        } catch (XlsExport.TooManyRowsException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", XlsExport.TooManyRowsException.MESSAGE);
+            return "redirect:" + back;
+        }
     }
 
     private static String shipListPath(Long shipId) {

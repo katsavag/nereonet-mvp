@@ -4598,3 +4598,382 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     text-align: end;
 }
 .order-note { white-space: pre-line; overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Vetting (P40): vetting/list.html, vessel.html, rightship.html, edit.html, upload.html and vetting/parts.html.
+     - .score-bar: a score as five segments (.score-seg; .is-on filled), in the tone of the score: .score-bar-ok,
+       -warning, -danger, -neutral (nothing filled). Decorative (aria-hidden): the text next to it ("3/5") carries
+       the value. .score-bar-lg: the RightShip page's score header.
+     - .score-text: "3/5", tabular figures; .is-na: "N/A", muted. .score-cell: a bar and its text on one line.
+     - .ghg: the GHG Rating, a leaf icon in RightShip's colour of the letter (.ghg-a ... .ghg-e; .ghg-u grey), then
+       the letter and Verified / Unverified in the text colour. The colour is on the icon only, so it is never the
+       only carrier of the rating.
+     - .vetting-badges: the vessel page header's row of three badges (score, GHG, inspection), one link to the
+       vessel's Vetting page; a 40px touch target (44px on phones).
+     - .regime-card: a vetting regime on a vessel's Vetting page (RightShip; SIRE 2.0 in P41); the title is a
+       .stretched-link, so the whole card opens the regime's page.
+     - .rightship-layout: the RightShip page, 7/12 dashboard and 5/12 document from 992px (Bootstrap's row), the
+       document after the dashboard below. .rs-score: the score header; .rs-subscore: one subscore row (name, bar,
+       value, "Lowest"); .rs-small: the GHG and inspection cards; .rs-document: the official document card.
+   Text pairs: every text uses the page's text colours (--nn-text 15:1, --nn-text-secondary 6.6:1 on the surface);
+   the GHG and tone colours are only on icons and bars, which repeat what the text says.
+   RightShip's GHG colours: A #00763B and E #D71920 as given; B, C and D (#6CB33F, #FFCB05, #F58220) assumed from
+   RightShip's published scale.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-ghg-a: #00763b;
+    --nn-ghg-b: #6cb33f;
+    --nn-ghg-c: #ffcb05;
+    --nn-ghg-d: #f58220;
+    --nn-ghg-e: #d71920;
+    --nn-ghg-u: var(--nn-neutral-border);
+    --nn-score-gap: 3px;
+    --nn-score-seg-width: 10px;
+    --nn-score-seg-height: 8px;
+    --nn-score-seg-width-lg: 2.25rem;  /* 36px */
+    --nn-score-seg-height-lg: 12px;
+    --nn-score-off: #e3dfd7;
+    --nn-score-value-lg: 2.5rem;       /* 40px, "3/5" in the score header */
+}
+
+/* Score bar */
+.score-bar {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: var(--nn-score-gap);
+    vertical-align: middle;
+}
+.score-seg {
+    width: var(--nn-score-seg-width);
+    height: var(--nn-score-seg-height);
+    border-radius: 2px;
+    background-color: var(--nn-score-off);
+}
+.score-bar-lg { gap: 4px; }
+.score-bar-lg .score-seg {
+    width: var(--nn-score-seg-width-lg);
+    height: var(--nn-score-seg-height-lg);
+    border-radius: 3px;
+}
+.score-bar-ok .score-seg.is-on { background-color: var(--nn-ok); }
+.score-bar-warning .score-seg.is-on { background-color: var(--nn-warning); }
+.score-bar-danger .score-seg.is-on { background-color: var(--nn-danger); }
+
+.score-text { font-weight: 600; white-space: nowrap; }
+.score-text.is-na { font-weight: 400; color: var(--nn-text-secondary); }
+.score-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+}
+.score-link { min-height: var(--nn-touch-target); color: var(--nn-text); text-decoration: none; }
+.score-link:hover .score-text { text-decoration: underline; }
+
+/* GHG Rating */
+.ghg {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px var(--nn-space-2);
+}
+.ghg-icon {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: var(--nn-ghg-color, var(--nn-ghg-u));
+    stroke: rgba(var(--nn-navy-rgb), .35);
+    stroke-width: 1;
+}
+.ghg-icon .ghg-icon-vein {
+    fill: none;
+    stroke: rgba(255, 255, 255, .85);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+}
+.ghg-a { --nn-ghg-color: var(--nn-ghg-a); }
+.ghg-b { --nn-ghg-color: var(--nn-ghg-b); }
+.ghg-c { --nn-ghg-color: var(--nn-ghg-c); }
+.ghg-d { --nn-ghg-color: var(--nn-ghg-d); }
+.ghg-e { --nn-ghg-color: var(--nn-ghg-e); }
+.ghg-u .ghg-icon-vein { stroke: transparent; }
+.ghg-letter { font-weight: 600; white-space: nowrap; }
+.ghg-u .ghg-letter { font-weight: 400; color: var(--nn-text-secondary); }
+.ghg-verified {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+.vetting-sync-failed { margin-bottom: var(--nn-section-gap); }
+
+/* The vessel page header's badges */
+.vetting-badges {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-touch-target);
+    margin-top: var(--nn-space-2);
+    padding: var(--nn-space-1) 0;
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.vetting-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: 2rem;
+    padding: 2px var(--nn-space-2);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-badge);
+    background-color: var(--nn-surface);
+    font-size: var(--nn-font-sm);
+}
+.vetting-badge > .sidebar-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--nn-text-secondary);
+}
+.vetting-badge-label { color: var(--nn-text-secondary); }
+.vetting-badge .ghg-verified { display: none; }
+.vetting-badges:hover .vetting-badge { border-color: var(--nn-field-border); }
+.vetting-badges:hover .vetting-badge-label { text-decoration: underline; }
+@media (max-width: 575.98px) {
+    .vetting-badges { min-height: 44px; }
+}
+
+/* A regime card on a vessel's Vetting page */
+.regime-card { transition: border-color .15s ease-in-out; }
+.regime-card:hover { border-color: var(--nn-field-border); }
+.regime-card:focus-within { box-shadow: 0 0 0 var(--nn-focus-width) var(--nn-focus-color); }
+.regime-card .stretched-link:focus-visible { outline: none; }
+.regime-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3);
+    margin-bottom: var(--nn-space-3);
+}
+.regime-card-title {
+    margin: 0;
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+.regime-card-title a {
+    display: inline-block;
+    min-height: var(--nn-touch-target);
+    padding-block: var(--nn-space-2);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.regime-card:hover .regime-card-title a { text-decoration: underline; }
+.regime-card-arrow {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--nn-text-secondary);
+}
+.regime-card-empty { margin: 0; color: var(--nn-text-secondary); }
+.regime-facts,
+.rs-score-facts,
+.rs-small-facts {
+    display: grid;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    margin: 0;
+}
+.regime-facts > div,
+.rs-small-facts > div {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--nn-space-3);
+}
+.regime-facts dt,
+.rs-score-facts dt,
+.rs-small-facts dt {
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+}
+.regime-facts dd,
+.rs-score-facts dd,
+.rs-small-facts dd { margin: 0; }
+
+/* The RightShip page */
+.vetting-restricted { margin-bottom: var(--nn-section-gap); }
+.rs-score-body {
+    display: grid;
+    gap: var(--nn-space-3);
+}
+.rs-score-vessel {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+    letter-spacing: .02em;
+}
+.rs-score-title {
+    margin: 0 0 var(--nn-space-2);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+.rs-score-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    margin: 0;
+}
+.rs-score-value .score-text {
+    font-size: var(--nn-score-value-lg);
+    font-weight: 700;
+    line-height: 1.1;
+}
+.rs-score-value .score-text.is-na { font-weight: 600; }
+.rs-score-note { margin: var(--nn-space-2) 0 0; }
+.rs-score-facts { grid-template-columns: repeat(auto-fit, minmax(9rem, max-content)); }
+.rs-score-facts > div { display: grid; gap: 2px; }
+.rs-updated {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.rs-score > .empty-state { padding: 0 var(--nn-card-padding) var(--nn-space-5); }
+
+.rs-subscores-hint {
+    margin: 0 0 var(--nn-space-3);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.rs-impact {
+    margin: var(--nn-space-4) 0 var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.rs-subscores-hint + .rs-impact { margin-top: 0; }
+.rs-subscore-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rs-subscore {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 2.5rem 4.75rem;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: 2.75rem;
+    padding-block: var(--nn-space-2);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.rs-subscore-list:last-child > .rs-subscore:last-child { border-bottom: 0; }
+.rs-subscore-name { min-width: 0; overflow-wrap: anywhere; }
+.rs-subscore.is-lowest .rs-subscore-name { font-weight: 600; }
+.rs-subscore-value { font-weight: 600; text-align: end; }
+.rs-subscore-value.is-unknown { font-weight: 400; color: var(--nn-text-secondary); }
+.rs-subscore-unknown {
+    width: calc(5 * var(--nn-score-seg-width) + 4 * var(--nn-score-gap));
+    color: var(--nn-text-secondary);
+    text-align: center;
+}
+.rs-subscore-flag { text-align: end; }
+.rs-source {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--nn-font-xs);
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+@media (max-width: 575.98px) {
+    .rs-subscore {
+        grid-template-columns: minmax(0, 1fr) auto 2.5rem;
+        row-gap: var(--nn-space-1);
+    }
+    .rs-subscore-flag { grid-column: 1 / -1; text-align: start; }
+    .rs-subscore-flag:empty { display: none; }
+}
+
+.rs-small-title {
+    margin: 0 0 var(--nn-space-3);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.rs-ghg { margin: 0 0 var(--nn-space-2); font-size: var(--nn-font-title); }
+.rs-ghg .ghg-icon { width: 1.5rem; height: 1.5rem; }
+.rs-inspection { margin: 0 0 var(--nn-space-3); }
+.rs-small-meta {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.rs-small-facts > div { grid-template-columns: 7.5rem minmax(0, 1fr); font-size: var(--nn-font-sm); }
+.rs-small .rs-source { margin-top: var(--nn-space-3); }
+
+.rs-preview {
+    display: block;
+    margin-bottom: var(--nn-space-4);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+    overflow: hidden;
+    background-color: var(--nn-field);
+}
+.rs-preview:hover { border-color: var(--nn-field-border); }
+.rs-preview-image {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.rs-preview-pdf {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: 4.5rem;
+    padding: var(--nn-space-3) var(--nn-space-4);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+.rs-preview-pdf:hover .rs-preview-pdf-text { text-decoration: underline; }
+.rs-report-facts { margin-bottom: var(--nn-space-4); }
+.rs-report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+.rs-earlier-title {
+    margin: var(--nn-space-5) 0 var(--nn-space-2);
+    padding-top: var(--nn-space-4);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+.rs-earlier {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rs-earlier-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+    padding-block: var(--nn-space-2);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.rs-earlier-item:last-child { border-bottom: 0; }
+.rs-earlier-text { flex: 1 1 10rem; min-width: 0; }
+.rs-earlier-item .btn { min-height: var(--nn-touch-target); }
+@media (max-width: 575.98px) {
+    .rs-earlier-item .btn { min-height: 44px; }
+}
+
+/* Edit RightShip data: the impact groups of the subscores. */
+.form-subhead {
+    margin: var(--nn-space-3) 0 var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+}
+.form-section > legend + .form-subhead { margin-top: 0; }

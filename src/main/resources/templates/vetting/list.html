@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{vetting.list.title}, ~{::main})}">
+<body>
+<!-- Vetting (P40): every active vessel's RightShip standing, most urgent first (inspection expired, expiring within 60
+     days, then the lowest Safety Score, then name). P19: search (name or IMO number), filters (vessel type; Status:
+     Needs attention, Valid, Not rated), sorting by column, pages. The whole row opens the vessel's Vetting page
+     (data-row-href, js/list-rows.js); its name stays the link for the keyboard and without the script.
+     The "SIRE 2.0" column is reserved for P41 and not shown until then.
+     Model: list (ListQuery), rows (Page of VettingService.VettingRow), types, type, statuses, status, syncFailedAt. -->
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{vetting.list.heading}, count=${rows.totalElements},
+            subtitle=#{vetting.list.hint})}"></header>
+
+    <div th:replace="~{vetting/parts :: syncFailed(${syncFailedAt})}"></div>
+
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{vetting.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div class="filter-field">
+                <label for="filterType" class="form-label" th:text="#{vetting.filter.type}">Vessel type</label>
+                <select id="filterType" name="type" class="form-select">
+                    <option value="" th:text="#{vetting.filter.type.all}">All types</option>
+                    <option th:each="t : ${types}" th:value="${t}" th:selected="${t.name() == type}"
+                            th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{vetting.filter.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{vetting.filter.status.all}">All</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:selected="${s == status}"
+                            th:text="#{${'vetting.status.' + s}}">Needs attention</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+
+    <div class="card">
+        <!-- No active vessel yet (P25): the vessels are added on Vessels. -->
+        <th:block th:replace="~{layout/parts :: listEmpty(rows=${rows}, list=${list}, icon='vetting',
+                title=#{vetting.list.empty.title}, text=#{vetting.list.empty.text},
+                action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
+
+        <div th:unless="${rows.isEmpty()}" class="table-responsive">
+            <table class="table data-table data-table-stack align-middle mb-0 vetting-table">
+                <thead>
+                <tr>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{vetting.vessel})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'type', #{ship.type})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'score', #{vetting.score})}"></th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'ghg', #{vetting.ghg})}"></th>
+                    <th scope="col" th:text="#{vetting.inspection}">RightShip inspection</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'inspection', #{vetting.inspection.validUntil})}"></th>
+                    <!-- P41: the SIRE 2.0 column. -->
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${rows}" th:with="v=${r.view()}"
+                    th:data-row-href="@{/office/vetting/{id}(id=${r.ship().id})}">
+                    <td class="cell-primary">
+                        <a th:href="@{/office/vetting/{id}(id=${r.ship().id})}" th:text="${r.ship().name}">ALDER</a>
+                        <span class="d-block small fw-normal text-body-secondary"
+                              th:text="#{ship.codeValue(${r.ship().imoNumber})}">IMO 9300001</span>
+                    </td>
+                    <td th:attr="data-label=#{ship.type}"
+                        th:text="${r.ship().type} ? #{${'ship.type.' + r.ship().type}} : '—'">Bulk carrier</td>
+                    <td th:attr="data-label=#{vetting.score}">
+                        <span class="score-cell">
+                            <span th:replace="~{vetting/parts :: scoreBar(${v.score()}, ${v.scoreTone()}, null)}"></span>
+                            <span th:replace="~{vetting/parts :: scoreText(${v})}">3/5</span>
+                        </span>
+                    </td>
+                    <td th:attr="data-label=#{vetting.ghg}"><span th:replace="~{vetting/parts :: ghg(${v})}">C</span></td>
+                    <td th:attr="data-label=#{vetting.inspection}">
+                        <th:block th:replace="~{vetting/parts :: inspectionBadge(${v})}"></th:block>
+                    </td>
+                    <td th:attr="data-label=#{vetting.inspection.validUntil}">
+                        <th:block th:if="${v.inspectionValidUntil() != null}"><time
+                                th:replace="~{layout/parts :: localDate(${v.inspectionValidUntil()})}"></time></th:block>
+                        <span th:unless="${v.inspectionValidUntil() != null}" class="text-body-secondary">—</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav th:replace="~{layout/parts :: pager(${rows}, ${list})}"></nav>
+    </div>
+</main>
+</body>
+</html>
