@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
@@ -18,6 +19,7 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
  *   shipTabs       every ShipTab, in order
  *   shipTabCounts  ShipTabCounts, the number shown on each tab
  *   vetting        the vessel's RightShip standing (RightShipView) for the header's badge row (P40)
+ *   sire           a tanker's latest SIRE 2.0 inspection (SireView) for the same row (P41); null for other types
  *   editForm, types, countries   for the Edit ship pop-up of the header (ship/parts :: editModal)
  */
 @Component
@@ -25,10 +27,12 @@ public class ShipFrame {
 
     private final ShipService shipService;
     private final VettingService vettingService;
+    private final SireService sireService;
 
-    public ShipFrame(ShipService shipService, VettingService vettingService) {
+    public ShipFrame(ShipService shipService, VettingService vettingService, SireService sireService) {
         this.shipService = shipService;
         this.vettingService = vettingService;
+        this.sireService = sireService;
     }
 
     /** The ship, or 404 if there is none. For tabs whose controller has no ship lookup of its own. */
@@ -42,6 +46,7 @@ public class ShipFrame {
         model.addAttribute("shipTabs", ShipTab.values());
         model.addAttribute("shipTabCounts", shipService.tabCounts(ship));
         model.addAttribute("vetting", vettingService.view(ship));
+        model.addAttribute("sire", VettingService.sireApplies(ship) ? sireService.latest(ship) : null);
         addEditForm(model, ship);
     }
 

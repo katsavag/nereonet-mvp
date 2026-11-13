@@ -118,7 +118,7 @@ class RightShipFlowTest {
         assertThat(names(html)).containsExactly("EXPIRED", "EXPIRING", "LOW", "VALID", "NOT RATED");
         assertThat(html).contains("Expired", "Expires in 20 days", "2/5", "N/A", "Safety Score", "GHG Rating",
                         "data-row-href=\"/office/vetting/" + expiring.getId() + "\"")
-                .doesNotContain(">SIRE 2.0<");
+                .contains("SIRE 2.0");
 
         // Filters and sorting (P19).
         assertThat(names(html(get("/office/vetting").param("status", "attention"))))
@@ -345,7 +345,7 @@ class RightShipFlowTest {
 
         String overview = html(get("/office"));
         assertThat(overview).contains("RightShip inspection", "Expires in 38 days", "Open RightShip",
-                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "RightShip needs attention",
+                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "Vetting needs attention",
                 "href=\"/office/vetting?status=attention\"");
 
         String ships = html(get("/office/ships").param("sort", "score"));

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{sire.title}, ~{::main})}">
+<body>
+<!-- A vessel's SIRE 2.0 page (P41), in the frame of the RightShip page: from 992px two columns, the inspection and its
+     observations (7/12) and the official document (5/12); below that one column, the document after them. Works
+     without JavaScript.
+       c. "Operator comments due 26 Jun 2026" while the report is a draft (Draft received): info, warning within 3
+          days, danger once overdue; an icon and words.
+       a. Inspection header: the date, port, submitting company, inspector, reference, status and "Report current until
+          12 Jun 2027" (warning in its last 60 days, danger after it), then the company policy behind both dates.
+       b. Observations: Hardware, Process and Human as three figures, then the observations by VIQ chapter (question
+          number, type, description, status, owner and target date), Open (the default) or All. Each row opens its
+          edit form (a stretched link on the description).
+       d. Official document: the report PDF opens in the browser in a new tab (P22), with Open and Download; the
+          vessel's other inspections below it, newest first, each opening here (?inspection=).
+     Header actions: Open vessel, Add observation, Upload report, Add inspection (the primary). Without an inspection
+     the empty state holds Add inspection and the header only Open vessel (P25: one primary).
+     Model: ship, sire (SireView of the inspection shown; inspection null without one), latest (it is the latest),
+     latestInspection, otherInspections (newest first), showAll, settings (SireSettings), types. -->
+<main th:with="s=${sire}, i=${sire.inspection()}, hasData=${sire.hasData()},
+               base=${'/office/vetting/' + ship.id + '/sire'},
+               inspectionBase=${hasData} ? ${'/office/vetting/' + ship.id + '/sire/inspections/' + sire.inspection().id} : null,
+               pageUrl=${latest} ? ${base} : ${base + '?inspection=' + sire.inspection().id}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{sire.title}, crumbs=~{::pageCrumbs},
+            actions=~{::pageActions})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: crumbs(${ship}, true)}"></th:block>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <a th:replace="~{vetting/parts :: openVessel(${ship})}"></a>
+            <th:block th:if="${hasData}">
+                <a class="btn btn-outline-secondary" th:href="@{${inspectionBase + '/observations/new'}}">
+                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                    <span th:text="#{sire.observation.add}">Add observation</span>
+                </a>
+                <a class="btn btn-outline-secondary" th:href="@{${inspectionBase + '/report'}}">
+                    <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                    <span th:text="#{sire.report.upload}">Upload report</span>
+                </a>
+                <a class="btn btn-primary" th:href="@{${base + '/inspections/new'}}">
+                    <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                    <span th:text="#{sire.inspection.add}">Add inspection</span>
+                </a>
+            </th:block>
+        </th:block>
+    </header>
+
+    <!-- An earlier inspection is open: say so, and lead back to the latest. -->
+    <div th:if="${hasData and !latest}" class="alert alert-info sire-earlier-note" role="note">
+        <span th:text="#{sire.earlier.note(${@dates.date(s.inspectionDate())})}">This is an earlier inspection, 12 Jun 2025.</span>
+        <a th:href="@{${base}}" th:text="#{sire.earlier.showLatest(${@dates.date(latestInspection.inspectionDate)})}">Show the latest, 12 Jun 2026</a>
+    </div>
+
+    <!-- c. The operator comment deadline, while the report is a draft. -->
+    <div th:if="${s.commentsDueOn() != null}" class="alert sire-comments" role="status"
+         th:classappend="'alert-' + ${s.commentsTone()}"
+         th:with="days=${s.commentsDaysLeft()}">
+        <svg class="sire-comments-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <th:block th:if="${s.commentsOverdue()}"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></th:block>
+            <th:block th:unless="${s.commentsOverdue()}"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></th:block>
+        </svg>
+        <p class="sire-comments-text">
+            <span class="fw-semibold" th:text="#{sire.comments.due(${@dates.date(s.commentsDueOn())})}">Operator comments due 26 Jun 2026</span>
+            <span aria-hidden="true">·</span>
+            <span th:text="${days < 0} ? #{sire.comments.overdueBy(${-days})} : #{sire.comments.daysLeft(${days})}">in 5 days</span>
+            <span class="d-block small" th:text="#{sire.comments.hint(${settings.commentDays()})}">Counted from the
+                published date, or the inspection date while there is none.</span>
+        </p>
+    </div>
+
+    <div class="row g-4 rightship-layout">
+        <div class="col-lg-7">
+            <!-- a. The inspection -->
+            <section class="card sire-head mb-4" aria-labelledby="sireHeadTitle">
+                <div th:if="${hasData}" class="card-body sire-head-body">
+                    <p class="rs-score-vessel" th:text="${ship.name}">BIRCH</p>
+                    <div>
+                        <h2 class="rs-score-title" id="sireHeadTitle" th:text="#{sire.inspection.title}">SIRE 2.0 inspection</h2>
+                        <p class="sire-head-date"><time th:replace="~{layout/parts :: localDate(${s.inspectionDate()})}"></time></p>
+                        <p class="sire-head-report"><th:block th:replace="~{vetting/parts :: sireReport(${s})}"></th:block></p>
+                    </div>
+                    <dl class="rs-small-facts sire-head-facts">
+                        <div>
+                            <dt th:text="#{sire.port}">Port</dt>
+                            <dd th:text="${i.port}">Piraeus, Greece</dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{sire.company}">Submitting company</dt>
+                            <dd class="text-break" th:text="${i.submittingCompany}">Demo Energy Ltd</dd>
+                        </div>
+                        <div th:if="${i.inspectorName != null}">
+                            <dt th:text="#{sire.inspector}">Inspector</dt>
+                            <dd th:text="${i.inspectorName}">J. Doe</dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{sire.reference}">Report reference</dt>
+                            <dd class="text-break" th:text="${i.reportReference} ?: '—'">DEMO-SIRE-0001</dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{sire.status}">Report status</dt>
+                            <dd>
+                                <span th:text="#{${s.status().messageKey()}}">Published</span>
+                                <th:block th:if="${i.publishedOn != null}"><span aria-hidden="true">·</span>
+                                    <time th:replace="~{layout/parts :: localDate(${i.publishedOn})}"></time></th:block>
+                            </dd>
+                        </div>
+                    </dl>
+                    <p class="sire-head-footer">
+                        <span class="rs-updated" th:text="${i.createdBy != null} ? #{vetting.updated.by(${i.createdBy.fullName})} : #{vetting.updated.manual}">Entered by hand</span>
+                        <a class="btn btn-ghost btn-sm" th:href="@{${inspectionBase + '/edit'}}"
+                           th:text="#{sire.inspection.edit}">Edit inspection</a>
+                    </p>
+                    <p class="sire-policy">
+                        <span class="fw-semibold" th:text="#{sire.policy.label}">Company policy:</span>
+                        <th:block th:text="#{sire.policy.text(${settings.reportCurrentMonths()}, ${settings.commentDays()})}">a report is
+                            treated as current for 12 months after the inspection; operator comments are due 14 days
+                            after the report. These are this company's settings, not OCIMF rules.</th:block>
+                    </p>
+                </div>
+                <!-- No inspection yet: what to do first. -->
+                <th:block th:unless="${hasData}">
+                    <h2 class="visually-hidden" id="sireHeadTitle" th:text="#{sire.inspection.title}">SIRE 2.0 inspection</h2>
+                    <div th:replace="~{layout/parts :: emptyState(icon='vetting', title=#{sire.empty.title},
+                            text=#{sire.empty.text}, action=~{::addFirst})}">
+                        <th:block th:fragment="addFirst">
+                            <a class="btn btn-primary" th:href="@{${base + '/inspections/new'}}"
+                               th:text="#{sire.inspection.add}">Add inspection</a>
+                        </th:block>
+                    </div>
+                    <p class="sire-policy sire-policy-empty">
+                        <span class="fw-semibold" th:text="#{sire.policy.label}">Company policy:</span>
+                        <th:block th:text="#{sire.policy.text(${settings.reportCurrentMonths()}, ${settings.commentDays()})}">…</th:block>
+                    </p>
+                </th:block>
+            </section>
+
+            <!-- b. Observations -->
+            <section th:if="${hasData}" class="card mb-4" aria-labelledby="sireObservationsTitle">
+                <div class="card-header sire-observations-header">
+                    <h2 class="h5 fw-bold mb-0" id="sireObservationsTitle" th:text="#{sire.observations}">Observations</h2>
+                    <nav th:replace="~{layout/parts :: viewSwitch(#{sire.observations.filter}, ~{::observationViews})}">
+                        <th:block th:fragment="observationViews">
+                            <a class="view-switch-link" th:href="@{${pageUrl}} + '#sireObservationsTitle'"
+                               th:aria-current="${!showAll} ? 'page'">
+                                <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                                <span th:text="#{sire.observations.open}">Open</span>
+                                <span class="num" th:text="${s.open()}">2</span>
+                            </a>
+                            <a class="view-switch-link" th:href="@{${pageUrl}(show='all')} + '#sireObservationsTitle'"
+                               th:aria-current="${showAll} ? 'page'">
+                                <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+                                <span th:text="#{sire.observations.all}">All</span>
+                                <span class="num" th:text="${s.total()}">5</span>
+                            </a>
+                        </th:block>
+                    </nav>
+                </div>
+                <div class="card-body">
+                    <p class="sire-summary" th:text="#{sire.observationsSummary(${s.total()}, ${s.open()})}">5 observations · 2 open</p>
+                    <ul class="sire-figures" th:attr="aria-label=#{sire.observations.byType}">
+                        <li th:each="t : ${s.typeCounts()}" class="sire-figure">
+                            <span class="sire-figure-value num" th:text="${t.count()}">2</span>
+                            <span class="sire-figure-label" th:text="#{${t.type().messageKey()}}">Hardware</span>
+                        </li>
+                    </ul>
+
+                    <th:block th:with="groups=${s.chapters(showAll)}">
+                        <p th:if="${groups.isEmpty()}" class="sire-none"
+                           th:text="${s.total() == 0} ? #{sire.observations.none} : #{sire.observations.noneOpen}">No open observations.</p>
+                        <th:block th:each="g : ${groups}">
+                            <h3 class="sire-chapter" th:id="${'sireChapter' + g.chapter()}"
+                                th:with="chapterName=#{${g.messageKey()}}"
+                                th:text="#{sire.chapter.heading(${g.chapter()}, ${chapterName})}">Chapter 9 · Mooring and Anchoring</h3>
+                            <ul class="sire-observation-list" th:attr="aria-labelledby=${'sireChapter' + g.chapter()}">
+                                <li th:each="r : ${g.rows()}" class="sire-observation" th:id="${'observation-' + r.observation().id}"
+                                    th:with="o=${r.observation()}" th:classappend="${r.status().name() == 'OVERDUE'} ? 'is-overdue'">
+                                    <span class="sire-question num" th:text="${o.questionNumber}">9.1.2</span>
+                                    <div class="sire-observation-main">
+                                        <a class="sire-observation-link stretched-link"
+                                           th:href="@{${base + '/inspections/' + i.id + '/observations/' + o.id + '/edit'}}">
+                                            <span class="visually-hidden" th:text="#{sire.observation.editLabel(${o.questionNumber})}">Edit observation 9.1.2:</span>
+                                            <span th:text="${o.description}">Fire main isolating valve hard to operate on deck.</span>
+                                        </a>
+                                        <p class="sire-observation-meta">
+                                            <span th:replace="~{vetting/parts :: sireType(${o.type})}">Hardware</span>
+                                            <span th:text="${o.owner != null} ? ${o.owner.fullName} : #{sire.observation.noOwner}">Jane Doe</span>
+                                            <th:block th:if="${o.closedOn != null}"><span aria-hidden="true">·</span>
+                                                <span th:text="#{sire.observation.closedOn}">closed</span>
+                                                <time th:replace="~{layout/parts :: localDate(${o.closedOn})}"></time></th:block>
+                                            <th:block th:if="${o.closedOn == null and o.targetDate != null}"><span aria-hidden="true">·</span>
+                                                <span th:text="#{sire.observation.target}">target</span>
+                                                <time th:replace="~{layout/parts :: localDate(${o.targetDate})}"></time></th:block>
+                                        </p>
+                                    </div>
+                                    <span class="sire-observation-status"><th:block
+                                            th:replace="~{vetting/parts :: sireObservationStatus(${r.status()})}"></th:block></span>
+                                </li>
+                            </ul>
+                        </th:block>
+                    </th:block>
+                </div>
+            </section>
+        </div>
+
+        <!-- d. Official document -->
+        <div class="col-lg-5">
+            <section class="card rs-document" aria-labelledby="sireDocumentTitle">
+                <div class="card-header">
+                    <h2 class="h5 fw-bold mb-0" id="sireDocumentTitle" th:text="#{vetting.report.title}">Official document</h2>
+                </div>
+                <th:block th:if="${hasData and !i.hasReport()}">
+                    <div th:replace="~{layout/parts :: emptyState(icon='library', title=#{sire.report.empty.title},
+                            text=#{sire.report.empty.text}, action=~{::uploadFirst})}">
+                        <th:block th:fragment="uploadFirst">
+                            <a class="btn btn-outline-secondary" th:href="@{${inspectionBase + '/report'}}">
+                                <svg th:replace="~{layout/parts :: icon('upload')}"></svg>
+                                <span th:text="#{sire.report.upload}">Upload report</span>
+                            </a>
+                        </th:block>
+                    </div>
+                </th:block>
+                <p th:unless="${hasData}" class="card-body text-body-secondary mb-0" th:text="#{sire.report.noInspection}">
+                    The report is uploaded to its inspection.</p>
+                <div th:if="${hasData and i.hasReport()}" class="card-body"
+                     th:with="fileUrl=${inspectionBase + '/report/file'}">
+                    <!-- The PDF opens in the browser in a new tab (P22). -->
+                    <a class="rs-preview rs-preview-pdf" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                        <span class="file-type file-type-pdf" aria-hidden="true">
+                            <svg viewBox="0 0 32 40" focusable="false">
+                                <path d="M5 1.5h16l7.5 7.5v27.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+                                <path d="M21 1.5V9h7.5"/>
+                            </svg>
+                            <span class="file-type-label">PDF</span>
+                        </span>
+                        <span class="rs-preview-pdf-text">
+                            <span class="fw-semibold" th:text="#{sire.report.openPdf}">Open the SIRE 2.0 report (PDF)</span>
+                            <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                        </span>
+                    </a>
+                    <dl class="rs-small-facts rs-report-facts">
+                        <div>
+                            <dt th:text="#{vetting.report.uploadedLabel}">Uploaded</dt>
+                            <dd><th:block th:text="${i.reportUploadedBy != null} ? ${i.reportUploadedBy.fullName} : #{vetting.report.uploadedBySystem}">Jane Doe</th:block>
+                                <span aria-hidden="true">·</span>
+                                <time th:replace="~{layout/parts :: localTime(${i.reportUploadedAt})}"></time></dd>
+                        </div>
+                        <div>
+                            <dt th:text="#{vetting.report.file}">File</dt>
+                            <dd class="text-break"><th:block th:text="${i.reportFileName}">birch.pdf</th:block>
+                                <span aria-hidden="true">·</span>
+                                <span th:replace="~{core/library/parts :: fileSize(${i.reportFileSize})}"></span></dd>
+                        </div>
+                    </dl>
+                    <div class="rs-report-actions">
+                        <a class="btn btn-outline-secondary" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                            <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+                            <span th:text="#{vetting.report.open}">Open</span>
+                            <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
+                        </a>
+                        <a class="btn btn-ghost" th:href="@{${fileUrl}(download=true)}" download>
+                            <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                            <span th:text="#{library.download}">Download</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- The vessel's other inspections, newest first; each opens on this page. -->
+                <div th:unless="${otherInspections.isEmpty()}" class="card-body sire-others">
+                    <h3 class="rs-earlier-title" id="sireOthersTitle"
+                        th:text="${latest} ? #{sire.earlier.title} : #{sire.others.title}">Earlier inspections</h3>
+                    <ul class="rs-earlier" aria-labelledby="sireOthersTitle">
+                        <li th:each="e : ${otherInspections}" class="rs-earlier-item"
+                            th:with="isLatest=${e.id == latestInspection.id}">
+                            <span class="rs-earlier-text">
+                                <a class="fw-semibold" th:href="${isLatest} ? @{${base}} : @{${base}(inspection=${e.id})}"
+                                   th:text="#{sire.inspectionOf(${@dates.date(e.inspectionDate)})}">Inspection of 12 Jun 2025</a>
+                                <span class="d-block small text-body-secondary text-break"
+                                      th:text="${e.port} + ' · ' + #{${e.status.messageKey()}}">Fujairah · Published</span>
+                            </span>
+                            <a th:if="${e.hasReport()}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+                               th:href="@{${base + '/inspections/' + e.id + '/report/file'}}">
+                                <span th:text="#{vetting.report.open}">Open</span>
+                                <span class="visually-hidden" th:text="#{vetting.report.openEarlier(${@dates.date(e.inspectionDate)})}">the report of 12 Jun 2025, opens in a new tab</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -31,14 +31,15 @@ import com.nereonix.nereonet_mvp.core.vetting.InspectionOutcome;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipReport;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipSyncService;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
+import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.Subscore;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
- * Vetting (P40), office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip in this task; SIRE
- * 2.0 joins in P41.
- *   /office/vetting                              every active vessel's RightShip standing (P19 list)
- *   /office/vetting/{shipId}                     one vessel: a card per vetting regime (RightShip)
+ * Vetting (P40), office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip (P40) and SIRE
+ * 2.0 (P41, SireController).
+ *   /office/vetting                              every active vessel's RightShip and SIRE 2.0 standing (P19 list)
+ *   /office/vetting/{shipId}                     one vessel: a card per vetting regime (RightShip, SIRE 2.0)
  *   /office/vetting/{shipId}/rightship           the RightShip dashboard and the official document
  *   /office/vetting/{shipId}/rightship/edit      Edit RightShip data
  *   /office/vetting/{shipId}/rightship/reports/new          Upload report
@@ -51,41 +52,53 @@ public class VettingController {
 
     static final String LIST = "/office/vetting";
 
-    // The list's sorts (P19), the default first: most urgent (expired, expiring, lowest score), then name.
+    // The list's sorts (P19), the default first: most urgent of both regimes (expired, expiring, lowest score), then
+    // name; P41 adds the latest SIRE 2.0 inspection.
     private static final ListSort[] SORTS = {ListSort.asc(VettingService.SORT_URGENCY), ListSort.asc("name"),
-            ListSort.asc("type"), ListSort.asc("score"), ListSort.asc("ghg"), ListSort.asc("inspection")};
+            ListSort.asc("type"), ListSort.asc("score"), ListSort.asc("ghg"), ListSort.asc("inspection"),
+            ListSort.desc("sire")};
 
     private final VettingService vettingService;
     private final RightShipSyncService syncService;
     private final UserRepository userRepository;
+    private final SireService sireService;
 
     public VettingController(VettingService vettingService, RightShipSyncService syncService,
-                             UserRepository userRepository) {
+                             UserRepository userRepository, SireService sireService) {
+        this.sireService = sireService;
         this.vettingService = vettingService;
         this.syncService = syncService;
         this.userRepository = userRepository;
     }
 
-    // type: a ShipType (?type=BULK_CARRIER); status: attention, valid or notrated. Anything else filters nothing.
+    // type: a ShipType (?type=BULK_CARRIER); regime: rightship or sire (P41); status: attention, valid or notrated.
+    // Anything else filters nothing.
     @GetMapping(LIST)
-    public String list(@RequestParam(required = false) String type, @RequestParam(required = false) String status,
+    public String list(@RequestParam(required = false) String type, @RequestParam(required = false) String regime,
+                       @RequestParam(required = false) String status,
                        @ModelAttribute ListRequest listRequest, Model model) {
         ShipType shipType = Arrays.stream(ShipType.values()).filter(t -> t.name().equals(type)).findFirst().orElse(null);
         String chosen = status != null && RightShipView.STATUSES.contains(status) ? status : null;
+        String chosenRegime = regime != null && VettingService.REGIMES.contains(regime) ? regime : null;
         ListQuery list = ListQuery.of(LIST, listRequest, SORTS);
         if (shipType != null) {
             list.filterKey("type", shipType.name(), "vetting.filter.type", "ship.type." + shipType.name());
         }
+        if (chosenRegime != null) {
+            list.filterKey("regime", chosenRegime, "vetting.filter.regime", "vetting.regime." + chosenRegime);
+        }
         if (chosen != null) {
             list.filterKey("status", chosen, "vetting.filter.status", "vetting.status." + chosen);
         }
-        Page<VettingService.VettingRow> rows = vettingService.list(list, shipType, chosen);
+        Page<VettingService.VettingRow> rows = vettingService.list(list, shipType, chosenRegime, chosen);
         model.addAttribute("list", list);
         model.addAttribute("rows", rows);
         model.addAttribute("types", ShipType.values());
         model.addAttribute("type", shipType == null ? null : shipType.name());
         model.addAttribute("statuses", RightShipView.STATUSES);
         model.addAttribute("status", chosen);
+        model.addAttribute("regimes", VettingService.REGIMES);
+        model.addAttribute("regime", chosenRegime);
         model.addAttribute("syncFailedAt", vettingService.syncFailedAt());
         return "vetting/list";
     }
@@ -95,6 +108,9 @@ public class VettingController {
         Ship ship = vettingService.activeShip(shipId);
         model.addAttribute("ship", ship);
         model.addAttribute("rightShip", vettingService.view(ship));
+        // P41: tankers show SIRE 2.0 first; elsewhere it collapses to one line until the vessel has an inspection.
+        model.addAttribute("sire", sireService.latest(ship));
+        model.addAttribute("sireApplies", VettingService.sireApplies(ship));
         return "vetting/vessel";
     }
 

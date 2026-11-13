@@ -19,11 +19,14 @@ public interface ShipRightShipStatusRepository extends JpaRepository<ShipRightSh
     Optional<ShipRightShipStatus> findFirstByShipIdAndSourceOrderByUpdatedAtDescIdDesc(Long shipId,
                                                                                         RightShipSource source);
 
-    /** The sidebar counter of Vetting: active vessels whose inspection is expired or valid until "until" at most. */
+    /**
+     * The sidebar counter of Vetting: active vessels whose inspection is expired or valid until "until" at most. Ids,
+     * so VettingService counts each vessel once together with its SIRE 2.0 items (P41).
+     */
     @Query("""
-            select count(s) from ShipRightShipStatus s
+            select s.ship.id from ShipRightShipStatus s
             where s.current = true and s.ship.active = true and s.inspectionValidUntil <= :until""")
-    long countInspectionDueUntil(LocalDate until);
+    List<Long> findShipIdsInspectionDueUntil(LocalDate until);
 
     boolean existsByShipId(Long shipId);
 }

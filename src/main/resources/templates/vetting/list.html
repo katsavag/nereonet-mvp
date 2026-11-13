@@ -5,8 +5,12 @@
      days, then the lowest Safety Score, then name). P19: search (name or IMO number), filters (vessel type; Status:
      Needs attention, Valid, Not rated), sorting by column, pages. The whole row opens the vessel's Vetting page
      (data-row-href, js/list-rows.js); its name stays the link for the keyboard and without the script.
-     The "SIRE 2.0" column is reserved for P41 and not shown until then.
-     Model: list (ListQuery), rows (Page of VettingService.VettingRow), types, type, statuses, status, syncFailedAt. -->
+     P41: the "SIRE 2.0" column (the latest inspection's status and date, its open observations, and one badge for
+     what needs attention first); the urgency order and Needs attention include SIRE; the Regime filter (All,
+     RightShip, SIRE 2.0) narrows the Status filter to one regime, and SIRE 2.0 keeps the tankers and the vessels with
+     an inspection.
+     Model: list (ListQuery), rows (Page of VettingService.VettingRow), types, type, regimes, regime, statuses, status,
+     syncFailedAt. -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{vetting.list.heading}, count=${rows.totalElements},
             subtitle=#{vetting.list.hint})}"></header>
@@ -21,6 +25,14 @@
                     <option value="" th:text="#{vetting.filter.type.all}">All types</option>
                     <option th:each="t : ${types}" th:value="${t}" th:selected="${t.name() == type}"
                             th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="filterRegime" class="form-label" th:text="#{vetting.filter.regime}">Regime</label>
+                <select id="filterRegime" name="regime" class="form-select">
+                    <option value="" th:text="#{vetting.filter.regime.all}">All</option>
+                    <option th:each="r : ${regimes}" th:value="${r}" th:selected="${r == regime}"
+                            th:text="#{${'vetting.regime.' + r}}">SIRE 2.0</option>
                 </select>
             </div>
             <div class="filter-field">
@@ -50,7 +62,7 @@
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'ghg', #{vetting.ghg})}"></th>
                     <th scope="col" th:text="#{vetting.inspection}">RightShip inspection</th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'inspection', #{vetting.inspection.validUntil})}"></th>
-                    <!-- P41: the SIRE 2.0 column. -->
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'sire', #{sire.title})}"></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -77,6 +89,10 @@
                         <th:block th:if="${v.inspectionValidUntil() != null}"><time
                                 th:replace="~{layout/parts :: localDate(${v.inspectionValidUntil()})}"></time></th:block>
                         <span th:unless="${v.inspectionValidUntil() != null}" class="text-body-secondary">—</span>
+                    </td>
+                    <td th:attr="data-label=#{sire.title}">
+                        <th:block th:replace="~{vetting/parts :: sireLatest(${r.sire()})}"></th:block>
+                        <th:block th:replace="~{vetting/parts :: sireAttention(${r.sire()})}"></th:block>
                     </td>
                 </tr>
                 </tbody>

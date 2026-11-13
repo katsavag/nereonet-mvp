@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + (${inspection == null} ? #{sire.inspection.add} : #{sire.inspection.edit}), ~{::main})}">
+<body>
+<!-- "Add inspection" and "Edit inspection" (P41): a SIRE 2.0 inspection as the report gives it, entered by hand.
+     Required: inspection date, port, submitting company and status. The published date sets the operator comment
+     deadline while the status is Draft received (company policy, shown under the field). Saving goes back to the
+     SIRE page. Model: ship, inspection (null when adding), form (SireInspectionForm), statuses, settings. -->
+<main class="form-page" th:with="base=${'/office/vetting/' + ship.id + '/sire'},
+        action=${inspection == null} ? ${base + '/inspections/new'} : ${base + '/inspections/' + inspection.id + '/edit'},
+        heading=${inspection == null} ? #{sire.inspection.add} : #{sire.inspection.edit}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: sireCrumbs(${ship})}"></th:block>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{sire.inspection.title}">SIRE 2.0 inspection</legend>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="inspectionDate" class="form-label" th:text="#{sire.inspectionDate}">Inspection date</label>
+                            <input type="date" th:field="*{inspectionDate}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'inspectionDate')}"
+                                   th:max="${@formFields.maxDate(form, 'inspectionDate')}" required
+                                   aria-describedby="inspectionDateHint">
+                            <div class="invalid-feedback" th:errors="*{inspectionDate}"></div>
+                            <div id="inspectionDateHint" class="form-text"
+                                 th:text="#{sire.form.inspectionDateHint(${settings.reportCurrentMonths()})}">The report counts as current for 12 months after it (company policy).</div>
+                        </div>
+                        <div class="field-half">
+                            <label for="port" class="form-label" th:text="#{sire.port}">Port</label>
+                            <input type="text" th:field="*{port}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" required aria-describedby="portCounter">
+                            <div class="invalid-feedback" th:errors="*{port}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'port', 'port')}"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="submittingCompany" class="form-label" th:text="#{sire.company}">Submitting company</label>
+                            <input type="text" th:field="*{submittingCompany}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" required aria-describedby="submittingCompanyHint submittingCompanyCounter">
+                            <div class="invalid-feedback" th:errors="*{submittingCompany}"></div>
+                            <div class="form-meta">
+                                <div id="submittingCompanyHint" class="form-text" th:text="#{sire.form.companyHint}">The charterer or oil company that commissioned the inspection.</div>
+                                <div th:replace="~{layout/parts :: counter(${form}, 'submittingCompany', 'submittingCompany')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="inspectorName" class="form-label">[[#{sire.inspector}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="text" th:field="*{inspectorName}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="inspectorNameCounter">
+                            <div class="invalid-feedback" th:errors="*{inspectorName}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'inspectorName', 'inspectorName')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="reportReference" class="form-label">[[#{sire.reference}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="text" th:field="*{reportReference}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="reportReferenceCounter">
+                            <div class="invalid-feedback" th:errors="*{reportReference}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'reportReference', 'reportReference')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{sire.status}">Report status</legend>
+                    <div class="form-grid">
+                        <fieldset>
+                            <legend class="form-group-legend visually-hidden" th:text="#{sire.status}">Report status</legend>
+                            <div th:each="st : ${statuses}" class="form-check">
+                                <input type="radio" th:field="*{status}" th:value="${st}" class="form-check-input"
+                                       th:classappend="${#fields.hasErrors('status')} ? 'is-invalid'">
+                                <label class="form-check-label" th:for="${#ids.prev('status')}" th:text="#{${st.messageKey()}}">Draft received</label>
+                            </div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
+                        </fieldset>
+                        <div class="field-half">
+                            <label for="publishedOn" class="form-label">[[#{sire.publishedOn}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{publishedOn}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('publishedOn') or #fields.hasErrors('publishedAfterInspection')} ? 'is-invalid'"
+                                   th:min="${@formFields.minDate(form, 'publishedOn')}"
+                                   th:max="${@formFields.maxDate(form, 'publishedOn')}"
+                                   aria-describedby="publishedOnHint">
+                            <div class="invalid-feedback" th:errors="*{publishedOn}"></div>
+                            <div class="invalid-feedback" th:errors="*{publishedAfterInspection}"></div>
+                            <div id="publishedOnHint" class="form-text"
+                                 th:text="#{sire.form.publishedOnHint(${settings.commentDays()})}">While the draft is received, operator comments are due 14 days after this date, or after the inspection date while it is empty (company policy).</div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="${inspection == null} ? #{sire.inspection.addButton} : #{form.save}">Add inspection</button>
+                    <a class="btn btn-ghost" th:href="@{${inspection == null} ? ${base} : ${base + '?inspection=' + inspection.id}}"
+                       th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

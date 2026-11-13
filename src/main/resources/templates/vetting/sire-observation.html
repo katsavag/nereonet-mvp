@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + (${observation == null} ? #{sire.observation.add} : #{sire.observation.edit}), ~{::main})}">
+<body>
+<!-- "Add observation" and an observation's edit form (P41): a negative observation of one SIRE 2.0 inspection. First
+     where it is in the VIQ (chapter and question number), its type and the report's text; then the follow-up: the
+     operator's comment, the corrective action, the office user who owns it, the target date and the closed date (a
+     closed date closes it). Model: ship, inspection, observation (null when adding), form (SireObservationForm),
+     chapters, types, owners. -->
+<main class="form-page" th:with="base=${'/office/vetting/' + ship.id + '/sire'},
+        inspectionBase=${base + '/inspections/' + inspection.id},
+        action=${observation == null} ? ${inspectionBase + '/observations/new'} : ${inspectionBase + '/observations/' + observation.id + '/edit'},
+        heading=${observation == null} ? #{sire.observation.add} : #{sire.observation.editHeading(${observation.questionNumber})},
+        inspectionLabel=#{sire.inspectionAt(${@dates.date(inspection.inspectionDate)}, ${inspection.port})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, crumbs=~{::pageCrumbs}, subtitle=${inspectionLabel})}">
+        <th:block th:fragment="pageCrumbs">
+            <th:block th:replace="~{vetting/parts :: sireCrumbs(${ship})}"></th:block>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{sire.observation.legend}">Observation</legend>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="chapter" class="form-label" th:text="#{sire.chapter}">VIQ chapter</label>
+                            <select th:field="*{chapter}" class="form-select" th:errorclass="is-invalid" required>
+                                <option value="" th:text="#{sire.form.chooseChapter}">Choose a chapter</option>
+                                <option th:each="c : ${chapters}" th:value="${c}" th:with="chapterName=#{${'sire.chapter.' + c}}"
+                                        th:text="#{sire.chapter.option(${c}, ${chapterName})}">9 · Mooring and Anchoring</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{chapter}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="questionNumber" class="form-label" th:text="#{sire.question}">Question number</label>
+                            <input type="text" th:field="*{questionNumber}" class="form-control num" th:errorclass="is-invalid"
+                                   autocomplete="off" inputmode="decimal" required aria-describedby="questionNumberHint">
+                            <div class="invalid-feedback" th:errors="*{questionNumber}"></div>
+                            <div id="questionNumberHint" class="form-text" th:text="#{sire.form.questionHint}">As in the report, e.g. 9.1.2.</div>
+                        </div>
+                        <fieldset>
+                            <legend class="form-group-legend" th:text="#{sire.type}">Type</legend>
+                            <div class="sire-type-options">
+                                <div th:each="t : ${types}" class="form-check form-check-inline">
+                                    <input type="radio" th:field="*{type}" th:value="${t}" class="form-check-input"
+                                           th:classappend="${#fields.hasErrors('type')} ? 'is-invalid'">
+                                    <label class="form-check-label" th:for="${#ids.prev('type')}" th:text="#{${t.messageKey()}}">Hardware</label>
+                                </div>
+                            </div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></div>
+                        </fieldset>
+                        <div>
+                            <label for="description" class="form-label" th:text="#{sire.description}">Description</label>
+                            <textarea th:field="*{description}" class="form-control" rows="3" th:errorclass="is-invalid"
+                                      required aria-describedby="descriptionCounter"></textarea>
+                            <div class="invalid-feedback" th:errors="*{description}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'description', 'description')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend th:text="#{sire.followUp}">Follow-up</legend>
+                    <div class="form-grid">
+                        <div>
+                            <label for="operatorComment" class="form-label">[[#{sire.operatorComment}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <textarea th:field="*{operatorComment}" class="form-control" rows="3" th:errorclass="is-invalid"
+                                      aria-describedby="operatorCommentCounter"></textarea>
+                            <div class="invalid-feedback" th:errors="*{operatorComment}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'operatorComment', 'operatorComment')}"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="correctiveAction" class="form-label">[[#{sire.correctiveAction}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <textarea th:field="*{correctiveAction}" class="form-control" rows="3" th:errorclass="is-invalid"
+                                      aria-describedby="correctiveActionCounter"></textarea>
+                            <div class="invalid-feedback" th:errors="*{correctiveAction}"></div>
+                            <div class="form-meta">
+                                <div th:replace="~{layout/parts :: counter(${form}, 'correctiveAction', 'correctiveAction')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="ownerId" class="form-label">[[#{sire.owner}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <select th:field="*{ownerId}" class="form-select" th:errorclass="is-invalid">
+                                <option value="" th:text="#{sire.observation.noOwner}">No owner yet</option>
+                                <option th:each="u : ${owners}" th:value="${u.id}" th:text="${u.fullName}">Jane Doe</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{ownerId}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="targetDate" class="form-label">[[#{sire.targetDate}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{targetDate}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'targetDate')}"
+                                   th:max="${@formFields.maxDate(form, 'targetDate')}" aria-describedby="targetDateHint">
+                            <div class="invalid-feedback" th:errors="*{targetDate}"></div>
+                            <div id="targetDateHint" class="form-text" th:text="#{sire.form.targetHint}">Shown as overdue after this date while it is open.</div>
+                        </div>
+                        <div class="field-half">
+                            <label for="closedOn" class="form-label">[[#{sire.closedOn}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="date" th:field="*{closedOn}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'closedOn')}"
+                                   th:max="${@formFields.maxDate(form, 'closedOn')}" aria-describedby="closedOnHint">
+                            <div class="invalid-feedback" th:errors="*{closedOn}"></div>
+                            <div id="closedOnHint" class="form-text" th:text="#{sire.form.closedHint}">Enter the date it was closed to close it.</div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="${observation == null} ? #{sire.observation.addButton} : #{form.save}">Add observation</button>
+                    <a class="btn btn-ghost" th:href="@{${base}(inspection=${inspection.id})}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

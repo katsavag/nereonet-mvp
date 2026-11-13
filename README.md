@@ -39,9 +39,13 @@ Requirements: Java 25, Docker.
    calculated 21 Oct 2026, each with its sample report from `samples/rightship/` (read from the working directory, so
    start the app from the project folder): **ALDER** (9300001, Safety Score 3/5, GHG C unverified, inspection valid
    for 38 more days), **LAUREL** (9400007, 5/5, A+ verified, 9 months) and **ROWAN** (9500003, 4/5, B verified,
-   6 months). MV Demo has no RightShip data. So the sidebar shows **Vetting 1** and the Overview lists ALDER's
-   inspection (see 25). The sample reports are synthetic images made for the demo, not RightShip documents. The demo
-   ship is found by its IMO number 9074729 (the vetting vessels sort before it by name).
+   6 months). MV Demo has no RightShip data. The sample reports are synthetic images made for the demo, not
+   RightShip documents. The demo ship is found by its IMO number 9074729 (the vetting vessels sort before it by name).
+   Since P41 (once, while there is no ship with IMO 9600009) the tanker **BIRCH** (9600009) with the SIRE 2.0
+   inspection of the synthetic sample report `samples/sire/birch-sire-sample.pdf` (fictional vessel and company, not
+   an OCIMF document): 12 Jun 2026 at Piraeus, published 26 Jun 2026, five observations, three closed, one open
+   (target in 30 days) and one overdue (target 12 days ago), with the PDF as its report. So the sidebar shows
+   **Vetting 2** and the Overview lists ALDER's inspection and BIRCH's overdue observation (see 25).
 
    The schema is updated by Hibernate, which cannot add a required column to a table that already has
    rows (you get "column ... does not exist" errors). Then either add the column by hand or empty the
@@ -67,8 +71,10 @@ Requirements: Java 25, Docker.
    each row, so it can be cleared without visiting other pages first. Under the title one summary line ("5 ships ·
    84 crew · 3 open items": active ships, enabled crew on them, open items); the page action is **New announcement**.
    - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
-     1. certificate expired; then (P40, see 25) a vessel's RightShip inspection expired, unacceptable or expiring
-     within 60 days, and a RightShip Safety Score of 2 or below, each with **Open RightShip**;
+     1. certificate expired; then (P40, P41, see 25) a vessel's vetting: SIRE 2.0 operator comments overdue or due
+     within 3 days, RightShip inspection expired, unacceptable or expiring within 60 days, SIRE 2.0 report no longer
+     current or ending within 60 days, a SIRE 2.0 observation past its target date, and a RightShip Safety Score of 2
+     or below, each with **Open RightShip** or **Open SIRE 2.0**;
      2. certificate expiring within 30 days (UTC dates); 3. order sent by a ship and not
      exported (P36: SENT, CONFIRMED or CLOSED, `exportedAt` empty);
      4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
@@ -90,9 +96,10 @@ Requirements: Java 25, Docker.
      Ships with open items come first, then by name. A zero is a muted dash and not a link; any other number links to
      its list filtered to that ship and condition: `/office/crew?shipId=…`, `/office/certificates?shipId=…&status=expired,30`,
      `/office?type=acknowledgements&shipId=…`, `/office/orders?shipId=…&exported=no`.
-   - `DashboardService.load()` always runs the same 8 queries, whatever the size of the fleet (active ships, crew per
-     ship, and one per kind of open item, RightShip included since P40, in `dashboard/DashboardQueries`);
-     `DashboardFlowTest` checks it. The RightShip rows link their full list to `/office/vetting?status=attention`.
+   - `DashboardService.load()` always runs the same 10 queries, whatever the size of the fleet (active ships, crew per
+     ship, and one per kind of open item, RightShip included since P40, in `dashboard/DashboardQueries`, and SIRE 2.0
+     since P41, two queries in `SireService.attention`); `DashboardFlowTest` checks it. The vetting rows link their
+     full list to `/office/vetting?status=attention`.
    With the dev data an order the Master has sent is a row until the office exports it (24); then the card says
    "Nothing needs your attention".
    - **Set up Nereonet** (first run, P25): a checklist of four steps, each with one line of help and a link to the page
@@ -126,7 +133,7 @@ Requirements: Java 25, Docker.
    **Ship page** (`/office/ships/{id}`, P08): one place per ship. Every tab starts with the same ship header:
    breadcrumbs (Ships › MV Demo), the ship's name as the heading, then IMO number, type, flag and an Active / Inactive
    badge (P40: and, for an active vessel, a row of three compact badges, Safety Score, GHG and inspection, one link to
-   its Vetting page; there is no Vetting tab), with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
+   its Vetting page; there is no Vetting tab; P41: a tanker also gets a SIRE 2.0 badge, "Report current until …"), with **Edit** (the same pop-up as on the list; without JavaScript it opens `/office/ships/{id}/edit`, the
    same form as a page) and a **⋯** menu (**Activate** or **Deactivate**). Edit, Activate and Deactivate come back to
    the tab they were started on. Under the header a tab bar of ordinary links, one URL each, so every tab can be
    bookmarked; each shows a count:
@@ -958,7 +965,9 @@ Requirements: Java 25, Docker.
    `RightShipClient`) and `vetting/` (`VettingController`, `RightShipForm`, `RightShipReportForm`); templates in
    `templates/vetting/`, styles in `app.css` section "Vetting (P40)".
    - **Vetting** in the sidebar (Operations, after Certificates; a shield with a tick), with the number of active
-     vessels whose RightShip inspection has expired or expires within 60 days ("1 expired or expiring").
+     vessels whose RightShip inspection has expired or expires within 60 days, or (P41) whose SIRE 2.0 needs attention
+     (comments overdue or due within 3 days, report no longer current or ending within 60 days, an observation past
+     its target date), each vessel once ("2 need attention").
    - **`/office/vetting`**: every active vessel: name (and IMO number), type, Safety Score ("3/5" with a five-segment
      bar, "0/5", or "N/A" when not rated), GHG Rating, RightShip inspection (a badge with icon and words: "Valid until
      21 Dec 2026", "Expires in 38 days", "Expired", "Unacceptable", "Not required", "No inspection") and valid-until
@@ -966,10 +975,11 @@ Requirements: Java 25, Docker.
      rated last), then name. Search (name or IMO number), filters **Vessel type** and **Status** (All, Needs
      attention: inspection expired / unacceptable / expiring or Safety Score 2 or below; Valid; Not rated), sorting by
      column and pages (P19); the list is worked out in memory (the fleet is small). The whole row opens the vessel's
-     Vetting page. A "SIRE 2.0" column is reserved for P41.
-   - **`/office/vetting/{shipId}`**: a card per vetting regime (RightShip now; SIRE 2.0 in P41), the whole card opening
-     the regime's page. Breadcrumbs Vetting › vessel; **Open vessel** goes to the vessel page. An inactive or unknown
-     vessel is a 404 on every Vetting page below it.
+     Vetting page. P41: a **SIRE 2.0** column (see SIRE 2.0 below) and a **Regime** filter.
+   - **`/office/vetting/{shipId}`**: a card per vetting regime, the whole card opening the regime's page. Breadcrumbs
+     Vetting › vessel; **Open vessel** goes to the vessel page. An inactive or unknown vessel is a 404 on every Vetting
+     page below it. P41: a tanker shows SIRE 2.0 first, then RightShip; any other type RightShip first and, while it
+     has no SIRE inspection, SIRE 2.0 as one muted line ("SIRE 2.0 applies to tankers.") with **Add inspection**.
    - **`/office/vetting/{shipId}/rightship`**: from 992 px two columns, the dashboard (7/12) and the official document
      (5/12); below that the document comes after the dashboard. No chart library and no script needed.
      - Score header: the vessel, "RightShip Safety Score", the bar and the large "3/5", type and calculation date.
@@ -1018,6 +1028,47 @@ Requirements: Java 25, Docker.
      data refreshed". The JSON field names are read leniently in `HttpRightShipClient`, the one place to adjust them.
    - Tests: `vetting/RightShipFlowTest` (a fake `RightShipClient`), the counter in `layout/NavigationFlowTest`, the dev
      data and the Overview's query count in `DashboardFlowTest`.
+   - **SIRE 2.0** (P41): the OCIMF inspections of tankers, entered by hand from the report (the app never connects to
+     OCIMF; no PIQ, booking or CDI). `core/vetting/` (`SireInspection`, `SireObservation`, `SireService`, `SireView`,
+     `SireSettings`, `SireStatus`, `SireReportState`, `ObservationType`, `ObservationStatus`) and `vetting/`
+     (`SireController`, `SireInspectionForm`, `SireReportForm`, `SireObservationForm`); styles in `app.css` section
+     "SIRE 2.0 (P41)". Every figure comes from the vessel's latest inspection (by inspection date).
+     - Kept per inspection: date, port, submitting company, inspector, report reference, report status (Draft
+       received, Operator comments sent, Published), published on, and the report (one PDF, replaced by a new upload).
+       Per observation: VIQ chapter (1 to 12, with its name), question number ("9.1.2"), type (Hardware, Process,
+       Human), the observation, operator comment, corrective action, owner (an office user), target date and closed
+       on. Status: Closed once it has a closed date, Overdue when open past its target date, else Open.
+     - Two company settings, shown on the SIRE page as company policy, not OCIMF rules: `SIRE_REPORT_CURRENT_MONTHS`
+       (default 12: a report is treated as current until that many months after the inspection, "Report current until
+       12 Jun 2027"; ending within 60 days is a warning, after it "Report no longer current since …") and
+       `SIRE_COMMENT_DAYS` (default 14: while the report is Draft received, operator comments are due that many days
+       after its published date, or the inspection date while there is none).
+     - **List column**: "Published · 12 Jun 2026 · 2 open" (status, inspection date, open observations, overdue ones
+       included) over one badge for what needs attention (comments due or overdue, report ending or no longer current,
+       "1 overdue"); a muted dash without an inspection. Sorts by the latest
+       inspection date. **Regime**: All, RightShip, SIRE 2.0 (only tankers and vessels with a SIRE inspection); with a
+       regime chosen, **Status** looks at that regime only (Not rated: no SIRE inspection yet). Needs attention, and the
+       urgency order, take both regimes.
+     - **`/office/vetting/{shipId}/sire`**: the RightShip page's frame. Breadcrumbs Vetting › vessel › SIRE 2.0. The
+       inspection header (date, status, report current until, port, submitting company, inspector, reference,
+       published on, the policy note), the operator comment banner while the draft is received ("Operator comments due
+       26 Jun 2026 · in 5 days": info, within 3 days warning, then danger, "2 days overdue"), the observations
+       ("5 observations · 2 open", counts by type, by VIQ chapter and question number; **Open** by default or **All**,
+       `?show=all`; each row opens its edit form) and the report card (**Open** inline in a new tab, **Download**,
+       `/inspections/{id}/report/file`, private). Earlier inspections are listed and open on the same page
+       (`?inspection={id}`, marked "This is an earlier inspection"). Header: **Open vessel**, **Upload report**,
+       **Add observation**, **Add inspection** (the primary); without an inspection the empty state holds it.
+     - **Add / Edit inspection** (`/sire/inspections/new`, `/{id}/edit`), **Upload report** (`/{id}/report`, a PDF of
+       at most 10 MB, checked by extension and first bytes, stored under `LIBRARY_STORAGE_DIR`), **Add / Edit
+       observation** (`/{id}/observations/new`, `/observations/{oid}/edit`; closing one is entering its closed date).
+       Inspection date within the last 20 years, not in the future; published on not before it; target date 5 years
+       either way. Recorded as "SIRE 2.0 inspection added / updated", "SIRE 2.0 report uploaded", "SIRE 2.0
+       observation added / updated". An inspection or observation of another vessel (or inspection) is a 404.
+     - Elsewhere: the vessel page header's badge row (tankers), the sidebar counter (each vessel once) and three kinds
+       of Overview item (4), each with **Open SIRE 2.0**: operator comments overdue or due within 3 days (before the
+       RightShip inspection), report no longer current or ending within 60 days, and an observation past its target
+       date (linking to its row), both before the Safety Score.
+     - Tests: `vetting/SireFlowTest`.
 
 Run the tests (H2 in memory, no Docker needed):
 
@@ -1210,7 +1261,8 @@ The app makes no request to any other host: everything a page needs is served fr
     - counters, a quiet pill on the right of the entry, hidden when zero, "99+" above 99, with the number in words for
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
       exactly those, `/office/certificates?status=expired,30`, P20), **Vetting** active vessels whose RightShip
-      inspection has expired or expires within 60 days (P40, "2 expired or expiring"), **Orders** sent by the ships and
+      inspection has expired or expires within 60 days (P40) or whose SIRE 2.0 needs attention (P41), each vessel
+      once ("2 need attention"), **Orders** sent by the ships and
       not exported (P36), **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
@@ -1416,6 +1468,8 @@ Set these environment variables:
 | `RIGHTSHIP_CLIENT_SECRET` | optional; the RightShip API client secret |
 | `RIGHTSHIP_TOKEN_URL` | optional; where the OAuth token comes from, default `<RIGHTSHIP_BASE_URL>/oauth/token` |
 | `RIGHTSHIP_SYNC_CRON` | optional; when the nightly RightShip sync runs (UTC), default `0 30 2 * * *` |
+| `SIRE_REPORT_CURRENT_MONTHS` | optional (P41); company policy: months a SIRE 2.0 report is treated as current after the inspection, default `12` (see 25) |
+| `SIRE_COMMENT_DAYS` | optional (P41); company policy: days for the operator comments on a draft SIRE 2.0 report, default `14` |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
 | `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page and as "Questions? Contact: …" in the footer of the invitation and password reset emails, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |

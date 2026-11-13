@@ -45,7 +45,7 @@ public class NavigationService {
         // UTC days, as the certificate badges and the reminder job.
         LocalDate until = LocalDate.now(ZoneOffset.UTC).plusDays(CERTIFICATE_DAYS);
         return new NavCounts(certificateRepository.countByExpiresOnLessThanEqual(until),
-                orderService.countNotExported(), vettingService.inspectionsDue());
+                orderService.countNotExported(), vettingService.vesselsNeedingAttention());
     }
 
     /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */

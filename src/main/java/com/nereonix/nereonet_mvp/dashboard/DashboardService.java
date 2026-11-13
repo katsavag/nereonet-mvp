@@ -32,7 +32,12 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.vetting.InspectionState;
+import com.nereonix.nereonet_mvp.core.vetting.ObservationType;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
+import com.nereonix.nereonet_mvp.core.vetting.SireObservation;
+import com.nereonix.nereonet_mvp.core.vetting.SireReportState;
+import com.nereonix.nereonet_mvp.core.vetting.SireService;
+import com.nereonix.nereonet_mvp.core.vetting.SireView;
 import com.nereonix.nereonet_mvp.dashboard.AttentionType.Group;
 import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
 
@@ -40,9 +45,9 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
  * The office Overview (P09): a work list of open items ("Needs attention") and a fleet table, and the Overview tab of
  * the ship page. Read only.
  *
- * load() always runs the same 8 queries, whatever the size of the fleet: active ships, crew on board per ship, and
+ * load() always runs the same 10 queries, whatever the size of the fleet: active ships, crew on board per ship, and
  * one per kind of open item (certificates, RightShip vetting, orders, invitations, announcements, library items).
- * See DashboardQueries.
+ * See DashboardQueries. SIRE 2.0 (P41) adds two, from SireService.attention: reports and comments, observations.
  */
 @Service
 public class DashboardService {
@@ -63,13 +68,16 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final CertificateRepository certificateRepository;
     private final ShipOrderService orderService;
+    private final SireService sireService;
     // The same setting InvitationService uses for an invitation's expiry date.
     private final int invitationValidDays;
     private final Clock clock = Clock.systemUTC();
 
     public DashboardService(DashboardQueries queries, UserRepository userRepository,
                             CertificateRepository certificateRepository, ShipOrderService orderService,
+                            SireService sireService,
                             @Value("${app.invitation.valid-days:7}") int invitationValidDays) {
+        this.sireService = sireService;
         this.queries = queries;
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
@@ -83,7 +91,8 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, VettingItem, OrderItem, InvitationItem, AnnouncementItem, LibraryAttentionItem {
+            permits CertificateItem, VettingItem, SireItem, OrderItem, InvitationItem, AnnouncementItem,
+            LibraryAttentionItem {
 
         AttentionType type();
 
@@ -107,6 +116,25 @@ public class DashboardService {
 
         public long sortKey() {
             return expiresOn.toEpochDay();
+        }
+    }
+
+    /**
+     * A vessel's SIRE 2.0 item that needs attention (P41), each linking to the vessel's SIRE page.
+     * SIRE_COMMENTS: the operator comments are due on date (daysLeft, negative once overdue); id the inspection.
+     * SIRE_REPORT: the report is current until date (state ENDING or NOT_CURRENT); id the inspection.
+     * SIRE_OBSERVATION: an open observation (question, observationType) past its target date; id the observation.
+     */
+    public record SireItem(AttentionType type, Long id, FleetShip ship, LocalDate date, long daysLeft,
+                           SireReportState state, String question, ObservationType observationType)
+            implements AttentionItem {
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return date.toEpochDay();
         }
     }
 
@@ -293,6 +321,23 @@ public class DashboardService {
                 all.add(new VettingItem(AttentionType.VETTING_SCORE, v.id(), vessel, state, v.inspectionValidUntil(),
                         0, v.safetyScore()));
             }
+        }
+        SireService.Attention sire = sireService.attention(today);
+        for (SireView s : sire.inspections()) {
+            FleetShip vessel = shipsById.get(s.inspection().getShip().getId());
+            if (s.commentsUrgent()) {
+                all.add(new SireItem(AttentionType.SIRE_COMMENTS, s.inspection().getId(), vessel, s.commentsDueOn(),
+                        s.commentsDaysLeft(), s.reportState(), null, null));
+            }
+            if (s.reportState().needsAttention()) {
+                all.add(new SireItem(AttentionType.SIRE_REPORT, s.inspection().getId(), vessel, s.currentUntil(),
+                        s.currentDaysLeft(), s.reportState(), null, null));
+            }
+        }
+        for (SireObservation o : sire.overdueObservations()) {
+            all.add(new SireItem(AttentionType.SIRE_OBSERVATION, o.getId(),
+                    shipsById.get(o.getInspection().getShip().getId()), o.getTargetDate(),
+                    ChronoUnit.DAYS.between(today, o.getTargetDate()), null, o.getQuestionNumber(), o.getType()));
         }
         for (DashboardQueries.OrderRow o : queries.ordersNotExported()) {
             all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));

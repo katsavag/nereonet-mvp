@@ -63,8 +63,9 @@
 </a>
 
 <!-- The vessel page header's badge row (P40, ship/parts :: header): Safety Score, GHG Rating and inspection in brief,
-     one link to the vessel's Vetting page. Active vessels only (an inactive vessel has no Vetting page). -->
-<a th:fragment="vesselBadges(ship, view)" th:if="${ship.active}" class="vetting-badges"
+     one link to the vessel's Vetting page. Active vessels only (an inactive vessel has no Vetting page). P41: for a
+     tanker (sire not null) the SIRE 2.0 report as well. -->
+<a th:fragment="vesselBadges(ship, view, sire)" th:if="${ship.active}" class="vetting-badges"
    th:href="@{/office/vetting/{id}(id=${ship.id})}">
     <span class="visually-hidden" th:text="#{vetting.badges.label}">Vetting:</span>
     <span class="vetting-badge">
@@ -80,7 +81,146 @@
         <span class="vetting-badge-label" th:text="#{vetting.inspection.short}">Inspection</span>
         <th:block th:replace="~{vetting/parts :: inspectionBadge(${view})}"></th:block>
     </span>
+    <span th:if="${sire != null}" class="vetting-badge">
+        <span class="vetting-badge-label" th:text="#{sire.title}">SIRE 2.0</span>
+        <th:block th:replace="~{vetting/parts :: sireReport(${sire})}"></th:block>
+    </span>
 </a>
+
+<!-- SIRE 2.0 (P41). sire: a core/vetting/SireView (a vessel's latest inspection, or the one the SIRE page shows;
+     inspection null when it has none). The pattern: app.css, section "SIRE 2.0 (P41)". -->
+
+<!-- Whether the report is current, an icon and words (P02 tones): "Report current until 12 Jun 2027" (ok; warning
+     with a clock in its last 60 days), "Report no longer current since 12 Jun 2027" (danger), "No inspection". -->
+<th:block th:fragment="sireReport(sire)" th:with="state=${sire.reportState()},
+        until=${sire.currentUntil() != null} ? ${@dates.date(sire.currentUntil())} : '',
+        reportLabel=${state.name() == 'NONE'} ? #{sire.report.NONE}
+            : (${state.name() == 'NOT_CURRENT'} ? #{sire.report.NOT_CURRENT(${until})} : #{sire.report.current(${until})})">
+    <span th:replace="~{layout/parts :: statusIcon(${state.tone()}, ${reportLabel}, ${state.icon()})}"></span>
+</th:block>
+
+<!-- The latest inspection in one line: "Published · 12 Jun 2026 · 2 open", or a muted dash without one. -->
+<th:block th:fragment="sireLatest(sire)">
+    <span th:if="${sire.hasData()}" class="sire-latest"
+          th:with="statusLabel=#{${sire.status().messageKey()}},
+                   latestLabel=#{sire.latest(${statusLabel}, ${@dates.date(sire.inspectionDate())})}"
+          th:text="${latestLabel} + (${sire.open() > 0} ? ' · ' + #{sire.openCount(${sire.open()})} : '')">Published · 12 Jun 2026 · 2 open</span>
+    <span th:unless="${sire.hasData()}" class="text-body-secondary">—</span>
+</th:block>
+
+<!-- What needs attention first, as one badge (the Vetting list): comments overdue or due within 3 days, the report no
+     longer current, observations overdue, the report ending within 60 days. Nothing when all is well. -->
+<th:block th:fragment="sireAttention(sire)" th:if="${sire.needsAttention()}"
+          th:with="state=${sire.reportState().name()},
+                   tone=${sire.attentionTone()},
+                   attentionLabel=${sire.commentsOverdue()} ? #{sire.comments.overdueShort}
+                       : (${sire.commentsUrgent()} ? #{sire.comments.dueShort(${sire.commentsDaysLeft()})}
+                       : (${state == 'NOT_CURRENT'} ? #{sire.report.notCurrentShort}
+                       : (${sire.overdue() > 0} ? #{sire.overdueCount(${sire.overdue()})}
+                       : #{sire.report.endingShort(${sire.currentDaysLeft()})})))">
+    <span class="sire-attention"><span th:replace="~{layout/parts :: statusIcon(${tone}, ${attentionLabel},
+            ${tone == 'danger'} ? 'alert' : 'clock')}"></span></span>
+</th:block>
+
+<!-- An observation's type, in words ("Hardware"): a plain outlined badge, the same for every type. -->
+<span th:fragment="sireType(type)" class="badge sire-type" th:text="#{${type.messageKey()}}">Hardware</span>
+
+<!-- An observation's status: "Open" (info, clock), "Overdue" (danger, warning sign), "Closed" (ok, tick). -->
+<th:block th:fragment="sireObservationStatus(status)"><span
+        th:replace="~{layout/parts :: statusIcon(${status.tone()}, #{${status.messageKey()}}, ${status.icon()})}"></span></th:block>
+
+<!-- The SIRE 2.0 card of a vessel's Vetting page: the latest inspection's date, report status, observations
+     ("5 observations · 2 open") and whether the report is current; the whole card opens the SIRE page (a stretched
+     link on its title). applies: the vessel is a tanker. Elsewhere, while the vessel has no inspection, the card
+     collapses to one muted line, "SIRE 2.0 applies to tankers", with Add inspection still there. -->
+<th:block th:fragment="sireCard(ship, sire, applies)"
+          th:with="sireUrl=${'/office/vetting/' + ship.id + '/sire'}, addUrl=${'/office/vetting/' + ship.id + '/sire/inspections/new'}">
+    <section th:if="${applies or sire.hasData()}" class="card regime-card" aria-labelledby="regimeSire">
+        <div class="card-body">
+            <div class="regime-card-head">
+                <h2 class="regime-card-title" id="regimeSire">
+                    <a class="stretched-link" th:href="@{${sireUrl}}" th:text="#{sire.title}">SIRE 2.0</a>
+                </h2>
+                <svg class="regime-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                     focusable="false"><path d="m9 6 6 6-6 6"/></svg>
+            </div>
+            <th:block th:unless="${sire.hasData()}">
+                <p class="regime-card-empty" th:text="#{sire.noData}">No SIRE 2.0 inspection yet.</p>
+                <a class="btn btn-outline-secondary regime-card-action" th:href="@{${addUrl}}" th:text="#{sire.inspection.add}">Add inspection</a>
+            </th:block>
+            <dl th:if="${sire.hasData()}" class="regime-facts">
+                <div>
+                    <dt th:text="#{sire.latestInspection}">Latest inspection</dt>
+                    <dd><time th:replace="~{layout/parts :: localDate(${sire.inspectionDate()})}"></time></dd>
+                </div>
+                <div>
+                    <dt th:text="#{sire.status}">Report status</dt>
+                    <dd th:text="#{${sire.status().messageKey()}}">Published</dd>
+                </div>
+                <div>
+                    <dt th:text="#{sire.observations}">Observations</dt>
+                    <dd th:text="#{sire.observationsSummary(${sire.total()}, ${sire.open()})}">5 observations · 2 open</dd>
+                </div>
+                <div>
+                    <dt th:text="#{sire.report}">Report</dt>
+                    <dd><th:block th:replace="~{vetting/parts :: sireReport(${sire})}"></th:block></dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+    <section th:unless="${applies or sire.hasData()}" class="card card-grid-wide regime-card-collapsed"
+             aria-labelledby="regimeSire">
+        <div class="card-body">
+            <p class="regime-card-empty" id="regimeSire" th:text="#{sire.notApplicable}">SIRE 2.0 applies to tankers.</p>
+            <a class="btn btn-ghost" th:href="@{${addUrl}}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{sire.inspection.add}">Add inspection</span>
+                <span class="visually-hidden" th:text="#{sire.title}">SIRE 2.0</span>
+            </a>
+        </div>
+    </section>
+</th:block>
+
+<!-- The RightShip card of a vessel's Vetting page (P40): Safety Score, GHG Rating and inspection; the whole card
+     opens the RightShip page. -->
+<section th:fragment="rightShipCard(ship, rs)" class="card regime-card" aria-labelledby="regimeRightShip">
+    <div class="card-body">
+        <div class="regime-card-head">
+            <h2 class="regime-card-title" id="regimeRightShip">
+                <a class="stretched-link" th:href="@{/office/vetting/{id}/rightship(id=${ship.id})}"
+                   th:text="#{vetting.rightship}">RightShip</a>
+            </h2>
+            <svg class="regime-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                 focusable="false"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <p th:unless="${rs.hasData()}" class="regime-card-empty" th:text="#{vetting.rightship.noData}">No RightShip data yet.</p>
+        <dl th:if="${rs.hasData()}" class="regime-facts">
+            <div>
+                <dt th:text="#{vetting.score}">Safety Score</dt>
+                <dd class="score-cell">
+                    <span th:replace="~{vetting/parts :: scoreBar(${rs.score()}, ${rs.scoreTone()}, null)}"></span>
+                    <span th:replace="~{vetting/parts :: scoreText(${rs})}">3/5</span>
+                </dd>
+            </div>
+            <div>
+                <dt th:text="#{vetting.ghg}">GHG Rating</dt>
+                <dd><span th:replace="~{vetting/parts :: ghg(${rs})}">C</span></dd>
+            </div>
+            <div>
+                <dt th:text="#{vetting.inspection}">RightShip inspection</dt>
+                <dd><th:block th:replace="~{vetting/parts :: inspectionBadge(${rs})}"></th:block></dd>
+            </div>
+        </dl>
+    </div>
+</section>
+
+<!-- The breadcrumbs of the SIRE 2.0 forms: Vetting, the vessel, SIRE 2.0 (the form's own name follows). -->
+<th:block th:fragment="sireCrumbs(ship)">
+    <th:block th:replace="~{vetting/parts :: crumbs(${ship}, true)}"></th:block>
+    <li th:replace="~{layout/parts :: crumb(#{sire.title}, ${'/office/vetting/' + ship.id + '/sire'})}"></li>
+</th:block>
 
 </body>
 </html>

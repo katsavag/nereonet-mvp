@@ -10,8 +10,14 @@ public enum AttentionType {
 
     /** A certificate past its expiry date. */
     CERTIFICATE_EXPIRED(Group.CERTIFICATES),
+    /** A vessel's SIRE 2.0 operator comments due within 3 days, or overdue (P41): a deadline that cannot be missed. */
+    SIRE_COMMENTS(Group.VETTING),
     /** A vessel's RightShip inspection expired, unacceptable or expiring within 60 days (P40). */
     VETTING_INSPECTION(Group.VETTING),
+    /** A vessel's latest SIRE 2.0 report no longer current, or current for 60 days at most (P41). */
+    SIRE_REPORT(Group.VETTING),
+    /** An open SIRE 2.0 observation past its target date, on a vessel's latest inspection (P41). */
+    SIRE_OBSERVATION(Group.VETTING),
     /** A vessel's RightShip Safety Score of 2 or below (P40). */
     VETTING_SCORE(Group.VETTING),
     /** A certificate expiring within DashboardService.OPEN_ITEM_CERTIFICATE_DAYS. */

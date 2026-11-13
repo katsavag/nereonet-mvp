@@ -4610,7 +4610,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        only carrier of the rating.
      - .vetting-badges: the vessel page header's row of three badges (score, GHG, inspection), one link to the
        vessel's Vetting page; a 40px touch target (44px on phones).
-     - .regime-card: a vetting regime on a vessel's Vetting page (RightShip; SIRE 2.0 in P41); the title is a
+     - .regime-card: a vetting regime on a vessel's Vetting page (RightShip, SIRE 2.0); the title is a
        .stretched-link, so the whole card opens the regime's page.
      - .rightship-layout: the RightShip page, 7/12 dashboard and 5/12 document from 992px (Bootstrap's row), the
        document after the dashboard below. .rs-score: the score header; .rs-subscore: one subscore row (name, bar,
@@ -4977,3 +4977,216 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
 }
 .form-section > legend + .form-subhead { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   SIRE 2.0 (P41): vetting/sire.html, sire-inspection.html, sire-report.html, sire-observation.html, and the SIRE
+   parts of vetting/parts.html (the Vetting list's column, the vessel's card, the vessel page's badge).
+     - The SIRE page uses the RightShip page's frame (.rightship-layout, 7/12 and 5/12 from 992px; .rs-* facts,
+       document card and earlier list), so both regimes read the same.
+     - .regime-card-collapsed: on a vessel type where SIRE 2.0 does not usually apply, its card as one muted line
+       across the grid, with Add inspection. .regime-card-action: a button inside a card whose title is a stretched
+       link, lifted above that link so it gets its own click.
+     - .sire-latest / .sire-attention: the list's cell, "Published · 12 Jun 2026 · 2 open" over one badge.
+     - .sire-comments: the operator comment banner (Bootstrap alert info / warning / danger) with its icon; the
+       words carry the state ("due in 5 days", "2 days overdue").
+     - .sire-head: the inspection header; .sire-head-date the large inspection date; .sire-policy the company
+       policy note, muted, under a divider.
+     - .sire-figures: Hardware, Process and Human as three small figures. .sire-chapter: a VIQ chapter heading,
+       as .rs-impact. .sire-observation: one row, question number, then the description (a stretched link to the
+       edit form, so the whole row opens it) with its type, owner and date, then the status badge; at least the
+       touch target high, a focus ring around the row. On phones the status moves under the description.
+     - .sire-type: an observation's type, an outlined badge in the text colour, the same for every type.
+   Text pairs: every text uses the page's text colours (--nn-text 15:1, --nn-text-secondary 6.6:1 on the surface);
+   badges and alerts as everywhere.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-sire-date: 1.75rem;           /* 28px, the inspection date in the header */
+    --nn-sire-figure: 1.5rem;          /* 24px, the three type figures */
+    --nn-sire-question-width: 3.75rem; /* "10.12.3" */
+}
+
+/* The vessel's Vetting page */
+.regime-card-action {
+    position: relative;
+    z-index: 2;
+    margin-top: var(--nn-space-3);
+}
+.regime-card-collapsed > .card-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding-block: var(--nn-space-2);
+}
+.regime-card-collapsed .btn { min-height: var(--nn-touch-target); }
+/* A long badge ("Report current until 12 Jun 2027") wraps in the facts' narrow column on phones. */
+.regime-facts .badge {
+    white-space: normal;
+    text-align: start;
+}
+
+/* The Vetting list */
+.sire-latest { display: block; }
+.sire-attention { display: block; margin-top: var(--nn-space-1); }
+
+/* The SIRE page */
+.sire-earlier-note,
+.sire-comments { margin-bottom: var(--nn-section-gap); }
+.sire-earlier-note a { margin-left: var(--nn-space-2); }
+.sire-comments {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+}
+.sire-comments-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+}
+.sire-comments-text { margin: 0; }
+
+.sire-head-body {
+    display: grid;
+    gap: var(--nn-space-3);
+}
+.sire-head-date {
+    margin: 0 0 var(--nn-space-2);
+    font-size: var(--nn-sire-date);
+    font-weight: 700;
+    line-height: 1.2;
+}
+.sire-head-report { margin: 0; }
+.sire-head-facts > div { grid-template-columns: 10rem minmax(0, 1fr); }
+.sire-head-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2);
+    margin: 0;
+}
+.sire-head-footer .btn { min-height: var(--nn-touch-target); }
+.sire-policy {
+    margin: 0;
+    padding-top: var(--nn-space-3);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.sire-policy-empty { margin: 0 var(--nn-card-padding) var(--nn-card-padding); }
+
+.sire-observations-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+}
+.sire-observations-header .view-switch { margin-bottom: 0; }
+.sire-summary {
+    margin: 0 0 var(--nn-space-3);
+    font-weight: 600;
+}
+.sire-figures {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--nn-space-3);
+    margin: 0 0 var(--nn-space-4);
+    padding: 0;
+    list-style: none;
+}
+.sire-figure {
+    display: grid;
+    gap: 2px;
+    padding: var(--nn-space-2) var(--nn-space-3);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.sire-figure-value {
+    font-size: var(--nn-sire-figure);
+    font-weight: 700;
+    line-height: 1.2;
+}
+.sire-figure-label {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.sire-none { margin: 0; color: var(--nn-text-secondary); }
+
+.sire-chapter {
+    margin: var(--nn-space-4) 0 var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.sire-figures + .sire-chapter { margin-top: 0; }
+.sire-observation-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.sire-observation {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--nn-sire-question-width) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-2) var(--nn-space-2);
+    border-bottom: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.sire-observation-list:last-child > .sire-observation:last-child { border-bottom: 0; }
+.sire-observation:hover { background-color: var(--nn-hover); }
+.sire-observation:focus-within { box-shadow: 0 0 0 var(--nn-focus-width) var(--nn-focus-color); }
+.sire-observation .stretched-link:focus-visible { outline: none; }
+.sire-observation:target { background-color: var(--nn-hover); }
+.sire-question { font-weight: 600; padding-top: 1px; }
+.sire-observation-main { min-width: 0; }
+.sire-observation-link {
+    color: var(--nn-text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.sire-observation:hover .sire-observation-link { text-decoration: underline; }
+.sire-observation-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--nn-space-2);
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.sire-observation-status { justify-self: end; }
+@media (max-width: 575.98px) {
+    .sire-observation {
+        grid-template-columns: var(--nn-sire-question-width) minmax(0, 1fr);
+        min-height: 44px;
+    }
+    .sire-observation-status { grid-column: 2; justify-self: start; }
+    .sire-head-facts > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+    .sire-figures { gap: var(--nn-space-2); }
+}
+
+.sire-type {
+    padding: 2px var(--nn-space-2);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-badge);
+    background-color: var(--nn-surface);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    color: var(--nn-text);
+}
+
+/* Add observation: the three types side by side. */
+.sire-type-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2) var(--nn-space-4);
+}
+.sire-type-options .form-check-inline { margin-right: 0; }

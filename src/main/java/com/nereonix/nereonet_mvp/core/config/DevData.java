@@ -43,7 +43,12 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 import com.nereonix.nereonet_mvp.core.vetting.GhgRating;
 import com.nereonix.nereonet_mvp.core.vetting.InspectionOutcome;
+import com.nereonix.nereonet_mvp.core.vetting.ObservationType;
 import com.nereonix.nereonet_mvp.core.vetting.ShipRightShipStatus;
+import com.nereonix.nereonet_mvp.core.vetting.SireInspection;
+import com.nereonix.nereonet_mvp.core.vetting.SireObservation;
+import com.nereonix.nereonet_mvp.core.vetting.SireService;
+import com.nereonix.nereonet_mvp.core.vetting.SireStatus;
 import com.nereonix.nereonet_mvp.core.vetting.Subscore;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
@@ -54,6 +59,7 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 // one from the Chief cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's
 // request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
 // P40: once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
+// P41: once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -66,6 +72,10 @@ public class DevData implements ApplicationRunner {
     // P40: ALDER, LAUREL and ROWAN, the RightShip demo vessels.
     private static final List<String> VETTING_IMOS = List.of("9300001", "9400007", "9500003");
     private static final LocalDate RIGHTSHIP_DATE = LocalDate.of(2026, 10, 21);
+    // P41: BIRCH, the SIRE 2.0 demo tanker, and the dates of its synthetic sample report.
+    private static final String SIRE_IMO = "9600009";
+    private static final LocalDate SIRE_INSPECTION_DATE = LocalDate.of(2026, 6, 12);
+    private static final LocalDate SIRE_PUBLISHED_ON = LocalDate.of(2026, 6, 26);
 
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
@@ -77,13 +87,15 @@ public class DevData implements ApplicationRunner {
     private final CrewProfileRepository profileRepository;
     private final RequestService requestService;
     private final VettingService vettingService;
+    private final SireService sireService;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    LibraryItemRepository libraryItemRepository, LibraryItemVersionRepository libraryVersionRepository,
                    CrewProfileRepository profileRepository, RequestService requestService,
-                   VettingService vettingService) {
+                   VettingService vettingService, SireService sireService) {
         this.vettingService = vettingService;
+        this.sireService = sireService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -108,7 +120,8 @@ public class DevData implements ApplicationRunner {
         }
         // The demo ship by its IMO number: the RightShip demo vessels (P40) sort before it by name.
         Ship firstShip = shipRepository.findByImoNumber(DEMO_SHIP_IMO).orElseGet(() -> shipRepository
-                .findAllByOrderByNameAsc().stream().filter(s -> !VETTING_IMOS.contains(s.getImoNumber())).findFirst()
+                .findAllByOrderByNameAsc().stream()
+                .filter(s -> !VETTING_IMOS.contains(s.getImoNumber()) && !SIRE_IMO.equals(s.getImoNumber())).findFirst()
                 .orElseGet(() -> shipRepository.findAllByOrderByNameAsc().getFirst()));
         if (requestRepository.count() == 0) {
             // A fresh database: the Master who approves the seeded requests (the Chief cook comes with them).
@@ -131,6 +144,78 @@ public class DevData implements ApplicationRunner {
         if (!shipRepository.existsByImoNumber(VETTING_IMOS.getFirst())) {
             vettingDemo();
         }
+        if (!shipRepository.existsByImoNumber(SIRE_IMO)) {
+            sireDemo();
+        }
+    }
+
+    // P41: the tanker BIRCH with the SIRE 2.0 inspection of its synthetic sample report (samples/sire, read from the
+    // working directory; "Sample report · Synthetic vessel data", no real company): Piraeus, 12 Jun 2026, published
+    // 26 Jun 2026, and its five observations, two Hardware, two Process, one Human. Three are closed, one is open
+    // (target in 30 days) and one is overdue (target 12 days ago), so BIRCH counts in the sidebar and the Overview
+    // lists the overdue one.
+    private void sireDemo() {
+        Ship ship = new Ship();
+        ship.setImoNumber(SIRE_IMO);
+        ship.setName("BIRCH");
+        ship.setType(ShipType.TANKER);
+        ship.setCreatedAt(Instant.now());
+        shipRepository.save(ship);
+
+        SireInspection values = new SireInspection();
+        values.setInspectionDate(SIRE_INSPECTION_DATE);
+        values.setPort("Piraeus, Greece");
+        values.setSubmittingCompany("Demo Energy Ltd (fictional)");
+        values.setReportReference("DEMO-SIRE-0001");
+        values.setStatus(SireStatus.PUBLISHED);
+        values.setPublishedOn(SIRE_PUBLISHED_ON);
+        SireInspection inspection = sireService.addInspection(ship, values, null);
+
+        User owner = userRepository.findAllByRoleOrderByFullNameAsc(Role.OFFICE_USER).stream().findFirst().orElse(null);
+        LocalDate today = VettingService.today();
+        sireObservation(inspection, 5, "5.4.1", ObservationType.HARDWARE,
+                "Bridge navigation light indicator panel lamp failed.", "Lamp replaced on the day of the inspection.",
+                "Spare lamps added to the bridge spares list.", owner, LocalDate.of(2026, 7, 10), LocalDate.of(2026, 6, 20));
+        sireObservation(inspection, 8, "8.2.3", ObservationType.PROCESS,
+                "Cargo transfer checklist not fully signed for last discharge.", "Checklist completed and signed.",
+                "Cargo officers briefed on the checklist sign-off.", owner, LocalDate.of(2026, 7, 31), LocalDate.of(2026, 7, 24));
+        sireObservation(inspection, 9, "9.1.2", ObservationType.HARDWARE,
+                "Fire main isolating valve hard to operate on deck.", "Valve to be overhauled at the next port call.",
+                "Overhaul the valve and add it to the planned maintenance.", owner, today.minusDays(12), null);
+        sireObservation(inspection, 4, "4.1.6", ObservationType.PROCESS,
+                "Familiarisation record missing for one rating.", "Record completed on board.",
+                "Familiarisation checklist added to the joining procedure.", owner, LocalDate.of(2026, 8, 15), LocalDate.of(2026, 8, 14));
+        sireObservation(inspection, 7, "7.3.1", ObservationType.HUMAN,
+                "Officer unsure of emergency stop location for cargo pumps.", null,
+                "Emergency stop drill for all cargo officers.", owner, today.plusDays(30), null);
+
+        Path file = Path.of("samples", "sire", "birch-sire-sample.pdf");
+        if (!Files.isRegularFile(file)) {
+            log.warn("No sample SIRE report {}: BIRCH gets none (run from the project folder)", file);
+        } else {
+            try (InputStream in = Files.newInputStream(file)) {
+                sireService.saveReport(inspection, in, file.getFileName().toString(), Files.size(file), null);
+            } catch (IOException e) {
+                log.warn("Could not read the sample SIRE report {}", file, e);
+            }
+        }
+        log.info("Created SIRE 2.0 demo vessel BIRCH");
+    }
+
+    private void sireObservation(SireInspection inspection, int chapter, String question, ObservationType type,
+                                 String description, String comment, String action, User owner, LocalDate target,
+                                 LocalDate closedOn) {
+        SireObservation values = new SireObservation();
+        values.setChapter(chapter);
+        values.setQuestionNumber(question);
+        values.setType(type);
+        values.setDescription(description);
+        values.setOperatorComment(comment);
+        values.setCorrectiveAction(action);
+        values.setOwner(owner);
+        values.setTargetDate(target);
+        values.setClosedOn(closedOn);
+        sireService.addObservation(inspection, values, null);
     }
 
     // P40: three bulk carriers with RightShip data (entered by hand, calculated 21 Oct 2026) and each its synthetic

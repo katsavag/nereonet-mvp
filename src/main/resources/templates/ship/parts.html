@@ -36,8 +36,9 @@
             <span th:text="#{ship.flagValue(${countries[ship.flag] ?: ship.flag})}">Flag Greece (GR)</span></th:block>
         <span th:replace="~{layout/parts :: status(${ship.active} ? 'ok' : 'neutral', ${ship.active} ? #{ship.status.active} : #{ship.status.inactive})}">Active</span>
     </span>
-    <!-- P40: Safety Score, GHG Rating and inspection in brief, linking to the vessel's Vetting page (active only). -->
-    <th:block th:if="${vetting != null}"><a th:replace="~{vetting/parts :: vesselBadges(${ship}, ${vetting})}"></a></th:block>
+    <!-- P40: Safety Score, GHG Rating and inspection in brief, linking to the vessel's Vetting page (active only); P41:
+         a tanker's SIRE 2.0 report too. -->
+    <th:block th:if="${vetting != null}"><a th:replace="~{vetting/parts :: vesselBadges(${ship}, ${vetting}, ${sire})}"></a></th:block>
 </th:block>
 
 <!-- Edit opens the pop-up; without JavaScript the link opens the same form as a page. The forms send the tab, so

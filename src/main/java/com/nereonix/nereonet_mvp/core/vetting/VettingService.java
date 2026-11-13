@@ -10,9 +10,11 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,12 +48,18 @@ import com.nereonix.nereonet_mvp.core.vetting.RightShipClient.VesselInfo;
  * earlier ones as history) and its official RightShip documents (RightShipReport). The office edits the data by hand
  * (saveManual) and uploads the documents; the RightShip API sync (RightShipSyncService) adds rows through applyApi.
  * Every change is in the audit log. Only active vessels have Vetting pages: an inactive or unknown vessel is a 404.
+ * SIRE 2.0 (P41) lives in SireService; the Vetting list and the sidebar counter put both regimes together here.
  */
 @Service
 public class VettingService {
 
     /** The Vetting list's sorts (P19), the default first: most urgent. */
     public static final String SORT_URGENCY = "urgency";
+
+    /** The Vetting list's Regime filter (P41): only RightShip, or only SIRE 2.0 (null: both). */
+    public static final String REGIME_RIGHTSHIP = "rightship";
+    public static final String REGIME_SIRE = "sire";
+    public static final List<String> REGIMES = List.of(REGIME_RIGHTSHIP, REGIME_SIRE);
 
     private final ShipRepository shipRepository;
     private final ShipRightShipStatusRepository statusRepository;
@@ -60,10 +68,13 @@ public class VettingService {
     private final RightShipSettings settings;
     private final LibraryFileStorage fileStorage;
     private final AuditService auditService;
+    private final SireService sireService;
 
     public VettingService(ShipRepository shipRepository, ShipRightShipStatusRepository statusRepository,
                           RightShipReportRepository reportRepository, RightShipSyncRepository syncRepository,
-                          RightShipSettings settings, LibraryFileStorage fileStorage, AuditService auditService) {
+                          RightShipSettings settings, LibraryFileStorage fileStorage, AuditService auditService,
+                          SireService sireService) {
+        this.sireService = sireService;
         this.shipRepository = shipRepository;
         this.statusRepository = statusRepository;
         this.reportRepository = reportRepository;
@@ -81,8 +92,29 @@ public class VettingService {
     // Reading
     // ---------------------------------------------------------------------------------------------------------------
 
-    /** One row of the Vetting list: an active vessel and its standing. */
-    public record VettingRow(Ship ship, RightShipView view) {
+    /** One row of the Vetting list: an active vessel, its RightShip standing and its latest SIRE 2.0 inspection. */
+    public record VettingRow(Ship ship, RightShipView view, SireView sire) {
+
+        /** Most urgent of both regimes: 0 expired or not current (or due), 1 expiring or ending, 2 the rest. */
+        public int urgency() {
+            return Math.min(view.urgency(), sire.urgency());
+        }
+
+        /**
+         * The Status filter this row falls under, for the regime (null: both). Needs attention: either regime's
+         * (RightShip: inspection or low score; SIRE: report, comments or observations). Else Not rated: no RightShip
+         * score, or for the SIRE regime no SIRE inspection. Else Valid.
+         */
+        public String filterStatus(String regime) {
+            if (REGIME_SIRE.equals(regime)) {
+                return sire.needsAttention() ? RightShipView.ATTENTION
+                        : sire.hasData() ? RightShipView.VALID : RightShipView.NOT_RATED;
+            }
+            if (regime == null && sire.needsAttention()) {
+                return RightShipView.ATTENTION;
+            }
+            return view.filterStatus();
+        }
     }
 
     /** The active vessel with this id, or 404 (an inactive vessel has no Vetting pages). */
@@ -106,21 +138,26 @@ public class VettingService {
     }
 
     /**
-     * The Vetting list: every active vessel, searched (name or IMO number), filtered by type and Status
-     * (RightShipView.STATUSES; null: all) and sorted by the list's sort, then name. The fleet is small, so this is
-     * done in memory: two queries, whatever the page.
+     * The Vetting list: every active vessel, searched (name or IMO number), filtered by type, Regime (REGIMES; null:
+     * both) and Status (RightShipView.STATUSES, for the regime; null: all) and sorted by the list's sort, then name.
+     * The SIRE 2.0 regime keeps the tankers and the vessels with a SIRE inspection (it applies to tankers). The
+     * fleet is small, so this is done in memory: four queries, whatever the page.
      */
     @Transactional(readOnly = true)
-    public Page<VettingRow> list(ListQuery list, ShipType type, String status) {
+    public Page<VettingRow> list(ListQuery list, ShipType type, String regime, String status) {
         LocalDate today = today();
         Map<Long, ShipRightShipStatus> current = statusRepository.findAllCurrent().stream()
                 .collect(Collectors.toMap(s -> s.getShip().getId(), Function.identity()));
+        Map<Long, SireView> sire = sireService.latestByShip();
+        SireView noSire = new SireView(null, List.of(), sireService.settings(), today);
         String q = list.getQ() == null ? null : list.getQ().toLowerCase(Locale.ROOT);
         List<VettingRow> rows = new ArrayList<>(shipRepository.findAllByActiveTrueOrderByNameAsc().stream()
                 .filter(s -> q == null || s.getName().toLowerCase(Locale.ROOT).contains(q) || s.getImoNumber().contains(q))
                 .filter(s -> type == null || s.getType() == type)
-                .map(s -> new VettingRow(s, new RightShipView(current.get(s.getId()), today)))
-                .filter(r -> status == null || r.view().filterStatus().equals(status))
+                .map(s -> new VettingRow(s, new RightShipView(current.get(s.getId()), today),
+                        sire.getOrDefault(s.getId(), noSire)))
+                .filter(r -> !REGIME_SIRE.equals(regime) || sireApplies(r.ship()) || r.sire().hasData())
+                .filter(r -> status == null || r.filterStatus(regime).equals(status))
                 .toList());
         rows.sort(order(list.getSort(), list.isDescending()));
         long total = rows.size();
@@ -142,8 +179,10 @@ public class VettingService {
             case "score" -> nullsLast(r -> r.view().score(), descending);
             case "ghg" -> nullsLast(r -> r.view().ghgRated() ? ghgRank(r.view()) : null, descending);
             case "inspection" -> nullsLast(r -> r.view().inspectionValidUntil(), descending);
-            // Most urgent: expired, expiring, then the lowest score (not rated last).
-            default -> Comparator.comparingInt((VettingRow r) -> r.view().urgency())
+            case "sire" -> nullsLast(r -> r.sire().inspectionDate(), descending);
+            // Most urgent of both regimes (P41): expired or not current (or comments or observations due), expiring
+            // or ending, then the lowest score (not rated last).
+            default -> Comparator.comparingInt(VettingRow::urgency)
                     .thenComparing(r -> r.view().score(), Comparator.nullsLast(Comparator.naturalOrder()));
         };
         if (first == null) {
@@ -163,10 +202,22 @@ public class VettingService {
         return Comparator.comparing(key, Comparator.nullsLast(descending ? natural.reversed() : natural));
     }
 
-    /** The sidebar counter of Vetting: active vessels whose inspection is expired or expires within 60 days. */
+    /** SIRE 2.0 applies to tankers (P41): their Vetting page shows it first, the others a collapsed line. */
+    public static boolean sireApplies(Ship ship) {
+        return ship.getType() == ShipType.TANKER;
+    }
+
+    /**
+     * The sidebar counter of Vetting: active vessels whose RightShip inspection is expired or expires within 60 days,
+     * or (P41) whose SIRE 2.0 report is no longer current or ends within 60 days, whose operator comments are due
+     * within 3 days, or with an observation past its target date. Each vessel once. Three queries of ids.
+     */
     @Transactional(readOnly = true)
-    public long inspectionsDue() {
-        return statusRepository.countInspectionDueUntil(today().plusDays(InspectionState.EXPIRING_DAYS));
+    public long vesselsNeedingAttention() {
+        Set<Long> ids = new HashSet<>(statusRepository.findShipIdsInspectionDueUntil(
+                today().plusDays(InspectionState.EXPIRING_DAYS)));
+        ids.addAll(sireService.shipIdsNeedingAttention());
+        return ids.size();
     }
 
     /** The vessel's official documents, newest first; the first is "the official document". */

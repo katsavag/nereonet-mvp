@@ -146,6 +146,38 @@
                     </div>
                 </th:block>
 
+                <!-- SIRE 2.0 (P41), ranked with RightShip: operator comments due within 3 days or overdue, the report no
+                     longer current or ending within 60 days, an observation past its target date. Each opens the
+                     vessel's SIRE page (an observation at its row). -->
+                <th:block th:if="${type == 'SIRE_COMMENTS' or type == 'SIRE_REPORT' or type == 'SIRE_OBSERVATION'}"
+                          th:with="url=@{/office/vetting/{id}/sire(id=${item.ship.id})} + (${type == 'SIRE_OBSERVATION'} ? '#observation-' + ${item.id} : ''),
+                                   overdue=${item.daysLeft < 0},
+                                   tone=${type == 'SIRE_OBSERVATION' or overdue} ? 'danger' : 'warning',
+                                   badgeLabel=${type == 'SIRE_OBSERVATION'} ? #{sire.observation.status.OVERDUE}
+                                       : (${type == 'SIRE_COMMENTS'} ? (${overdue} ? #{sire.comments.overdueShort} : #{dashboard.item.dueIn(${item.daysLeft})})
+                                       : (${overdue} ? #{sire.report.notCurrentShort} : #{sire.report.endingShort(${item.daysLeft})}))">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon(${tone}, ${badgeLabel}, ${tone == 'danger'} ? 'alert' : 'clock')}"></span>
+                            <span th:text="#{sire.title}">SIRE 2.0</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="${type == 'SIRE_COMMENTS'} ? #{dashboard.item.sireComments}
+                               : (${type == 'SIRE_REPORT'} ? #{dashboard.item.sireReport}
+                               : #{dashboard.item.sireObservation(${item.question})})">SIRE 2.0 observation 9.1.2</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">BIRCH</span>
+                            · <span th:text="${type == 'SIRE_COMMENTS'} ? #{dashboard.item.due}
+                                    : (${type == 'SIRE_REPORT'} ? #{dashboard.item.currentUntil} : #{dashboard.item.target})">target</span>
+                            <time th:replace="~{layout/parts :: localDate(${item.date})}"></time>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openSire}">Open SIRE 2.0</a>
+                    </div>
+                </th:block>
+
                 <!-- c. Order a ship has sent and the office has not exported (P36): Open order, where it is confirmed
                      and exported. -->
                 <th:block th:if="${type == 'ORDER_NOT_EXPORTED'}" th:with="url=@{/office/orders/{id}(id=${item.id})}">

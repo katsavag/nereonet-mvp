@@ -62,6 +62,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
+import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -111,6 +112,7 @@ class DashboardFlowTest {
     @Autowired CrewProfileRepository profileRepository;
     @Autowired RequestService requestService;
     @Autowired VettingService vettingService;
+    @Autowired SireService sireService;
 
     @MockitoBean
     MailService mailService;
@@ -225,14 +227,15 @@ class DashboardFlowTest {
     }
 
     // P40: the dev data adds, once, three bulk carriers with RightShip data and each its sample report; ALDER's
-    // inspection expires in 38 days, so the sidebar shows Vetting 1 and the Overview lists it.
+    // inspection expires in 38 days, so the sidebar counts it and the Overview lists it. P41: and the tanker BIRCH
+    // with its SIRE 2.0 inspection, whose overdue observation makes the sidebar show Vetting 2 (see SireFlowTest).
     @Test
     void theDevDataSeedsThreeRightShipVesselsOnce() throws Exception {
         devData().run(null);
         devData().run(null);
 
         assertThat(shipRepository.findAllByOrderByNameAsc()).extracting(Ship::getName)
-                .containsExactly("ALDER", "LAUREL", "MV Demo", "ROWAN");
+                .containsExactly("ALDER", "BIRCH", "LAUREL", "MV Demo", "ROWAN");
         Ship alder = shipRepository.findByImoNumber("9300001").orElseThrow();
         assertThat(vettingService.view(alder).score()).isEqualTo(3);
         assertThat(vettingService.view(alder).inspectionDaysLeft()).isEqualTo(38);
@@ -242,7 +245,7 @@ class DashboardFlowTest {
         assertThat(vettingService.view(shipRepository.findByImoNumber("9074729").orElseThrow()).hasData()).isFalse();
 
         String html = html(get("/office"));
-        assertThat(html).containsPattern("(?s)>Vetting</span>\\s*<span class=\"nav-count num\" aria-hidden=\"true\">1</span>");
+        assertThat(html).containsPattern("(?s)>Vetting</span>\\s*<span class=\"nav-count num\" aria-hidden=\"true\">2</span>");
         assertThat(attentionList(html)).contains("RightShip inspection", "ALDER", "Expires in 38 days");
     }
 
@@ -461,7 +464,7 @@ class DashboardFlowTest {
     }
 
     @Test
-    void loadRunsTheSameEightQueriesWhateverTheFleetSize() {
+    void loadRunsTheSameTenQueriesWhateverTheFleetSize() {
         addShipWithOpenItems();
         long small = queriesOfLoad();
         for (int i = 0; i < 4; i++) {
@@ -470,7 +473,7 @@ class DashboardFlowTest {
         long large = queriesOfLoad();
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
-        assertThat(small).isEqualTo(8);
+        assertThat(small).isEqualTo(10);
         assertThat(large).isEqualTo(small);
     }
 
@@ -647,6 +650,6 @@ class DashboardFlowTest {
 
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService);
+                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService);
     }
 }

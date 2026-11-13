@@ -188,7 +188,7 @@ class NavigationFlowTest {
                 // 60 days.
                 .containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
-                        + "<span class=\"visually-hidden\">2 expired or expiring</span>");
+                        + "<span class=\"visually-hidden\">2 need attention</span>");
         assertThat(count(nav, "nav-count")).as("no unread notifications, no pill").isEqualTo(3);
 
         // Office counters only: the crew sidebar has none of them.

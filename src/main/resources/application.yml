@@ -91,3 +91,10 @@ app:
     token-url: ${RIGHTSHIP_TOKEN_URL:}
     # The nightly sync (Spring cron), in UTC.
     sync-cron: ${RIGHTSHIP_SYNC_CRON:0 30 2 * * *}
+  # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
+  # by hand; the app never connects to OCIMF.
+  sire:
+    # How long a SIRE 2.0 report is treated as current after the inspection, in months.
+    report-current-months: ${SIRE_REPORT_CURRENT_MONTHS:12}
+    # How many days the operator has to comment on a draft report, from its published date (else the inspection date).
+    comment-days: ${SIRE_COMMENT_DAYS:14}

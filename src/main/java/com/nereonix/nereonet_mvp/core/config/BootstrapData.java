@@ -5,12 +5,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
-// Creates the first office user on startup if there is none.
+// Creates the first office user on startup if there is none. After the schema migrations (highest precedence) and
+// before DevData (unordered), so the demo data can name that user (P41: the owner of the SIRE observations).
+@Order(0)
 @Component
 public class BootstrapData implements ApplicationRunner {
 
