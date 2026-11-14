@@ -225,7 +225,7 @@ class ShipOrderFlowTest {
 
         String html = page("/ship/orders");
 
-        assertThat(html).contains("Confirmed by office", "Confirmed: Antwerp", "Sent to office", "Requested: Piraeus");
+        assertThat(html).contains("Delivery scheduled", "Delivery: Antwerp", "Sent to office", "Requested: Piraeus");
         assertThat(html.indexOf("Order #" + second.getId())).isLessThan(html.indexOf("Order #" + first.getId()));
         mockMvc.perform(get("/ship/orders/" + openOrderAfter().getId()).with(user(new CurrentUser(master))))
                 .andExpect(redirectedUrl("/ship/order"));

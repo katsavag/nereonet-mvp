@@ -11,7 +11,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -37,7 +39,8 @@ import com.nereonix.nereonet_mvp.core.order.OfficeOrderEditService.Edit;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
-import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Confirmation;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Delivery;
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.rfq.RfqService;
@@ -47,8 +50,10 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// The orders the ships have sent, as the office sees them (P36): the list, one order, confirming its port and
-// delivery date, and the export (an Excel workbook since P39). The logic is ShipOrderService's. While an order is SENT
+// The orders the ships have sent, as the office sees them (P36): the list, one order, scheduling its delivery (port
+// and date; "confirming" until P51) and changing it until the Master confirms receipt, and the export (an Excel
+// workbook since P39). P51: a received order shows the receipt (its files, ordered vs received per line) and, when
+// lines were short, "Shortage handled" with a note. The logic is ShipOrderService's. While an order is SENT
 // the office can change its lines (P50: quantity, remove, add an item; OfficeOrderEditService), each a plain POST form.
 // /office/** is limited to OFFICE_USER in SecurityConfig. An OPEN order (still being put together on board) is a 404.
 @Controller
@@ -77,11 +82,12 @@ public class OfficeOrderController {
     private final OfficeOrderEditService editService;
     private final ItemRepository itemRepository;
     private final ConfirmPages confirmPages;
+    private final OrderReceiptService receiptService;
 
     public OfficeOrderController(ShipOrderService orderService, ShipRepository shipRepository,
                                  UserRepository userRepository, RfqService rfqService,
                                  OfficeOrderEditService editService, ItemRepository itemRepository,
-                                 ConfirmPages confirmPages) {
+                                 ConfirmPages confirmPages, OrderReceiptService receiptService) {
         this.orderService = orderService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
@@ -89,6 +95,7 @@ public class OfficeOrderController {
         this.editService = editService;
         this.itemRepository = itemRepository;
         this.confirmPages = confirmPages;
+        this.receiptService = receiptService;
     }
 
     // shipId, status (sent, confirmed, closed) and exported=no (not exported yet) filter the list; anything else in
@@ -125,8 +132,9 @@ public class OfficeOrderController {
     }
 
     /**
-     * Confirms the order's port and delivery date, or corrects them, while it is SENT or CONFIRMED. Errors: the order
-     * page again with them, nothing saved. Closed meanwhile: back with a message, nothing changed.
+     * "Schedule delivery": the order's port and delivery date while it is SENT, or "Change delivery" while it is
+     * CONFIRMED. Errors: the order page again with them, nothing saved. Received meanwhile: back with a message,
+     * nothing changed.
      */
     @PostMapping(LIST + "/{id}/confirm")
     public String confirm(@PathVariable Long id, @AuthenticationPrincipal CurrentUser currentUser,
@@ -135,14 +143,45 @@ public class OfficeOrderController {
         if (bindingResult.hasErrors()) {
             return showDetail(sent(id), confirmForm, model);
         }
-        ShipOrderService.Confirm result = orderService.confirm(user(currentUser), id,
-                new Confirmation(confirmForm.getConfirmedPort(), confirmForm.getDeliveryDate()));
+        ShipOrderService.Schedule result = orderService.scheduleDelivery(user(currentUser), id,
+                new Delivery(confirmForm.getConfirmedPort(), confirmForm.getDeliveryDate()));
         switch (result) {
-            case DONE -> redirectAttributes.addFlashAttribute("successMessage", "officeorder.confirmed");
-            case CLOSED -> redirectAttributes.addFlashAttribute("errorMessage", "officeorder.closed");
+            case SCHEDULED -> redirectAttributes.addFlashAttribute("successMessage", "officeorder.scheduled");
+            case CHANGED -> redirectAttributes.addFlashAttribute("successMessage", "officeorder.deliveryChanged");
+            case RECEIVED -> redirectAttributes.addFlashAttribute("errorMessage", "officeorder.received");
             case NOT_FOUND -> throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return "redirect:" + LIST + "/" + id;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // P51: the receipt on board, as the office sees it once the Master confirmed it.
+    // ---------------------------------------------------------------------------------------------------------------
+
+    /** A file of the receipt: opened in the browser (P22), or downloaded. 404 until the receipt is confirmed. */
+    @GetMapping(LIST + "/{id}/receipt/{fileId}")
+    public ResponseEntity<Resource> receiptFile(@PathVariable Long id, @PathVariable Long fileId,
+                                                @RequestParam(defaultValue = "false") boolean download) {
+        return receiptService.file(sent(id), fileId, false, download);
+    }
+
+    /** "Shortage handled", with a note (required). No note or a too long one: back with an error, nothing saved. */
+    @PostMapping(LIST + "/{id}/shortage-handled")
+    public String shortageHandled(@PathVariable Long id, @RequestParam(required = false) String note,
+                                  @AuthenticationPrincipal CurrentUser currentUser,
+                                  RedirectAttributes redirectAttributes) {
+        String text = note == null ? "" : note.strip();
+        if (text.isEmpty()) {
+            return back(id, "errorMessage", "officeorder.shortage.noteRequired", redirectAttributes);
+        }
+        if (text.length() > ShipOrder.NOTE_MAX_LENGTH) {
+            return back(id, "errorMessage", "officeorder.shortage.noteTooLong", redirectAttributes);
+        }
+        return switch (receiptService.markShortageHandled(user(currentUser), id, text)) {
+            case DONE -> back(id, "successMessage", "officeorder.shortage.handled", redirectAttributes);
+            case NOTHING_OPEN -> back(id, "errorMessage", "officeorder.shortage.nothingOpen", redirectAttributes);
+            case NOT_FOUND -> throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        };
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -298,6 +337,11 @@ public class OfficeOrderController {
         model.addAttribute("groups", byCategory.entrySet().stream()
                 .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
         model.addAttribute("canConfirm", order.getStatus() != ShipOrderStatus.CLOSED);
+        // P51: the receipt, once the Master confirmed it (the files the Master is still uploading are not shown).
+        boolean received = order.getStatus() == ShipOrderStatus.CLOSED;
+        model.addAttribute("received", received);
+        model.addAttribute("receiptFiles", received ? receiptService.files(order.getId()) : List.of());
+        model.addAttribute("shortageNoteMax", ShipOrder.NOTE_MAX_LENGTH);
         // P50: the lines can be changed while SENT; "Done editing" while the ship has not been told about a change.
         boolean editable = OfficeOrderEditService.isEditable(order);
         model.addAttribute("editable", editable);
@@ -332,7 +376,8 @@ public class OfficeOrderController {
         return userRepository.findById(currentUser.getId()).orElseThrow();
     }
 
-    // "sent", "confirmed", "closed"; null for anything else (and OPEN, which the office never sees).
+    // "sent", "confirmed", "closed" (Pending, Delivery pending, Received); null for anything else (and OPEN, which the
+    // office never sees).
     private static ShipOrderStatus status(String value) {
         return Arrays.stream(ShipOrderStatus.values())
                 .filter(ShipOrderService.SENT_TO_OFFICE::contains)

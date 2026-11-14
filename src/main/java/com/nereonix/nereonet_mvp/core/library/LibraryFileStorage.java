@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 // Library files on disk, in app.library.storage-dir. Each file gets a generated name; the uploaded
 // file name is never used as a path (it is only kept in LibraryItemVersion.fileName).
@@ -37,10 +39,39 @@ public class LibraryFileStorage {
 
     /** The file saved under this name. Only names directly inside the folder are accepted. */
     public Resource load(String storagePath) {
+        return new FileSystemResource(inside(storagePath));
+    }
+
+    /**
+     * Deletes the file once the current transaction has committed (at once without one), so a change that is rolled
+     * back keeps its file. A file already gone is fine. (P51: a receipt file the Master removes before confirming.)
+     */
+    public void deleteLater(String storagePath) {
+        Path file = inside(storagePath);
+        Runnable delete = () -> {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    delete.run();
+                }
+            });
+        } else {
+            delete.run();
+        }
+    }
+
+    private Path inside(String storagePath) {
         Path file = dir.resolve(storagePath).normalize();
         if (!dir.equals(file.getParent())) {
             throw new IllegalArgumentException("Storage path outside the library folder");
         }
-        return new FileSystemResource(file);
+        return file;
     }
 }

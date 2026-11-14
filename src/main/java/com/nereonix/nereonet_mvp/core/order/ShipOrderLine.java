@@ -66,6 +66,22 @@ public class ShipOrderLine {
     @Column(nullable = false)
     private boolean officeChangePending;
 
+    // P51: what arrived on board, as the Master confirmed it (0 for "Not delivered"), and the Master's note on it.
+    // Null until the receipt, and for a line the office removed.
+    @Column(precision = 12, scale = 3)
+    private BigDecimal receivedQuantity;
+
+    @Column(length = NOTE_MAX_LENGTH)
+    private String receiptNote;
+
+    /** How much less arrived than was ordered (P51); null when the line was not received short. */
+    public BigDecimal getShortBy() {
+        if (removed || receivedQuantity == null || receivedQuantity.compareTo(quantity) >= 0) {
+            return null;
+        }
+        return quantity.subtract(receivedQuantity);
+    }
+
     /** The quantity the ship sent: originalQuantity, or the quantity for a line the office never touched. */
     public BigDecimal getSentQuantity() {
         return addedByOffice ? null : originalQuantity != null ? originalQuantity : quantity;

@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.shiporder;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Change;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Send;
@@ -23,15 +25,18 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 // The Master's ship order (P35): the OPEN order of their own ship, its lines edited one at a time (each change is
-// saved at once, nobody is notified), "Send to office", and the past orders. SecurityConfig limits /ship/order/** and
+// saved at once, nobody is notified), "Send to office", and the past orders; P51: "Confirm receipt" on a past order
+// whose delivery is scheduled (OrderReceiptController), and its receipt once received. SecurityConfig limits /ship/order/** and
 // /ship/orders/** to MASTER. English only, as every crew screen.
 @Controller
 public class ShipOrderController {
 
     private final ShipOrderPageService pageService;
+    private final OrderReceiptService receiptService;
 
-    public ShipOrderController(ShipOrderPageService pageService) {
+    public ShipOrderController(ShipOrderPageService pageService, OrderReceiptService receiptService) {
         this.pageService = pageService;
+        this.receiptService = receiptService;
     }
 
     @GetMapping("/ship/order")
@@ -93,6 +98,9 @@ public class ShipOrderController {
             return "redirect:/ship/order";
         }
         model.addAttribute("view", view);
+        // P51: once received, the receipt's files.
+        model.addAttribute("receiptFiles", view.order().getStatus() == ShipOrderStatus.CLOSED
+                ? receiptService.files(id) : List.of());
         return "shiporder/detail";
     }
 

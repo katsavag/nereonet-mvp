@@ -71,8 +71,9 @@ Requirements: Java 25, Docker.
    office, with the next step on each row, so it can be cleared without visiting other pages first. The page action
    is **New announcement**. Under the title four stat tiles, each one link with a detail line: **Active vessels**
    ("2 with open items", to Vessels), **Crew on board** (enabled crew of active vessels; "1 invitation waiting", to
-   Crew filtered to Active), **Items needing attention** ("3 snoozed", to the list below) and **Orders waiting for
-   the office** (sent and not confirmed; "1 not exported yet", to Orders filtered to Sent). From 1200px the tiles are
+   Crew filtered to Active), **Items needing attention** ("3 snoozed", to the list below) and **Pending orders**
+   (sent and the delivery not scheduled yet; "1 not exported yet", counting only the Not exported items, to Orders
+   filtered to Pending). From 1200px the tiles are
    a row of four and the page has two columns: **Needs attention** on the left (7/12) and, stacked on the right,
    **By category**, **Next 30 days**, **Fleet** and **Recent activity**; from 768px the tiles are 2 × 2 and the
    columns go under each other; on phones one column, the tiles two per row.
@@ -93,7 +94,8 @@ Requirements: Java 25, Docker.
      Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the order,
      the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
      (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Open order**
-     (the order page, where it is confirmed and exported, see 24), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
+     (the order page, where the delivery is scheduled and the order exported, see 24; or where a shortage is marked
+     handled, P51), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
      has not acknowledged**. A certificate or vetting row also has a checkbox and **Snooze** (P43, see 27); snoozed
      items are left out. The list is paged, 10 rows at a time (20, 50 or 100, the P19 pager; `?page=2`), and sorted
      most urgent first or, with **By date** (`?sort=date`), by the date that drives each row, earliest first. Above
@@ -362,7 +364,8 @@ Requirements: Java 25, Docker.
    item added, edited, deactivated, activated; items imported (counts only); certificate added, edited, deleted;
    certificate file added, replaced, removed (P39, with the file name); certificate reminder sent (by "System");
    announcement sent, announcement read (by the crew member, with the title, the first time they open it: P39, before
-   "announcement acknowledged"); order sent, order confirmed (port and delivery date, "corrected" when changed again), orders exported
+   "announcement acknowledged"); order sent, delivery scheduled and delivery changed (port and delivery date; P51, before "order confirmed"),
+   receipt confirmed on board (P51: when, lines short, files), shortage handled (P51, with the note), orders exported
    (counts and ids; before P36 "requests exported").
    Entries are read-only.
 
@@ -935,7 +938,8 @@ Requirements: Java 25, Docker.
      another tab) changes nothing and the request page says so. Another ship's request is a 404; the Chief cook and
      crew get 403.
    - **The ship order** (`ShipOrder`, `ShipOrderLine`): status OPEN, SENT, CONFIRMED or CLOSED, with requested port,
-     needed by, sent by/at, confirmed port, delivery date, confirmed by, exported at. A ship has at most one OPEN
+     needed by, sent by/at, confirmed port, delivery date, confirmed by (shown as "Delivery port" and "Scheduled by"
+     since P51), exported at and, once received on board (P51), received at/by and the shortage fields. A ship has at most one OPEN
      order: `addApprovedRequest` locks the ship's row, finds the OPEN order or creates it, and per request line adds
      the quantity to the order line of the same item (one line per item) or makes that line. Each request line keeps
      a link to its order line (`RequestLine.shipOrderLine`), so the order can show who asked for what. Its page is
@@ -965,37 +969,43 @@ Requirements: Java 25, Docker.
    - **`/ship/orders`**: the past orders (SENT, CONFIRMED, CLOSED), newest sent first, with status, requested port,
      needed by and, once the office has set them, confirmed port and delivery date. `/ship/orders/{id}` shows one
      with its lines (the OPEN one redirects to `/ship/order`).
-   - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Confirmed by office", CLOSED "Received".
+   - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Delivery scheduled" (P51; "Confirmed by
+     office" before), CLOSED "Received". The office says "Pending", "Delivery pending" and "Received" (P49, P51).
    - Another ship's line or order is a 404; the Chief cook and crew get 403. New column `ship_order.office_note`
      (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
    - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
      and send it with port "Rotterdam"; `office@example.com` sees the notification.
 
-24. Ship orders in the office (P36, office users only). `core/order/ShipOrderService` (`findSent`, `confirm`,
-   `export`, `countNotExported`) and `officeorder/` (`OfficeOrderController`, `ConfirmOrderForm`).
-   - **Orders** in the sidebar (`/office/orders`), with the number of orders sent and not exported. The list: the
+24. Ship orders in the office (P36, office users only). `core/order/ShipOrderService` (`findSent`, `scheduleDelivery`,
+   `export`, `countNotReceived`) and `officeorder/` (`OfficeOrderController`, `ConfirmOrderForm`).
+   - **Orders** in the sidebar (`/office/orders`), with the number of open orders: Pending plus Delivery pending (P51;
+     "2 open"). The list: the
      orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN ones, which are still being put together on
-     board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Sent, Confirmed,
-     Closed) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`, `confirmed`,
-     `closed`) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
+     board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Pending, Delivery
+     pending, Received) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`
+     Pending, `confirmed` Delivery pending, `closed` Received) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
      the ship name or IMO number; 10 per page, 20, 50 or 100 on request (paged in the database). A row opens its order.
    - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
-     confirmation once set (port, delivery date, by whom) and when it was last exported; then its lines by category
+     scheduled delivery once set (port, delivery date, by whom) and when it was last exported; then its lines by category
      (Provisions, then Personal items): item, unit, quantity. While the order is pending the office can change them
-     (P50, below); once the delivery is confirmed they are read-only.
+     (P50, below); once the delivery is scheduled they are read-only. Once received (P51) each line shows Ordered and
+     Received.
      An OPEN order is a 404.
-   - **Confirm delivery** (while SENT or CONFIRMED): **Confirmed port** (required, up to 100 characters, starts as
-     the requested port) and **Delivery date** (required). `POST /office/orders/{id}/confirm` sets confirmed port,
-     delivery date, confirmed by and CONFIRMED; "Order confirmed by office" goes in the audit log and the ship's
-     enabled Master (linking to `/ship/orders/{id}`) and Chief cook (no link: the order pages are the Master's) get
-     "Order confirmed: Antwerp, 20 Nov 2026". It can be corrected (**Correct the delivery**) as often as needed, each
-     time recorded and notified, until the order is CLOSED; then the form is gone and a confirmation changes nothing.
-     The order's row is locked while confirming.
+   - **Schedule delivery** (P51; "Confirm delivery" before; while SENT): **Delivery port** (required, up to 100
+     characters, starts as the requested port) and **Delivery date** (required). `POST /office/orders/{id}/confirm`
+     (`ShipOrderService.scheduleDelivery`) sets the port, delivery date, scheduled by and CONFIRMED ("Delivery
+     scheduled. The master and the chief cook were notified."); "Delivery scheduled by office" goes in the audit log
+     and the ship's enabled Master (linking to `/ship/orders/{id}`) and Chief cook (no link: the order pages are the
+     Master's) get "Delivery scheduled: Antwerp, 20 Nov 2026". While CONFIRMED the same form is **Change delivery**
+     ("Delivery changed by office", "Delivery changed: ..."), as often as needed. The office cannot close an order:
+     only the Master's receipt does (P51, below); once CLOSED the form is gone and a POST changes nothing ("This order
+     was received on board."). The order's row is locked while scheduling.
    - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
      `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xls` (P39; CSV before; `.xls` since P40; the
      format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
-     and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity,sent_quantity,office_change,office_note`
-     (`status` `pending`, `confirmed` or `closed` (P49); `sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
+     and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity,sent_quantity,office_change,office_note,received_quantity,received_at`
+     (`status` `pending`, `delivery_pending` or `received` (P51; `confirmed`, `closed` before); P51: `received_quantity`
+     a number and `received_at` a date and time cell in UTC, both empty until the order is received; `sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
      category `Provisions` or `Personal items`; P50: `quantity` is what to deliver, 0 for a line the office removed,
      `sent_quantity` what the ship sent (empty for a line the office added), `office_change` `changed`, `removed`,
      `added` or empty, `office_note` the office's note). It sets
@@ -1004,7 +1014,7 @@ Requirements: Java 25, Docker.
      (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy
      and their checkboxes are not unsaved changes.
    - **Request quotes** (P44, see 28): while the order is SENT, ask suppliers for prices; once one is awarded the
-     page shows "Awarded to VANOS (Piraeus) · EUR 1,240.50" and Confirm delivery starts with its port and date.
+     page shows "Awarded to VANOS (Piraeus) · EUR 1,240.50" and Schedule delivery starts with its port and date.
    - **Changing the items of a pending order** (P50; `core/order/OfficeOrderEditService`, `OfficeOrderEditJob`).
      While the order is SENT ("Pending") the office corrects it before arranging delivery, on its page, with the
      Master's controls (P35): each line's **Quantity** (same rule, `ShipOrderService.isValidQuantity`) with an optional
@@ -1029,17 +1039,54 @@ Requirements: Java 25, Docker.
      - The ship is told once per editing session, not per click: until then a note above the lines says the master and
        the chief cook haven't been told yet, with **Done editing** (`POST /office/orders/{id}/edits/done`). They are
        told when it is pressed, 10 minutes after the last change (`OfficeOrderEditJob` checks every minute;
-       `app.orders.office-edit-quiet`, default `PT10M`), or when the delivery is confirmed (before "Order confirmed"). The
+       `app.orders.office-edit-quiet`, default `PT10M`), or when the delivery is scheduled (before "Delivery scheduled"). The
        Master (linking to the order) and the Chief cook get "The office changed order 12: 2 lines changed, 1 removed, 1
        added"; a line changed back to what the ship sent is not counted, and nothing is sent when nothing is left.
        New columns `ship_order.office_edited_at`, `ship_order_line.original_quantity`, `removed`, `added_by_office`,
        `change_note`, `office_change_pending` (Hibernate adds them; the flags default to false).
-     - Once the delivery is confirmed the lines are read-only again; a change sent anyway (another tab) changes nothing
+     - Once the delivery is scheduled the lines are read-only again; a change sent anyway (another tab) changes nothing
        and says so.
-   - Tests: `officeorder/OfficeOrderFlowTest`, `officeorder/OfficeOrderEditFlowTest` (P50); the Overview's rows and counts in `DashboardFlowTest`.
+   - **The receipt on board** (P51; `core/order/OrderReceiptService`, `OrderReceiptFile`, `shiporder/OrderReceiptController`,
+     `ReceiptForm`). Only the vessel can say the items arrived.
+     - While the order is CONFIRMED the Master's `/ship/orders/{id}` has **Confirm receipt** with the hint "When the items
+       arrive, confirm receipt and attach the delivery receipt.". `/ship/orders/{id}/receipt` lists each line (not the removed ones)
+       with Ordered and **Received** (prefilled with the ordered quantity; 0 or more, at most 3 decimals), **Not
+       delivered** (sets it to 0; without JavaScript the box alone counts) and an optional **Note** (up to 200
+       characters); then **Delivery receipt**: files (required, at least one; PDF, JPEG or PNG, at most 10 MB each, up
+       to 10, stored like library files by `LibraryFileStorage`, table `order_receipt_file`) and **Date and time received
+       (UTC)** (now to start with; not before the order was sent, not more than 5 minutes ahead).
+     - **Review** (`POST /ship/orders/{id}/receipt`) saves the chosen files on the order as staged (only the Master sees
+       them; ✕ removes one, `removeFileIds`), checks the rest and shows the review page (P10 style): each line with
+       "Short by 5 kg" or "Not delivered", the files (open them, `GET .../receipt/files/{fileId}`), the time; nothing
+       is received yet. **Back to edit** (`POST .../receipt/edit`) keeps everything; **Confirm receipt**
+       (`POST .../receipt/confirm`) locks the order, saves received quantities, notes, received at/by and the number
+       of short lines, and makes it CLOSED; "Receipt confirmed on board" goes in the audit log and every enabled office
+       user gets "ABC IRIS confirmed receipt of order 12 (2 lines short)" (linking to the order). A second confirm
+       (another tab, a double click) changes nothing and says so. A GET of `/edit` or `/confirm` goes back to the form.
+     - `js/receipt.js` (P15): shows the chosen files, makes photos smaller (at most 2000 px, JPEG) before they are
+       sent, uploads each one by XHR to `POST .../receipt/files` with a progress bar (204, or 422/409 with the reason),
+       then sends the form; the buttons are busy once, and the form is a draft (P15) except the files. Without
+       JavaScript the files go with the Review POST; a request over the multipart limit comes back to the form with
+       "Larger than 10 MB. Choose a smaller file." (`GET .../receipt/files?fileTooLarge`).
+     - The Master then sees "Received <date> by <Master>", the files and per line Received, with the shortages.
+     - The office's order page: a **Receipt on board** card, "Received 14 Nov 2026 · 19:45 UTC by Demo Master", "2
+       lines arrived short", the files with **Open** (inline, P22) and **Download**
+       (`GET /office/orders/{id}/receipt/{fileId}`, 404 until the order is received), and per line Ordered and
+       Received with "Short by 5 kg" or "Not delivered" and the Master's note.
+     - A shortage stays in the Overview's Needs attention ("Order #12 · received short", Orders group,
+       `AttentionType.ORDER_SHORTAGE`) until an office user presses **Shortage handled** with a note (required, up to
+       1000 characters; `POST /office/orders/{id}/shortage-handled`): "Shortage handled by office" in the audit log,
+       and the card shows who, when and the note.
+     - New columns `ship_order.received_at`, `received_by_id`, `receipt_confirmed_at`, `short_lines` (default 0),
+       `shortage_handled_at`, `shortage_handled_by_id`, `shortage_note`, `ship_order_line.received_quantity`,
+       `receipt_note` (Hibernate adds them). Crew texts are English only; the office's in English and Greek.
+   - Tests: `officeorder/OfficeOrderFlowTest`, `officeorder/OfficeOrderEditFlowTest` (P50),
+     `shiporder/OrderReceiptFlowTest` (P51); the Overview's rows and counts in `DashboardFlowTest`.
    - To try it: send the order as in 23, then as `office@example.com` open **Orders**, change a quantity, remove a line
-     and add an item, press **Done editing** (the Master sees the notification and the changes), confirm a port and date
-     (the Master and the Chief cook see the notification) and export it.
+     and add an item, press **Done editing** (the Master sees the notification and the changes), schedule the delivery
+     (the Master and the Chief cook see the notification) and export it. Then as `master.demo@example.com` open the
+     order, **Confirm receipt** with one line short and a photo of the delivery note, review and confirm; the office
+     sees the receipt, the shortage on the Overview, and marks it handled.
 
 25. Vetting (P40, office users only): how charterers vet each vessel, starting with RightShip. `core/vetting/`
    (`ShipRightShipStatus`, `RightShipReport`, `VettingService`, `RightShipView`, `RightShipSyncService`,
@@ -1609,8 +1656,8 @@ while `VESSELAPI_API_KEY` is set, and only when a user presses **Look up by IMO*
       screen readers: **Certificates** expired or expiring within 30 days (UTC days; while it shows, the entry opens
       exactly those, `/office/certificates?status=expired,30`, P20), **Vetting** active vessels whose RightShip
       inspection has expired or expires within 60 days (P40) or whose SIRE 2.0 needs attention (P41), each vessel
-      once ("2 need attention"), **Orders** sent by the ships and
-      not exported (P36), **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
+      once ("2 need attention"), **Orders** pending or with the delivery
+      pending (P51; before, sent and not exported, P36), **Notifications** unread. One count query each on every page (`navCounts` from `NavigationAdvice`,
       office users only; `unreadNotifications` from `NotificationBellAdvice`). The Notifications pill and the bell
       follow Mark as read without a reload (13, P23; the entry has `data-nav="notifications"`);
     - rail and preference (P29), from 768 px: the sidebar is a 64 px rail by default (the mark, the entries' icons, the

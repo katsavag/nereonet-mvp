@@ -26,6 +26,8 @@ public enum AttentionType {
     CERTIFICATE_EXPIRING(Group.CERTIFICATES),
     /** An order a ship has sent (P36) that the office has never exported. */
     ORDER_NOT_EXPORTED(Group.ORDERS),
+    /** An order received on board with lines short (P51) that no office user has marked "Shortage handled". */
+    ORDER_SHORTAGE(Group.ORDERS),
     /** An open request for quotes (P44) with quotes from at least two suppliers: ready to compare and award. */
     RFQ_READY(Group.QUOTES),
     /** An open request for quotes past its reply-by date with fewer than two quotes (P44). */

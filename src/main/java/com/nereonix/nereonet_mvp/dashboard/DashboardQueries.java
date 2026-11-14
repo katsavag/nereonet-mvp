@@ -36,13 +36,20 @@ public class DashboardQueries {
 
     /**
      * An order the office works on (P36, P43): sent and never exported (an open item), sent and not yet confirmed
-     * (the "Orders waiting" tile), or confirmed with a delivery within the next 30 days (the "Next 30 days" card).
+     * (the "Orders waiting" tile), confirmed with a delivery within the next 30 days (the "Next 30 days" card), or
+     * received with lines short and the shortage not handled (P51, an open item).
      */
     public record OrderRow(Long id, Long shipId, String sentBy, Rank rank, Instant sentAt, long lines,
-                           ShipOrderStatus status, Instant exportedAt, LocalDate deliveryDate) {
+                           ShipOrderStatus status, Instant exportedAt, LocalDate deliveryDate, Instant receivedAt,
+                           int shortLines, Instant shortageHandledAt) {
 
         public boolean notExported() {
             return exportedAt == null;
+        }
+
+        /** Received with lines short, the shortage not handled yet (P51). */
+        public boolean shortageOpen() {
+            return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null;
         }
     }
 
@@ -118,21 +125,25 @@ public class DashboardQueries {
 
     /**
      * The orders of active ships the office works on (P36, P43): sent and never exported, sent and not yet confirmed,
-     * or confirmed with a delivery on or before "deliveriesUntil" (today or later), with their number of lines (lines removed by the office, P50, not counted).
+     * confirmed with a delivery on or before "deliveriesUntil" (today or later), or received with lines short and the
+     * shortage not handled (P51), with their number of lines (lines removed by the office, P50, not counted).
      */
     List<OrderRow> orders(LocalDate today, LocalDate deliveriesUntil) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$OrderRow(
                     o.id, s.id, u.fullName, u.rank, o.sentAt,
-                    (select count(l) from ShipOrderLine l where l.order = o and l.removed = false), o.status, o.exportedAt, o.deliveryDate)
+                    (select count(l) from ShipOrderLine l where l.order = o and l.removed = false), o.status, o.exportedAt, o.deliveryDate,
+                    o.receivedAt, o.shortLines, o.shortageHandledAt)
                 from ShipOrder o join o.ship s left join o.sentBy u
                 where s.active = true
                   and ((o.status in :statuses and o.exportedAt is null)
                     or o.status = :sent
-                    or (o.status = :confirmed and o.deliveryDate between :today and :deliveriesUntil))""", OrderRow.class)
+                    or (o.status = :confirmed and o.deliveryDate between :today and :deliveriesUntil)
+                    or (o.status = :closed and o.shortLines > 0 and o.shortageHandledAt is null))""", OrderRow.class)
                 .setParameter("statuses", ShipOrderService.SENT_TO_OFFICE)
                 .setParameter("sent", ShipOrderStatus.SENT)
                 .setParameter("confirmed", ShipOrderStatus.CONFIRMED)
+                .setParameter("closed", ShipOrderStatus.CLOSED)
                 .setParameter("today", today)
                 .setParameter("deliveriesUntil", deliveriesUntil)
                 .getResultList();

@@ -103,6 +103,19 @@ public class ShipOrderPageService {
         return view(ship, order);
     }
 
+    /** One order of the ship, OPEN or not; 404 for another ship's (P51: the receipt pages). */
+    @Transactional(readOnly = true)
+    public ShipOrder order(String email, Long id) {
+        Ship ship = ship(master(email));
+        return orderRepository.findByIdAndShipId(id, ship.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** A crew text (English only) with its arguments. */
+    String message(String key, Object... args) {
+        return messageSource.getMessage(key, args, Locale.ENGLISH);
+    }
+
     @Transactional
     public Change changeQuantity(String email, Long lineId, BigDecimal quantity) {
         return shipOrderService.changeQuantity(master(email), lineId, quantity);
@@ -170,7 +183,7 @@ public class ShipOrderPageService {
         return name.substring(0, name.offsetByCodePoints(0, 1)) + ". " + name.substring(space + 1).strip();
     }
 
-    private User master(String email) {
+    User master(String email) {
         return userRepository.findByEmail(email).orElseThrow();
     }
 

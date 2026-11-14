@@ -6,12 +6,17 @@
      Personal items). P50: while SENT ("Pending") the office changes them: each line's quantity with an optional note
      (Save), Remove (asks first, with an optional note), and "Add an item" from the vessel's active items; removed
      lines stay, struck through, and every change shows under the item's name, as on the Master's page. Until the ship
-     is told, a note says so with "Done editing". Once the delivery is confirmed the lines are read-only.
+     is told, a note says so with "Done editing". Once the delivery is scheduled the lines are read-only.
      Export (the page action) downloads an Excel workbook of
-     this order's file and marks it exported. While SENT or CONFIRMED, "Confirm delivery" with the confirmed port
-     (the requested port to start with) and the delivery date; it can be corrected until the order is closed.
+     this order's file and marks it exported. While SENT, "Schedule delivery" with the delivery port (the requested
+     port to start with) and the date (P51; "Confirm delivery" before); while CONFIRMED ("Delivery pending") "Change
+     delivery". The office never closes an order: the Master confirms receipt on board (P51). Then "Receipt on board":
+     received when and by whom, the delivery receipt's files (Open in a new tab, P22; Download), per line ordered vs
+     received with shortages marked ("Short by 5 kg"), and while lines are short and not handled, "Shortage handled"
+     with a note (required).
      Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
-     editable, editPending, noteMax, and while editable itemGroups (OfficeOrderController.ItemGroup), onOrder (item ids). -->
+     editable, editPending, noteMax, received, receiptFiles, shortageNoteMax, and while editable itemGroups
+     (OfficeOrderController.ItemGroup), onOrder (item ids). -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.number(${order.id})}, crumbs=~{::pageCrumbs},
             eyebrowShip=${order.ship}, actions=~{::pageActions})}">
@@ -78,6 +83,67 @@
         </dl>
     </div>
 
+    <!-- P51: the receipt on board, once the Master confirmed it. -->
+    <section th:if="${received}" class="card mb-4" aria-labelledby="receiptTitle">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="h5 fw-bold mb-0" id="receiptTitle" th:text="#{officeorder.receipt.heading}">Receipt on board</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-2">
+                <span class="fw-semibold" th:text="#{officeorder.receipt.received}">Received</span>
+                <time th:replace="~{layout/parts :: localTime(${order.receivedAt})}"></time>
+                <span th:text="#{officeorder.receipt.by(${order.receivedBy} ? ${order.receivedBy.fullName} : #{audit.deletedUser})}">by Ship Master</span>
+            </p>
+            <p class="mb-3">
+                <th:block th:if="${order.shortLines == 0}"><span th:replace="~{layout/parts :: statusIcon('ok', #{officeorder.receipt.allReceived}, 'check')}"></span></th:block>
+                <th:block th:if="${order.shortLines > 0}"><span th:replace="~{layout/parts :: statusIcon('warning', #{officeorder.receipt.shortLines(${order.shortLines})}, 'alert')}"></span></th:block>
+            </p>
+            <h3 class="h6 fw-semibold" th:text="#{officeorder.receipt.files}">Delivery receipt</h3>
+            <ul class="receipt-files list-unstyled mb-0">
+                <li th:each="f : ${receiptFiles}" class="receipt-file"
+                    th:with="fileUrl=${'/office/orders/' + order.id + '/receipt/' + f.id}">
+                    <span class="receipt-file-name">
+                        <span class="fw-semibold text-break" th:text="${f.fileName}">receipt.jpg</span>
+                        <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                    </span>
+                    <a class="btn btn-outline-secondary btn-sm" th:href="@{${fileUrl}}" target="_blank" rel="noopener"
+                       th:attr="aria-label=#{officeorder.receipt.openLabel(${f.fileName})}">
+                        <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+                        <span th:text="#{officeorder.receipt.open}">Open</span>
+                    </a>
+                    <a class="btn btn-ghost btn-sm" th:href="@{${fileUrl}(download=true)}" download
+                       th:attr="aria-label=#{officeorder.receipt.downloadLabel(${f.fileName})}">
+                        <svg th:replace="~{layout/parts :: icon('download')}"></svg>
+                        <span th:text="#{library.download}">Download</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- Lines short: "Shortage handled" with a note, or who handled it and the note. -->
+        <div th:if="${order.shortLines > 0}" class="card-body border-top">
+            <h3 class="h6 fw-semibold" th:text="#{officeorder.shortage.heading}">Shortage</h3>
+            <th:block th:if="${order.shortageHandledAt != null}">
+                <p class="mb-1">
+                    <span th:replace="~{layout/parts :: statusIcon('ok', #{officeorder.shortage.handledLabel}, 'check')}"></span>
+                    <time th:replace="~{layout/parts :: localTime(${order.shortageHandledAt})}"></time>
+                    <span th:text="#{officeorder.receipt.by(${order.shortageHandledBy} ? ${order.shortageHandledBy.fullName} : #{audit.deletedUser})}">by Jane Doe</span>
+                </p>
+                <p class="mb-0 order-note" th:text="${order.shortageNote}">A second delivery in Hamburg.</p>
+            </th:block>
+            <form th:if="${order.shortageOpen}" method="post" class="form-box"
+                  th:action="@{/office/orders/{id}/shortage-handled(id=${order.id})}">
+                <p class="text-body-secondary small" th:text="#{officeorder.shortage.hint}">Once you have arranged what
+                    happens next, mark the shortage handled with a note.</p>
+                <label for="shortageNote" class="form-label" th:text="#{officeorder.shortage.note}">Note</label>
+                <textarea id="shortageNote" name="note" class="form-control" rows="3" required
+                          th:maxlength="${shortageNoteMax}"></textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{officeorder.shortage.submit}">Shortage handled</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
     <!-- P44: the order's requests for quotes, newest first. -->
     <section th:unless="${rfqs.isEmpty()}" class="card mb-4" aria-labelledby="rfqsTitle">
         <div class="card-header bg-transparent py-3">
@@ -132,7 +198,8 @@
                 <tr class="small text-body-secondary">
                     <th scope="col" th:text="#{item.name}">Name</th>
                     <th scope="col" th:text="#{item.unit}">Unit</th>
-                    <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                    <th scope="col" class="text-end" th:text="${received} ? #{officeorder.receipt.ordered} : #{request.quantity}">Quantity</th>
+                    <th th:if="${received}" scope="col" class="text-end" th:text="#{officeorder.receipt.receivedColumn}">Received</th>
                     <th th:if="${editable}" scope="col"><span class="visually-hidden" th:text="#{officeorder.edit.actions}">Actions</span></th>
                 </tr>
                 </thead>
@@ -142,6 +209,7 @@
                     <td class="order-cell-name">
                         <span class="fw-semibold order-line-name" th:text="${line.item.name}">Basmati rice</span>
                         <th:block th:replace="~{shiporder/parts :: officeChange(${line}, 'officeorder.change')}"></th:block>
+                        <th:block th:replace="~{shiporder/parts :: receivedShort(${line}, 'officeorder.receipt')}"></th:block>
                     </td>
                     <td class="order-cell-unit" th:text="${line.item.unit}">kg</td>
                     <td class="text-end order-cell-qty">
@@ -162,6 +230,8 @@
                         <span th:unless="${editable and !line.removed}" class="font-monospace order-line-qty"
                               th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</span>
                     </td>
+                    <td th:if="${received}" class="text-end font-monospace" th:classappend="${line.shortBy != null} ? 'fw-semibold text-warning-emphasis'"
+                        th:text="${line.receivedQuantity != null} ? ${line.receivedQuantity.stripTrailingZeros().toPlainString()} : ''">20</td>
                     <td th:if="${editable}" class="text-end order-cell-actions">
                         <th:block th:unless="${line.removed}"
                                   th:with="removeUrl=${'/office/orders/' + order.id + '/lines/' + line.id + '/remove'}">
@@ -228,7 +298,8 @@
         </div>
     </section>
 
-    <!-- Confirm delivery: both fields required. Posted with errors, the page comes back with them. -->
+    <!-- Schedule delivery (SENT) or Change delivery (CONFIRMED): both fields required. Posted with errors, the page
+         comes back with them. Not shown once received. -->
     <section th:if="${canConfirm}" class="card form-box" aria-labelledby="confirmTitle">
         <div class="card-body p-3 p-md-4">
             <h2 class="h5 fw-bold" id="confirmTitle"

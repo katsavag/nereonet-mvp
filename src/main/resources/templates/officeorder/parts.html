@@ -3,11 +3,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- An order's status as the office sees it: Sent (info: waiting for the office), Confirmed (ok), Closed (neutral).
+<!-- An order's status as the office sees it: Pending (info: waiting for the office), Delivery pending (neutral:
+     waiting for the vessel's receipt, P51), Received (ok).
      The words carry the state, the colour repeats it.
      Use: <span th:replace="~{officeorder/parts :: statusBadge(${order.status})}"></span> -->
 <span th:fragment="statusBadge(status)"
-      th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CONFIRMED'} ? 'ok'
+      th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CLOSED'} ? 'ok'
               : 'neutral'), #{${'officeorder.status.' + status.name()}})}"></span>
 
 <!-- Whether an order was exported: when (the last export), or "Not yet".

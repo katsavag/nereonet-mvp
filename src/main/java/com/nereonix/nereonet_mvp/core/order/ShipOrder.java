@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -26,7 +27,8 @@ import lombok.Setter;
 
 // The consolidated order of a ship (P34): the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
-// office confirms port and delivery date (CONFIRMED), and it is closed once delivered (CLOSED).
+// office schedules the delivery, port and date (CONFIRMED, P51: "Delivery pending"), and the Master confirms receipt
+// on board with the delivery receipt (CLOSED, "Received"); only the vessel closes an order.
 // While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship (P35),
 // and the office can change its lines until it confirms the delivery (P50).
 @Entity
@@ -65,7 +67,7 @@ public class ShipOrder {
 
     private Instant sentAt;
 
-    // Set by the office when confirming.
+    // Set by the office when scheduling the delivery (P51; "confirming" before).
     @Column(length = PORT_MAX_LENGTH)
     private String confirmedPort;
 
@@ -80,6 +82,32 @@ public class ShipOrder {
     // "Done editing", 10 minutes without changes, or confirming the delivery tells the Master and the Chief cook.
     private Instant officeEditedAt;
 
+    // P51: the receipt on board. When the items arrived, as the Master entered it (UTC); who confirmed it, and when.
+    // Null until CLOSED (receivedBy also once that user is deleted).
+    private Instant receivedAt;
+
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User receivedBy;
+
+    private Instant receiptConfirmedAt;
+
+    // The lines received short (less than ordered, "Not delivered" included), counted when the receipt is confirmed.
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private int shortLines;
+
+    // An office user marked the shortages handled, with a note (required). Until then the order is in the Overview's
+    // Needs attention.
+    private Instant shortageHandledAt;
+
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User shortageHandledBy;
+
+    @Column(length = NOTE_MAX_LENGTH)
+    private String shortageNote;
+
     // Last export by the office. Null until exported.
     private Instant exportedAt;
 
@@ -89,4 +117,9 @@ public class ShipOrder {
     @OneToMany(mappedBy = "order")
     @OrderBy("id")
     private List<ShipOrderLine> lines = new ArrayList<>();
+
+    /** Received with lines short, and no office user has marked them handled yet (P51). */
+    public boolean isShortageOpen() {
+        return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null;
+    }
 }

@@ -169,8 +169,9 @@ class NavigationFlowTest {
         certificate(today.minusDays(3));   // expired
         certificate(today.plusDays(30));   // expiring within 30 days
         certificate(today.plusDays(31));   // not yet
-        order(ShipOrderStatus.SENT, null);              // sent, not exported
-        order(ShipOrderStatus.CONFIRMED, Instant.now()); // exported
+        order(ShipOrderStatus.SENT, null);              // Pending
+        order(ShipOrderStatus.CONFIRMED, Instant.now()); // Delivery pending, exported: still counted (P51)
+        order(ShipOrderStatus.CLOSED, null);            // received on board: not counted, even never exported
         order(ShipOrderStatus.OPEN, null);              // still on board: not counted
         rightShip(today.minusDays(1));     // inspection expired
         rightShip(today.plusDays(60));     // expiring within 60 days
@@ -183,8 +184,8 @@ class NavigationFlowTest {
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 expired or expiring within 30 days</span>")
                 .containsPattern("(?s)href=\"/office/orders\">.*?>Orders</span>\\s*"
-                        + "<span class=\"nav-count num\" aria-hidden=\"true\">1</span>\\s*"
-                        + "<span class=\"visually-hidden\">1 pending</span>")
+                        + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
+                        + "<span class=\"visually-hidden\">2 open</span>")
                 // P40: Vetting, right after Certificates, counts the vessels whose inspection expired or expires within
                 // 60 days.
                 .containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"

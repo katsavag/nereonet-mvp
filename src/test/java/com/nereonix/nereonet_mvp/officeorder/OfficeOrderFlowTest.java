@@ -55,8 +55,9 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
  * P36, the office's ship orders: the orders the ships have sent (never OPEN ones), one order with its lines by
- * category, confirming the port and delivery date (the Master and the Chief cook are notified each time, until the
- * order is closed), and the export (Excel since P39), which marks the orders exported. Office users only.
+ * category, scheduling the delivery, port and date (P51; "confirming" before; the Master and the Chief cook are
+ * notified each time, until the vessel confirms receipt), and the export (Excel since P39), which marks the orders
+ * exported. Office users only.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -68,7 +69,7 @@ class OfficeOrderFlowTest {
     // The export's columns: a file format.
     private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity", "sent_quantity", "office_change", "office_note");
+            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at");
     private static final Instant SENT_AT = Instant.parse("2026-11-10T09:30:15.123Z");
     private static final LocalDate NEEDED_BY = LocalDate.of(2026, 11, 25);
 
@@ -103,7 +104,7 @@ class OfficeOrderFlowTest {
     }
 
     @Test
-    void theOfficeConfirmsASentOrderAndExportsIt() throws Exception {
+    void theOfficeSchedulesTheDeliveryOfASentOrderAndExportsIt() throws Exception {
         ShipOrder order = sentOrderWithTwoLines();
         ShipOrder open = order(ShipOrderStatus.OPEN);
 
@@ -114,7 +115,7 @@ class OfficeOrderFlowTest {
                 .doesNotContain("Order #" + open.getId() + "<");
         // The order: its note and its lines by category; while pending the office can change them (P50).
         String detail = page("/office/orders/" + order.getId());
-        assertThat(detail).contains("Deliver to the gangway", "Confirm delivery",
+        assertThat(detail).contains("Deliver to the gangway", "Schedule delivery",
                         "name=\"confirmedPort\" value=\"Rotterdam\"", "action=\"/office/orders/export\"")
                 .containsSubsequence(">Provisions<", "Basmati rice", ">kg<", "value=\"25\"", ">Personal items<", "Shower gel",
                         "value=\"2.5\"")
@@ -123,27 +124,27 @@ class OfficeOrderFlowTest {
         LocalDate delivery = LocalDate.of(2026, 11, 20);
         confirm(order, "Antwerp", delivery.toString())
                 .andExpect(redirectedUrl("/office/orders/" + order.getId()))
-                .andExpect(flash().attribute("successMessage", "officeorder.confirmed"));
+                .andExpect(flash().attribute("successMessage", "officeorder.scheduled"));
 
         assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.CONFIRMED);
         assertThat(order.getConfirmedPort()).isEqualTo("Antwerp");
         assertThat(order.getDeliveryDate()).isEqualTo(delivery);
         assertThat(order.getConfirmedBy().getEmail()).isEqualTo("office@example.com");
-        // Confirmed: the lines are read-only again.
+        // Scheduled: the lines are read-only again.
         assertThat(page("/office/orders/" + order.getId())).contains(">25<", ">2.5<").doesNotContain("name=\"quantity\"");
         // The Master (with a link to the order) and the Chief cook are notified; nobody else on board.
         assertThat(notifications(master)).singleElement().satisfies(n -> {
             assertThat(n.getType()).isEqualTo(NotificationType.ORDER);
             assertThat(n.getSubject()).isEqualTo("MV Demo");
-            assertThat(n.getText()).isEqualTo("Order confirmed: Antwerp, 20 Nov 2026");
+            assertThat(n.getText()).isEqualTo("Delivery scheduled: Antwerp, 20 Nov 2026");
             assertThat(n.getLink()).isEqualTo("/ship/orders/" + order.getId());
         });
         assertThat(notifications(cook)).singleElement().satisfies(n -> {
-            assertThat(n.getText()).isEqualTo("Order confirmed: Antwerp, 20 Nov 2026");
+            assertThat(n.getText()).isEqualTo("Delivery scheduled: Antwerp, 20 Nov 2026");
             assertThat(n.getLink()).isNull();
         });
         assertThat(notifications(crewMember)).isEmpty();
-        assertThat(audit("ORDER_CONFIRMED")).singleElement().extracting(AuditEntry::getDetails)
+        assertThat(audit("ORDER_DELIVERY_SCHEDULED")).singleElement().extracting(AuditEntry::getDetails)
                 .isEqualTo("Order #" + order.getId() + ", Antwerp, delivery 2026-11-20");
 
         // Export: an Excel download, one row per line, Provisions first; the order is marked exported. Dates are date
@@ -157,22 +158,22 @@ class OfficeOrderFlowTest {
                 .andReturn();
         XlsSheet sheet = XlsSheet.of(export.getResponse().getContentAsByteArray());
         assertThat(sheet.name()).isEqualTo("Orders");
-        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(), "confirmed",
+        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(), "delivery_pending",
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
         assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
         assertThat(sheet.body()).containsExactly(
-                concat(common, "Provisions", "Basmati rice", "kg", 25.0, 25.0, null, null),
-                concat(common, "Personal items", "Shower gel", "pcs", 2.5, 2.5, null, null));
+                concat(common, "Provisions", "Basmati rice", "kg", 25.0, 25.0, null, null, null, null),
+                concat(common, "Personal items", "Shower gel", "pcs", 2.5, 2.5, null, null, null, null));
         assertThat(order.getExportedAt()).isNotNull();
         assertThat(audit("ORDERS_EXPORTED")).singleElement().satisfies(e -> {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");
             assertThat(e.getShip().getId()).isEqualTo(ship.getId());
         });
-        assertThat(page("/office/orders")).contains(">Confirmed</span>", ">Exported</span>").doesNotContain("Not yet");
+        assertThat(page("/office/orders")).contains(">Delivery pending</span>", ">Exported</span>").doesNotContain("Not yet");
     }
 
     @Test
-    void theConfirmationCanBeCorrectedUntilTheOrderIsClosed() throws Exception {
+    void theDeliveryCanBeChangedUntilTheVesselConfirmsReceipt() throws Exception {
         ShipOrder order = sentOrderWithTwoLines();
 
         // Both fields are required: the page again with the errors, nothing saved, nobody notified.
@@ -180,24 +181,24 @@ class OfficeOrderFlowTest {
                         .param("confirmedPort", " ").param("deliveryDate", "").with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(errors).contains("Enter the confirmed port.", "Enter the delivery date.");
+        assertThat(errors).contains("Enter the delivery port.", "Enter the delivery date.");
         assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.SENT);
         assertThat(notifications(master)).isEmpty();
 
         confirm(order, "Antwerp", "2026-11-20");
-        assertThat(page("/office/orders/" + order.getId())).contains("Correct the delivery",
+        assertThat(page("/office/orders/" + order.getId())).contains("Change delivery", "Save change",
                 "name=\"confirmedPort\" value=\"Antwerp\"", "value=\"2026-11-20\"");
-        confirm(order, "Hamburg", "2026-11-22").andExpect(flash().attribute("successMessage", "officeorder.confirmed"));
+        confirm(order, "Hamburg", "2026-11-22").andExpect(flash().attribute("successMessage", "officeorder.deliveryChanged"));
         assertThat(order.getConfirmedPort()).isEqualTo("Hamburg");
         assertThat(notifications(master)).extracting(Notification::getText)
-                .containsExactly("Order confirmed: Hamburg, 22 Nov 2026", "Order confirmed: Antwerp, 20 Nov 2026");
-        assertThat(audit("ORDER_CONFIRMED")).extracting(AuditEntry::getDetails)
-                .contains("Order #" + order.getId() + ", Hamburg, delivery 2026-11-22, corrected");
+                .containsExactly("Delivery changed: Hamburg, 22 Nov 2026", "Delivery scheduled: Antwerp, 20 Nov 2026");
+        assertThat(audit("ORDER_DELIVERY_CHANGED")).extracting(AuditEntry::getDetails)
+                .containsExactly("Order #" + order.getId() + ", Hamburg, delivery 2026-11-22");
 
-        // Closed: no form, and a confirmation sent anyway changes nothing.
+        // Received on board: no form (the office never closes an order), and a change sent anyway changes nothing.
         order.setStatus(ShipOrderStatus.CLOSED);
         assertThat(page("/office/orders/" + order.getId())).doesNotContain("id=\"confirmTitle\"", "/confirm\"");
-        confirm(order, "Bremen", "2026-11-23").andExpect(flash().attribute("errorMessage", "officeorder.closed"));
+        confirm(order, "Bremen", "2026-11-23").andExpect(flash().attribute("errorMessage", "officeorder.received"));
         assertThat(order.getConfirmedPort()).isEqualTo("Hamburg");
         assertThat(notifications(master)).hasSize(2);
     }

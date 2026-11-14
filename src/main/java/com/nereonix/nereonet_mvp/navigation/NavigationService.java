@@ -52,7 +52,7 @@ public class NavigationService {
         LocalDate until = today.plusDays(CERTIFICATE_DAYS);
         return new NavCounts(certificateRepository.countOpenUntil(until, today, today.plusDays(30), today.plusDays(60),
                         AlertKind.CERTIFICATE_EXPIRED, AlertKind.CERTIFICATE_EXPIRING),
-                orderService.countNotExported(), vettingService.vesselsNeedingAttention());
+                orderService.countNotReceived(), vettingService.vesselsNeedingAttention());
     }
 
     /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */

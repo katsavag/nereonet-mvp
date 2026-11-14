@@ -137,7 +137,8 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, RfqItem, InvitationItem, AnnouncementItem,
+            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, ShortageItem, RfqItem, InvitationItem,
+            AnnouncementItem,
             LibraryAttentionItem {
 
         AttentionType type();
@@ -285,6 +286,22 @@ public class DashboardService {
         }
     }
 
+    /** An order received on board with lines short (P51), until an office user marks the shortage handled. */
+    public record ShortageItem(Long id, FleetShip ship, Instant receivedAt, int shortLines) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.ORDER_SHORTAGE;
+        }
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return receivedAt == null ? Long.MIN_VALUE : receivedAt.getEpochSecond();
+        }
+    }
+
     /**
      * An open request for quotes (P44): RFQ_READY with quotes from at least two suppliers (the oldest request first),
      * or RFQ_PAST_REPLY_BY when the reply-by date has passed with fewer (the longest overdue first). quoted: suppliers
@@ -413,7 +430,8 @@ public class DashboardService {
      * crewOnBoard    enabled crew on the active ships
      * openItems      every open item of the fleet, not snoozed, whatever the filter (the Items tile)
      * snoozedItems   the items a snooze holds (the tile's detail line)
-     * ordersWaiting  orders sent and not yet confirmed (the Orders tile)
+     * ordersWaiting  orders sent and not yet scheduled (the Orders tile)
+     * ordersNotExported  the open Not exported items (the tile's detail line; shortages are not counted)
      * items          one page of the open items the filter keeps, in the chosen order (ListQuery: page, sort)
      * groups         the number of open items per kind (unfiltered), every kind, zero included
      * group, ship    the filter (/office?type=...&shipId=...), each null when not set
@@ -422,7 +440,7 @@ public class DashboardService {
      * checkedAt      when this was loaded
      */
     public record Dashboard(List<FleetRow> fleet, long crewOnBoard, long openItems, long snoozedItems,
-                            long ordersWaiting, Page<AttentionItem> items, List<GroupCount> groups, Group group,
+                            long ordersWaiting, long ordersNotExported, Page<AttentionItem> items, List<GroupCount> groups, Group group,
                             FleetShip ship, List<Upcoming> upcoming, List<AuditEntry> recent, Instant checkedAt) {
 
         /** A filter chip's URL: this page with the kind (null for All), keeping the vessel filter and the sort. */
@@ -552,6 +570,10 @@ public class DashboardService {
             if (o.notExported()) {
                 all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
             }
+            // P51: received short, until the office marks the shortage handled.
+            if (o.shortageOpen()) {
+                all.add(new ShortageItem(o.id(), shipsById.get(o.shipId()), o.receivedAt(), o.shortLines()));
+            }
         }
         // P44: open requests for quotes with two quotes to compare, or past their reply-by date with fewer.
         for (DashboardQueries.RfqRow r : queries.openRfqs()) {
@@ -617,10 +639,11 @@ public class DashboardService {
         Page<AttentionItem> page = page(filtered, list);
 
         long ordersWaiting = orders.stream().filter(o -> o.status() == ShipOrderStatus.SENT).count();
+        long ordersNotExported = open.stream().filter(item -> item.type() == AttentionType.ORDER_NOT_EXPORTED).count();
         List<AuditEntry> recent = auditRepository.findNewest(PageRequest.of(0, RECENT_SHOWN));
 
         return new Dashboard(fleet, ships.stream().mapToLong(FleetShip::crew).sum(), open.size(), snoozed,
-                ordersWaiting, page, groups, group, ship, upcoming(open, orders, shipsById, today), recent, now);
+                ordersWaiting, ordersNotExported, page, groups, group, ship, upcoming(open, orders, shipsById, today), recent, now);
     }
 
     private static Page<AttentionItem> page(List<AttentionItem> items, ListQuery list) {

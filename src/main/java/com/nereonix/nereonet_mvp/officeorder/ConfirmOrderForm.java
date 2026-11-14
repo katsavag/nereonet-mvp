@@ -12,8 +12,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The office's "Confirm delivery" form on /office/orders/{id} (P36): both fields required. The port starts as the
-// requested port (or the confirmed one, when correcting).
+// The office's "Schedule delivery" form on /office/orders/{id} (P36; "Confirm delivery" until P51), "Change delivery"
+// once scheduled: both fields required. The port starts as the requested port (or the scheduled one, when changing).
 public class ConfirmOrderForm {
 
     @NotBlank(message = "{officeorder.confirm.error.portRequired}")

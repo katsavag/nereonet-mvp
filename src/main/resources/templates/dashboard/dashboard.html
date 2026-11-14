@@ -74,7 +74,7 @@
         <li th:replace="~{dashboard/dashboard :: tile('#attention', ${d.openItems}, #{dashboard.tiles.items},
                 #{dashboard.tiles.items.detail(${d.snoozedItems})}, 'overview')}"></li>
         <li th:replace="~{dashboard/dashboard :: tile('/office/orders?status=sent', ${d.ordersWaiting}, #{dashboard.tiles.orders},
-                #{dashboard.tiles.orders.detail(${d.countOf('ORDERS')})}, 'orders')}"></li>
+                #{dashboard.tiles.orders.detail(${d.ordersNotExported})}, 'orders')}"></li>
     </ul>
 
     <!-- The snooze form of the list (P43): the checked rows' items go to the snooze page. -->
@@ -284,6 +284,30 @@
                             <th:block th:if="${item.sentAt != null}">
                                 · <span th:text="#{dashboard.item.sent}">sent</span>
                                 <time th:replace="~{layout/parts :: localTime(${item.sentAt})}"></time>
+                            </th:block>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.openOrder}">Open order</a>
+                    </div>
+                </th:block>
+
+                <!-- c1. Order received on board with lines short (P51): until an office user marks the shortage
+                     handled on the order page. -->
+                <th:block th:if="${type == 'ORDER_SHORTAGE'}" th:with="url=@{/office/orders/{id}(id=${item.id})}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <span th:replace="~{layout/parts :: statusIcon('warning', #{dashboard.item.shortLines(${item.shortLines})}, 'alert')}"></span>
+                            <span class="attention-kind" th:text="#{dashboard.kind.order}">Ship order</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="#{dashboard.item.shortage(${item.id})}">Order #12 · received short</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            <th:block th:if="${item.receivedAt != null}">
+                                · <span th:text="#{dashboard.item.received}">received</span>
+                                <time th:replace="~{layout/parts :: localTime(${item.receivedAt})}"></time>
                             </th:block>
                         </p>
                     </div>

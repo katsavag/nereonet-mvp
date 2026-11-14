@@ -46,8 +46,9 @@ import jakarta.persistence.criteria.Predicate;
 // Ship orders, for any feature (P34). RequestService.approve adds each approved request to the ship's OPEN order; the
 // Master edits its lines and sends it to the office (P35, shiporder). Every change of the ship locks the ship's row
 // first, so an approval, an edit and a send never interleave: an approval made while the order is sent goes into a
-// new OPEN order. The office (P36, officeorder) lists the sent orders, confirms the port and delivery date, and
-// exports them; until it confirms, it can correct the lines (P50, OfficeOrderEditService).
+// new OPEN order. The office (P36, officeorder) lists the sent orders, schedules the delivery (port and date; P51,
+// "confirms" before) and exports them; until it schedules, it can correct the lines (P50, OfficeOrderEditService).
+// Only the vessel closes an order, by confirming receipt (P51, OrderReceiptService).
 @Service
 public class ShipOrderService {
 
@@ -59,11 +60,14 @@ public class ShipOrderService {
     public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
             ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
 
+    /** The orders still on the office's desk (P51): Pending and Delivery pending, the sidebar's Orders counter. */
+    public static final List<ShipOrderStatus> NOT_RECEIVED = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
+
     /** The columns of the office's export (P36; an Excel workbook since P39, .xls since P40, the same columns), one row per order
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity", "sent_quantity", "office_change", "office_note");
+            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at");
 
     // "12" or "#12": an order number in the office's search.
     private static final Pattern ORDER_NUMBER = Pattern.compile("#?(\\d{1,18})");
@@ -289,10 +293,10 @@ public class ShipOrderService {
         return orderRepository.findByIdAndStatusIn(id, SENT_TO_OFFICE);
     }
 
-    /** Orders sent and never exported, every ship: the office's sidebar counter. */
+    /** Orders Pending or Delivery pending, every ship: the office's sidebar counter (P51; not exported before). */
     @Transactional(readOnly = true)
-    public long countNotExported() {
-        return orderRepository.countByStatusInAndExportedAtIsNull(SENT_TO_OFFICE);
+    public long countNotReceived() {
+        return orderRepository.countByStatusIn(NOT_RECEIVED);
     }
 
     /** One ship's orders sent and never exported, newest sent first: open items of its Overview tab. */
@@ -307,59 +311,63 @@ public class ShipOrderService {
         return orderRepository.countByShipIdAndStatusInAndExportedAtIsNull(shipId, SENT_TO_OFFICE);
     }
 
-    /** What the office confirms: the port and the delivery date, both required. */
-    public record Confirmation(String confirmedPort, LocalDate deliveryDate) {
+    /** What the office schedules: the port and the delivery date, both required. */
+    public record Delivery(String port, LocalDate deliveryDate) {
     }
 
-    /** What confirm did. */
-    public enum Confirm {
-        DONE,
-        // The order is CLOSED: nothing changed.
-        CLOSED,
+    /** What scheduleDelivery did. */
+    public enum Schedule {
+        // The delivery of a Pending order is scheduled: Delivery pending.
+        SCHEDULED,
+        // The port or date of a Delivery pending order changed.
+        CHANGED,
+        // The order is received (CLOSED): nothing changed.
+        RECEIVED,
         // No order the ship has sent with this id.
         NOT_FOUND
     }
 
     /**
-     * An office user confirms a SENT order, or corrects the confirmation of a CONFIRMED one (P36): confirmedPort,
-     * deliveryDate, confirmedBy and CONFIRMED. Records "Order confirmed" and notifies the ship's enabled Master and
-     * Chief cook each time: "Order confirmed: Rotterdam, 20 Nov 2026". CLOSED (nothing changed) once the order is
-     * closed; NOT_FOUND for an OPEN order or no such order. The order's row is locked, so two confirmations at the
-     * same time are saved one after the other. IllegalArgumentException for a missing or too long port or a missing
-     * date; AccessDeniedException when the user is not an enabled office user.
+     * An office user schedules the delivery of a SENT order, or changes the port or date of a CONFIRMED one (P36;
+     * "confirm" until P51): confirmedPort, deliveryDate, confirmedBy and CONFIRMED. Recorded as "Delivery scheduled" or
+     * "Delivery changed"; the ship's enabled Master and Chief cook are notified each time: "Delivery scheduled:
+     * Rotterdam, 20 Nov 2026" or "Delivery changed: ...". RECEIVED (nothing changed) once the Master confirmed receipt;
+     * NOT_FOUND for an OPEN order or no such order. The order's row is locked, so two at the same time are saved one
+     * after the other. IllegalArgumentException for a missing or too long port or a missing date;
+     * AccessDeniedException when the user is not an enabled office user.
      */
     @Transactional
-    public Confirm confirm(User officeUser, Long orderId, Confirmation confirmation) {
+    public Schedule scheduleDelivery(User officeUser, Long orderId, Delivery delivery) {
         checkOffice(officeUser);
-        String port = confirmation.confirmedPort() == null ? "" : confirmation.confirmedPort().strip();
+        String port = delivery.port() == null ? "" : delivery.port().strip();
         if (port.isEmpty() || port.length() > ShipOrder.PORT_MAX_LENGTH) {
-            throw new IllegalArgumentException("A confirmation needs a port of at most " + ShipOrder.PORT_MAX_LENGTH
+            throw new IllegalArgumentException("A delivery needs a port of at most " + ShipOrder.PORT_MAX_LENGTH
                     + " characters");
         }
-        if (confirmation.deliveryDate() == null) {
-            throw new IllegalArgumentException("A confirmation needs a delivery date");
+        if (delivery.deliveryDate() == null) {
+            throw new IllegalArgumentException("A delivery needs a date");
         }
         ShipOrder order = entityManager.find(ShipOrder.class, orderId, LockModeType.PESSIMISTIC_WRITE);
         if (order == null || !SENT_TO_OFFICE.contains(order.getStatus())) {
-            return Confirm.NOT_FOUND;
+            return Schedule.NOT_FOUND;
         }
         if (order.getStatus() == ShipOrderStatus.CLOSED) {
-            return Confirm.CLOSED;
+            return Schedule.RECEIVED;
         }
-        boolean correction = order.getStatus() == ShipOrderStatus.CONFIRMED;
+        boolean change = order.getStatus() == ShipOrderStatus.CONFIRMED;
         // P50: the lines are read-only from now on; the ship hears about the office's changes before the delivery.
         editService.notifyPending(order);
         order.setConfirmedPort(port);
-        order.setDeliveryDate(confirmation.deliveryDate());
+        order.setDeliveryDate(delivery.deliveryDate());
         order.setConfirmedBy(officeUser);
         order.setStatus(ShipOrderStatus.CONFIRMED);
 
         Ship ship = order.getShip();
-        auditService.record("ORDER_CONFIRMED", ship, "Order #" + order.getId() + ", " + port + ", delivery "
-                + confirmation.deliveryDate() + (correction ? ", corrected" : ""), officeUser);
-        String date = DateTimeFormatter.ofPattern(Dates.DATE_PATTERN, Locale.ENGLISH).format(confirmation.deliveryDate());
-        String text = messageSource.getMessage("order.notification.confirmed", new Object[] {port, date},
-                Locale.ENGLISH);
+        auditService.record(change ? "ORDER_DELIVERY_CHANGED" : "ORDER_DELIVERY_SCHEDULED", ship,
+                "Order #" + order.getId() + ", " + port + ", delivery " + delivery.deliveryDate(), officeUser);
+        String date = DateTimeFormatter.ofPattern(Dates.DATE_PATTERN, Locale.ENGLISH).format(delivery.deliveryDate());
+        String text = messageSource.getMessage(change ? "order.notification.deliveryChanged"
+                : "order.notification.deliveryScheduled", new Object[] {port, date}, Locale.ENGLISH);
         for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
             for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
                 // Only the Master has the order pages (/ship/orders).
@@ -367,16 +375,17 @@ public class ShipOrderService {
                         role == Role.MASTER ? "/ship/orders/" + order.getId() : null);
             }
         }
-        return Confirm.DONE;
+        return change ? Schedule.CHANGED : Schedule.SCHEDULED;
     }
 
     /**
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
      * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
-     * category (Provisions, then Personal items) and item name; status as the office sees it (P49: pending, confirmed,
-     * closed); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity what the ship sent
-     * (empty for a line the office added), office_change changed, removed, added or empty, office_note the office's
-     * note; order_id and the quantities are numbers, sent_at a date and
+     * category (Provisions, then Personal items) and item name; status as the office sees it (P49, P51: pending,
+     * delivery_pending, received); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity
+     * what the ship sent (empty for a line the office added), office_change changed, removed, added or empty,
+     * office_note the office's note; received_quantity what arrived on board and received_at when (P51, empty until
+     * the Master confirmed receipt); order_id and the quantities are numbers, sent_at and received_at a date and
      * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
      * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
@@ -410,7 +419,9 @@ public class ShipOrderService {
                         line.getDeliveredQuantity(),
                         line.getSentQuantity(),
                         officeChange(line),
-                        line.getChangeNote()));
+                        line.getChangeNote(),
+                        line.getReceivedQuantity(),
+                        order.getReceivedAt()));
                 lineCount++;
             }
             order.setExportedAt(now);
@@ -425,9 +436,14 @@ public class ShipOrderService {
         return Optional.of(sheet.file("ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC)));
     }
 
-    /** The status column of the export: the office's word, so SENT (waiting for the office) is "pending" (P49). */
+    /** The status column of the export: the office's words, pending (P49), delivery_pending and received (P51). */
     static String exportStatus(ShipOrderStatus status) {
-        return status == ShipOrderStatus.SENT ? "pending" : status.name().toLowerCase(Locale.ROOT);
+        return switch (status) {
+            case SENT -> "pending";
+            case CONFIRMED -> "delivery_pending";
+            case CLOSED -> "received";
+            case OPEN -> "open";
+        };
     }
 
     /** The office_change column (P50): what the office did to the line, or null. */
@@ -452,7 +468,7 @@ public class ShipOrderService {
 
     private static void checkOffice(User officeUser) {
         if (officeUser == null || officeUser.getRole() != Role.OFFICE_USER || !officeUser.isEnabled()) {
-            throw new AccessDeniedException("Only the office confirms or exports an order");
+            throw new AccessDeniedException("Only the office schedules the delivery of an order or exports it");
         }
     }
 

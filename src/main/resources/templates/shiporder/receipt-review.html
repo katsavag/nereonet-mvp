@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.receipt.review.title}, ~{::main})}">
+<body>
+<!-- "Confirm receipt" (P51), step 2 of 2 (P10): what will be saved, before anything is. Per line ordered and received,
+     lines short marked with an icon and "Short by 5 kg"; the receipt's files (each opens in a new tab); when they were
+     received. The form carries the lines and the time in hidden fields: "Confirm receipt" posts them to /confirm, which
+     closes the order and notifies the office; "Back to edit" to /edit, the form with the values. Item names are not
+     links: leaving would lose the review. data-draft-for: once confirmed, js/save.js removes the form's draft (P15).
+     English only. Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), shortLines, files. -->
+<main class="form-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.review.title}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.review.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <div class="review-stack form-box">
+        <p th:if="${shortLines == 0}" class="mb-0">
+            <span th:replace="~{layout/parts :: statusIcon('ok', #{order.receipt.review.allReceived}, 'check')}"></span>
+        </p>
+        <p th:if="${shortLines > 0}" class="mb-0">
+            <span th:replace="~{layout/parts :: statusIcon('warning', #{order.receipt.review.shortLines(${shortLines})}, 'alert')}"></span>
+        </p>
+
+        <section class="card" aria-labelledby="reviewLinesTitle">
+            <div class="card-header bg-transparent py-3">
+                <h2 class="h5 fw-bold mb-0" id="reviewLinesTitle" th:text="#{order.receipt.lines}">Items</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table data-table data-table-stack align-middle mb-0">
+                    <thead>
+                    <tr class="small text-body-secondary">
+                        <th scope="col" th:text="#{item.name}">Name</th>
+                        <th scope="col" class="text-end" th:text="#{order.receipt.ordered}">Ordered</th>
+                        <th scope="col" class="text-end" th:text="#{order.receipt.received}">Received</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${rows}" th:with="line=${r.line}" th:classappend="${r.shortBy() != null} ? 'receipt-line-short'">
+                        <td class="cell-primary">
+                            <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
+                            <p th:if="${r.shortBy() != null}" class="receipt-short mb-0">
+                                <span th:replace="~{layout/parts :: statusIcon('warning', ${r.form.notDelivered} ? #{order.receipt.notDelivered}
+                                        : #{order.receipt.shortBy(${r.shortBy().stripTrailingZeros().toPlainString()}, ${line.item.unit})}, 'alert')}"></span>
+                            </p>
+                            <q th:if="${r.form.note != null and !r.form.note.isEmpty()}" class="d-block small receipt-note" th:text="${r.form.note}">Two bags torn</q>
+                        </td>
+                        <td class="text-end font-monospace text-nowrap" th:attr="data-label=#{order.receipt.ordered}"
+                            th:text="${line.quantity.stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">25 kg</td>
+                        <td class="text-end font-monospace text-nowrap fw-semibold" th:attr="data-label=#{order.receipt.received}"
+                            th:text="${r.received().stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">20 kg</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="reviewFilesTitle">
+            <div class="card-body">
+                <h2 class="h5 fw-bold mb-3" id="reviewFilesTitle" th:text="#{order.receipt.files}">Delivery receipt</h2>
+                <ul class="receipt-files list-unstyled mb-3">
+                    <li th:each="f : ${files}" class="receipt-file">
+                        <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
+                           th:text="${f.fileName}">receipt.jpg</a>
+                        <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                    </li>
+                </ul>
+                <dl class="static-fields mb-0">
+                    <dt th:text="#{order.receipt.receivedAt}">Date and time received (UTC)</dt>
+                    <dd><time th:replace="~{layout/parts :: localTime(${form.receivedAtInstant})}"></time></dd>
+                </dl>
+            </div>
+        </section>
+
+        <form method="post" th:action="@{${baseUrl + '/confirm'}}" th:data-draft-for="@{${baseUrl}}">
+            <th:block th:each="r : ${rows}" th:with="p=${'lines[' + r.index + ']'}">
+                <input type="hidden" th:name="${p + '.lineId'}" th:value="${r.line.id}">
+                <input type="hidden" th:name="${p + '.received'}" th:value="${r.received().stripTrailingZeros().toPlainString()}">
+                <input type="hidden" th:name="${p + '.notDelivered'}" th:value="${r.form.notDelivered}">
+                <input type="hidden" th:name="${p + '.note'}" th:value="${r.form.note}">
+            </th:block>
+            <input type="hidden" name="receivedAt" th:value="${form.receivedAtValue}">
+            <div class="form-actions mt-0">
+                <button type="submit" class="btn btn-primary" th:text="#{order.receipt.review.confirm}">Confirm receipt</button>
+                <button type="submit" class="btn btn-outline-secondary" th:formaction="@{${baseUrl + '/edit'}}"
+                        th:text="#{order.receipt.review.back}">Back to edit</button>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

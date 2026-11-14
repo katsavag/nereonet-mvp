@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.receipt.title}, ~{::main})}">
+<body>
+<!-- "Confirm receipt" (P51), step 1 of 2: the Master says what arrived of a CONFIRMED order (delivery scheduled).
+     Per line the quantity ordered (after the office's changes, P50; lines the office removed are not listed) and the
+     quantity received, prefilled with the ordered one, "Not delivered" (received 0) and an optional note; the delivery
+     receipt (required: PDF, JPEG or PNG, at most 10 MB each, up to 10 files) and the date and time received (UTC, now
+     to start with). Review shows step 2 (receipt-review.html). English only.
+     Without JavaScript the files go with Review (a too large request comes back here with ?fileTooLarge); the files
+     uploaded before are listed with a Remove tick. js/receipt.js sends each chosen file alone first, photos made
+     smaller, with a progress bar, then the form without them; "Not delivered" empties and locks the quantity.
+     data-draft: js/save.js keeps the quantities, notes and time if the connection drops (P15).
+     Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), files (OrderReceiptFile, uploaded so
+     far), maxFiles, maxFileSize, noteMax. -->
+<main th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.heading}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <form th:object="${form}" method="post" enctype="multipart/form-data" novalidate class="receipt-form"
+          th:action="@{${baseUrl}}" th:data-draft="@{${baseUrl}}" data-receipt-form
+          th:data-upload-url="@{${baseUrl + '/files'}}">
+        <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+        <p th:if="${param.fileTooLarge != null}" class="alert alert-danger" role="alert"
+           th:text="#{order.receipt.error.tooLargeTogether}">The files were too large to send together.</p>
+
+        <!-- The lines, by category and item name. On phones each line is a block (data-table-stack). -->
+        <section class="card mb-4" aria-labelledby="receiptLinesTitle">
+            <div class="card-header bg-transparent py-3">
+                <h2 class="h5 fw-bold mb-0" id="receiptLinesTitle" th:text="#{order.receipt.lines}">Items</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table data-table data-table-stack align-middle mb-0 receipt-table">
+                    <thead>
+                    <tr class="small text-body-secondary">
+                        <th scope="col" th:text="#{item.name}">Name</th>
+                        <th scope="col" class="text-end" th:text="#{order.receipt.ordered}">Ordered</th>
+                        <th scope="col" th:text="#{order.receipt.received}">Received</th>
+                        <th scope="col" th:text="#{order.receipt.note.placeholder}">Note (optional)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${rows}" th:with="i=${r.index}, line=${r.line}, p=${'lines[' + r.index + ']'}"
+                        data-receipt-line>
+                        <td class="cell-primary">
+                            <input type="hidden" th:name="${p + '.lineId'}" th:value="${line.id}">
+                            <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
+                            <span class="d-block small text-body-secondary" th:text="#{${line.item.category.labelKey()}}">Provisions</span>
+                        </td>
+                        <td class="text-end font-monospace text-nowrap" th:attr="data-label=#{order.receipt.ordered}"
+                            th:text="${line.quantity.stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">25 kg</td>
+                        <td th:attr="data-label=#{order.receipt.received}">
+                            <div class="receipt-received">
+                                <label class="visually-hidden" th:for="${p + '.received'}"
+                                       th:text="#{order.receipt.received.label(${line.item.name})}">Received quantity of Basmati rice</label>
+                                <span class="input-group input-group-sm receipt-qty">
+                                    <input type="text" inputmode="decimal" class="form-control font-monospace"
+                                           th:id="${p + '.received'}" th:name="${p + '.received'}" th:value="${r.form.received}"
+                                           th:classappend="${#fields.hasErrors(p + '.received')} ? 'is-invalid'"
+                                           autocomplete="off" data-receipt-quantity
+                                           th:attr="aria-describedby=${#fields.hasErrors(p + '.received')} ? ${'error-' + i} : null">
+                                    <span class="input-group-text" th:text="${line.item.unit}">kg</span>
+                                </span>
+                                <span class="form-check receipt-not-delivered">
+                                    <input class="form-check-input" type="checkbox" value="true" th:name="${p + '.notDelivered'}"
+                                           th:id="${p + '.notDelivered'}" th:checked="${r.form.notDelivered}" data-receipt-none>
+                                    <input type="hidden" th:name="${'_' + p + '.notDelivered'}" value="on">
+                                    <label class="form-check-label" th:for="${p + '.notDelivered'}">
+                                        <span th:text="#{order.receipt.notDelivered}">Not delivered</span>
+                                        <span class="visually-hidden" th:text="${line.item.name}">Basmati rice</span>
+                                    </label>
+                                </span>
+                            </div>
+                            <div th:if="${#fields.hasErrors(p + '.received')}" class="invalid-feedback d-block"
+                                 th:id="${'error-' + i}" th:errors="*{__${p}__.received}"></div>
+                        </td>
+                        <td th:attr="data-label=#{order.receipt.note.placeholder}">
+                            <label class="visually-hidden" th:for="${p + '.note'}"
+                                   th:text="#{order.receipt.note.label(${line.item.name})}">Note on Basmati rice (optional)</label>
+                            <input type="text" class="form-control form-control-sm" th:id="${p + '.note'}" th:name="${p + '.note'}"
+                                   th:value="${r.form.note}" th:maxlength="${noteMax}" autocomplete="off"
+                                   th:classappend="${#fields.hasErrors(p + '.note')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:errors="*{__${p}__.note}"></div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card form-box mb-4" aria-labelledby="receiptFilesTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h5 fw-bold" id="receiptFilesTitle" th:text="#{order.receipt.files}">Delivery receipt</h2>
+
+                <!-- Uploaded before (a Review that came back, or Back to edit): kept unless ticked. -->
+                <th:block th:unless="${files.isEmpty()}">
+                    <h3 class="h6 fw-semibold mt-3" th:text="#{order.receipt.files.uploaded}">Already uploaded</h3>
+                    <ul class="receipt-files list-unstyled">
+                        <li th:each="f : ${files}" class="receipt-file">
+                            <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
+                               th:text="${f.fileName}">receipt.jpg</a>
+                            <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                            <span class="form-check ms-auto">
+                                <input class="form-check-input" type="checkbox" name="removeFileIds" th:value="${f.id}"
+                                       th:id="${'removeFile' + f.id}" data-draft-skip>
+                                <label class="form-check-label" th:for="${'removeFile' + f.id}">
+                                    <span th:text="#{order.receipt.files.remove}">Remove</span>
+                                    <span class="visually-hidden" th:text="${f.fileName}">receipt.jpg</span>
+                                </label>
+                            </span>
+                        </li>
+                    </ul>
+                </th:block>
+
+                <label for="files" class="form-label mt-2" th:text="#{order.receipt.files.add}">Add files</label>
+                <input type="file" id="files" name="files" class="form-control" multiple accept=".pdf,.png,.jpg,.jpeg"
+                       aria-describedby="filesHint" th:classappend="${#fields.hasErrors('files')} ? 'is-invalid'"
+                       th:data-max-size="${maxFileSize}" th:data-max-files="${maxFiles}" th:data-uploaded="${files.size()}"
+                       th:data-too-large="#{order.receipt.upload.tooLarge}" data-receipt-files>
+                <div class="invalid-feedback" th:each="e : ${#fields.errors('files')}" th:text="${e}"></div>
+                <div id="filesHint" class="form-text" th:text="#{order.receipt.files.hint}">PDF, JPEG or PNG, at most 10 MB each.</div>
+                <!-- js/receipt.js: the files chosen, then the progress of sending them. -->
+                <ul class="receipt-chosen list-unstyled" data-receipt-chosen hidden></ul>
+                <div class="receipt-progress" data-receipt-progress hidden
+                     th:data-text="#{order.receipt.upload.progress('{name}', '{n}', '{total}', '{percent}')}"
+                     th:data-resizing="#{order.receipt.upload.resizing}" th:data-failed="#{order.receipt.upload.failed}">
+                    <progress max="100" value="0"></progress>
+                    <p class="small mb-0" role="status" aria-live="polite"></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card form-box mb-4" aria-labelledby="receiptWhenTitle">
+            <div class="card-body p-3 p-md-4">
+                <label for="receivedAt" class="form-label h5 fw-bold" id="receiptWhenTitle" th:text="#{order.receipt.receivedAt}">Date and time received (UTC)</label>
+                <input type="datetime-local" id="receivedAt" name="receivedAt" class="form-control receipt-when"
+                       th:value="${form.receivedAtValue}" th:max="${form.receivedAtMax}" required
+                       th:classappend="${#fields.hasErrors('receivedAt')} ? 'is-invalid'" aria-describedby="receivedAtHint">
+                <div class="invalid-feedback" th:errors="*{receivedAt}"></div>
+                <div id="receivedAtHint" class="form-text" th:text="#{order.receipt.receivedAt.hint}">In UTC, as every time in the app.</div>
+            </div>
+        </section>
+
+        <div class="form-actions form-box">
+            <button type="submit" class="btn btn-primary" th:text="#{order.receipt.review}">Review</button>
+            <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${order.id})}" th:text="#{order.receipt.cancel}">Cancel</a>
+        </div>
+    </form>
+    <script th:src="@{/js/receipt.js}" defer></script>
+</main>
+</body>
+</html>

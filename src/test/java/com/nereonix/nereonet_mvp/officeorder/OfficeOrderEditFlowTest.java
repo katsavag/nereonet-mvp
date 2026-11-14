@@ -267,13 +267,13 @@ class OfficeOrderEditFlowTest {
     }
 
     @Test
-    void confirmingTheDeliveryTellsTheShipFirstAndLocksTheLines() throws Exception {
+    void schedulingTheDeliveryTellsTheShipFirstAndLocksTheLines() throws Exception {
         change(riceLine, "45", "");
         mockMvc.perform(post("/office/orders/{id}/confirm", order.getId()).param("confirmedPort", "Antwerp")
                 .param("deliveryDate", "2026-11-20").with(csrf()));
 
         assertThat(notifications(master)).extracting(Notification::getText).containsExactly(
-                "Order confirmed: Antwerp, 20 Nov 2026",
+                "Delivery scheduled: Antwerp, 20 Nov 2026",
                 "The office changed order " + order.getId() + ": 1 line changed");
         assertThat(order.getOfficeEditedAt()).isNull();
 

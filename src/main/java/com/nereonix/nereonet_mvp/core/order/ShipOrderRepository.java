@@ -28,8 +28,10 @@ public interface ShipOrderRepository extends JpaRepository<ShipOrder, Long> {
     List<ShipOrder> findAllByIdInAndStatusInOrderBySentAtDescIdDesc(Collection<Long> ids,
                                                                   Collection<ShipOrderStatus> statuses);
 
-    // Orders sent and never exported: every ship (the office sidebar counter) and one ship (its Overview tab).
-    long countByStatusInAndExportedAtIsNull(Collection<ShipOrderStatus> statuses);
+    // P51: the office sidebar counter, Pending and Delivery pending orders.
+    long countByStatusIn(Collection<ShipOrderStatus> statuses);
+
+    // Orders sent and never exported, one ship (its Overview tab).
 
     long countByShipIdAndStatusInAndExportedAtIsNull(Long shipId, Collection<ShipOrderStatus> statuses);
 

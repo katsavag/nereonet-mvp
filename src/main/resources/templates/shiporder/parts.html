@@ -3,11 +3,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- An order's status as a badge: Collecting (neutral), Sent to office (info), Confirmed by office (ok), Received
-     (neutral). The words carry the state, the colour repeats it.
+<!-- An order's status as a badge: Collecting (neutral), Sent to office (neutral), Delivery scheduled (info: the Master
+     confirms receipt next, P51), Received (ok). The words carry the state, the colour repeats it.
      Use: <span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span> -->
 <span th:fragment="statusBadge(status)"
-      th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CONFIRMED'} ? 'ok'
+      th:replace="~{layout/parts :: status(${status.name() == 'CONFIRMED'} ? 'info' : (${status.name() == 'CLOSED'} ? 'ok'
               : 'neutral'), #{${status.labelKey()}})}"></span>
 
 <!-- What the office changed on a line of a sent order (P50), under the item's name: "Changed by office: 50 kg → 40 kg",
@@ -26,10 +26,23 @@
     </p>
 </th:block>
 
+<!-- A line received short (P51), under the item's name: a warning icon and "Short by 5 kg" ("Not delivered" when
+     nothing arrived), then the Master's note on the line. Nothing for a line received in full.
+     keys: the message keys' prefix, 'order.receipt' (crew, English only) or 'officeorder.receipt' (office).
+     Use: <th:block th:replace="~{shiporder/parts :: receivedShort(${line}, 'order.receipt')}"></th:block> -->
+<th:block th:fragment="receivedShort(line, keys)">
+    <p th:if="${line.shortBy != null}" class="receipt-short">
+        <span th:replace="~{layout/parts :: statusIcon('warning', ${line.receivedQuantity.signum() == 0} ? #{${keys + '.notDelivered'}}
+                : #{${keys + '.shortBy'}(${line.shortBy.stripTrailingZeros().toPlainString()}, ${line.item.unit})}, 'alert')}"></span>
+    </p>
+    <q th:if="${line.receiptNote != null}" class="d-block small receipt-note" th:text="${line.receiptNote}">Two bags torn</q>
+</th:block>
+
 <!-- An order's lines by category (Provisions, then Personal items), each with who asked for it under the item's name.
      editable: the OPEN order on /ship/order, where each line has its quantity in a small form (Save posts it at once)
      and Remove; otherwise the quantity is text, and a sent order shows what the office changed (P50): a removed
-     line struck through, "Changed by office" or "Added by office" under the name.
+     line struck through, "Changed by office" or "Added by office" under the name. P51: once received, a Received column
+     and, for a line received short, "Short by 5 kg" (or "Not delivered") with a warning icon, and the Master's note.
      Use: <th:block th:replace="~{shiporder/parts :: lines(${view}, true)}"></th:block> -->
 <th:block th:fragment="lines(view, editable)">
     <section th:each="g, it : ${view.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
@@ -45,6 +58,7 @@
                     <th scope="col" th:text="#{item.name}">Name</th>
                     <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
                     <th scope="col" th:text="#{item.unit}">Unit</th>
+                    <th th:if="${view.order.receivedAt != null}" scope="col" class="text-end" th:text="#{order.receipt.received}">Received</th>
                     <th th:if="${editable}" scope="col"><span class="visually-hidden" th:text="#{order.line.actions}">Actions</span></th>
                 </tr>
                 </thead>
@@ -56,6 +70,7 @@
                         <p th:if="${!#strings.isEmpty(v.askedBy)}" class="order-asked-by"><span class="visually-hidden"
                                 th:text="#{order.askedBy}">Asked by</span> <th:block th:text="${v.askedBy}">Chief Cook 6, A. Santos 4</th:block></p>
                         <th:block th:unless="${editable}"><th:block th:replace="~{shiporder/parts :: officeChange(${line}, 'order.officeChange')}"></th:block></th:block>
+                        <th:block th:replace="~{shiporder/parts :: receivedShort(${line}, 'order.receipt')}"></th:block>
                     </td>
                     <td class="text-end">
                         <form th:if="${editable}" class="order-qty-form" method="post"
@@ -71,6 +86,8 @@
                               th:text="${line.quantity.stripTrailingZeros().toPlainString()}">10</span>
                     </td>
                     <td th:text="${line.item.unit}">kg</td>
+                    <td th:if="${view.order.receivedAt != null}" class="text-end font-monospace"
+                        th:text="${line.receivedQuantity != null} ? ${line.receivedQuantity.stripTrailingZeros().toPlainString()} : ''">20</td>
                     <td th:if="${editable}" class="text-end">
                         <form method="post" th:action="@{/ship/order/lines/{id}/remove(id=${line.id})}">
                             <button type="submit" class="btn btn-ghost btn-sm text-danger"

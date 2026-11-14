@@ -168,9 +168,9 @@ class MasterHomeFlowTest {
         String recent = section(RECENT_ORDERS, home(master));
         assertThat(ORDER_TITLE.matcher(recent).results().map(m -> m.group(1)).toList()).containsExactly(
                 "Order #" + sent.getId(), "Order #" + confirmed.getId(), "Order #" + received.getId());
-        assertThat(recent).containsSubsequence("Not confirmed yet", "Sent to office",
-                        "Confirmed: Antwerp", "Delivery date", "20 Nov 2026", "Confirmed by office",
-                        "Confirmed: Hamburg", "15 Oct 2026", "Received")
+        assertThat(recent).containsSubsequence("Delivery not scheduled yet", "Sent to office",
+                        "Delivery: Antwerp", "Delivery date", "20 Nov 2026", "Delivery scheduled",
+                        "Delivery: Hamburg", "15 Oct 2026", "Received")
                 .contains("href=\"/ship/orders\">All orders</a>")
                 .doesNotContain("Piraeus");
     }

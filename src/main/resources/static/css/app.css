@@ -6329,3 +6329,38 @@ input.supplier-currency { max-width: 7rem; }
 }
 .vessel-summary { margin-bottom: var(--nn-space-3); color: var(--nn-text); }
 .vessel-compare td { min-width: 7rem; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Receipt on board (P51): shiporder/receipt.html, receipt-review.html, the Master's and the office's order pages.
+     - .receipt-received: a line's received quantity (with its unit) and "Not delivered" side by side, wrapping.
+     - .receipt-files / .receipt-file: the receipt's files, one per row: name and size, then the actions.
+     - .receipt-chosen: the files chosen and not sent yet (js/receipt.js); .is-over larger than 10 MB, .is-sent sent.
+     - .receipt-progress: the progress of sending the files; .is-failed when it stopped, in the danger text colour.
+     - .receipt-short: "Short by 5 kg" under the item's name; .receipt-note the Master's note on the line.
+   --------------------------------------------------------------------------------------------------------------- */
+.receipt-received { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
+.receipt-qty { width: 9rem; flex: 0 0 auto; }
+.receipt-qty > .form-control[readonly] { background: var(--nn-page); }
+.receipt-not-delivered { margin: 0; white-space: nowrap; }
+.receipt-table .form-control-sm[type="text"]:not(.font-monospace) { min-width: 10rem; }
+.receipt-files { margin: 0; }
+.receipt-file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-3);
+    padding: var(--nn-space-2) 0;
+}
+.receipt-file + .receipt-file { border-top: 1px solid var(--nn-divider); }
+.receipt-file-name { display: flex; flex-direction: column; flex: 1 1 12rem; min-width: 0; }
+.receipt-chosen { margin: var(--nn-space-2) 0 0; font-size: .875rem; }
+.receipt-chosen > li.is-over { color: var(--nn-danger-text); }
+.receipt-chosen > li.is-sent { color: var(--nn-text-secondary); text-decoration: line-through; }
+.receipt-progress { margin-top: var(--nn-space-3); }
+.receipt-progress > progress { width: 100%; height: .5rem; accent-color: var(--nn-ok); }
+.receipt-progress.is-failed > progress { display: none; }
+.receipt-progress.is-failed > p { color: var(--nn-danger-text); }
+.receipt-short { margin: var(--nn-space-1) 0 0; }
+.receipt-note { color: var(--nn-text-secondary); margin-top: var(--nn-space-1); }
+.receipt-when { max-width: 16rem; }
