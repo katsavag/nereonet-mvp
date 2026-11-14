@@ -21,6 +21,12 @@
                 <input th:each="f : ${confirm.fields}" type="hidden" th:name="${f.key}" th:value="${f.value}">
                 <p class="confirm-page-body" th:text="${confirm.body}">No new crew can be invited to MV Demo until it
                     is activated again.</p>
+                <!-- P50: an optional note posted with the action (removing an order line). -->
+                <div th:if="${confirm.note != null}" class="mb-3">
+                    <label for="confirmNote" class="form-label">[[${confirm.note.label}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                    <textarea id="confirmNote" class="form-control" rows="2" th:name="${confirm.note.name}"
+                              th:maxlength="${confirm.note.maxLength}"></textarea>
+                </div>
                 <div class="form-actions">
                     <button type="submit" class="btn" th:classappend="${confirm.danger()} ? 'btn-outline-danger' : 'btn-primary'"
                             th:text="${confirm.confirmLabel}">Deactivate</button>

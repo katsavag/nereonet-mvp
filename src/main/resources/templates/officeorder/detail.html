@@ -3,10 +3,15 @@
 <body>
 <!-- One order a ship has sent (P36): its status, who sent it and when, the requested port, needed by date and the
      Master's note, the confirmation once set, when it was last exported; then its lines by category (Provisions, then
-     Personal items), read-only: the office never changes lines or quantities. Export (the page action) downloads an Excel workbook of
+     Personal items). P50: while SENT ("Pending") the office changes them: each line's quantity with an optional note
+     (Save), Remove (asks first, with an optional note), and "Add an item" from the vessel's active items; removed
+     lines stay, struck through, and every change shows under the item's name, as on the Master's page. Until the ship
+     is told, a note says so with "Done editing". Once the delivery is confirmed the lines are read-only.
+     Export (the page action) downloads an Excel workbook of
      this order's file and marks it exported. While SENT or CONFIRMED, "Confirm delivery" with the confirmed port
      (the requested port to start with) and the delivery date; it can be corrected until the order is closed.
-     Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm). -->
+     Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
+     editable, editPending, noteMax, and while editable itemGroups (OfficeOrderController.ItemGroup), onOrder (item ids). -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.number(${order.id})}, crumbs=~{::pageCrumbs},
             eyebrowShip=${order.ship}, actions=~{::pageActions})}">
@@ -103,30 +108,123 @@
         </div>
     </section>
 
-    <!-- The lines by category, read-only. -->
+    <!-- P50: changes the ship has not been told about yet, and "Done editing" to tell it now. -->
+    <div th:if="${editPending}" class="order-edit-pending mb-4" role="status">
+        <p class="mb-0" th:text="#{officeorder.edit.pending}">The master and the chief cook haven't been told about your
+            changes yet. They are told when you press Done editing, or 10 minutes after your last change.</p>
+        <form method="post" th:action="@{/office/orders/{id}/edits/done(id=${order.id})}">
+            <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.finish}">Done editing</button>
+        </form>
+    </div>
+    <p th:if="${editable and !editPending}" class="text-body-secondary small" th:text="#{officeorder.edit.hint}">You can
+        change quantities, remove lines and add items until you confirm the delivery. The master sees every change.</p>
+
+    <!-- The lines by category. While editable each line has its quantity and an optional note (Save) and Remove. -->
     <section th:each="g, it : ${groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
              th:attr="aria-labelledby=${groupId}">
         <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
             <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${g.lines.size()}">3</span>
+            <span class="font-monospace small text-body-secondary" th:text="${g.lines.?[!removed].size()}">3</span>
         </div>
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0" th:classappend="${editable} ? 'order-edit-table'">
                 <thead>
                 <tr class="small text-body-secondary">
                     <th scope="col" th:text="#{item.name}">Name</th>
                     <th scope="col" th:text="#{item.unit}">Unit</th>
                     <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                    <th th:if="${editable}" scope="col"><span class="visually-hidden" th:text="#{officeorder.edit.actions}">Actions</span></th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="line : ${g.lines}">
-                    <td class="fw-semibold" th:text="${line.item.name}">Basmati rice</td>
-                    <td th:text="${line.item.unit}">kg</td>
-                    <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
+                <tr th:each="line : ${g.lines}" th:id="${'line-' + line.id}"
+                    th:classappend="${line.removed} ? 'order-line-removed'">
+                    <td class="order-cell-name">
+                        <span class="fw-semibold order-line-name" th:text="${line.item.name}">Basmati rice</span>
+                        <th:block th:replace="~{shiporder/parts :: officeChange(${line}, 'officeorder.change')}"></th:block>
+                    </td>
+                    <td class="order-cell-unit" th:text="${line.item.unit}">kg</td>
+                    <td class="text-end order-cell-qty">
+                        <form th:if="${editable and !line.removed}" class="order-edit-form" method="post"
+                              th:action="@{/office/orders/{o}/lines/{l}/quantity(o=${order.id}, l=${line.id})}">
+                            <label class="visually-hidden" th:for="${'quantity-' + line.id}"
+                                   th:text="#{officeorder.edit.quantity.label(${line.item.name})}">Quantity of Basmati rice</label>
+                            <input type="number" class="form-control form-control-sm font-monospace order-edit-qty" name="quantity"
+                                   th:id="${'quantity-' + line.id}" min="0.001" step="any" required
+                                   th:value="${line.quantity.stripTrailingZeros().toPlainString()}">
+                            <label class="visually-hidden" th:for="${'note-' + line.id}"
+                                   th:text="#{officeorder.edit.note.label(${line.item.name})}">Note on Basmati rice (optional)</label>
+                            <input type="text" class="form-control form-control-sm order-edit-note" name="note"
+                                   th:id="${'note-' + line.id}" th:maxlength="${noteMax}" autocomplete="off"
+                                   th:placeholder="#{officeorder.edit.note.placeholder}" th:value="${line.changeNote}">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{officeorder.edit.save}">Save</button>
+                        </form>
+                        <span th:unless="${editable and !line.removed}" class="font-monospace order-line-qty"
+                              th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</span>
+                    </td>
+                    <td th:if="${editable}" class="text-end order-cell-actions">
+                        <th:block th:unless="${line.removed}"
+                                  th:with="removeUrl=${'/office/orders/' + order.id + '/lines/' + line.id + '/remove'}">
+                            <form th:replace="~{layout/parts :: confirmForm(action=${removeUrl}, id=${'removeLine' + line.id},
+                                    trigger=false, title=#{officeorder.edit.remove.confirm.title(${line.item.name})},
+                                    body=#{officeorder.edit.remove.confirm.body}, confirm=#{officeorder.edit.remove},
+                                    tone='danger', note=#{officeorder.edit.note.placeholder}, noteMax=${noteMax})}"></form>
+                            <a class="btn btn-ghost btn-sm text-danger" th:href="@{${removeUrl}}" data-confirm-open
+                               aria-haspopup="dialog" th:data-confirm-form="${'removeLine' + line.id}"
+                               th:attr="aria-label=#{officeorder.edit.remove.label(${line.item.name})}"
+                               th:text="#{officeorder.edit.remove}">Remove</a>
+                        </th:block>
+                    </td>
                 </tr>
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <!-- P50: add one of the vessel's active items. Without JavaScript a list box grouped by category; js/item-search.js
+         adds the search field. An item already on the order adds to its line; a removed one comes back. -->
+    <section th:if="${editable}" class="card form-box mb-4" aria-labelledby="addItemTitle">
+        <div class="card-body p-3 p-md-4">
+            <h2 class="h5 fw-bold" id="addItemTitle" th:text="#{officeorder.edit.add.heading}">Add an item</h2>
+            <p class="text-body-secondary small" th:text="#{officeorder.edit.add.hint}">From the vessel's items. An item
+                already on the order is added to its line.</p>
+            <p th:if="${itemGroups.isEmpty()}" class="mb-0" th:text="#{officeorder.edit.add.noItems}">This vessel has no
+                active items.</p>
+            <form th:unless="${itemGroups.isEmpty()}" method="post" novalidate data-item-picker
+                  th:action="@{/office/orders/{id}/lines/add(id=${order.id})}">
+                <div class="form-grid">
+                    <div>
+                        <label for="addItemSearch" class="form-label" data-item-search-part hidden
+                               th:text="#{officeorder.edit.add.search}">Search items</label>
+                        <input type="search" id="addItemSearch" class="form-control mb-2" data-item-search
+                               data-item-search-part hidden aria-controls="addItemId" autocomplete="off"
+                               th:placeholder="#{officeorder.edit.add.searchPlaceholder}">
+                        <label for="addItemId" class="form-label" th:text="#{officeorder.edit.add.item}">Item</label>
+                        <select id="addItemId" name="itemId" class="form-select order-add-items" size="8" required>
+                            <optgroup th:each="g : ${itemGroups}" th:label="#{${g.category.labelKey()}}">
+                                <option th:each="i : ${g.items}" th:value="${i.id}"
+                                        th:text="${onOrder.contains(i.id)} ? #{officeorder.edit.add.optionOnOrder(${i.name}, ${i.unit})}
+                                                : #{officeorder.edit.add.option(${i.name}, ${i.unit})}">Basmati rice (kg)</option>
+                            </optgroup>
+                        </select>
+                        <p class="form-text mb-0" data-item-search-empty role="status" hidden
+                           th:data-text="#{officeorder.edit.add.noMatch}"></p>
+                    </div>
+                    <div class="field-half">
+                        <label for="addQuantity" class="form-label" th:text="#{request.quantity}">Quantity</label>
+                        <input type="number" id="addQuantity" name="quantity" class="form-control font-monospace"
+                               min="0.001" step="any" required data-item-quantity>
+                    </div>
+                    <div class="field-half">
+                        <label for="addNote" class="form-label">[[#{officeorder.edit.note}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" id="addNote" name="note" class="form-control" th:maxlength="${noteMax}"
+                               autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.add.submit}">Add to order</button>
+                </div>
+            </form>
         </div>
     </section>
 

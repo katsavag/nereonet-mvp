@@ -19,9 +19,16 @@ import java.util.Map;
  *                     ("tab"), or the list and filters it returns to (e.g. an invitation's Resend and Cancel, P17)
  * @param cancelUrl    where the dismiss button goes: the page the action was started from
  * @param crumbs       the breadcrumbs above the heading (the heading itself is added by the page header)
+ * @param note         an optional text field the action is posted with (P50: the office's note on removing an order
+ *                     line), or null for none
  */
 public record ConfirmPage(String title, String body, String confirmLabel, String dismissLabel, Tone tone,
-                          String action, Map<String, String> fields, String cancelUrl, List<Crumb> crumbs) {
+                          String action, Map<String, String> fields, String cancelUrl, List<Crumb> crumbs,
+                          NoteField note) {
+
+    /** An optional text field: its label ("Note (optional)" is the label plus the optional mark), name and length. */
+    public record NoteField(String label, String name, int maxLength) {
+    }
 
     public enum Tone {
         DANGER, NEUTRAL;

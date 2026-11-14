@@ -76,6 +76,10 @@ app:
   bootstrap:
     office-email: ${BOOTSTRAP_OFFICE_EMAIL:}
     office-password: ${BOOTSTRAP_OFFICE_PASSWORD:}
+  orders:
+    # P50: the ship is told about the office's changes of an order this long after the last change, unless the office
+    # presses "Done editing" first (ISO-8601 duration). Checked every minute.
+    office-edit-quiet: ${ORDER_OFFICE_EDIT_QUIET:PT10M}
   certificates:
     # Daily certificate expiry reminders (Spring cron: second minute hour day month weekday), in UTC.
     reminder-cron: ${CERTIFICATE_REMINDER_CRON:0 0 6 * * *}

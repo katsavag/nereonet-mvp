@@ -958,7 +958,8 @@ Requirements: Java 25, Docker.
      not before today in UTC) and an optional **Note to the office** (up to 1000). `POST /ship/order/send`: only an
      OPEN order with at least one line becomes SENT, with sent by and at; "Order sent to office" goes in the audit log
      and every enabled office user gets a notification "New order from <ship name>" (since P36 it opens the order,
-     `/office/orders/{id}`). Then the order is read-only, on `/ship/orders/{id}`; the next approved request opens a new OPEN
+     `/office/orders/{id}`). Then the order is read-only for the ship, on `/ship/orders/{id}` (the office may still correct
+     its lines, 24; the page then shows each change, P50); each line keeps the quantity sent (`originalQuantity`); the next approved request opens a new OPEN
      order. Every change and the send lock the ship's row, as approvals do, so an approval never lands in an order
      being sent.
    - **`/ship/orders`**: the past orders (SENT, CONFIRMED, CLOSED), newest sent first, with status, requested port,
@@ -980,7 +981,8 @@ Requirements: Java 25, Docker.
      the ship name or IMO number; 10 per page, 20, 50 or 100 on request (paged in the database). A row opens its order.
    - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
      confirmation once set (port, delivery date, by whom) and when it was last exported; then its lines by category
-     (Provisions, then Personal items): item, unit, quantity. Read-only: the office never changes lines or quantities.
+     (Provisions, then Personal items): item, unit, quantity. While the order is pending the office can change them
+     (P50, below); once the delivery is confirmed they are read-only.
      An OPEN order is a 404.
    - **Confirm delivery** (while SENT or CONFIRMED): **Confirmed port** (required, up to 100 characters, starts as
      the requested port) and **Delivery date** (required). `POST /office/orders/{id}/confirm` sets confirmed port,
@@ -992,17 +994,51 @@ Requirements: Java 25, Docker.
    - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
      `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xls` (P39; CSV before; `.xls` since P40; the
      format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
-     and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
+     and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity,sent_quantity,office_change,office_note`
      (`status` `pending`, `confirmed` or `closed` (P49); `sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
-     category `Provisions` or `Personal items`). It sets
+     category `Provisions` or `Personal items`; P50: `quantity` is what to deliver, 0 for a line the office removed,
+     `sent_quantity` what the ship sent (empty for a line the office added), `office_change` `changed`, `removed`,
+     `added` or empty, `office_note` the office's note). It sets
      `exportedAt` on the exported orders and records "Orders exported" (counts and ids). An order can be exported
      again. Nothing checked: back to the list with "Select at least one order to export.". The page stays as it is
      (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy
      and their checkboxes are not unsaved changes.
    - **Request quotes** (P44, see 28): while the order is SENT, ask suppliers for prices; once one is awarded the
      page shows "Awarded to VANOS (Piraeus) · EUR 1,240.50" and Confirm delivery starts with its port and date.
-   - Tests: `officeorder/OfficeOrderFlowTest`; the Overview's rows and counts in `DashboardFlowTest`.
-   - To try it: send the order as in 23, then as `office@example.com` open **Orders**, confirm a port and date
+   - **Changing the items of a pending order** (P50; `core/order/OfficeOrderEditService`, `OfficeOrderEditJob`).
+     While the order is SENT ("Pending") the office corrects it before arranging delivery, on its page, with the
+     Master's controls (P35): each line's **Quantity** (same rule, `ShipOrderService.isValidQuantity`) with an optional
+     **Note** (up to 200 characters, kept in the field) and **Save** (`POST /office/orders/{id}/lines/{lineId}/quantity`);
+     **Remove** (`POST .../lines/{lineId}/remove`), which asks first (P10, danger) with an optional note in the dialog
+     (`data-confirm-note` on `layout/parts :: confirmForm`; without JavaScript the plain confirmation page,
+     `GET .../remove`, has the note field: `ConfirmPages.note`); and **Add an item** (`POST .../lines/add`: `itemId`,
+     `quantity`, `note`) from the vessel's active items, a list box grouped by category with a search field above it
+     (`js/item-search.js`; without it the list box alone). An item already on the order is added to its line ("· on the
+     order" in the list); a removed line comes back with the quantity given. Every change is a plain POST form (CSRF,
+     sent once by `js/save.js`), saves at once and comes back with a message; a wrong quantity, a note over 200
+     characters or no item chosen changes nothing. An item of another vessel, an inactive one or another order's line is
+     a 404; the crew get 403.
+     - Each line keeps what the ship sent (`ShipOrderLine.originalQuantity`, set when the Master sends the order; for
+       orders sent before P50, by the office's first change). A changed line says "Changed by office: 50 kg → 40 kg ·
+       “Out of season, reduced”"; a removed line stays, struck through, "Removed by office" (not delivered, no
+       controls, not in requests for quotes or the Overview's line count); an added line "Added by office". The same on
+       the Master's `/ship/orders/{id}` (`shiporder/parts :: officeChange`) and in the export.
+     - Each change is audited with the line, before, after and note: "Order line changed by office" (`Order #12,
+       Basmati rice: 50 kg -> 40 kg, note: Out of season, reduced`), "Order line removed by office" (`6 pcs -> removed`),
+       "Order line added by office" (`added 12 lt`; added to a line: `50 kg -> 60 kg (added 10 kg)`).
+     - The ship is told once per editing session, not per click: until then a note above the lines says the master and
+       the chief cook haven't been told yet, with **Done editing** (`POST /office/orders/{id}/edits/done`). They are
+       told when it is pressed, 10 minutes after the last change (`OfficeOrderEditJob` checks every minute;
+       `app.orders.office-edit-quiet`, default `PT10M`), or when the delivery is confirmed (before "Order confirmed"). The
+       Master (linking to the order) and the Chief cook get "The office changed order 12: 2 lines changed, 1 removed, 1
+       added"; a line changed back to what the ship sent is not counted, and nothing is sent when nothing is left.
+       New columns `ship_order.office_edited_at`, `ship_order_line.original_quantity`, `removed`, `added_by_office`,
+       `change_note`, `office_change_pending` (Hibernate adds them; the flags default to false).
+     - Once the delivery is confirmed the lines are read-only again; a change sent anyway (another tab) changes nothing
+       and says so.
+   - Tests: `officeorder/OfficeOrderFlowTest`, `officeorder/OfficeOrderEditFlowTest` (P50); the Overview's rows and counts in `DashboardFlowTest`.
+   - To try it: send the order as in 23, then as `office@example.com` open **Orders**, change a quantity, remove a line
+     and add an item, press **Done editing** (the Master sees the notification and the changes), confirm a port and date
      (the Master and the Chief cook see the notification) and export it.
 
 25. Vetting (P40, office users only): how charterers vet each vessel, starting with RightShip. `core/vetting/`

@@ -27,7 +27,8 @@ import lombok.Setter;
 // The consolidated order of a ship (P34): the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
 // office confirms port and delivery date (CONFIRMED), and it is closed once delivered (CLOSED).
-// While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only (P35).
+// While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship (P35),
+// and the office can change its lines until it confirms the delivery (P50).
 @Entity
 @Getter
 @Setter
@@ -74,6 +75,10 @@ public class ShipOrder {
     @ManyToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User confirmedBy;
+
+    // The office's last change of the lines (P50) that the ship has not been told about yet; null when there is none.
+    // "Done editing", 10 minutes without changes, or confirming the delivery tells the Master and the Chief cook.
+    private Instant officeEditedAt;
 
     // Last export by the office. Null until exported.
     private Instant exportedAt;

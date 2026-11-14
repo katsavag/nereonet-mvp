@@ -10,16 +10,33 @@
       th:replace="~{layout/parts :: status(${status.name() == 'SENT'} ? 'info' : (${status.name() == 'CONFIRMED'} ? 'ok'
               : 'neutral'), #{${status.labelKey()}})}"></span>
 
+<!-- What the office changed on a line of a sent order (P50), under the item's name: "Changed by office: 50 kg → 40 kg",
+     "Removed by office" or "Added by office", then the office's note. Nothing for a line the office left alone. The
+     Master's order page and the office's.
+     keys: the message keys' prefix, 'order.officeChange' (crew, English only) or 'officeorder.change' (office).
+     Use: <th:block th:replace="~{shiporder/parts :: officeChange(${line}, 'order.officeChange')}"></th:block> -->
+<th:block th:fragment="officeChange(line, keys)">
+    <p th:if="${line.removed or line.addedByOffice or line.changedByOffice}" class="order-office-change">
+        <span th:if="${line.removed}" class="order-office-change-what" th:text="#{${keys + '.removed'}}">Removed by office</span>
+        <span th:if="${line.addedByOffice and !line.removed}" class="order-office-change-what" th:text="#{${keys + '.added'}}">Added by office</span>
+        <span th:if="${line.changedByOffice}" class="order-office-change-what"
+              th:text="#{${keys + '.changed'}(${line.originalQuantity.stripTrailingZeros().toPlainString()},
+                      ${line.quantity.stripTrailingZeros().toPlainString()}, ${line.item.unit})}">Changed by office: 50 kg → 40 kg</span>
+        <th:block th:if="${line.changeNote != null}">· <q class="order-office-change-note" th:text="${line.changeNote}">Out of season, reduced</q></th:block>
+    </p>
+</th:block>
+
 <!-- An order's lines by category (Provisions, then Personal items), each with who asked for it under the item's name.
      editable: the OPEN order on /ship/order, where each line has its quantity in a small form (Save posts it at once)
-     and Remove; otherwise the quantity is text.
+     and Remove; otherwise the quantity is text, and a sent order shows what the office changed (P50): a removed
+     line struck through, "Changed by office" or "Added by office" under the name.
      Use: <th:block th:replace="~{shiporder/parts :: lines(${view}, true)}"></th:block> -->
 <th:block th:fragment="lines(view, editable)">
     <section th:each="g, it : ${view.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
              th:attr="aria-labelledby=${groupId}">
         <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
             <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${g.lines.size()}">3</span>
+            <span class="font-monospace small text-body-secondary" th:text="${g.lines.?[!line.removed].size()}">3</span>
         </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
@@ -32,11 +49,13 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="v : ${g.lines}" th:with="line=${v.line}" th:id="${'line-' + line.id}">
+                <tr th:each="v : ${g.lines}" th:with="line=${v.line}" th:id="${'line-' + line.id}"
+                    th:classappend="${line.removed} ? 'order-line-removed'">
                     <td>
-                        <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
+                        <span class="fw-semibold order-line-name" th:text="${line.item.name}">Basmati rice</span>
                         <p th:if="${!#strings.isEmpty(v.askedBy)}" class="order-asked-by"><span class="visually-hidden"
                                 th:text="#{order.askedBy}">Asked by</span> <th:block th:text="${v.askedBy}">Chief Cook 6, A. Santos 4</th:block></p>
+                        <th:block th:unless="${editable}"><th:block th:replace="~{shiporder/parts :: officeChange(${line}, 'order.officeChange')}"></th:block></th:block>
                     </td>
                     <td class="text-end">
                         <form th:if="${editable}" class="order-qty-form" method="post"
@@ -48,7 +67,7 @@
                                    th:value="${line.quantity.stripTrailingZeros().toPlainString()}">
                             <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{order.quantity.save}">Save</button>
                         </form>
-                        <span th:unless="${editable}" class="font-monospace"
+                        <span th:unless="${editable}" class="font-monospace order-line-qty"
                               th:text="${line.quantity.stripTrailingZeros().toPlainString()}">10</span>
                     </td>
                     <td th:text="${line.item.unit}">kg</td>

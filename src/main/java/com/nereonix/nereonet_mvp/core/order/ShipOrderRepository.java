@@ -1,5 +1,6 @@
 package com.nereonix.nereonet_mvp.core.order;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,9 @@ public interface ShipOrderRepository extends JpaRepository<ShipOrder, Long> {
     long countByStatusInAndExportedAtIsNull(Collection<ShipOrderStatus> statuses);
 
     long countByShipIdAndStatusInAndExportedAtIsNull(Long shipId, Collection<ShipOrderStatus> statuses);
+
+    // P50: orders with office changes the ship has not been told about, last changed before this time.
+    List<ShipOrder> findAllByOfficeEditedAtBefore(Instant time);
 
     List<ShipOrder> findAllByShipIdAndStatusInAndExportedAtIsNullOrderBySentAtDescIdDesc(
             Long shipId, Collection<ShipOrderStatus> statuses);

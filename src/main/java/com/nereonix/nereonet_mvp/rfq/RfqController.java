@@ -203,6 +203,10 @@ public class RfqController {
     private static List<LineGroup> groups(ShipOrder order) {
         Map<ItemCategory, List<ShipOrderLine>> byCategory = new EnumMap<>(ItemCategory.class);
         for (ShipOrderLine line : ShipOrderService.byCategoryAndName(order.getLines())) {
+            // P50: a line the office removed is not asked for.
+            if (line.isRemoved()) {
+                continue;
+            }
             byCategory.computeIfAbsent(line.getItem().getCategory(), c -> new ArrayList<>()).add(line);
         }
         return byCategory.entrySet().stream().map(e -> new LineGroup(e.getKey(), List.copyOf(e.getValue()))).toList();

@@ -118,13 +118,13 @@ public class DashboardQueries {
 
     /**
      * The orders of active ships the office works on (P36, P43): sent and never exported, sent and not yet confirmed,
-     * or confirmed with a delivery on or before "deliveriesUntil" (today or later), with their number of lines.
+     * or confirmed with a delivery on or before "deliveriesUntil" (today or later), with their number of lines (lines removed by the office, P50, not counted).
      */
     List<OrderRow> orders(LocalDate today, LocalDate deliveriesUntil) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$OrderRow(
                     o.id, s.id, u.fullName, u.rank, o.sentAt,
-                    (select count(l) from ShipOrderLine l where l.order = o), o.status, o.exportedAt, o.deliveryDate)
+                    (select count(l) from ShipOrderLine l where l.order = o and l.removed = false), o.status, o.exportedAt, o.deliveryDate)
                 from ShipOrder o join o.ship s left join o.sentBy u
                 where s.active = true
                   and ((o.status in :statuses and o.exportedAt is null)

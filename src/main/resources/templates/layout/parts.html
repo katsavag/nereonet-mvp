@@ -444,12 +444,16 @@
        dismiss    the dismiss button when "Cancel" would be confusing ("Keep invitation" next to "Cancel invitation")
        id         the form's id, when a confirmTrigger elsewhere on the page opens it (P43: a row of a grid that is
                   itself a form, where a form cannot sit); trigger=false then leaves the trigger out
+       note       the label of an optional note the dialog asks for and posts as "note" (P50: "Note (optional)"; noteMax its
+                  length), or null for none. The plain confirmation page asks for it too (ConfirmPages.note)
      Use: <form th:replace="~{layout/parts :: confirmForm(action=..., label=#{ship.deactivate}, linkClass='...',
                 title=#{ship.deactivate.confirm.title(${s.name})}, body=#{...}, confirm=#{ship.deactivate}, tone='neutral')}"></form> -->
 <form th:fragment="confirmForm" class="confirm-form" method="post" th:action="@{${action}}" th:id="${id}"
       th:data-confirm-title="${title}" th:data-confirm-body="${body}" th:data-confirm-label="${confirm}"
-      th:data-confirm-tone="${tone}" th:data-confirm-dismiss="${dismiss}">
+      th:data-confirm-tone="${tone}" th:data-confirm-dismiss="${dismiss}"
+      th:data-confirm-note="${note}" th:data-confirm-note-max="${noteMax}">
     <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
+    <input th:if="${note != null}" type="hidden" name="note" value="">
     <input th:each="f : ${fields}" type="hidden" th:name="${f.key}" th:value="${f.value}">
     <a th:unless="${trigger == false}" th:class="${linkClass}"
        th:with="query=${fields == null or fields.isEmpty()} ? null : ${#strings.listJoin(fields.entrySet().![#uris.escapeQueryParam(key) + '=' + #uris.escapeQueryParam(value)], '&')}"
@@ -484,6 +488,11 @@
         </div>
         <div class="modal-body">
             <p class="mb-0" id="confirmDialogBody"></p>
+            <!-- P50: shown for a form with data-confirm-note; its text is posted as the form's "note". -->
+            <div class="confirm-dialog-note" data-confirm-note-box hidden>
+                <label for="confirmDialogNote" class="form-label" data-confirm-note-label></label>
+                <input type="text" id="confirmDialogNote" class="form-control" autocomplete="off">
+            </div>
         </div>
         <div class="modal-footer confirm-dialog-footer">
             <button type="button" class="btn btn-ghost" data-confirm-cancel th:text="#{form.cancel}">Cancel</button>

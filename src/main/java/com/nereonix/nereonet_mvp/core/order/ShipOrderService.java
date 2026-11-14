@@ -47,7 +47,7 @@ import jakarta.persistence.criteria.Predicate;
 // Master edits its lines and sends it to the office (P35, shiporder). Every change of the ship locks the ship's row
 // first, so an approval, an edit and a send never interleave: an approval made while the order is sent goes into a
 // new OPEN order. The office (P36, officeorder) lists the sent orders, confirms the port and delivery date, and
-// exports them as CSV; it never changes lines or quantities.
+// exports them; until it confirms, it can correct the lines (P50, OfficeOrderEditService).
 @Service
 public class ShipOrderService {
 
@@ -63,7 +63,7 @@ public class ShipOrderService {
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity");
+            "quantity", "sent_quantity", "office_change", "office_note");
 
     // "12" or "#12": an order number in the office's search.
     private static final Pattern ORDER_NUMBER = Pattern.compile("#?(\\d{1,18})");
@@ -78,12 +78,13 @@ public class ShipOrderService {
     private final Dates dates;
     private final EntityManager entityManager;
     private final ListQueries listQueries;
+    private final OfficeOrderEditService editService;
 
     public ShipOrderService(ShipOrderRepository orderRepository, ShipOrderLineRepository lineRepository,
                             RequestLineRepository requestLineRepository, UserRepository userRepository,
                             AuditService auditService, NotificationService notificationService,
                             MessageSource messageSource, Dates dates, EntityManager entityManager,
-                            ListQueries listQueries) {
+                            ListQueries listQueries, OfficeOrderEditService editService) {
         this.orderRepository = orderRepository;
         this.lineRepository = lineRepository;
         this.requestLineRepository = requestLineRepository;
@@ -94,6 +95,7 @@ public class ShipOrderService {
         this.dates = dates;
         this.entityManager = entityManager;
         this.listQueries = listQueries;
+        this.editService = editService;
     }
 
     /**
@@ -226,6 +228,10 @@ public class ShipOrderService {
         order.setOfficeNote(note);
         order.setSentBy(master);
         order.setSentAt(Instant.now());
+        // P50: what the ship sent, whatever the office changes later.
+        for (ShipOrderLine line : order.getLines()) {
+            line.setOriginalQuantity(line.getQuantity());
+        }
 
         auditService.record("ORDER_SENT", ship, "Order #" + order.getId() + ", " + order.getLines().size()
                 + " lines, " + port + ", needed by " + details.neededBy(), master);
@@ -341,6 +347,8 @@ public class ShipOrderService {
             return Confirm.CLOSED;
         }
         boolean correction = order.getStatus() == ShipOrderStatus.CONFIRMED;
+        // P50: the lines are read-only from now on; the ship hears about the office's changes before the delivery.
+        editService.notifyPending(order);
         order.setConfirmedPort(port);
         order.setDeliveryDate(confirmation.deliveryDate());
         order.setConfirmedBy(officeUser);
@@ -366,7 +374,9 @@ public class ShipOrderService {
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
      * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
      * category (Provisions, then Personal items) and item name; status as the office sees it (P49: pending, confirmed,
-     * closed); order_id and quantity are numbers, sent_at a date and
+     * closed); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity what the ship sent
+     * (empty for a line the office added), office_change changed, removed, added or empty, office_note the office's
+     * note; order_id and the quantities are numbers, sent_at a date and
      * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
      * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
@@ -397,7 +407,10 @@ public class ShipOrderService {
                         line.getItem().getCategory().fileValue(),
                         line.getItem().getName(),
                         line.getItem().getUnit(),
-                        line.getQuantity()));
+                        line.getDeliveredQuantity(),
+                        line.getSentQuantity(),
+                        officeChange(line),
+                        line.getChangeNote()));
                 lineCount++;
             }
             order.setExportedAt(now);
@@ -415,6 +428,17 @@ public class ShipOrderService {
     /** The status column of the export: the office's word, so SENT (waiting for the office) is "pending" (P49). */
     static String exportStatus(ShipOrderStatus status) {
         return status == ShipOrderStatus.SENT ? "pending" : status.name().toLowerCase(Locale.ROOT);
+    }
+
+    /** The office_change column (P50): what the office did to the line, or null. */
+    static String officeChange(ShipOrderLine line) {
+        if (line.isRemoved()) {
+            return "removed";
+        }
+        if (line.isAddedByOffice()) {
+            return "added";
+        }
+        return line.isChangedByOffice() ? "changed" : null;
     }
 
     /** An order's lines by category (Provisions, then Personal items), then item name: the office's order. */

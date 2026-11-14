@@ -64,6 +64,7 @@ public class ConfirmPages {
         private String action;
         private final Map<String, String> fields = new LinkedHashMap<>();
         private String cancelUrl;
+        private ConfirmPage.NoteField note;
 
         private Builder(Tone tone) {
             this.tone = tone;
@@ -110,6 +111,12 @@ public class ConfirmPages {
             return this;
         }
 
+        /** An optional text field posted with the action (P50), its label a message key. */
+        public Builder note(String labelKey, String name, int maxLength) {
+            note = new ConfirmPage.NoteField(text(labelKey), name, maxLength);
+            return this;
+        }
+
         /** A breadcrumb whose label is a message key. */
         public Builder crumb(String key, String url) {
             crumbs.add(new Crumb(text(key), url));
@@ -126,7 +133,7 @@ public class ConfirmPages {
         public String show(Model model) {
             model.addAttribute("confirm", new ConfirmPage(title, body, confirmLabel,
                     dismissLabel == null ? text("form.cancel") : dismissLabel, tone, action, Collections.unmodifiableMap(new LinkedHashMap<>(fields)), cancelUrl,
-                    List.copyOf(crumbs)));
+                    List.copyOf(crumbs), note));
             return VIEW;
         }
     }

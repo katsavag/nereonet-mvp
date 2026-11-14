@@ -5,6 +5,8 @@
 //   data-confirm-label    the confirm button ("Deactivate")
 //   data-confirm-tone     'danger' (red confirm button; Enter does not confirm) or 'neutral' (primary button)
 //   data-confirm-dismiss  optional: the dismiss button instead of "Cancel"
+//   data-confirm-note     optional (P50): the dialog also asks for an optional note with this label (at most
+//                         data-confirm-note-max characters) and Confirm puts it in the form's input[name=note]
 // Its trigger, [data-confirm-open], is a link to the plain confirmation page. This script turns a click on it into
 // the dialog; Confirm submits the form. Focus starts on Cancel; Esc, Cancel and the backdrop close the dialog and
 // put focus back where it was. Without this script, or in a browser without <dialog>, the link opens the page, so a
@@ -25,6 +27,8 @@
     const body = dialog.querySelector('#confirmDialogBody');
     const cancel = dialog.querySelector('[data-confirm-cancel]');
     const ok = dialog.querySelector('[data-confirm-ok]');
+    const noteBox = dialog.querySelector('[data-confirm-note-box]');
+    const noteField = noteBox && noteBox.querySelector('input');
     let form = null;
     let submitter = null;
     let returnFocus = null;
@@ -43,6 +47,16 @@
         ok.className = 'btn ' + (danger ? 'btn-outline-danger' : 'btn-primary');
         ok.disabled = false;
         dialog.dataset.tone = danger ? 'danger' : 'neutral';
+        if (noteBox) {
+            noteBox.hidden = !data.confirmNote;
+            noteField.value = '';
+            if (data.confirmNote) {
+                noteBox.querySelector('[data-confirm-note-label]').textContent = data.confirmNote;
+                if (data.confirmNoteMax) {
+                    noteField.maxLength = Number(data.confirmNoteMax);
+                }
+            }
+        }
         dialog.showModal();
         cancel.focus();
     }
@@ -89,6 +103,10 @@
         const button = submitter;
         returnFocus = null;
         dialog.close();
+        const note = target.dataset.confirmNote && target.querySelector('input[name=note]');
+        if (note && noteField) {
+            note.value = noteField.value;
+        }
         if (target.dataset.confirmWhen) {
             const confirmed = document.createElement('input');
             confirmed.type = 'hidden';

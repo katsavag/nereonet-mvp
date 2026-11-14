@@ -243,6 +243,10 @@ public class RfqService {
         rfq.setSentAt(Instant.now());
         rfqRepository.save(rfq);
         for (ShipOrderLine orderLine : order.getLines()) {
+            // P50: a line the office removed is not ordered.
+            if (orderLine.isRemoved()) {
+                continue;
+            }
             RfqLine line = new RfqLine();
             line.setRfq(rfq);
             line.setItem(orderLine.getItem());

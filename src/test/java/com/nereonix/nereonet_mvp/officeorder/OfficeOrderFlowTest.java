@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +68,7 @@ class OfficeOrderFlowTest {
     // The export's columns: a file format.
     private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity");
+            "quantity", "sent_quantity", "office_change", "office_note");
     private static final Instant SENT_AT = Instant.parse("2026-11-10T09:30:15.123Z");
     private static final LocalDate NEEDED_BY = LocalDate.of(2026, 11, 25);
 
@@ -111,13 +112,13 @@ class OfficeOrderFlowTest {
         assertThat(list).contains("href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
                         "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Pending</span>", "Not yet")
                 .doesNotContain("Order #" + open.getId() + "<");
-        // The order: its note and its lines by category, read-only.
+        // The order: its note and its lines by category; while pending the office can change them (P50).
         String detail = page("/office/orders/" + order.getId());
         assertThat(detail).contains("Deliver to the gangway", "Confirm delivery",
                         "name=\"confirmedPort\" value=\"Rotterdam\"", "action=\"/office/orders/export\"")
-                .containsSubsequence(">Provisions<", "Basmati rice", ">kg<", ">25<", ">Personal items<", "Shower gel",
-                        ">2.5<")
-                .doesNotContain("name=\"quantity\"");
+                .containsSubsequence(">Provisions<", "Basmati rice", ">kg<", "value=\"25\"", ">Personal items<", "Shower gel",
+                        "value=\"2.5\"")
+                .contains("name=\"quantity\"");
 
         LocalDate delivery = LocalDate.of(2026, 11, 20);
         confirm(order, "Antwerp", delivery.toString())
@@ -128,6 +129,8 @@ class OfficeOrderFlowTest {
         assertThat(order.getConfirmedPort()).isEqualTo("Antwerp");
         assertThat(order.getDeliveryDate()).isEqualTo(delivery);
         assertThat(order.getConfirmedBy().getEmail()).isEqualTo("office@example.com");
+        // Confirmed: the lines are read-only again.
+        assertThat(page("/office/orders/" + order.getId())).contains(">25<", ">2.5<").doesNotContain("name=\"quantity\"");
         // The Master (with a link to the order) and the Chief cook are notified; nobody else on board.
         assertThat(notifications(master)).singleElement().satisfies(n -> {
             assertThat(n.getType()).isEqualTo(NotificationType.ORDER);
@@ -158,8 +161,8 @@ class OfficeOrderFlowTest {
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
         assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
         assertThat(sheet.body()).containsExactly(
-                concat(common, "Provisions", "Basmati rice", "kg", 25.0),
-                concat(common, "Personal items", "Shower gel", "pcs", 2.5));
+                concat(common, "Provisions", "Basmati rice", "kg", 25.0, 25.0, null, null),
+                concat(common, "Personal items", "Shower gel", "pcs", 2.5, 2.5, null, null));
         assertThat(order.getExportedAt()).isNotNull();
         assertThat(audit("ORDERS_EXPORTED")).singleElement().satisfies(e -> {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");
@@ -272,7 +275,7 @@ class OfficeOrderFlowTest {
 
     private static List<Object> concat(List<Object> first, Object... more) {
         List<Object> all = new ArrayList<>(first);
-        all.addAll(List.of(more));
+        all.addAll(Arrays.asList(more));
         return all;
     }
 
