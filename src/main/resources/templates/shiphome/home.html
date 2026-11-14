@@ -25,11 +25,14 @@
 
     <!-- P52, the Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
          number of provisions Low and Out of stock. Styled as the cards of the Master's home: tinted, with "to do"
-         for screen readers, while anything is Low or Out of stock. -->
-    <section th:if="${stores != null}" class="home-section" aria-labelledby="storesCardTitle">
-        <h2 class="visually-hidden" id="storesCardTitle" th:text="#{nav.stores}">Stores</h2>
+         for screen readers, while anything is Low or Out of stock.
+         P54, the Chief cook and crew members: the Requests card, one link to /ship/requests with the number of their
+         requests still waiting for the Master (requestsWaiting, from NavigationAdvice). Not tinted: the waiting is the
+         Master's, not theirs. -->
+    <section class="home-section" aria-labelledby="homeCardsTitle">
+        <h2 class="visually-hidden" id="homeCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
         <ul class="master-cards">
-            <li>
+            <li th:if="${stores != null}">
                 <a class="master-card stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
                    data-card="stores">
                     <span class="master-card-icon" aria-hidden="true"><svg
@@ -41,6 +44,15 @@
                         <span><span class="num" th:text="${stores.out}">1</span> <th:block th:text="#{stores.card.out}">out of stock</th:block></span>
                     </span>
                     <span th:if="${stores.any()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
+                </a>
+            </li>
+            <li>
+                <a class="master-card" th:href="@{/ship/requests}" data-card="requests">
+                    <span class="master-card-icon" aria-hidden="true"><svg
+                            th:replace="~{layout/parts :: navIcon('requests')}"></svg></span>
+                    <span class="master-card-label" th:text="#{home.card.requests}">My requests</span>
+                    <span class="master-card-count"><span class="num" th:text="${requestsWaiting ?: 0}">1</span>
+                        <th:block th:text="#{home.card.requests.waiting}">waiting</th:block></span>
                 </a>
             </li>
         </ul>

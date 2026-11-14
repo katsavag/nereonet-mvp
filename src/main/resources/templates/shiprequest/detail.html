@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${detail.request.id})}, ~{::main})}">
+<body>
+<!-- One of the person's own requests (P54): when it was sent, its status, who decided and when, and for a declined one
+     the Master's reason; then its lines by category (Provisions, then Personal items): name, quantity and unit, with a
+     "New item" badge on a line for an item that is not on the list. While it waits for the Master: Edit and Cancel
+     request (a confirmation first, P10). Once the Master decided, or it was cancelled, it is read only and says so.
+     English only. Model: detail (ShipRequestService.Detail). -->
+<main th:with="request=${detail.request}, pending=${detail.pending}, status=${detail.request.status.name()}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.number(${request.id})}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${request.ship}, actions=${pending} ? ~{::pageActions} : null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.requests}, '/ship/requests')}"></li>
+        </th:block>
+        <th:block th:fragment="pageActions">
+            <form th:replace="~{layout/parts :: confirmForm(action=${'/ship/requests/' + request.id + '/cancel'},
+                    label=#{request.cancel}, linkClass='btn btn-outline-secondary',
+                    title=#{request.cancel.confirm.title(${request.id})}, body=#{request.cancel.confirm.body},
+                    confirm=#{request.cancel}, tone='danger', dismiss=#{request.cancel.keep})}"></form>
+            <a class="btn btn-primary" th:href="@{/ship/requests/{id}/edit(id=${request.id})}" th:text="#{request.edit}">Edit</a>
+        </th:block>
+    </header>
+
+    <!-- th:unless on a wrapper: th:replace runs before th:unless on the same element. -->
+    <th:block th:unless="${pending}">
+        <p th:replace="~{layout/parts :: infoNote('requestReadOnly', #{'request.readOnly.' + ${status}})}"></p>
+    </th:block>
+
+    <div class="card mb-4">
+        <dl class="card-body row mb-0">
+            <dt class="col-sm-4 col-lg-3" th:text="#{request.sentAt}">Sent</dt>
+            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localTime(${request.createdAt})}"></time></dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{approval.status}">Status</dt>
+            <dd class="col-sm-8 col-lg-9" th:classappend="${request.decidedAt == null} ? 'mb-0'">
+                <span th:replace="~{approval/parts :: statusBadge(${request.status})}"></span>
+            </dd>
+            <th:block th:if="${request.decidedAt != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{'approval.decision.' + ${status}}">Approved</dt>
+                <dd class="col-sm-8 col-lg-9" th:classappend="${status != 'REJECTED'} ? 'mb-0'">
+                    <span th:text="${request.decidedBy} ? ${request.decidedBy.fullName} : #{audit.deletedUser}">Ship Master</span>
+                    · <time th:replace="~{layout/parts :: localTime(${request.decidedAt})}"></time>
+                </dd>
+            </th:block>
+            <th:block th:if="${status == 'REJECTED'}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{approval.reason}">Reason</dt>
+                <dd class="col-sm-8 col-lg-9 mb-0 approval-reason" th:text="${request.rejectionReason}">Not needed this month.</dd>
+            </th:block>
+        </dl>
+    </div>
+
+    <section th:each="g, it : ${detail.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
+             th:attr="aria-labelledby=${groupId}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${g.lines.size()}">3</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr class="small text-body-secondary">
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" th:text="#{item.unit}">Unit</th>
+                    <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="line : ${g.lines}">
+                    <td><span class="fw-semibold" th:text="${line.name}">Basmati rice</span>
+                        <th:block th:if="${line.newItem}"><span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></th:block></td>
+                    <td th:text="${line.unit} ?: #{approval.unit.none}">kg</td>
+                    <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

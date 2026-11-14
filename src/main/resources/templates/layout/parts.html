@@ -191,10 +191,11 @@
      to a page (/ship/more) listing Notifications (first, with its unread count, P47), the Master's Approvals and Ship
      order, My profile, My crew and Sign out, which the sidebar shows directly from 768px.
      More's badge is what waits behind it: the unread notifications plus, for the Master, the requests waiting for
-     them (P33), and for the Chief cook the provisions Low or Out of stock (P52, Stores). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the number)
+     them (P33), for the Chief cook the provisions Low or Out of stock (P52, Stores), and for the Chief cook and crew
+     members their requests still waiting for the Master (P54, Requests). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the number)
      let js/notifications.js recount it after Mark as read. -->
 <nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}"
-     th:with="moreBase=${(approvalsWaiting ?: 0) + (storesBelowThreshold ?: 0)}, moreCount=${moreBase + (unreadNotifications ?: 0)}"
+     th:with="moreBase=${(approvalsWaiting ?: 0) + (storesBelowThreshold ?: 0) + (requestsWaiting ?: 0)}, moreCount=${moreBase + (unreadNotifications ?: 0)}"
      th:data-more-base="${moreBase}" th:data-more-label="#{nav.count.more('{0}')}">
     <ul class="tab-bar-list">
         <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
@@ -295,6 +296,8 @@
     <th:block th:if="${name == 'order'}"><path d="M3 4h2.5l2.2 11h10.8l2-8H7"/><circle cx="9.5" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></th:block>
     <!-- Stores (P52): a shelf unit with a jar and a box. -->
     <th:block th:if="${name == 'stores'}"><path d="M4 3v18M20 3v18M4 11h16M4 19h16"/><path d="M7 11V7.5h3.5V11M13.5 19v-4.5h3.5V19"/></th:block>
+    <!-- Requests (P54): a clipboard with a plus, what the Chief cook and crew ask the Master for. -->
+    <th:block th:if="${name == 'requests'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M12 9.5v7M8.5 13h7"/></th:block>
     <th:block th:if="${name == 'more'}"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></th:block>
 </svg>
 
@@ -802,7 +805,7 @@
      line of listEmpty ("No results for these filters"), which is left aligned, has no icon and offers Clear all.
      Named parameters:
        icon    a navIcon name: 'ships', 'crew', 'certificates', 'vetting', 'announcements', 'orders', 'suppliers', 'users',
-               'audit', 'library', 'notifications', 'items', 'approvals', 'order', 'stores'
+               'audit', 'library', 'notifications', 'items', 'approvals', 'order', 'stores', 'requests'
        title   "No ships yet"
        text    one sentence: what the list is for and what to do first, "Add your first ship to invite its crew."
        action  the buttons, ~{::pageActions} (usually the page header's own, which the header then leaves out), or

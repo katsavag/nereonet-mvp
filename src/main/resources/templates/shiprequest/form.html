@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${picker.request != null} ? #{request.edit.title(${picker.request.id})} : #{request.new.title}, ~{::main})}">
+<body>
+<!-- New request and Edit request (P54), one form. The vessel's items the person can pick, in groups: for the Chief cook
+     first "Running low" (provisions Out of stock or Low, with what is on board and the status), then Provisions and
+     Personal items, each by name. Crew members never see stock. Each item is a row: its name (the label), a quantity
+     field and the unit; a blank quantity means not picked. No item names are typed, except by the Chief cook under
+     "Add an item that is not on the list" (name, unit optional, quantity; "Add to request" posts the form and shows it
+     again with the new line, as "Remove" does): these are the new-item lines the Master approves into the list.
+     "Send to the master" (Save when editing) posts the whole form; what is typed in the new item's fields is added
+     first. Errors stay under their row; errors of the whole request (nothing picked, an item gone from the list) on top.
+     js/request-form.js adds the search by name (hidden until it runs) and keeps Enter from sending the form; without
+     it the whole list shows and every button works. English only. Model: form (RequestForm), picker
+     (ShipRequestService.Picker). -->
+<main class="form-page" th:with="p=${picker}, editing=${picker.request != null}">
+    <header th:replace="~{layout/parts :: pageHeader(
+            heading=${editing} ? #{request.edit.title(${p.request.id})} : #{request.new.title},
+            crumbs=~{::pageCrumbs}, eyebrowShip=${p.ship},
+            subtitle=${p.cook} ? #{request.form.hint.cook} : #{request.form.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.requests}, '/ship/requests')}"></li>
+            <th:block th:if="${editing}">
+                <li th:replace="~{layout/parts :: crumb(#{request.number(${p.request.id})}, ${'/ship/requests/' + p.request.id})}"></li>
+            </th:block>
+        </th:block>
+    </header>
+
+    <form method="post" th:object="${form}" novalidate class="request-form" data-request-form
+          th:action="${editing} ? @{/ship/requests/{id}/edit(id=${p.request.id})} : @{/ship/requests/new}">
+        <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+            <p th:each="e : ${#fields.globalErrors()}" class="mb-0" th:text="${e}">Pick at least one item.</p>
+        </div>
+
+        <p th:if="${p.isEmpty() and not p.cook}" class="card card-body" th:text="#{request.form.noItems}">The vessel's
+            list has no items yet. The office adds them.</p>
+
+        <!-- The search (P50's pattern): only with JavaScript, which filters the rows by name as you type. -->
+        <div th:unless="${p.isEmpty()}" class="request-search" data-request-search-part hidden>
+            <label for="requestSearch" class="form-label" th:text="#{request.form.search}">Search items</label>
+            <input type="search" id="requestSearch" class="form-control" data-request-search autocomplete="off"
+                   th:placeholder="#{request.form.searchPlaceholder}">
+            <p class="form-text mb-0" data-request-search-empty role="status" th:data-text="#{request.form.noMatch}"></p>
+        </div>
+
+        <section th:each="g : ${p.groups}" class="card mb-4 request-group" data-request-group
+                 th:classappend="${g.runningLow} ? 'request-group-low'" th:with="groupId=${'requestGroup' + g.key}"
+                 th:attr="aria-labelledby=${groupId}">
+            <div class="card-header bg-transparent py-3">
+                <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
+                    th:text="${g.runningLow} ? #{request.form.runningLow} : #{${'item.category.' + g.key}}">Provisions</h2>
+                <p th:if="${g.runningLow}" class="small text-body-secondary mb-0 mt-1"
+                   th:text="#{request.form.runningLow.hint}">Out of stock or low in the store, with what is on board.</p>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li th:each="row : ${g.rows}" class="list-group-item request-pick-row" data-request-row
+                    th:with="i=${row.index}, field=${'lines[' + row.index + '].quantity'}, unitId=${'unit' + row.index}"
+                    th:data-name="${#strings.toLowerCase(row.item.name)}">
+                    <input type="hidden" th:name="${'lines[' + i + '].itemId'}" th:value="${row.item.id}">
+                    <label class="request-pick-name" th:for="${field}" th:text="${row.item.name}">Basmati rice</label>
+                    <span th:if="${row.level != null}" class="request-pick-stock">
+                        <span class="visually-hidden" th:text="#{request.form.inStock}">In stock:</span>
+                        <span th:replace="~{stores/parts :: quantity(${row.level.quantity}, ${row.item.unit})}"></span>
+                        <span th:replace="~{stores/parts :: statusBadge(${row.level.status})}"></span>
+                    </span>
+                    <span class="request-pick-qty">
+                        <input type="text" inputmode="decimal" autocomplete="off" class="form-control request-qty-input"
+                               th:id="${field}" th:name="${field}" th:value="*{lines[__${i}__].quantity}"
+                               th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
+                               th:attr="aria-describedby=${#fields.hasErrors(field)} ? ${unitId + ' ' + field + 'Error'} : ${unitId}">
+                        <span class="request-pick-unit" th:id="${unitId}" th:text="${row.item.unit}">kg</span>
+                    </span>
+                    <p th:if="${#fields.hasErrors(field)}" class="request-pick-error" th:id="${field + 'Error'}"
+                       th:errors="*{lines[__${i}__].quantity}">Enter a quantity above zero.</p>
+                </li>
+            </ul>
+        </section>
+
+        <!-- The Chief cook only: items that are not on the list. Add first, then the ones added, each with its quantity
+             and Remove. -->
+        <section th:if="${p.cook}" class="card mb-4" aria-labelledby="newItemsTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h5 fw-bold" id="newItemsTitle" th:text="#{request.form.newItem.heading}">Add an item that is
+                    not on the list</h2>
+                <p class="text-body-secondary small" th:text="#{request.form.newItem.hint}">The master sees it as a new
+                    item. Once approved, it is added to the vessel's list.</p>
+                <div class="form-grid" data-request-new-item>
+                    <div>
+                        <label for="newName" class="form-label" th:text="#{request.form.newItem.name}">Name</label>
+                        <input type="text" class="form-control" th:field="*{newName}" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="newNameCounter">
+                        <div class="invalid-feedback" th:errors="*{newName}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'newName', 'newName')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="newUnit" class="form-label">[[#{request.form.newItem.unit}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" class="form-control" th:field="*{newUnit}" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="newUnitHint">
+                        <div class="invalid-feedback" th:errors="*{newUnit}"></div>
+                        <div id="newUnitHint" class="form-text" th:text="#{request.form.newItem.unitHint}">kg, lt, pcs…</div>
+                    </div>
+                    <div class="field-half">
+                        <label for="newQuantity" class="form-label" th:text="#{request.quantity}">Quantity</label>
+                        <input type="text" inputmode="decimal" class="form-control" th:field="*{newQuantity}"
+                               th:errorclass="is-invalid" autocomplete="off">
+                        <div class="invalid-feedback" th:errors="*{newQuantity}"></div>
+                    </div>
+                </div>
+                <div class="form-actions mt-3">
+                    <button type="submit" name="add" value="1" class="btn btn-outline-secondary" data-request-add
+                            th:data-busy-label="#{request.form.newItem.adding}" th:text="#{request.form.newItem.add}">Add to request</button>
+                </div>
+
+                <ul th:unless="*{newItems.isEmpty()}" class="list-group list-group-flush request-new-lines">
+                    <li th:each="n, it : *{newItems}" class="list-group-item request-pick-row"
+                        th:with="i=${it.index}, field=${'newItems[' + it.index + '].quantity'}, unitId=${'newUnit' + it.index}">
+                        <input type="hidden" th:name="${'newItems[' + i + '].name'}" th:value="${n.name}">
+                        <input type="hidden" th:name="${'newItems[' + i + '].unit'}" th:value="${n.unit}">
+                        <label class="request-pick-name" th:for="${field}"><span th:text="${n.name}">Saffron</span>
+                            <span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></label>
+                        <span class="request-pick-qty">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="form-control request-qty-input"
+                                   th:id="${field}" th:name="${field}" th:value="${n.quantity}"
+                                   th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
+                                   th:attr="aria-describedby=${#fields.hasErrors(field)} ? ${unitId + ' ' + field + 'Error'} : ${unitId}">
+                            <span class="request-pick-unit" th:id="${unitId}" th:text="${n.unit} ?: #{approval.unit.none}">g</span>
+                        </span>
+                        <button type="submit" name="remove" th:value="${i}" class="btn btn-ghost btn-sm"
+                                th:data-busy-label="#{request.form.newItem.removing}"
+                                th:attr="aria-label=#{request.form.newItem.removeLabel(${n.name})}"
+                                th:text="#{request.form.newItem.remove}">Remove</button>
+                        <p th:if="${#fields.hasErrors(field)}" class="request-pick-error" th:id="${field + 'Error'}"
+                           th:errors="*{newItems[__${i}__].quantity}">Enter a quantity above zero.</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" th:data-busy-label="${editing} ? null : #{request.form.sending}"
+                    th:text="${editing} ? #{form.save} : #{request.form.send}">Send to the master</button>
+            <a class="btn btn-ghost" th:href="${editing} ? @{/ship/requests/{id}(id=${p.request.id})} : @{/ship/requests}"
+               th:text="#{form.cancel}">Cancel</a>
+        </div>
+    </form>
+    <script th:src="@{/js/request-form.js}" defer></script>
+</main>
+</body>
+</html>

@@ -29,6 +29,14 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     @Query("select r from ItemRequest r where r.id = :id and r.ship.id = :shipId")
     Optional<ItemRequest> findForDecision(Long id, Long shipId);
 
+    // The requests of the person who asked (P54): their list, newest first, and one of them (anyone else's is a 404).
+    List<ItemRequest> findAllByRequestedByIdOrderByCreatedAtDescIdDesc(Long userId);
+
+    Optional<ItemRequest> findByIdAndRequestedById(Long id, Long userId);
+
+    // The Chief cook's and crew's sidebar counter of Requests (P54): their own requests with this status, one query.
+    long countByRequestedByEmailAndStatus(String email, RequestStatus status);
+
     // The Master's sidebar counter of Approvals: requests with this status on that user's ship, in one query.
     @Query("""
             select count(r) from ItemRequest r

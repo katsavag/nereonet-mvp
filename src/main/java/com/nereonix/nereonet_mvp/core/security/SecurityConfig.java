@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 .hasRole("MASTER")
                         // The Chief cook's store (P52).
                         .requestMatchers("/ship/stores", "/ship/stores/**").hasRole("CHIEF_COOK")
+                        // The Chief cook's and crew's own requests (P54): the Master does not ask, they decide.
+                        .requestMatchers("/ship/requests", "/ship/requests/**").hasAnyRole("CHIEF_COOK", "CREW_MEMBER")
                         .requestMatchers("/ship/**").hasAnyRole("MASTER", "CHIEF_COOK", "CREW_MEMBER")
                         .anyRequest().authenticated())
                 .formLogin(form -> form

@@ -78,6 +78,12 @@ public class NavigationService {
         return stockService.belowThresholdOnShipOf(email);
     }
 
+    /** The Chief cook's and crew's counter of Requests (P54): their own requests still waiting for the Master. */
+    @Transactional(readOnly = true)
+    public long requestsWaiting(String email) {
+        return requestRepository.countByRequestedByEmailAndStatus(email, RequestStatus.PENDING);
+    }
+
     /** The crew's counter of Announcements (P37): the ones the user with this email has not acknowledged yet. */
     @Transactional(readOnly = true)
     public long announcementsToAcknowledge(String email) {

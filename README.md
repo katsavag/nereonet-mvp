@@ -794,7 +794,8 @@ Requirements: Java 25, Docker.
      for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
      one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
      the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
-     News, Library and, since P31, My crew; Account: Notifications and My profile). The page keeps room for the bar, and the offline banner and the
+     News, Library and, since P31, My crew; since P54 Requests for the Chief cook and crew members, see 31; Account:
+     Notifications and My profile). The page keeps room for the bar, and the offline banner and the
      pinned **I have read this** sit above it.
    - The page loads no script of its own (only the layout's shared files) and no images, except since P31 the
      person's own 96 px photo when they have added one (about 2 KB, cached for a year). Measured with the dev data
@@ -909,7 +910,7 @@ Requirements: Java 25, Docker.
      category (Provisions, then Personal items): name, quantity and unit. A line for an item not in the ship's list
      yet has a **New item** badge (also on the office's request page, 15; such a line is under Provisions, as only
      the Chief cook asks for new items, and the CSV has the name and unit given).
-   - **Submitting** (`core/request/RequestService.submit`, for the Chief cook's and crew pages that come later): saves
+   - **Submitting** (`core/request/RequestService.submit`, called by the Chief cook's and crew's Requests pages, 31): saves
      the request as PENDING with its lines (each line has either an item of the ship or a new item name, optionally
      with a unit; quantity above zero), records "Request submitted" in the audit log (`Request #12, 3 lines`, by the
      person who asked) and notifies the enabled Master of the ship: "New request to approve", linking to the request.
@@ -935,7 +936,7 @@ Requirements: Java 25, Docker.
      REJECTED with the reason, who and when. An empty reason shows the request again with the modal open and the
      error, and nothing is saved.
    - **After either**: the person who asked gets a notification, "Your request was approved" or "Your request was
-     declined: <reason>", linking to `/ship/requests/{id}` (their request page, which comes later); "Request
+     declined: <reason>", linking to `/ship/requests/{id}` (their request page, P54, see 31); "Request
      approved" or "Request declined" goes in the audit log; the Master is back on `/ship/approvals` with a message.
    - **Only once**: the request row is locked while deciding. A request already approved, declined or cancelled (a second click,
      another tab) changes nothing and the request page says so. Another ship's request is a 404; the Chief cook and
@@ -1482,7 +1483,9 @@ Requirements: Java 25, Docker.
      while either is above zero. The Master's home gets its Stores card later.
    - **The store** (`/ship/stores`, titled "Stores"): a summary first, **Low** and **Out of stock** (each a link to
      that filter, tinted when above zero) and **Last count** (the date of the latest COUNT movement, or "Not counted
-     yet"); the requests waiting for the Master and the next delivery join it later. Then the search (part of the
+     yet") and, since P54, **Requests waiting**: the cook's own requests still waiting for the Master, a link to
+     Requests filtered to Waiting (31); the next delivery joins it later. Four tiles in a row from 992 px, two below.
+     Then the search (part of the
      name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
      filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
      alphabetical, the items without a place last under **Other**; each row is one link to the item with its
@@ -1530,6 +1533,63 @@ Requirements: Java 25, Docker.
      then open Olive oil for its history. As `master.demo@example.com`, `/ship/stores` is a 403. P53: press **Count**,
      change Basmati rice to 7 and leave the field: "Saved", and the badge turns Low; type -2 for Eggs for the error.
      **History** then shows the count, 40 → 7, -33.
+
+31. Requests (P54, the Chief cook and crew members): asking the Master for items. `shiprequest/`
+   (`ShipRequestController`, `ShipRequestService`, `RequestForm`, `RequestFilter`), `templates/shiprequest/`,
+   `js/request-form.js`; styles in `app.css`, "Requests (P54)". English only, as every crew screen.
+   `/ship/requests` and `/ship/requests/**` are for CHIEF_COOK and CREW_MEMBER (`SecurityConfig`): the Master does not
+   ask, they decide (21, 22), and gets 403. A request is not an order: only an approved one goes into the ship order.
+   - **Where**: **Requests** in the sidebar under On board, with the number of the person's own requests still waiting
+     for the Master (one count query, `ItemRequestRepository.countByRequestedByEmailAndStatus`); on phones a row of
+     **More** with the same number, and the More tab carries it in its badge, as the Master's Approvals. Home (18) has
+     a **My requests** card ("1 waiting", for the cook after Stores), and the cook's Stores summary a **Requests
+     waiting** tile (30).
+   - **List** (`/ship/requests`): the signed-in person's own requests, newest first: the request number (one link over
+     the row), when it was sent (UTC), the number of items and the status (`request.status.*`: Waiting for the master,
+     Approved, Declined, Cancelled). Filters as ordinary links with their counts: **All**, **Waiting**
+     (`?status=waiting`, PENDING) and **Decided** (`?status=decided`: approved, declined or cancelled). **New request**
+     in the header; with no request yet the empty state carries it. Not paged.
+   - **A request** (`/ship/requests/{id}`): when it was sent, its status, who decided and when, the Master's reason when
+     declined; then its lines by category (Provisions, then Personal items): item, unit, quantity, with a **New item**
+     badge on a new-item line. Only the person who asked opens it; anyone else (crewmates, the cook, another vessel)
+     gets 404. While it is PENDING it has **Edit** and **Cancel request**; afterwards it is read only and says why
+     ("The master approved this request…", "…declined…", "You cancelled this request…").
+   - **New request** (`/ship/requests/new`) and **Edit** (`/ship/requests/{id}/edit`), one form: the vessel's active
+     items of both categories, grouped **Provisions** then **Personal items**, each by name; each item a row with its
+     name, a quantity field and the unit. A blank quantity means not picked; a picked one must be above zero with at
+     most 3 decimals (`ShipOrderService.isValidQuantity`, the order's rule; "2,5" is read as 2.5), its error under
+     the row. No item names are typed. With JavaScript a **Search items** field filters the rows by name as you type
+     (`js/request-form.js`, P50's pattern; without it the whole list shows) and Enter never sends the form.
+     - The Chief cook only: the provisions **Out of stock** or **Low** (`StockService`) come first, under **Running
+       low**, Out of stock first, each with what is on board and its status badge. Crew members never see stock.
+     - The Chief cook only: **Add an item that is not on the list**: Name (required, 100 characters), Unit (optional,
+       20) and Quantity, **Add to request**: it becomes a new-item line under the fields, with its quantity and
+       **Remove**. Add and Remove post the form and show it again with everything typed kept, so they work without
+       JavaScript. A name already on the list ("basmati RICE") is refused: "Basmati rice is on the list: enter its
+       quantity there." Something typed there when **Send to the master** is pressed is added first. On approval
+       `RequestService.approve` turns the line into an item (22).
+     - **Send to the master** builds the `ItemRequest` and calls `RequestService.submit` (saved PENDING, audited, the
+       Master notified, 21), then opens the request with "Request sent to the master." Nothing picked: "Pick at least
+       one item: enter its quantity." The form does not repeat the service's checks: `submit` and `update` throw
+       `InvalidRequestException` (still an `IllegalArgumentException`) with its `Problem` (`NO_LINES`, ...), which the
+       page shows as the form's error. An item made inactive while the form was open: "An item you picked is no longer
+       on the vessel's list…".
+     - Editing starts from the request's quantities and new items, and also keeps the items already on it if the
+       office has since made them inactive; **Save** replaces its lines.
+   - **While PENDING** (`core/request/RequestService`): `update(user, id, lines)` replaces the lines with the same
+     checks as `submit` and records "Request changed"; `cancel(user, id)` makes it CANCELLED (decidedBy and decidedAt
+     stay empty: nobody decided) and records "Request cancelled", so it leaves the Master's Pending tab and never
+     reaches an order. Both lock the row with `findForDecision`, as approve and decline do, and read it again after
+     the lock, so a decision and a change never interleave: once the Master decided, they change nothing and the page
+     says "The master has already decided on this request, or it was cancelled. Nothing was changed." Nobody is
+     notified of a change or a cancel. Cancel request asks first (P10; `GET …/cancel` is the plain confirmation
+     page). Only an enabled Chief cook or crew member, on their own request of their own vessel (`AccessDeniedException`,
+     NOT_FOUND).
+   - Tests: `shiprequest/ShipRequestFlowTest`.
+   - To try it: as `cook.demo@example.com` / `crew123`, **Requests** → **New request**: Sugar and Butter are under
+     Running low; enter 10 for Sugar, add "Saffron", g, 50, and **Send to the master**. Then **Edit** it, or
+     **Cancel request**. As `master.demo@example.com` the request is under Approvals; `/ship/requests` is a 403. As
+     `ab.demo@example.com` the form has no stock and no new items.
 
 Run the tests (H2 in memory, no Docker needed):
 

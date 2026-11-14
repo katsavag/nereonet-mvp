@@ -4,7 +4,8 @@
 <!-- More (P31): the last tab of the crew's phone tab bar, an ordinary page (works without JavaScript). Who is signed
      in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then Notifications
      with its unread count (P47: no longer a tab of its own), (the Master only, P33, P35) Approvals with the number
-     waiting and Ship order, (the Chief cook only, P52) Stores with the number Low or Out of stock, My profile, My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
+     waiting and Ship order, (the Chief cook and crew members, P54) Requests with the number still waiting for the Master,
+     (the Chief cook only, P52) Stores with the number Low or Out of stock, My profile, My crew and Sign out. From 768px the sidebar has the same entries; the page still works there.
      Model: me (User), ship, profile (CrewProfile). -->
 <main class="more-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{more.title})}"></header>
@@ -55,6 +56,19 @@
                     <th:block th:if="${orderLines != null and orderLines > 0}">
                         <span class="more-count num" aria-hidden="true" th:text="${orderLines > 99} ? '99+' : ${orderLines}">2</span>
                         <span class="visually-hidden" th:text="${#messages.msg('nav.count.order', orderLines)}">2 lines</span>
+                    </th:block>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+            <!-- The Chief cook's and crew members' requests to the Master (P54), with the number still waiting. -->
+            <li class="profile-row-item" sec:authorize="hasAnyRole('CHIEF_COOK', 'CREW_MEMBER')">
+                <a class="profile-row" th:href="@{/ship/requests}">
+                    <svg th:replace="~{layout/parts :: navIcon('requests')}"></svg>
+                    <span class="profile-row-main"><span class="profile-row-title" th:text="#{nav.requests}">Requests</span></span>
+                    <th:block th:if="${requestsWaiting != null and requestsWaiting > 0}">
+                        <span class="more-count num" aria-hidden="true" th:text="${requestsWaiting > 99} ? '99+' : ${requestsWaiting}">1</span>
+                        <span class="visually-hidden" th:text="${#messages.msg('nav.count.requests', requestsWaiting)}">1 waiting for the master</span>
                     </th:block>
                     <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>

@@ -6368,8 +6368,9 @@ input.supplier-currency { max-width: 7rem; }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Stores (P52): the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
-     - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count; two more join later),
-       three per row from 576px, else two; a tile is a link when it filters the list. .is-low and .is-out tint a tile
+     - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count, Requests waiting
+       since P54; the next delivery joins later), four per row from 992px, else two; a tile is a link when it leads to
+       a list. .is-low and .is-out tint a tile
        with something in it (the number says it, the tint repeats it).
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
      - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
@@ -6383,8 +6384,8 @@ input.supplier-currency { max-width: 7rem; }
     padding: 0;
     list-style: none;
 }
-@media (min-width: 576px) {
-    .stores-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 992px) {
+    .stores-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .stores-fact {
     display: flex;
@@ -6456,3 +6457,47 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .stores-count-saved { min-width: 3.5rem; font-size: var(--nn-font-sm); color: var(--nn-ok-text); font-weight: 600; }
 .stores-count-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
 .stores-count-error[hidden] { display: none; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Requests (P54): the Chief cook's and crew's requests to the Master, shiprequest/list.html (its rows are
+   .approval-row), detail.html and form.html.
+     - .request-pick-row: one item of the form, its name (the label of the quantity), on the cook's Running low rows
+       its stock and status, then the quantity field and the unit; an error on its own line under the row. 56px high,
+       a phone target. The quantity field is wide enough for 123456.125 and tall enough for a finger.
+     - .request-group-low: the Running low card, with the warning colour on its left edge (the heading says it).
+     - js/request-form.js hides the rows and groups that do not match the search with [hidden].
+   --------------------------------------------------------------------------------------------------------------- */
+.request-search { margin-bottom: var(--nn-space-4); }
+.request-search[hidden],
+.request-group[hidden],
+.request-pick-row[hidden] { display: none; }
+.request-group-low { border-left: 4px solid var(--nn-warning-border); }
+.request-pick-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    min-height: 3.5rem;   /* 56px */
+}
+.request-pick-name {
+    flex: 1 1 10rem;
+    min-width: 0;
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.request-pick-stock {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.request-pick-qty { display: flex; align-items: center; gap: var(--nn-space-2); }
+.request-qty-input { width: 7.5rem; min-height: 2.75rem; text-align: end; }
+.request-pick-unit { min-width: 2.5rem; color: var(--nn-text-secondary); }
+.request-pick-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
+.request-new-lines { margin-top: var(--nn-space-4); border-top: 1px solid var(--nn-border); }
+.request-new-lines > .request-pick-row { padding-inline: 0; }

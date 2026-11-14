@@ -2,8 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.title}, ~{::main})}">
 <body>
 <!-- The Chief cook's store (P52): the stock of their own ship's provisions. English only, as every crew screen.
-     Summary: Low and Out of stock (each a link to that filter) and the date of the last count ("Not counted yet");
-     the requests waiting for the Master and the next delivery join it later (one more .stores-fact each).
+     Summary: Low and Out of stock (each a link to that filter), the date of the last count ("Not counted yet") and,
+     since P54, the cook's requests waiting for the Master (to Requests, Waiting); the next delivery joins it later.
      Then the search and the status filter (All, Low, Out of stock; GET, handled on the server, P19) and the items in
      one card per storage place (alphabetical, the items without a place last under "Other"), each row one link (the
      name, stretched over the row) to the item, with its quantity and unit and its status badge.
@@ -42,6 +42,14 @@
                     <span th:if="${s.lastCount == null}" class="stores-fact-value stores-fact-none"
                           th:text="#{stores.summary.notCounted}">Not counted yet</span>
                 </div>
+            </li>
+            <!-- P54: the cook's own requests still waiting for the Master (requestsWaiting, from NavigationAdvice), to
+                 Requests filtered to Waiting. -->
+            <li>
+                <a class="stores-fact" th:href="@{/ship/requests(status='waiting')}">
+                    <span class="stores-fact-label" th:text="#{stores.summary.requestsWaiting}">Requests waiting</span>
+                    <span class="stores-fact-value num" th:text="${requestsWaiting ?: 0}">1</span>
+                </a>
             </li>
         </ul>
     </section>

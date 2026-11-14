@@ -20,6 +20,9 @@ import jakarta.servlet.http.HttpServletRequest;
  *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
  *   storesBelowThreshold  the Chief cook's counter of Stores (P52): provisions of their ship that are Low or Out of
  *               stock; null for everyone else.
+ *   requestsWaiting  the Chief cook's and crew members' counter of Requests (P54): their own requests still waiting
+ *               for the Master (also on the cook's Stores summary and the crew home's Requests card); null for the
+ *               Master, office users and when signed out.
  *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
  *               acknowledged yet; null for office users and when signed out.
  *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl, P43) for the user block's
@@ -35,6 +38,7 @@ public class NavigationAdvice {
     static final String APPROVALS_WAITING = "approvalsWaiting";
     static final String ORDER_LINES = "orderLines";
     static final String STORES_BELOW_THRESHOLD = "storesBelowThreshold";
+    static final String REQUESTS_WAITING = "requestsWaiting";
     static final String ANNOUNCEMENTS_TO_ACKNOWLEDGE = "announcementsToAcknowledge";
     static final String CURRENT_PHOTO = "currentPhoto";
 
@@ -105,6 +109,15 @@ public class NavigationAdvice {
             return null;
         }
         return navigationService.storesBelowThreshold(currentUser.getUsername());
+    }
+
+    @ModelAttribute(REQUESTS_WAITING)
+    public Long requestsWaiting(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null
+                || (currentUser.getRole() != Role.CHIEF_COOK && currentUser.getRole() != Role.CREW_MEMBER)) {
+            return null;
+        }
+        return navigationService.requestsWaiting(currentUser.getUsername());
     }
 
     @ModelAttribute(ANNOUNCEMENTS_TO_ACKNOWLEDGE)

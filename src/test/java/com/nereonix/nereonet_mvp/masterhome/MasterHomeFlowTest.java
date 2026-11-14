@@ -185,9 +185,9 @@ class MasterHomeFlowTest {
         for (User u : List.of(cook, crewMember)) {
             assertThat(home(u)).contains("toReadTitle", "My certificates").doesNotContain("data-card=\"approvals\"");
         }
-        // P52: the Chief cook has one card, Stores (in the Master's card style); crew members none.
-        assertThat(home(cook)).containsOnlyOnce("data-card=").contains("data-card=\"stores\"");
-        assertThat(home(crewMember)).doesNotContain("master-card");
+        // P52: the Chief cook has a Stores card (in the Master's card style); P54: both have a Requests card.
+        assertThat(home(cook)).containsSubsequence("data-card=\"stores\"", "data-card=\"requests\"");
+        assertThat(home(crewMember)).containsOnlyOnce("data-card=").contains("data-card=\"requests\"");
     }
 
     private String home(User u) throws Exception {

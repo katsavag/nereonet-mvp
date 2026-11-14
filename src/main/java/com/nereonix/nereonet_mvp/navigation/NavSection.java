@@ -38,6 +38,8 @@ public enum NavSection {
     ORDER("order", List.of("/ship/order", "/ship/orders")),
     // The Chief cook's store (P52). On phones under More, as Approvals.
     STORES("stores", List.of("/ship/stores")),
+    // The Chief cook's and crew's own requests to the Master (P54). On phones under More, as Approvals.
+    REQUESTS("requests", List.of("/ship/requests")),
     // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of My profile, My crew and Sign
     // out; it has no sidebar entry.
     PROFILE("profile", List.of("/ship/profile")),
@@ -58,11 +60,11 @@ public enum NavSection {
     }
 
     /** The phone tab (P26) that is active on this section's pages: More for My profile, My crew and More itself
-     *  (P31), for Approvals (P33), Ship order (P35) and Stores (P52), and for Notifications (P47: no longer a tab of its
-     *  own); every other section is its own tab. The office has no tab bar. */
+     *  (P31), for Approvals (P33), Ship order (P35), Stores (P52) and Requests (P54), and for Notifications (P47: no
+     *  longer a tab of its own); every other section is its own tab. The office has no tab bar. */
     public String tab() {
         return this == PROFILE || this == MORE || this == CREW || this == APPROVALS || this == ORDER
-                || this == STORES || this == NOTIFICATIONS ? MORE.key : key;
+                || this == STORES || this == REQUESTS || this == NOTIFICATIONS ? MORE.key : key;
     }
 
     /**

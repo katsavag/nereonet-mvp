@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.list.title}, ~{::main})}">
+<body>
+<!-- The Chief cook's and crew's own requests to the Master (P54), newest first. Three filters (ordinary links,
+     ?status=...), each with its count: All, Waiting (for the master) and Decided (approved, declined or cancelled).
+     Each row is one link (the request number, stretched over the row) with when it was sent and its number of items,
+     and its status badge (request.status.*). "New request" in the header; with no request at all it moves into the
+     empty state (P25). English only, as every crew screen. Model: requests (ShipRequestService.Requests). -->
+<main th:with="r=${requests}, filter=${requests.filter.name()}, none=${requests.all == 0}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.title}, eyebrowShip=${r.ship},
+            subtitle=#{request.list.hint}, actions=${none} ? null : ~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-primary" th:href="@{/ship/requests/new}"><svg
+                    th:replace="~{layout/parts :: icon('plus')}"></svg> <th:block th:text="#{request.new}">New request</th:block></a>
+        </th:block>
+    </header>
+
+    <!-- th:unless on a wrapper: th:replace runs before th:unless on the same element. -->
+    <th:block th:unless="${none}">
+    <nav th:replace="~{layout/parts :: viewSwitch(#{request.list.filters}, ~{::requestFilters})}">
+        <th:block th:fragment="requestFilters">
+            <a class="view-switch-link" th:href="@{/ship/requests}" th:aria-current="${filter == 'ALL'} ? 'page'">
+                <span th:text="#{request.filter.all}">All</span>
+                <span class="num" th:text="${r.all}">4</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/requests(status='waiting')}" th:aria-current="${filter == 'WAITING'} ? 'page'">
+                <span th:text="#{request.filter.waiting}">Waiting</span>
+                <span class="num" th:text="${r.waiting}">1</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/requests(status='decided')}" th:aria-current="${filter == 'DECIDED'} ? 'page'">
+                <span th:text="#{request.filter.decided}">Decided</span>
+                <span class="num" th:text="${r.decided}">3</span>
+            </a>
+        </th:block>
+    </nav>
+    </th:block>
+
+    <div class="card">
+        <th:block th:if="${none}">
+            <div th:replace="~{layout/parts :: emptyState(icon='requests', title=#{request.empty.title},
+                    text=#{request.empty.text}, action=~{::pageActions})}"></div>
+        </th:block>
+        <div th:if="${not none and r.requests.isEmpty()}" class="card-body list-empty">
+            <p class="list-empty-title" th:text="#{'request.empty.' + ${filter}}">Nothing waiting for the master</p>
+            <a class="btn btn-outline-secondary" th:href="@{/ship/requests}" th:text="#{request.filter.showAll}">Show all requests</a>
+        </div>
+        <ul th:unless="${r.requests.isEmpty()}" class="list-group list-group-flush">
+            <li th:each="q : ${r.requests}" class="list-group-item list-group-item-action approval-row">
+                <div class="approval-row-main">
+                    <a class="approval-row-title stretched-link" th:href="@{/ship/requests/{id}(id=${q.id})}"
+                       th:text="#{request.number(${q.id})}">Request #12</a>
+                    <p class="approval-row-meta">
+                        <time th:replace="~{layout/parts :: localTime(${q.createdAt})}"></time>
+                        <span aria-hidden="true">·</span>
+                        <span th:text="#{approval.lineCount(${q.lines.size()})}">3 items</span>
+                    </p>
+                </div>
+                <div class="approval-row-decision">
+                    <span th:replace="~{approval/parts :: statusBadge(${q.status})}"></span>
+                </div>
+            </li>
+        </ul>
+    </div>
+</main>
+</body>
+</html>

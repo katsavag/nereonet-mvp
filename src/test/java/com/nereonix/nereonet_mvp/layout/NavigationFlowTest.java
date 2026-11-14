@@ -145,7 +145,8 @@ class NavigationFlowTest {
     void crewSidebarHasHomeAnnouncementsLibraryMyCrewMyProfileAndNotifications() throws Exception {
         String nav = sidebar(get("/ship/library").with(user(new CurrentUser(crew))));
         assertThat(LINK.matcher(nav).results().map(m -> m.group(1)).toList())
-                .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/profile", "/notifications");
+                .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/requests", "/ship/profile",
+                        "/notifications");
         assertThat(nav).contains(">On board</p>", ">Account</p>").doesNotContain("/office", "lang=el");
         // The ship home page is Home (P26).
         assertActive(get("/ship").with(user(new CurrentUser(crew))), "/ship", "Home");
