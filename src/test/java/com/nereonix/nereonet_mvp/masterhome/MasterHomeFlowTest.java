@@ -183,8 +183,11 @@ class MasterHomeFlowTest {
     @Test
     void theChiefCookAndCrewKeepTheCrewHomePage() throws Exception {
         for (User u : List.of(cook, crewMember)) {
-            assertThat(home(u)).contains("toReadTitle", "My certificates").doesNotContain("master-card");
+            assertThat(home(u)).contains("toReadTitle", "My certificates").doesNotContain("data-card=\"approvals\"");
         }
+        // P52: the Chief cook has one card, Stores (in the Master's card style); crew members none.
+        assertThat(home(cook)).containsOnlyOnce("data-card=").contains("data-card=\"stores\"");
+        assertThat(home(crewMember)).doesNotContain("master-card");
     }
 
     private String home(User u) throws Exception {

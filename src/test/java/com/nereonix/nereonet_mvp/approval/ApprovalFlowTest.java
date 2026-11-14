@@ -46,6 +46,10 @@ import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockService;
+import com.nereonix.nereonet_mvp.core.stock.StockStatus;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -73,6 +77,8 @@ class ApprovalFlowTest {
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
     @Autowired SupplierRepository supplierRepository;
+    @Autowired StockLevelRepository stockLevelRepository;
+    @Autowired StockMovementRepository stockMovementRepository;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditRepository auditRepository;
     @Autowired UserRepository userRepository;
@@ -80,6 +86,7 @@ class ApprovalFlowTest {
     @Autowired LibraryItemRepository libraryItemRepository;
     @Autowired LibraryItemVersionRepository versionRepository;
     @Autowired CrewProfileRepository profileRepository;
+    @Autowired StockService stockService;
 
     Ship ship;
     Ship otherShip;
@@ -223,7 +230,7 @@ class ApprovalFlowTest {
     void theDevDataSeedsTwoPendingRequestsOnce() throws Exception {
         DevData devData = new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
                 libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
-                supplierRepository);
+                supplierRepository, stockLevelRepository, stockMovementRepository);
         devData.run(null);
         devData.run(null);
 
@@ -240,6 +247,15 @@ class ApprovalFlowTest {
         assertThat(fromCrew.getLines()).extracting(RequestLine::getName, RequestLine::getCategory)
                 .containsExactly(tuple("Shower gel", ItemCategory.PERSONAL_ITEMS), tuple("Eggs", ItemCategory.PROVISIONS));
         assertThat(notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc(master.getEmail())).hasSize(2);
+        // P52: the demo store, once (one row per item): several OK, two Low and two Out of stock.
+        List<StockService.Level> levels = stockService.levels(ship);
+        assertThat(levels).hasSize(10);
+        assertThat(stockLevelRepository.findAllByItemShipId(ship.getId())).hasSize(10);
+        assertThat(levels).filteredOn(l -> l.status() == StockStatus.LOW).extracting(l -> l.item().getName())
+                .containsExactlyInAnyOrder("Olive oil", "Coffee");
+        assertThat(levels).filteredOn(l -> l.status() == StockStatus.OUT).extracting(l -> l.item().getName())
+                .containsExactlyInAnyOrder("Sugar", "Butter");
+        assertThat(stockService.lastCount(ship)).isNotNull();
         // P44: the two suppliers, once; VANOS with a test address only.
         assertThat(supplierRepository.findAll()).extracting(s -> s.getName(), s -> s.getEmail(), s -> s.getCurrency())
                 .containsExactlyInAnyOrder(tuple("VANOS (Piraeus)", "quotes.vanos@example.com", "EUR"),

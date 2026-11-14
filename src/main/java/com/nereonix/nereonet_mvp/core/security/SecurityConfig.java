@@ -41,6 +41,8 @@ public class SecurityConfig {
                         // The Master's ship order and past orders (P35).
                         .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
                                 .hasRole("MASTER")
+                        // The Chief cook's store (P52).
+                        .requestMatchers("/ship/stores", "/ship/stores/**").hasRole("CHIEF_COOK")
                         .requestMatchers("/ship/**").hasAnyRole("MASTER", "CHIEF_COOK", "CREW_MEMBER")
                         .anyRequest().authenticated())
                 .formLogin(form -> form

@@ -36,6 +36,11 @@ import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.stock.StockLevel;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovement;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.supplier.ChannelType;
 import com.nereonix.nereonet_mvp.core.supplier.Supplier;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
@@ -63,6 +68,8 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 // request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
 // P40: once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
 // P41: once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
+// P52: while the demo ship has no stock at all, its provisions get some, counted by the Chief cook two days ago: most
+// OK, two Low and two Out of stock, one without a place (see stockDemo).
 @Component
 @Profile("dev")
 public class DevData implements ApplicationRunner {
@@ -92,12 +99,17 @@ public class DevData implements ApplicationRunner {
     private final VettingService vettingService;
     private final SireService sireService;
     private final SupplierRepository supplierRepository;
+    private final StockLevelRepository stockLevelRepository;
+    private final StockMovementRepository stockMovementRepository;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    LibraryItemRepository libraryItemRepository, LibraryItemVersionRepository libraryVersionRepository,
                    CrewProfileRepository profileRepository, RequestService requestService,
-                   VettingService vettingService, SireService sireService, SupplierRepository supplierRepository) {
+                   VettingService vettingService, SireService sireService, SupplierRepository supplierRepository,
+                   StockLevelRepository stockLevelRepository, StockMovementRepository stockMovementRepository) {
+        this.stockLevelRepository = stockLevelRepository;
+        this.stockMovementRepository = stockMovementRepository;
         this.supplierRepository = supplierRepository;
         this.vettingService = vettingService;
         this.sireService = sireService;
@@ -146,6 +158,9 @@ public class DevData implements ApplicationRunner {
         demoCrew(firstShip);
         if (requestRepository.countByStatusAndShipId(RequestStatus.PENDING, firstShip.getId()) == 0) {
             createPendingRequests(firstShip);
+        }
+        if (!stockLevelRepository.existsByItemShipId(firstShip.getId())) {
+            stockDemo(firstShip);
         }
         if (!shipRepository.existsByImoNumber(VETTING_IMOS.getFirst())) {
             vettingDemo();
@@ -323,6 +338,34 @@ public class DevData implements ApplicationRunner {
         fromCrew.getLines().add(pendingLine(eggs, "12"));
         requestService.submit(fromCrew);
         log.info("Created 2 pending demo requests for ship {}", ship.getName());
+    }
+
+    // P52: the demo store, as the Chief cook counted it two days ago (one COUNT movement per item, from 0). With the
+    // default threshold of 10: Olive oil and Coffee are Low, Sugar and Butter Out of stock, Salt is under "Other".
+    private void stockDemo(Ship ship) {
+        User cook = userRepository.findByEmail("cook.demo@example.com").orElse(null);
+        Instant countedAt = Instant.now().minus(Duration.ofDays(2));
+        stock(item(ship, "Basmati rice", "kg", ItemCategory.PROVISIONS, "Dry store"), "40", cook, countedAt);
+        stock(item(ship, "Olive oil", "lt", ItemCategory.PROVISIONS, "Dry store"), "4", cook, countedAt);
+        stock(item(ship, "Flour", "kg", ItemCategory.PROVISIONS, "Dry store"), "25", cook, countedAt);
+        stock(item(ship, "Sugar", "kg", ItemCategory.PROVISIONS, "Dry store"), "0", cook, countedAt);
+        stock(item(ship, "Coffee", "kg", ItemCategory.PROVISIONS, "Dry store"), "6.5", cook, countedAt);
+        stock(item(ship, "Eggs", "pcs", ItemCategory.PROVISIONS, "Cold room"), "180", cook, countedAt);
+        stock(item(ship, "Tomatoes", "kg", ItemCategory.PROVISIONS, "Cold room"), "12", cook, countedAt);
+        stock(item(ship, "Butter", "kg", ItemCategory.PROVISIONS, "Cold room"), "0", cook, countedAt);
+        stock(item(ship, "Chicken breast", "kg", ItemCategory.PROVISIONS, "Freezer"), "30", cook, countedAt);
+        stock(item(ship, "Salt", "kg", ItemCategory.PROVISIONS, null), "15", cook, countedAt);
+        log.info("Created the demo stock of ship {}", ship.getName());
+    }
+
+    private void stock(Item item, String quantity, User by, Instant at) {
+        StockLevel level = new StockLevel();
+        level.setItem(item);
+        level.setQuantity(new BigDecimal(quantity));
+        level.setUpdatedAt(at);
+        stockLevelRepository.save(level);
+        stockMovementRepository.save(StockMovement.of(item, StockMovementType.COUNT, BigDecimal.ZERO,
+                level.getQuantity(), by, at, null, null));
     }
 
     private static ItemRequest pendingRequest(Ship ship, User requestedBy, Instant createdAt) {

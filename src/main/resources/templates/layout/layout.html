@@ -102,7 +102,7 @@
                     </th:block>
                     <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), News (P27
                          announcements, "News" for the crew since P39) between Home and Library in both. My crew and My profile (P31) are under the tab bar's More, and
-                         so are the Master's Approvals (P33) and Ship order (P35). -->
+                         so are the Master's Approvals (P33) and Ship order (P35) and the Chief cook's Stores (P52). -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
@@ -119,6 +119,11 @@
                                 <!-- The ship order (P35), with the number of lines in the OPEN order. -->
                                 <li th:replace="~{layout/parts :: navItem('order', '/ship/order', #{nav.order},
                                         ${orderLines}, #{nav.count.order(${orderLines ?: 0})})}"></li>
+                            </th:block>
+                            <!-- The Chief cook's store (P52), with the number of provisions Low or Out of stock. -->
+                            <th:block sec:authorize="hasRole('CHIEF_COOK')">
+                                <li th:replace="~{layout/parts :: navItem('stores', '/ship/stores', #{nav.stores},
+                                        ${storesBelowThreshold}, #{nav.count.stores(${storesBelowThreshold ?: 0})})}"></li>
                             </th:block>
                         </ul>
                     </th:block>

@@ -6364,3 +6364,76 @@ input.supplier-currency { max-width: 7rem; }
 .receipt-short { margin: var(--nn-space-1) 0 0; }
 .receipt-note { color: var(--nn-text-secondary); margin-top: var(--nn-space-1); }
 .receipt-when { max-width: 16rem; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Stores (P52): the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
+     - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count; two more join later),
+       three per row from 576px, else two; a tile is a link when it filters the list. .is-low and .is-out tint a tile
+       with something in it (the number says it, the tint repeats it).
+     - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
+     - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
+   --------------------------------------------------------------------------------------------------------------- */
+.stores-summary { margin-bottom: var(--nn-space-4); }
+.stores-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--nn-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+@media (min-width: 576px) {
+    .stores-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.stores-fact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nn-space-1);
+    height: 100%;
+    padding: var(--nn-space-3) var(--nn-space-4);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+    color: var(--nn-text);
+    text-decoration: none;
+}
+a.stores-fact:hover { background-color: var(--nn-hover); color: var(--nn-text); }
+a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
+.stores-fact-label { font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
+.stores-fact-value { font-size: var(--nn-font-title); font-weight: 700; }
+.stores-fact-date,
+.stores-fact-none { font-size: 1rem; font-weight: 600; }
+.stores-fact-none { color: var(--nn-text-secondary); }
+.stores-fact.is-low { background-color: var(--nn-warning-bg); border-color: var(--nn-warning-border); }
+.stores-fact.is-low .stores-fact-value { color: var(--nn-warning-text); }
+.stores-fact.is-out { background-color: var(--nn-danger-bg); border-color: var(--nn-danger-border); }
+.stores-fact.is-out .stores-fact-value { color: var(--nn-danger-text); }
+.stores-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    min-height: 3.5rem;   /* 56px, a phone target */
+}
+.stores-row-name {
+    flex: 1 1 10rem;
+    min-width: 0;
+    font-weight: 600;
+    color: var(--nn-text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.stores-row:hover .stores-row-name,
+.stores-row-name:focus-visible { text-decoration: underline; }
+.stores-qty { white-space: nowrap; }
+.stores-row > .stores-qty { min-width: 5.5rem; text-align: end; }
+.stores-note { overflow-wrap: anywhere; }
+.stores-card-counts {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: var(--nn-space-1);
+    white-space: nowrap;
+}
+.master-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }

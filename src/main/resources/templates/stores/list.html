@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.title}, ~{::main})}">
+<body>
+<!-- The Chief cook's store (P52): the stock of their own ship's provisions. English only, as every crew screen.
+     Summary: Low and Out of stock (each a link to that filter) and the date of the last count ("Not counted yet");
+     the requests waiting for the Master and the next delivery join it later (one more .stores-fact each).
+     Then the search and the status filter (All, Low, Out of stock; GET, handled on the server, P19) and the items in
+     one card per storage place (alphabetical, the items without a place last under "Other"), each row one link (the
+     name, stretched over the row) to the item, with its quantity and unit and its status badge.
+     Model: stores (StoresService.Stores), list (ListQuery), status ("low", "out" or null). -->
+<main class="stores-page" th:with="s=${stores}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.title}, eyebrowShip=${s.ship},
+            subtitle=#{stores.hint})}"></header>
+
+    <section class="stores-summary" aria-labelledby="storesSummaryTitle">
+        <h2 class="visually-hidden" id="storesSummaryTitle" th:text="#{stores.summary.heading}">Summary</h2>
+        <ul class="stores-facts">
+            <li>
+                <a class="stores-fact" th:href="@{/ship/stores(status='low')}" th:classappend="${s.counts.low > 0} ? 'is-low'">
+                    <span class="stores-fact-label" th:text="#{stores.status.LOW}">Low</span>
+                    <span class="stores-fact-value num" th:text="${s.counts.low}">2</span>
+                </a>
+            </li>
+            <li>
+                <a class="stores-fact" th:href="@{/ship/stores(status='out')}" th:classappend="${s.counts.out > 0} ? 'is-out'">
+                    <span class="stores-fact-label" th:text="#{stores.status.OUT}">Out of stock</span>
+                    <span class="stores-fact-value num" th:text="${s.counts.out}">1</span>
+                </a>
+            </li>
+            <li>
+                <div class="stores-fact">
+                    <span class="stores-fact-label" th:text="#{stores.summary.lastCount}">Last count</span>
+                    <span th:if="${s.lastCount != null}" class="stores-fact-value stores-fact-date"><time
+                            th:replace="~{layout/parts :: utcDate(${s.lastCount})}"></time></span>
+                    <span th:if="${s.lastCount == null}" class="stores-fact-value stores-fact-none"
+                          th:text="#{stores.summary.notCounted}">Not counted yet</span>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <!-- th:if on a wrapper: th:replace runs before th:if on the same element. -->
+    <th:block th:if="${s.total > 0}">
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{stores.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{stores.filter.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{stores.filter.all}">All</option>
+                    <option value="low" th:selected="${status == 'low'}" th:text="#{stores.status.LOW}">Low</option>
+                    <option value="out" th:selected="${status == 'out'}" th:text="#{stores.status.OUT}">Out of stock</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+    </th:block>
+
+    <div th:if="${s.total == 0}" class="card">
+        <div th:replace="~{layout/parts :: emptyState(icon='stores', title=#{stores.empty.title},
+                text=#{stores.empty.text}, action=null)}"></div>
+    </div>
+    <div th:if="${s.total > 0 and s.isEmpty()}" class="card">
+        <div class="card-body list-empty">
+            <p class="list-empty-title" th:text="#{list.noResults}">No results for these filters</p>
+            <a class="btn btn-outline-secondary" th:with="url=${list.clearUrl}" th:href="@{${url}}"
+               th:text="#{list.clearAll}">Clear all</a>
+        </div>
+    </div>
+
+    <section th:each="g, it : ${s.groups}" class="card mb-4 stores-place" th:with="groupId=${'storesPlace' + it.index}"
+             th:attr="aria-labelledby=${groupId}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
+                th:text="${g.place != null} ? ${g.place} : #{stores.place.other}">Dry store</h2>
+            <span class="font-monospace small text-body-secondary" th:text="${g.levels.size()}">4</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            <li th:each="l : ${g.levels}" class="list-group-item list-group-item-action stores-row">
+                <a class="stores-row-name stretched-link" th:href="@{/ship/stores/items/{id}(id=${l.item.id})}"
+                   th:text="${l.item.name}">Basmati rice</a>
+                <span th:replace="~{stores/parts :: quantity(${l.quantity}, ${l.item.unit})}"></span>
+                <span th:replace="~{stores/parts :: statusBadge(${l.status})}"></span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

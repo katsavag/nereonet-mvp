@@ -32,7 +32,8 @@ Requirements: Java 25, Docker.
    `crew123`). Since P31 the first ship also gets three more crew members with sample profiles for My crew (see 20),
    and since P33, while it has none, two requests waiting for its Master (see 21), with four demo items. Since P36 no
    approved requests are seeded: the Master approves these and sends the ship order (23), which the office then sees
-   on **Orders** (24).
+   on **Orders** (24). Since P52, while that ship has no stock at all, its provisions get some for the Chief cook's
+   **Stores** (30): several OK, two Low and two Out of stock.
    While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
    "Drug and alcohol policy" (Company policies, required).
    Since P40 (once, while there is no ship with IMO 9300001) three bulk carriers with RightShip data entered by hand,
@@ -784,6 +785,8 @@ Requirements: Java 25, Docker.
    - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
      the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
      acknowledgement overview (16). When everyone has: "Everyone on board has acknowledged every required document."
+   - **Stores** (P52, the Chief cook only, see 30): above To read, one card linking to `/ship/stores` with the number
+     of provisions Low and Out of stock ("2 low · 1 out of stock"), tinted while either is above zero.
    - From 992 px To read (and the Master's card) and the certificates sit side by side.
    - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
      :: tabBar`) with **Home**, **News** (P27; "Announcements" before P39), **Library**, **Notifications** and **More** (P31: My profile,
@@ -1453,6 +1456,50 @@ Requirements: Java 25, Docker.
    - To try it without a key: start with `VESSELAPI_FAKE=true`, open **Vessels › Add vessel**, type `9328716` and
      press **Look up by IMO**; or open MV Demo, **Edit**, **Refresh from VesselAPI**.
 
+30. Stores (P52, the Chief cook only): the stock of the vessel's provisions. `core/stock/` (`StockLevel`,
+   `StockMovement`, `StockMovementType`, `StockStatus`, `StockService` and the two repositories), `stores/`
+   (`StoresController`, `StoresService`), `templates/stores/`; styles in `app.css` section "Stores (P52)". English
+   only, as every crew screen. `/ship/stores` and `/ship/stores/**` are for CHIEF_COOK only (`SecurityConfig`, next to
+   the Master's rules): the Master and crew members get 403. The pages always show the signed-in cook's own vessel.
+   - **The stock** (`core/stock`, shared: the request page, the receipt on board and the office use it later). Only
+     PROVISIONS items have stock; personal items never appear in the store.
+     - `StockLevel`: one row per item at most (`uk_stock_level_item`), the quantity in the item's unit (zero or more,
+       at most 3 decimals and 9 whole digits, the rule of `ShipOrderService.isValidQuantity`; `StockService.isValidQuantity`)
+       and `updatedAt`. An item without a row has quantity 0.
+     - `StockMovement`, the store's history: item, type `COUNT` or `RECEIPT`, quantity before and after, by (null
+       once that user is deleted), at, an optional note (200 characters) and, for a receipt, the ship order. Never
+       changed or deleted: `@Immutable`, no setters (`StockMovement.of`), and the repository can only add and read.
+     - `StockService`: `levels(ship)` every active PROVISIONS item of the vessel, by name, with its quantity and status;
+       `status(quantity)` **Out of stock** at 0, **Low** above 0 and below `app.stock.low-threshold`
+       (`STOCK_LOW_THRESHOLD`, default 10, one threshold for every item), otherwise **OK**; `history(item)` its
+       movements, newest first; `lastCount(ship)` the latest COUNT movement.
+     Nothing changes the stock yet: counting and receipts come with their own pages.
+   - **Where**: **Stores** in the sidebar under On board, with the number of provisions Low or Out of stock as a pill
+     (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is a row of **More**
+     (`/ship/more`) with the same number, and the More tab carries it in its badge, as the Master's Approvals (21).
+     The cook's Home (18) has a **Stores** card above To read with both counts ("2 low · 1 out of stock"), tinted
+     while either is above zero. The Master's home gets its Stores card later.
+   - **The store** (`/ship/stores`, titled "Stores"): a summary first, **Low** and **Out of stock** (each a link to
+     that filter, tinted when above zero) and **Last count** (the date of the latest COUNT movement, or "Not counted
+     yet"); the requests waiting for the Master and the next delivery join it later. Then the search (part of the
+     name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
+     filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
+     alphabetical, the items without a place last under **Other**; each row is one link to the item with its
+     quantity and unit and its status badge (OK, Low, Out of stock; words, the colour only repeats them). No paging:
+     the whole store. Nothing found: "No results for these filters" with **Clear all**; no provisions at all: "No
+     provisions yet".
+   - **An item** (`/ship/stores/items/{id}`): its quantity and status, unit and place ("Not set"), then its history,
+     newest first: date and time, type (Count, Delivery received with the order number), before, after, who
+     ("Deleted user" once the account is gone) and the note. An item of another vessel, or one that is not
+     PROVISIONS, is a 404.
+   - Tables `stock_level` and `stock_movement` (Hibernate creates them on start).
+   - Dev data: while the demo vessel has no stock at all, its provisions get some, counted by Demo Cook two days ago
+     (one COUNT movement each): Basmati rice 40 kg, Flour 25 kg, Eggs 180, Tomatoes 12 kg, Chicken breast 30 kg (OK),
+     Olive oil 4 lt and Coffee 6.5 kg (Low), Sugar and Butter (Out of stock), and Salt 15 kg without a place (Other).
+   - Tests: `stores/StoresFlowTest`; the dev data in `approval/ApprovalFlowTest`.
+   - To try it: as `cook.demo@example.com` / `crew123`, **Stores** shows 4 in the sidebar; open it, choose **Low**,
+     then open Olive oil for its history. As `master.demo@example.com`, `/ship/stores` is a 403.
+
 Run the tests (H2 in memory, no Docker needed):
 
 ```
@@ -1867,6 +1914,7 @@ Set these environment variables:
 | `VESSELAPI_FAKE` | optional; `true` answers with built-in sample data instead of VesselAPI (dev screens without a key), default `false` |
 | `SIRE_REPORT_CURRENT_MONTHS` | optional (P41); company policy: months a SIRE 2.0 report is treated as current after the inspection, default `12` (see 25) |
 | `SIRE_COMMENT_DAYS` | optional (P41); company policy: days for the operator comments on a draft SIRE 2.0 report, default `14` |
+| `STOCK_LOW_THRESHOLD` | optional (P52); a provisions item above 0 and below this quantity is Low on the Chief cook's Stores page, default `10` (see 30) |
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
 | `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page and as "Questions? Contact: …" in the footer of the invitation and password reset emails, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |

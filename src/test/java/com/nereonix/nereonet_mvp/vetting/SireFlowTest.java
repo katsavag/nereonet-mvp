@@ -42,6 +42,8 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -84,6 +86,8 @@ class SireFlowTest {
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
     @Autowired SupplierRepository supplierRepository;
+    @Autowired StockLevelRepository stockLevelRepository;
+    @Autowired StockMovementRepository stockMovementRepository;
     @Autowired SireInspectionRepository inspectionRepository;
     @Autowired SireObservationRepository observationRepository;
     @Autowired AuditRepository auditRepository;
@@ -532,7 +536,7 @@ class SireFlowTest {
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
                 libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
-                supplierRepository);
+                supplierRepository, stockLevelRepository, stockMovementRepository);
     }
 
     private Ship vessel(String name, ShipType type) {

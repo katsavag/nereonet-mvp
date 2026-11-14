@@ -310,7 +310,41 @@ class MessageKeysTest {
             "order.past.empty.text",
             // P42: the crew's own missing required documents, on My profile and the home pages.
             "profile.required.contact",
-            "home.documents.missing");
+            "home.documents.missing",
+            // P52: the Chief cook's store.
+            "nav.stores",
+            "nav.count.stores",
+            "stores.title",
+            "stores.hint",
+            "stores.summary.heading",
+            "stores.summary.lastCount",
+            "stores.summary.notCounted",
+            "stores.search",
+            "stores.filter.status",
+            "stores.filter.all",
+            "stores.status.OK",
+            "stores.status.LOW",
+            "stores.status.OUT",
+            "stores.place.other",
+            "stores.empty.title",
+            "stores.empty.text",
+            "stores.item.quantity",
+            "stores.item.status",
+            "stores.item.unit",
+            "stores.item.place",
+            "stores.item.placeNone",
+            "stores.history.heading",
+            "stores.history.empty",
+            "stores.history.at",
+            "stores.history.type",
+            "stores.history.before",
+            "stores.history.after",
+            "stores.history.by",
+            "stores.history.note",
+            "stores.movement.COUNT",
+            "stores.movement.RECEIPT",
+            "stores.card.low",
+            "stores.card.out");
 
     /**
      * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies

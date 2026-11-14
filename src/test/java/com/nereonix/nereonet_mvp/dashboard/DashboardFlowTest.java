@@ -67,6 +67,8 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -118,6 +120,8 @@ class DashboardFlowTest {
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
     @Autowired SupplierRepository supplierRepository;
+    @Autowired StockLevelRepository stockLevelRepository;
+    @Autowired StockMovementRepository stockMovementRepository;
 
     @MockitoBean
     MailService mailService;
@@ -718,6 +722,6 @@ class DashboardFlowTest {
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
                 libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
-                supplierRepository);
+                supplierRepository, stockLevelRepository, stockMovementRepository);
     }
 }

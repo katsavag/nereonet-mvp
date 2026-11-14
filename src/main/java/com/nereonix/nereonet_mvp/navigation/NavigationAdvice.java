@@ -18,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
  *               everyone else.
  *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
+ *   storesBelowThreshold  the Chief cook's counter of Stores (P52): provisions of their ship that are Low or Out of
+ *               stock; null for everyone else.
  *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
  *               acknowledged yet; null for office users and when signed out.
  *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl, P43) for the user block's
@@ -32,6 +34,7 @@ public class NavigationAdvice {
     static final String TAB = "navTab";
     static final String APPROVALS_WAITING = "approvalsWaiting";
     static final String ORDER_LINES = "orderLines";
+    static final String STORES_BELOW_THRESHOLD = "storesBelowThreshold";
     static final String ANNOUNCEMENTS_TO_ACKNOWLEDGE = "announcementsToAcknowledge";
     static final String CURRENT_PHOTO = "currentPhoto";
 
@@ -94,6 +97,14 @@ public class NavigationAdvice {
             return null;
         }
         return navigationService.orderLines(currentUser.getUsername());
+    }
+
+    @ModelAttribute(STORES_BELOW_THRESHOLD)
+    public Long storesBelowThreshold(@AuthenticationPrincipal CurrentUser currentUser) {
+        if (currentUser == null || currentUser.getRole() != Role.CHIEF_COOK) {
+            return null;
+        }
+        return navigationService.storesBelowThreshold(currentUser.getUsername());
     }
 
     @ModelAttribute(ANNOUNCEMENTS_TO_ACKNOWLEDGE)

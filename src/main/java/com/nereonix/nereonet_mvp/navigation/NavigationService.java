@@ -15,6 +15,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 // The sidebar counters: one count query each, on every page, so nothing is loaded to count.
@@ -30,11 +31,14 @@ public class NavigationService {
     private final AnnouncementRecipientRepository announcementRecipientRepository;
     private final VettingService vettingService;
     private final CrewProfileRepository profileRepository;
+    private final StockService stockService;
 
     public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
                              ShipOrderLineRepository orderLineRepository, ShipOrderService orderService,
                              AnnouncementRecipientRepository announcementRecipientRepository,
-                             VettingService vettingService, CrewProfileRepository profileRepository) {
+                             VettingService vettingService, CrewProfileRepository profileRepository,
+                             StockService stockService) {
+        this.stockService = stockService;
         this.profileRepository = profileRepository;
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
@@ -65,6 +69,13 @@ public class NavigationService {
     @Transactional(readOnly = true)
     public long orderLines(String email) {
         return orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email);
+    }
+
+    /** The Chief cook's counter of Stores (P52): provisions of the ship of the user with this email that are Low or
+     *  Out of stock. */
+    @Transactional(readOnly = true)
+    public long storesBelowThreshold(String email) {
+        return stockService.belowThresholdOnShipOf(email);
     }
 
     /** The crew's counter of Announcements (P37): the ones the user with this email has not acknowledged yet. */

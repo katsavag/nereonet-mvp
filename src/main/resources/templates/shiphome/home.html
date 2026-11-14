@@ -23,6 +23,29 @@
         </th:block>
     </header>
 
+    <!-- P52, the Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
+         number of provisions Low and Out of stock. Styled as the cards of the Master's home: tinted, with "to do"
+         for screen readers, while anything is Low or Out of stock. -->
+    <section th:if="${stores != null}" class="home-section" aria-labelledby="storesCardTitle">
+        <h2 class="visually-hidden" id="storesCardTitle" th:text="#{nav.stores}">Stores</h2>
+        <ul class="master-cards">
+            <li>
+                <a class="master-card stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
+                   data-card="stores">
+                    <span class="master-card-icon" aria-hidden="true"><svg
+                            th:replace="~{layout/parts :: navIcon('stores')}"></svg></span>
+                    <span class="master-card-label" th:text="#{nav.stores}">Stores</span>
+                    <span class="stores-card-counts">
+                        <span><span class="num" th:text="${stores.low}">2</span> <th:block th:text="#{stores.card.low}">low</th:block></span>
+                        <span aria-hidden="true">·</span>
+                        <span><span class="num" th:text="${stores.out}">1</span> <th:block th:text="#{stores.card.out}">out of stock</th:block></span>
+                    </span>
+                    <span th:if="${stores.any()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+
     <div class="row g-4">
         <div class="col-lg-7">
             <!-- To read: Required library items not yet acknowledged and news items (P27) not opened yet (P39), oldest

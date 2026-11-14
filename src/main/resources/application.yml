@@ -80,6 +80,10 @@ app:
     # P50: the ship is told about the office's changes of an order this long after the last change, unless the office
     # presses "Done editing" first (ISO-8601 duration). Checked every minute.
     office-edit-quiet: ${ORDER_OFFICE_EDIT_QUIET:PT10M}
+  stock:
+    # P52: a provisions item above 0 and below this quantity (in its own unit) is Low on the Chief cook's Stores page.
+    # One threshold for every item.
+    low-threshold: ${STOCK_LOW_THRESHOLD:10}
   certificates:
     # Daily certificate expiry reminders (Spring cron: second minute hour day month weekday), in UTC.
     reminder-cron: ${CERTIFICATE_REMINDER_CRON:0 0 6 * * *}

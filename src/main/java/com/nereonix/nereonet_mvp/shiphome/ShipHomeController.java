@@ -10,6 +10,7 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.masterhome.MasterHomeService;
 import com.nereonix.nereonet_mvp.requirement.ComplianceService;
+import com.nereonix.nereonet_mvp.stores.StoresService;
 
 // The crew home page (P26): every ship role lands here after sign-in (SecurityConfig: /ship/** is for ship roles).
 // The Master gets their own home page (masterhome) at the same address; the Chief cook and Crew members this one.
@@ -21,9 +22,12 @@ public class ShipHomeController {
     private final MasterHomeService masterHomeService;
     private final ComplianceService complianceService;
     private final UserRepository userRepository;
+    private final StoresService storesService;
 
     public ShipHomeController(ShipHomeService shipHomeService, MasterHomeService masterHomeService,
-                              ComplianceService complianceService, UserRepository userRepository) {
+                              ComplianceService complianceService, UserRepository userRepository,
+                              StoresService storesService) {
+        this.storesService = storesService;
         this.shipHomeService = shipHomeService;
         this.masterHomeService = masterHomeService;
         this.complianceService = complianceService;
@@ -40,6 +44,9 @@ public class ShipHomeController {
             return "masterhome/home";
         }
         model.addAttribute("home", shipHomeService.load(currentUser.getUsername()));
+        // P52: the Chief cook's Stores card, Low and Out of stock; null for crew members.
+        model.addAttribute("stores", currentUser.getRole() == Role.CHIEF_COOK
+                ? storesService.counts(currentUser.getUsername()) : null);
         return "shiphome/home";
     }
 }

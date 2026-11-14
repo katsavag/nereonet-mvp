@@ -36,6 +36,8 @@ import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
@@ -82,6 +84,8 @@ class CrewNewsWordingTest {
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
     @Autowired SupplierRepository supplierRepository;
+    @Autowired StockLevelRepository stockLevelRepository;
+    @Autowired StockMovementRepository stockMovementRepository;
 
     @MockitoBean
     MailService mailService;
@@ -90,7 +94,7 @@ class CrewNewsWordingTest {
     void noCrewPageSaysAnnouncement() throws Exception {
         new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
                 libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
-                supplierRepository).run(null);
+                supplierRepository, stockLevelRepository, stockMovementRepository).run(null);
         announcementService.create("Safety drill", "Drill on Friday.\nMuster at the lifeboat station.", true, List.of(),
                 "office@example.com");
         AnnouncementService.Sent second = announcementService.create("Bunkering plan", "Bunkering on Monday.", true,

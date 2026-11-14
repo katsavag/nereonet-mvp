@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!-- Parts of the Chief cook's store (P52). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- A stock status as a badge: OK (ok), Low (warning), Out of stock (danger). The words carry the state, the colour
+     repeats it.
+     Use: <span th:replace="~{stores/parts :: statusBadge(${level.status})}"></span> -->
+<span th:fragment="statusBadge(status)"
+      th:replace="~{layout/parts :: status(${status.name() == 'OK'} ? 'ok' : (${status.name() == 'LOW'} ? 'warning'
+              : 'danger'), #{${status.labelKey()}})}"></span>
+
+<!-- A quantity with its unit, "12.5 kg": the quantity without trailing zeros. -->
+<span th:fragment="quantity(quantity, unit)" class="stores-qty"><span class="num"
+        th:text="${quantity.stripTrailingZeros().toPlainString()}">12.5</span> <span th:text="${unit}">kg</span></span>
+
+</body>
+</html>
