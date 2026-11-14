@@ -57,13 +57,14 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 @WithUserDetails("office@example.com") // seeded by BootstrapData
 class ShipPageFlowTest {
 
-    private static final List<String> TABS = List.of("", "/crew", "/certificates", "/library", "/items",
+    private static final List<String> TABS = List.of("", "/vessel", "/crew", "/certificates", "/library", "/items",
             "/announcements");
     private static final Pattern H1 = Pattern.compile("(?s)<h1 class=\"page-title\">\\s*<span>(.*?)</span>");
     private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"ship-tabs\"[^>]*>(.*?)</nav>");
     private static final Pattern TAB = Pattern.compile(
             "(?s)<a class=\"ship-tab( active)?\" href=\"([^\"]+)\"[^>]*>\\s*<span>([^<]+)</span>\\s*"
-                    + "<span class=\"ship-tab-count num[^\"]*\" aria-hidden=\"true\">(\\d+)</span>");
+                    // P45: the Vessel data tab has no count.
+                    + "(?:<span class=\"ship-tab-count num[^\"]*\" aria-hidden=\"true\">(\\d+)</span>)?");
 
     @Autowired
     MockMvc mockMvc;
@@ -185,7 +186,7 @@ class ShipPageFlowTest {
 
         String html = html(get("/office/ships/{id}", demo.getId()));
         assertThat(tabs(html)).containsExactly(
-                "Overview 3 active", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1");
+                "Overview 3 active", "Vessel data", "Crew 4", "Certificates 3", "Library 0", "Items 1", "Announcements 1");
         assertThat(html).contains("ship-tab-count num ship-tab-count-alert", "(3 open items)");
 
         // The same rule as the fleet Overview's certificate and order columns.
@@ -375,7 +376,7 @@ class ShipPageFlowTest {
     void greekTabs() throws Exception {
         String html = html(get("/office/ships/{id}", demo.getId()).param("lang", "el"));
         assertThat(tabs(html)).extracting(t -> t.substring(0, t.indexOf(' ')))
-                .containsExactly("Επισκόπηση", "Πλήρωμα", "Πιστοποιητικά", "Βιβλιοθήκη", "Είδη", "Ανακοινώσεις");
+                .containsExactly("Επισκόπηση", "Στοιχεία", "Πλήρωμα", "Πιστοποιητικά", "Βιβλιοθήκη", "Είδη", "Ανακοινώσεις");
     }
 
     @Test
@@ -404,7 +405,7 @@ class ShipPageFlowTest {
         assertThat(html).as("Edit" + on).contains("href=\"/office/ships/" + ship.getId() + "/edit?tab=");
         assertThat(html).as("more menu" + on).contains("More actions: " + ship.getName());
         List<String> tabs = tabs(html);
-        assertThat(tabs).as("tabs" + on).hasSize(6);
+        assertThat(tabs).as("tabs" + on).hasSize(7);
         assertThat(tabs.stream().filter(t -> t.endsWith(" active")).toList()).as("one active tab" + on).hasSize(1);
         Matcher active = Pattern.compile("<a class=\"ship-tab active\" href=\"([^\"]+)\" aria-current=\"page\">").matcher(html);
         assertThat(active.find()).as("active tab" + on).isTrue();
@@ -416,7 +417,7 @@ class ShipPageFlowTest {
         Matcher bar = TAB_BAR.matcher(html);
         assertThat(bar.find()).as("tab bar").isTrue();
         return TAB.matcher(bar.group(1)).results()
-                .map(m -> m.group(3).trim() + " " + m.group(4) + (m.group(1) != null ? " active" : "")).toList();
+                .map(m -> m.group(3).trim() + (m.group(4) != null ? " " + m.group(4) : "") + (m.group(1) != null ? " active" : "")).toList();
     }
 
     private static String key(String tab) {

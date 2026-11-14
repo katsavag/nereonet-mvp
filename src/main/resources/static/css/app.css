@@ -6124,3 +6124,41 @@ input.supplier-currency { max-width: 7rem; }
 .rfq-input-unit { width: 6rem; }
 .rfq-input-note { width: 14rem; }
 .rfq-quote-table > tbody > tr > th.rfq-compare-item > .rfq-cell-detail { display: block; font-weight: 400; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Vessel data (P45): VesselAPI on ship/new.html, ship/edit.html, ship/vessel.html and the Overview.
+     - .vessel-imo-row: the IMO number field and Look up by IMO side by side (under each other on narrow phones).
+     - .vessel-lookup: the results of a lookup or refresh, a card inside the form, under the fields.
+     - .vessel-compare: VesselAPI next to the form or the saved values; the first column is the field.
+     - .vessel-fields: the label and value rows of a Vessel data card; .vessel-card-footer the provider and fetch
+       times; .vessel-card-failed the last failed refresh, in the danger text colour with the words saying so.
+     - .vessel-json: a body as received, indented, scrolling inside its box (never the page).
+     - .vessel-summary: the Overview's one line (position age, destination and ETA).
+   --------------------------------------------------------------------------------------------------------------- */
+.vessel-imo-row { display: flex; flex-wrap: wrap; gap: var(--nn-space-2); }
+.vessel-imo-row > .form-control { flex: 1 1 10rem; min-width: 0; }
+.vessel-imo-row > .btn { flex: 0 0 auto; }
+.vessel-lookup-action { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); margin-top: var(--nn-space-3); }
+.vessel-lookup { margin-top: var(--nn-space-4); background: var(--nn-page); }
+.vessel-compare > :not(caption) > * > * { background: transparent; }
+.vessel-compare th[scope="row"] { font-weight: 600; white-space: nowrap; }
+.vessel-flag-choice { margin: 0; padding: 0; border: 0; }
+.vessel-call-results > li + li { margin-top: var(--nn-space-1); }
+.vessel-existing { margin-top: var(--nn-space-1); }
+.vessel-fields > dd { overflow-wrap: anywhere; }
+.vessel-card-footer { background: transparent; border-top: 1px solid var(--nn-divider); }
+.vessel-card-failed { color: var(--nn-danger-text); margin-top: var(--nn-space-1); }
+.vessel-raw > summary { cursor: pointer; }
+.vessel-json {
+    max-height: 24rem;
+    overflow: auto;
+    padding: var(--nn-space-3);
+    background: var(--nn-page);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+    font-size: .8125rem;
+    white-space: pre;
+}
+.vessel-summary { margin-bottom: var(--nn-space-3); color: var(--nn-text); }
+.vessel-compare td { min-width: 7rem; }

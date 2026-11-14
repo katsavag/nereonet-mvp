@@ -60,4 +60,28 @@ class ShipFlowTest {
                 .andExpect(content().string(Matchers.containsString("IMO 9074729")))
                 .andExpect(content().string(Matchers.containsString("MV Aegean Spirit")));
     }
+
+    // P45: without a VesselAPI key (the test profile has none) no lookup or refresh is offered, a note says why, and
+    // the lookup action makes no call (VesselLookupFlowTest covers the configured case).
+    @Test
+    void withoutVesselApiTheLookupIsHiddenAndExplained() throws Exception {
+        mockMvc.perform(get("/office/ships/new"))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("formaction=\"/office/ships/new/lookup\""))))
+                .andExpect(content().string(Matchers.containsString("The VesselAPI integration is not configured")));
+        mockMvc.perform(post("/office/ships/new/lookup").param("imoNumber", "9074729").param("name", "Typed")
+                        .with(csrf()))
+                .andExpect(content().string(Matchers.containsString("value=\"Typed\"")))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("VesselAPI result"))));
+        Ship ship = new Ship();
+        ship.setImoNumber("9074729");
+        ship.setName("MV Demo");
+        ship.setCreatedAt(java.time.Instant.now());
+        shipRepository.save(ship);
+        mockMvc.perform(get("/office/ships/" + ship.getId() + "/edit"))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("/edit/lookup\""))))
+                .andExpect(content().string(Matchers.containsString("The VesselAPI integration is not configured")));
+        mockMvc.perform(get("/office/ships/" + ship.getId() + "/vessel"))
+                .andExpect(content().string(Matchers.containsString("No VesselAPI data yet")))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("/edit/lookup\""))));
+    }
 }

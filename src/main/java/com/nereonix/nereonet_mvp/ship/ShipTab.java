@@ -11,6 +11,8 @@ import java.util.Optional;
 public enum ShipTab {
 
     OVERVIEW("overview", ""),
+    // P45: what VesselAPI returned for the vessel (particulars, last AIS position, destination and ETA). No count.
+    VESSEL("vessel", "/vessel"),
     CREW("crew", "/crew"),
     CERTIFICATES("certificates", "/certificates"),
     LIBRARY("library", "/library"),

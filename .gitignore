@@ -34,3 +34,6 @@ build/
 
 ### Library files (dev) ###
 /data/
+
+### Local secrets (P45: VESSELAPI_API_KEY) ###
+.env

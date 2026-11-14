@@ -51,6 +51,37 @@ public final class Countries {
         return isCode(code) ? name(code, locale) : null;
     }
 
+    // VesselAPI's country_code (P45): "PA", "pa" or the three-letter "PAN" -> "PA". Null if blank or not a known country.
+    public static String codeOf(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        String value = code.strip().toUpperCase(Locale.ROOT);
+        if (value.length() == 3) {
+            for (String candidate : CODES) {
+                if (Locale.of("", candidate).getISO3Country().equals(value)) {
+                    return candidate;
+                }
+            }
+            return null;
+        }
+        return CODES.contains(value) ? value : null;
+    }
+
+    // VesselAPI's country (P45): an English country name, "Panama" -> "PA", ignoring case. Null if not known.
+    public static String codeOfName(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String value = name.strip();
+        for (String code : CODES) {
+            if (name(code, Locale.ENGLISH).equalsIgnoreCase(value)) {
+                return code;
+            }
+        }
+        return null;
+    }
+
     // An empty field is fine (flag is optional); anything else must be a known country.
     static boolean isValidOrBlank(String input) {
         return input == null || input.isBlank() || toCode(input) != null;

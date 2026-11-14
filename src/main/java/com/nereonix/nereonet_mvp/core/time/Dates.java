@@ -111,6 +111,27 @@ public class Dates {
         return days <= 0 ? message("time.hint.today") : message("time.hint.daysAgo", days);
     }
 
+    /**
+     * How old a report is (P45, a vessel's last AIS position): "just now" (under a minute, or a time in the future),
+     * "35 minutes ago", "2 hours ago", "3 days ago"; empty for null.
+     */
+    public String age(Instant instant) {
+        if (instant == null) {
+            return "";
+        }
+        long minutes = java.time.Duration.between(instant, clock.instant()).toMinutes();
+        if (minutes < 1) {
+            return message("time.age.justNow");
+        }
+        if (minutes < 60) {
+            return message("time.age.minutes", minutes);
+        }
+        if (minutes < 48 * 60) {
+            return message("time.age.hours", minutes / 60);
+        }
+        return message("time.age.days", minutes / (24 * 60));
+    }
+
     private String message(String key, Object... args) {
         return messageSource.getMessage(key, args, locale());
     }

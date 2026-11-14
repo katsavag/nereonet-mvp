@@ -3,7 +3,9 @@
 <body>
 <!-- Edit ship as a page: where Edit leads without JavaScript (the ship page and the ships list open a pop-up), and
      where a failed save from the ship page shows its errors. returnTab: the ship page tab to go back to, or null
-     (the ships list). -->
+     (the ships list). P45: after "Refresh from VesselAPI" (lookup, proposal), the Saved / VesselAPI table: a checkbox
+     per field that differs (a choice of two when the flag's country and country code disagree); only the ticked
+     ones change, and only on Save. The IMO number never changes. -->
 <main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${ship})}">
         <th:block th:fragment="pageCrumbs" th:replace="~{ship/parts :: crumbs(${ship}, null)}"></th:block>
@@ -15,6 +17,126 @@
                 <input type="hidden" name="page" value="true">
                 <input th:if="${returnTab != null}" type="hidden" name="tab" th:value="${returnTab.key()}">
                 <th:block th:replace="~{ship/parts :: editFields(${ship})}"></th:block>
+
+                <section th:if="${lookup != null}" class="vessel-lookup card" aria-labelledby="compareTitle">
+                    <div class="card-body">
+                        <h2 class="h6 fw-bold mb-1" id="compareTitle" th:text="#{vessel.compare.heading}">Saved / VesselAPI</h2>
+                        <p class="small text-body-secondary mb-3">
+                            <th:block th:text="#{vessel.lookup.fetched}">fetched</th:block>
+                            <time th:replace="~{layout/parts :: localTime(${lookup.fetchedAt()})}"></time>
+                        </p>
+
+                        <p th:if="${proposal == null}" class="alert alert-warning mb-3" role="status">
+                            <th:block th:replace="~{ship/parts :: apiResult('particulars', ${lookup.particularsResult()})}"></th:block>.
+                            <th:block th:text="#{vessel.compare.noParticulars}">Nothing to compare.</th:block>
+                        </p>
+                        <p th:if="${proposal != null and !proposal.differsFrom(ship)}" class="mb-3"
+                           th:text="#{vessel.compare.same}">The saved name, type and flag match VesselAPI.</p>
+
+                        <th:block th:if="${proposal != null and proposal.differsFrom(ship)}">
+                            <p class="mb-2" th:text="#{vessel.compare.intro}">Tick the details to take from VesselAPI.</p>
+                            <div class="table-responsive">
+                                <table class="table vessel-compare mb-3">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col" th:text="#{vessel.compare.field}">Detail</th>
+                                        <th scope="col" th:text="#{vessel.compare.saved}">Saved</th>
+                                        <th scope="col" th:text="#{vessel.compare.provider}">VesselAPI</th>
+                                        <th scope="col" th:text="#{vessel.compare.take}">Take</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${proposal.nameDiffers(ship.name)}">
+                                        <th scope="row" th:text="#{ship.name}">Name</th>
+                                        <td th:text="${ship.name}">MV Demo</td>
+                                        <td th:text="${proposal.name()}">DEMO</td>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" name="accept" value="name" id="acceptName"
+                                                   th:checked="${editForm.accept.contains('name')}">
+                                            <label class="visually-hidden" for="acceptName" th:text="#{vessel.compare.takeField(#{ship.name})}">Take Name</label>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${proposal.typeDiffers(ship.type)}">
+                                        <th scope="row" th:text="#{ship.type}">Type</th>
+                                        <td th:text="${ship.type} ? #{${'ship.type.' + ship.type}} : '—'">Bulk carrier</td>
+                                        <td>
+                                            <span th:text="#{${'ship.type.' + proposal.type()}}">Tanker</span>
+                                            <span th:if="${proposal.providerType()}" class="small text-body-secondary d-block"
+                                                  th:text="#{vessel.compare.providerSays(${proposal.providerType()})}">VesselAPI: Crude Oil Tanker</span>
+                                        </td>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" name="accept" value="type" id="acceptType"
+                                                   th:checked="${editForm.accept.contains('type')}">
+                                            <label class="visually-hidden" for="acceptType" th:text="#{vessel.compare.takeField(#{ship.type})}">Take Type</label>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${proposal.flagDiffers(ship.flag)}">
+                                        <th scope="row" th:text="#{ship.flag}">Flag</th>
+                                        <td>
+                                            <th:block th:if="${ship.flag}"><span th:replace="~{layout/parts :: country(${ship.flag}, ${countries[ship.flag]} ?: ${ship.flag})}">Greece (GR)</span></th:block>
+                                            <th:block th:unless="${ship.flag}">—</th:block>
+                                        </td>
+                                        <td><span th:replace="~{layout/parts :: country(${proposal.flag()}, ${countries[proposal.flag()]} ?: ${proposal.flag()})}">Malta (MT)</span></td>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" name="accept" value="flag" id="acceptFlag"
+                                                   th:checked="${editForm.accept.contains('flag')}">
+                                            <label class="visually-hidden" for="acceptFlag" th:text="#{vessel.compare.takeField(#{ship.flag})}">Take Flag</label>
+                                        </td>
+                                    </tr>
+                                    <!-- The flag's country and country code disagree: keep the saved flag (the default) or
+                                         choose one of the two; never replaced silently. -->
+                                    <tr th:if="${proposal.flagConflict()}">
+                                        <th scope="row" th:text="#{ship.flag}">Flag</th>
+                                        <td>
+                                            <th:block th:if="${ship.flag}"><span th:replace="~{layout/parts :: country(${ship.flag}, ${countries[ship.flag]} ?: ${ship.flag})}">Greece (GR)</span></th:block>
+                                            <th:block th:unless="${ship.flag}">—</th:block>
+                                        </td>
+                                        <td colspan="2">
+                                            <fieldset class="vessel-flag-choice" aria-describedby="flagConflictText">
+                                                <legend class="visually-hidden" th:text="#{vessel.flag.chooseLegend}">Choose the flag</legend>
+                                                <p id="flagConflictText" class="alert alert-warning mb-2"
+                                                   th:text="#{vessel.flag.conflict(${proposal.providerCountry()}, ${proposal.providerCountryCode()})}">Two flags.</p>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceKeep" value=""
+                                                           th:checked="${editForm.flagChoice == null or editForm.flagChoice == ''}">
+                                                    <label class="form-check-label" for="flagChoiceKeep" th:text="#{vessel.flag.keep}">Keep the saved flag</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCountry"
+                                                           th:value="${proposal.flagByCountry()}" th:checked="${editForm.flagChoice == proposal.flagByCountry()}">
+                                                    <label class="form-check-label" for="flagChoiceCountry"
+                                                           th:text="#{vessel.flag.byCountry(${countries[proposal.flagByCountry()]})}">Country: Greece (GR)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCode"
+                                                           th:value="${proposal.flagByCode()}" th:checked="${editForm.flagChoice == proposal.flagByCode()}">
+                                                    <label class="form-check-label" for="flagChoiceCode"
+                                                           th:text="#{vessel.flag.byCode(${countries[proposal.flagByCode()]})}">Country code: Cyprus (CY)</label>
+                                                </div>
+                                            </fieldset>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </th:block>
+
+                        <!-- Each call's outcome; the stored data is on the Vessel data tab. -->
+                        <ul class="vessel-call-results list-unstyled mb-2">
+                            <li th:each="e : ${ {'particulars', 'position', 'eta'} }"
+                                th:with="r=${e == 'particulars'} ? ${lookup.particularsResult()} : (${e == 'position'} ? ${lookup.positionResult()} : ${lookup.etaResult()})">
+                                <span class="fw-semibold" th:text="#{${'vessel.endpoint.' + e}}">Particulars</span>:
+                                <th:block th:if="${r.name() == 'OK'}" th:text="#{vessel.result.OK}">Received</th:block>
+                                <th:block th:unless="${r.name() == 'OK'}"><th:block th:replace="~{ship/parts :: apiResult(${e}, ${r})}"></th:block></th:block>
+                            </li>
+                        </ul>
+                        <p class="small mb-0">
+                            <th:block th:text="#{vessel.compare.stored}">The position and ETA are stored now.</th:block>
+                            <a th:href="@{/office/ships/{id}/vessel(id=${ship.id})}" th:text="#{vessel.compare.openTab}">Open Vessel data</a>
+                        </p>
+                    </div>
+                </section>
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>
                     <a class="btn btn-ghost" th:href="@{${returnTab != null} ? ${returnTab.url(ship.id)} : '/office/ships'}"

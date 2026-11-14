@@ -68,17 +68,20 @@
 <!-- The tabs: ordinary links, one URL each (ShipTab), so every tab can be bookmarked and works without JavaScript.
      The active one has aria-current="page", a 3px bar under it and semibold text (not colour alone). Each shows its
      count (ShipTabCounts), with the number in words for screen readers. Overview's count is the open items; above zero
-     it gets the danger colours, and the words still say what it counts.
+     it gets the danger colours, and the words still say what it counts. P45: Vessel data has no number
+     (ShipTabCounts.NO_COUNT).
      Phones: the bar scrolls sideways; js/ship-tabs.js scrolls the active tab into view. -->
 <nav th:fragment="tabs" class="ship-tabs" th:attr="aria-label=#{ship.tabs.label(${ship.name})}">
     <ul class="ship-tabs-list">
         <li th:each="t : ${shipTabs}" th:with="active=${t.key() == shipTab}, count=${shipTabCounts.of(t)}">
             <a class="ship-tab" th:classappend="${active} ? 'active'" th:href="@{${t.url(ship.id)}}" th:aria-current="${active} ? 'page'">
                 <span th:text="#{${'ship.tab.' + t.key()}}">Crew</span>
+                <th:block th:if="${count >= 0}">
                 <span class="ship-tab-count num" aria-hidden="true"
                       th:classappend="${t.key() == 'overview' and count > 0} ? 'ship-tab-count-alert'"
                       th:text="${count > 999} ? '999+' : ${count}">12</span>
                 <span class="visually-hidden" th:text="#{${'ship.tab.count.' + t.key()}(${count})}">(12)</span>
+                </th:block>
             </a>
         </li>
     </ul>
@@ -143,6 +146,12 @@
      script fills the pop-up. -->
 <th:block th:fragment="editFields(editShip)">
     <div th:replace="~{layout/parts :: errorSummary(${editForm}, 'edit')}"></div>
+    <!-- P45: an error of the whole form (a VesselAPI result that expired or is for another vessel). -->
+    <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+        <p th:each="e : ${#fields.globalErrors()}" class="mb-0" th:text="${e}">The VesselAPI result is no longer available.</p>
+    </div>
+    <!-- P45: Enter in a field saves, not Refresh from VesselAPI (the first submit button is the one Enter uses). -->
+    <button th:if="${editShip != null}" type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true" th:text="#{form.save}">Save</button>
     <div class="form-grid">
         <!-- The IMO number cannot be changed: plain text, not an input. -->
         <dl class="static-fields">
@@ -179,7 +188,202 @@
             <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
         </div>
     </div>
+    <!-- P45: Refresh from VesselAPI, a submit button with its own action, so it works without JavaScript; it shows the
+         Edit page with the Saved / VesselAPI table. Hidden, with a note, while VesselAPI is not configured. -->
+    <th:block th:if="${editShip != null}">
+        <input type="hidden" th:field="*{lookupToken}">
+        <div th:if="${@vesselApiSettings.configured()}" class="vessel-lookup-action">
+            <button type="submit" class="btn btn-outline-secondary" formnovalidate
+                    th:formaction="@{/office/ships/{id}/edit/lookup(id=${editShip.id})}"
+                    aria-describedby="editRefreshHint" th:text="#{vessel.refresh}">Refresh from VesselAPI</button>
+            <span id="editRefreshHint" class="form-text" th:text="#{vessel.refresh.hint}">Compares ...</span>
+        </div>
+        <th:block th:unless="${@vesselApiSettings.configured()}"><p th:replace="~{layout/parts :: infoNote('editVesselApiNote', #{vessel.api.notConfigured})}"></p></th:block>
+    </th:block>
 </th:block>
+
+<!-- Add vessel: the fields, shared by the pop-up of the ships list and the full page (ship/new.html). Needs newForm
+     (th:object), types and countries (ship/parts :: countryOptions, once per page). P45: "Look up by IMO" next to the
+     IMO number, a submit button with its own action (works without JavaScript; the results show on the full page),
+     or a note while VesselAPI is not configured. existingShip: the vessel that already has the IMO number, or null. -->
+<th:block th:fragment="newFields">
+    <div th:replace="~{layout/parts :: errorSummary(${newForm}, '')}"></div>
+    <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+        <p th:each="e : ${#fields.globalErrors()}" class="mb-0" th:text="${e}">The VesselAPI result is no longer available.</p>
+    </div>
+    <!-- P45: Enter in a field saves; the first submit button of a form is the one Enter uses, so it comes before Look up. -->
+    <button type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true" th:text="#{form.save}">Save</button>
+    <input type="hidden" th:field="*{lookupToken}">
+    <div class="form-grid">
+        <div>
+            <label for="imoNumber" class="form-label" th:text="#{ship.imoNumber}">IMO number</label>
+            <div class="vessel-imo-row">
+                <input type="text" th:field="*{imoNumber}" class="form-control num"
+                       th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
+                       inputmode="numeric" autocomplete="off" aria-describedby="imoNumberHint" required>
+                <button th:if="${@vesselApiSettings.configured()}" type="submit" class="btn btn-outline-secondary"
+                        formnovalidate th:formaction="@{/office/ships/new/lookup}"
+                        th:text="#{vessel.lookup}">Look up by IMO</button>
+            </div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('imoNumber')}" th:errors="*{imoNumber}"></div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('imoNumberValid')}" th:errors="*{imoNumberValid}"></div>
+            <p th:if="${existingShip != null}" class="vessel-existing mb-1">
+                <a th:href="@{/office/ships/{id}(id=${existingShip.id})}" th:text="#{vessel.lookup.openExisting(${existingShip.name})}">Open MV Demo</a>
+            </p>
+            <div id="imoNumberHint" class="form-text">
+                <span th:text="#{ship.imoNumberHint}">7 digits, e.g. 9074729.</span>
+                <span th:if="${@vesselApiSettings.configured()}" th:text="#{vessel.lookup.hint}">Fills in ...</span>
+            </div>
+            <th:block th:unless="${@vesselApiSettings.configured()}"><p th:replace="~{layout/parts :: infoNote('newVesselApiNote', #{vessel.api.notConfigured})}"></p></th:block>
+        </div>
+        <div>
+            <label for="name" class="form-label" th:text="#{ship.name}">Name</label>
+            <input type="text" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
+                   autocomplete="off" aria-describedby="nameCounter" required>
+            <div class="invalid-feedback" th:errors="*{name}"></div>
+            <div class="form-meta">
+                <div th:replace="~{layout/parts :: counter(${newForm}, 'name', 'name')}"></div>
+            </div>
+        </div>
+        <div class="field-half">
+            <label for="type" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+            <select th:field="*{type}" class="form-select" th:errorclass="is-invalid">
+                <option value="" th:text="#{ship.type.none}">Not set</option>
+                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
+            </select>
+            <div class="invalid-feedback" th:errors="*{type}"></div>
+        </div>
+        <div class="field-half">
+            <label for="flag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+            <input type="text" th:field="*{flag}" class="form-control" list="countryOptions"
+                   th:classappend="${#fields.hasErrors('flagValid') or #fields.hasErrors('flag')} ? 'is-invalid'"
+                   autocomplete="off" aria-describedby="flagHint">
+            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
+            <div class="invalid-feedback" th:errors="*{flag}"></div>
+            <div id="flagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
+        </div>
+    </div>
+</th:block>
+
+<!-- P45: what one VesselAPI call ended with, in words, for a result other than OK: 401/403 "VesselAPI access
+     problem", 429 "VesselAPI limit reached, try later", timeout or 5xx "VesselAPI temporarily unavailable"; 404 per
+     call ("No recent AIS position"). endpoint: a VesselEndpoint; result: a VesselApiResult. -->
+<th:block th:fragment="apiResult(endpointKey, result)"><th:block
+        th:text="${result.name() == 'NOT_FOUND'} ? #{${'vessel.result.NOT_FOUND.' + endpointKey}} : #{${'vessel.result.' + result.name()}}">VesselAPI temporarily unavailable</th:block></th:block>
+
+<!-- P45: the results of "Look up by IMO" on the Add vessel page, inside its form: what VesselAPI gave next to what is
+     now in the form, each call's outcome, and, when the flag's country and country code disagree, the choice between
+     them (flagChoice). Needs lookup (VesselLookup), proposal (VesselProposal or null), countries, newForm. -->
+<section th:fragment="lookupResults" class="vessel-lookup card" aria-labelledby="lookupTitle"
+         th:with="particulars=${lookup.particulars()}, position=${lookup.position()}, eta=${lookup.eta()}">
+    <div class="card-body">
+        <h2 class="h6 fw-bold mb-1" id="lookupTitle" th:text="#{vessel.lookup.heading}">VesselAPI result</h2>
+        <p class="small text-body-secondary mb-3">
+            <th:block th:text="#{vessel.lookup.forImo(${lookup.imo()})}">IMO 9328716</th:block>
+            <span aria-hidden="true">·</span>
+            <th:block th:text="#{vessel.lookup.fetched}">fetched</th:block>
+            <time th:replace="~{layout/parts :: localTime(${lookup.fetchedAt()})}"></time>
+        </p>
+
+        <p th:if="${proposal == null}" class="alert alert-warning mb-3" role="status">
+            <th:block th:replace="~{ship/parts :: apiResult('particulars', ${lookup.particularsResult()})}"></th:block>.
+            <th:block th:text="#{vessel.lookup.byHand}">Enter the details by hand.</th:block>
+        </p>
+
+        <div th:if="${proposal != null}" class="table-responsive">
+            <table class="table vessel-compare mb-3">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{vessel.compare.field}">Detail</th>
+                    <th scope="col" th:text="#{vessel.compare.provider}">VesselAPI</th>
+                    <th scope="col" th:text="#{vessel.lookup.inForm}">In the form</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <th scope="row" th:text="#{ship.name}">Name</th>
+                    <td><span th:replace="~{ship/parts :: value(${proposal.name()})}"></span></td>
+                    <td th:text="${newForm.name} ?: '—'">AEGEAN TRADER</td>
+                </tr>
+                <tr>
+                    <th scope="row" th:text="#{ship.type}">Type</th>
+                    <td><span th:replace="~{ship/parts :: value(${proposal.providerType()})}"></span></td>
+                    <td th:text="${newForm.type} ? #{${'ship.type.' + newForm.type}} : '—'">Bulk carrier</td>
+                </tr>
+                <tr>
+                    <th scope="row" th:text="#{ship.flag}">Flag</th>
+                    <td>
+                        <span th:replace="~{ship/parts :: value(${proposal.providerCountry()})}"></span>
+                        <span class="text-body-secondary" th:if="${proposal.providerCountryCode()}">· <span class="num" th:text="${proposal.providerCountryCode()}">MT</span></span>
+                    </td>
+                    <td th:text="${newForm.flag} ?: '—'">Malta (MT)</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- The flag's country and country code disagree: never picked silently. -->
+        <fieldset th:if="${proposal != null and proposal.flagConflict()}" class="vessel-flag-choice mb-3"
+                  aria-describedby="flagConflictText">
+            <legend class="form-label fw-semibold" th:text="#{vessel.flag.chooseLegend}">Choose the flag</legend>
+            <p id="flagConflictText" class="alert alert-warning mb-2"
+               th:text="#{vessel.flag.conflict(${proposal.providerCountry()}, ${proposal.providerCountryCode()})}">VesselAPI gives two flags.</p>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCountry"
+                       th:value="${proposal.flagByCountry()}" th:checked="${newForm.flagChoice == proposal.flagByCountry()}">
+                <label class="form-check-label" for="flagChoiceCountry"
+                       th:text="#{vessel.flag.byCountry(${countries[proposal.flagByCountry()]})}">Country: Greece (GR)</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCode"
+                       th:value="${proposal.flagByCode()}" th:checked="${newForm.flagChoice == proposal.flagByCode()}">
+                <label class="form-check-label" for="flagChoiceCode"
+                       th:text="#{vessel.flag.byCode(${countries[proposal.flagByCode()]})}">Country code: Cyprus (CY)</label>
+            </div>
+            <p class="form-text mb-0" th:text="#{vessel.flag.chooseHint}">Or type another country in Flag.</p>
+        </fieldset>
+
+        <ul class="vessel-call-results list-unstyled mb-2">
+            <li>
+                <span class="fw-semibold" th:text="#{vessel.endpoint.position}">Last AIS position</span>:
+                <th:block th:if="${position != null and position.hasCoordinates()}">
+                    <span th:replace="~{ship/parts :: coordinates(${position})}"></span>
+                    <span aria-hidden="true">·</span>
+                    <time th:replace="~{layout/parts :: localTime(${position.reportedAt()})}"></time>
+                </th:block>
+                <th:block th:if="${position != null and !position.hasCoordinates()}" th:text="#{vessel.noCoordinates}">No coordinates</th:block>
+                <th:block th:if="${position == null}"><th:block th:replace="~{ship/parts :: apiResult('position', ${lookup.positionResult()})}"></th:block></th:block>
+            </li>
+            <li>
+                <span class="fw-semibold" th:text="#{vessel.endpoint.eta}">Destination and ETA</span>:
+                <th:block th:if="${eta != null}">
+                    <th:block th:replace="~{ship/parts :: boundFor(${eta})}"></th:block>
+                </th:block>
+                <th:block th:if="${eta == null}"><th:block th:replace="~{ship/parts :: apiResult('eta', ${lookup.etaResult()})}"></th:block></th:block>
+            </li>
+        </ul>
+        <p class="small text-body-secondary mb-0" th:text="#{vessel.lookup.savedWith}">Saved with the vessel ...</p>
+    </div>
+</section>
+
+<!-- P45: "Bound for NL RTM · ETA 20 Nov 2026 · 06:00 UTC" (the parts VesselAPI gave). eta: EtaReport. -->
+<th:block th:fragment="boundFor(eta)">
+    <th:block th:if="${eta.destination()}" th:text="#{vessel.summary.bound(${eta.destination()})}">Bound for NL RTM</th:block>
+    <th:block th:if="${eta.destination() != null and eta.etaText() != null}"><span aria-hidden="true">·</span></th:block>
+    <th:block th:if="${eta.eta() != null}">[[#{vessel.summary.eta}]] <time th:replace="~{layout/parts :: localTime(${eta.eta()})}"></time></th:block>
+    <th:block th:if="${eta.eta() == null and eta.etaText() != null}" th:text="#{vessel.summary.etaText(${eta.etaText()})}">ETA 20-11 06:00</th:block>
+    <th:block th:if="${eta.destination() == null and eta.etaText() == null}" th:text="#{vessel.noDestination}">No destination declared</th:block>
+</th:block>
+
+<!-- P45: "37.9421° N, 23.6107° E". position: AisPosition with both coordinates. -->
+<span th:fragment="coordinates(position)" class="num text-nowrap"
+      th:text="#{vessel.coordinates(${#numbers.formatDecimal(position.absLatitude(), 1, 4, 'POINT')}, #{${'vessel.hemisphere.' + position.latitudeHemisphere()}},
+               ${#numbers.formatDecimal(position.absLongitude(), 1, 4, 'POINT')}, #{${'vessel.hemisphere.' + position.longitudeHemisphere()}})}">37.9421° N, 23.6107° E</span>
+
+<!-- P45: a provider value, or a muted dash ("Not given" for screen readers) when there is none. -->
+<span th:fragment="value(v)"><th:block th:if="${v != null}" th:text="${v}">AEGEAN TRADER</th:block><th:block
+        th:if="${v == null}"><span class="text-body-secondary" aria-hidden="true">—</span><span class="visually-hidden"
+        th:text="#{vessel.missing}">Not given</span></th:block></span>
 
 <!-- Edit ship pop-up. Full screen on phones. editShip: the ship it edits (the ship page, or a failed save on the
      ships list), or null when the list's script sets it from the Edit entry that opened it. tab: the ship page tab to

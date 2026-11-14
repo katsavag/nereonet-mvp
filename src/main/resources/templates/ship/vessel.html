@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.vessel}, ~{::main})}">
+<body>
+<!-- The ship page's Vessel data tab (P45, VesselDataController): what VesselAPI last returned, read from the stored
+     rows only (vesselData, VesselDataView); opening it never calls VesselAPI. A card per part, each showing only the
+     fields VesselAPI gave (Technical: every row, a muted dash where there is no value), with the provider's time and
+     the fetch time at the bottom, and the last failed refresh in words. Then "Full VesselAPI response": each call's
+     body as received, indented. -->
+<main th:with="p=${vesselData.particulars}, pos=${vesselData.position}, eta=${vesselData.eta},
+               configured=${@vesselApiSettings.configured()}">
+    <th:block th:replace="~{ship/parts :: header}"></th:block>
+
+    <div th:replace="~{ship/parts :: tabHeading(#{vessel.tab.heading}, ${configured and !vesselData.empty} ? ~{::tabActions} : null)}">
+        <th:block th:fragment="tabActions">
+            <form th:action="@{/office/ships/{id}/edit/lookup(id=${ship.id})}" method="post">
+                <input type="hidden" name="tab" value="vessel">
+                <button type="submit" class="btn btn-outline-secondary" th:text="#{vessel.refresh}">Refresh from VesselAPI</button>
+            </form>
+        </th:block>
+    </div>
+
+    <!-- Nothing fetched yet: the way to fetch it, or why it cannot be. -->
+    <div th:if="${vesselData.empty}" class="card">
+        <div th:replace="~{layout/parts :: emptyState(icon='ships', title=#{vessel.tab.empty.title},
+                text=${configured} ? #{vessel.tab.empty.text} : #{vessel.api.notConfigured},
+                action=${configured} ? ~{::tabActions} : null)}"></div>
+    </div>
+
+    <th:block th:unless="${vesselData.empty}">
+    <p class="text-body-secondary mb-3" th:text="#{vessel.tab.intro}">What VesselAPI returned, with the time of each value.</p>
+
+    <div class="card-grid card-grid-3 vessel-cards">
+        <!-- Particulars: Identity, Technical and the provider's statistics, all from GET /vessel/{imo}. -->
+        <th:block th:if="${p != null}">
+        <div>
+            <section class="card h-100" aria-labelledby="identityTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-3" id="identityTitle" th:text="#{vessel.identity}">Identity</h2>
+                    <dl class="static-fields vessel-fields">
+                        <th:block th:if="${p.imo() != null}"><dt th:text="#{vessel.imo}">IMO</dt><dd class="num" th:text="${p.imo()}">9328716</dd></th:block>
+                        <th:block th:if="${p.mmsi() != null}"><dt th:text="#{vessel.mmsi}">MMSI</dt><dd class="num" th:text="${p.mmsi()}">248123000</dd></th:block>
+                        <th:block th:if="${p.name()}"><dt th:text="#{vessel.name}">Name</dt><dd class="text-break" th:text="${p.name()}">AEGEAN TRADER</dd></th:block>
+                        <th:block th:if="${p.nameAis()}"><dt th:text="#{vessel.nameAis}">AIS name</dt><dd class="text-break" th:text="${p.nameAis()}">AEGEAN TRADER</dd></th:block>
+                        <th:block th:if="${p.callSign()}"><dt th:text="#{vessel.callSign}">Call sign</dt><dd class="num" th:text="${p.callSign()}">9HA1234</dd></th:block>
+                        <th:block th:if="${p.typeText()}"><dt th:text="#{vessel.type}">Type</dt><dd th:text="${p.typeText()}">Bulk Carrier</dd></th:block>
+                        <th:block th:if="${p.operatingStatus()}"><dt th:text="#{vessel.status}">Status</dt><dd th:text="${p.operatingStatus()}">Active</dd></th:block>
+                        <th:block th:if="${p.country()}"><dt th:text="#{vessel.flagCountry}">Flag country</dt><dd th:text="${p.country()}">Malta</dd></th:block>
+                        <th:block th:if="${p.countryCode()}"><dt th:text="#{vessel.flagCode}">Flag code</dt><dd class="num" th:text="${p.countryCode()}">MT</dd></th:block>
+                        <th:block th:if="${p.homePort()}"><dt th:text="#{vessel.homePort}">Port of registry</dt><dd th:text="${p.homePort()}">Valletta</dd></th:block>
+                        <th:block th:unless="${p.formerNames().isEmpty()}">
+                            <dt th:text="#{vessel.formerNames}">Former names</dt>
+                            <dd>
+                                <ul class="list-unstyled mb-0">
+                                    <li th:each="f : ${p.formerNames()}"
+                                        th:text="${f.yearUntil()} ? #{vessel.formerName.until(${f.name()}, ${f.yearUntil()})} : ${f.name()}">OCEAN PIONEER (until 2014)</li>
+                                </ul>
+                            </dd>
+                        </th:block>
+                    </dl>
+                    <!-- The flag's country and country code disagree (data quality): said here too. -->
+                    <p th:if="${@vesselFormat.flagConflict(p)}" class="alert alert-warning mt-3 mb-0" role="note"
+                       th:text="#{vessel.flag.conflictTab(${p.country()}, ${p.countryCode()})}">Country and code disagree.</p>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.particularsCard})}"></div>
+            </section>
+        </div>
+
+        <div>
+            <section class="card h-100" aria-labelledby="technicalTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-3" id="technicalTitle" th:text="#{vessel.technical}">Technical</h2>
+                    <dl class="static-fields vessel-fields">
+                        <dt th:text="#{vessel.yearBuilt}">Year built</dt>
+                        <dd class="num"><span th:replace="~{ship/parts :: value(${p.yearBuilt()})}"></span></dd>
+                        <dt th:text="#{vessel.length}">Length</dt>
+                        <dd class="num" th:with="v=${@vesselFormat.withUnit(p.length(), p.lengthUnit() ?: 'm')}"><span th:replace="~{ship/parts :: value(${v})}"></span></dd>
+                        <dt th:text="#{vessel.beam}">Beam</dt>
+                        <dd class="num" th:with="v=${@vesselFormat.withUnit(p.breadth(), p.breadthUnit() ?: 'm')}"><span th:replace="~{ship/parts :: value(${v})}"></span></dd>
+                        <dt th:text="#{vessel.grossTonnage}">Gross tonnage</dt>
+                        <dd class="num" th:with="v=${@vesselFormat.withUnit(p.grossTonnage(), null)}"><span th:replace="~{ship/parts :: value(${v})}"></span></dd>
+                        <dt th:text="#{vessel.deadweight}">Deadweight</dt>
+                        <dd class="num" th:with="v=${@vesselFormat.withUnit(p.deadweightTonnage(), 't')}"><span th:replace="~{ship/parts :: value(${v})}"></span></dd>
+                        <dt th:text="#{vessel.engineType}">Engine type</dt>
+                        <dd><span th:replace="~{ship/parts :: value(${p.engineType()})}"></span></dd>
+                        <dt th:text="#{vessel.engineModel}">Engine model</dt>
+                        <dd><span th:replace="~{ship/parts :: value(${p.engineModel()})}"></span></dd>
+                        <dt th:text="#{vessel.power}">Power</dt>
+                        <dd class="num" th:with="v=${@vesselFormat.withUnit(p.kilowattPower(), 'kW')}"><span th:replace="~{ship/parts :: value(${v})}"></span></dd>
+                    </dl>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.particularsCard})}"></div>
+            </section>
+        </div>
+
+        <!-- Not the latest AIS values: VesselAPI's figures over about 31 days, labelled so. -->
+        <div th:if="${p.hasStatistics()}">
+            <section class="card h-100" aria-labelledby="statisticsTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-1" id="statisticsTitle" th:text="#{vessel.statistics}">Provider statistics</h2>
+                    <p class="small text-body-secondary mb-3" th:text="#{vessel.statistics.hint}">Over about 31 days.</p>
+                    <dl class="static-fields vessel-fields">
+                        <th:block th:if="${p.speedAverage() != null}"><dt th:text="#{vessel.speedAverage}">Average speed</dt><dd class="num" th:text="${@vesselFormat.withUnit(p.speedAverage(), 'kn')}">11.4 kn</dd></th:block>
+                        <th:block th:if="${p.speedMaximum() != null}"><dt th:text="#{vessel.speedMaximum}">Maximum speed</dt><dd class="num" th:text="${@vesselFormat.withUnit(p.speedMaximum(), 'kn')}">14.2 kn</dd></th:block>
+                        <th:block th:if="${p.draughtAverage() != null}"><dt th:text="#{vessel.draughtAverage}">Average draught</dt><dd class="num" th:text="${@vesselFormat.withUnit(p.draughtAverage(), 'm')}">10.6 m</dd></th:block>
+                        <th:block th:if="${p.draughtMaximum() != null}"><dt th:text="#{vessel.draughtMaximum}">Maximum draught</dt><dd class="num" th:text="${@vesselFormat.withUnit(p.draughtMaximum(), 'm')}">14.1 m</dd></th:block>
+                    </dl>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.particularsCard})}"></div>
+            </section>
+        </div>
+        </th:block>
+
+        <!-- No particulars stored: why (never fetched, 404 or the last failure). -->
+        <div th:if="${p == null}">
+            <section class="card h-100" aria-labelledby="particularsMissingTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-2" id="particularsMissingTitle" th:text="#{vessel.identity}">Identity</h2>
+                    <p class="mb-0 text-body-secondary" th:text="${vesselData.particularsCard.notFound()} ? #{vessel.result.NOT_FOUND.particulars} : #{vessel.notFetched}">Not fetched yet</p>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.particularsCard})}"></div>
+            </section>
+        </div>
+
+        <!-- Last AIS position (GET /vessel/{imo}/position). No map in this task. -->
+        <div>
+            <section class="card h-100" aria-labelledby="positionTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-3" id="positionTitle" th:text="#{vessel.endpoint.position}">Last AIS position</h2>
+                    <p th:if="${vesselData.positionCard.notFound()}" class="mb-3" role="note">
+                        <span th:text="#{vessel.result.NOT_FOUND.position}">No recent AIS position</span><th:block
+                            th:if="${pos != null}">. <span th:text="#{vessel.position.lastKnown}">The last one stored is below.</span></th:block>
+                    </p>
+                    <p th:if="${pos == null and vesselData.positionCard.snapshot() == null}" class="mb-0 text-body-secondary" th:text="#{vessel.notFetched}">Not fetched yet</p>
+                    <dl th:if="${pos != null}" class="static-fields vessel-fields">
+                        <th:block th:if="${pos.hasCoordinates()}">
+                            <dt th:text="#{vessel.coordinatesLabel}">Latitude, longitude</dt>
+                            <dd>
+                                <span th:replace="~{ship/parts :: coordinates(${pos})}"></span>
+                                <!-- VesselAPI flags the position as doubtful: in words, next to the coordinates. -->
+                                <span th:if="${pos.possibleError()}" class="d-block mt-1">
+                                    <span th:replace="~{layout/parts :: status('warning', #{vessel.position.possibleError})}">Possible position error</span>
+                                </span>
+                            </dd>
+                        </th:block>
+                        <th:block th:if="${pos.reportedAt() != null}">
+                            <dt th:text="#{vessel.reportedAt}">Report time</dt>
+                            <dd><time th:replace="~{layout/parts :: localTime(${pos.reportedAt()})}"></time>
+                                <span class="date-hint"><span aria-hidden="true">·</span> <th:block th:text="${@dates.age(pos.reportedAt())}">2 hours ago</th:block></span></dd>
+                        </th:block>
+                        <th:block th:if="${pos.speedOverGround() != null}"><dt th:text="#{vessel.sog}">SOG</dt><dd class="num" th:text="${@vesselFormat.withUnit(pos.speedOverGround(), 'kn')}">0.1 kn</dd></th:block>
+                        <th:block th:if="${pos.courseOverGround() != null}"><dt th:text="#{vessel.cog}">COG</dt><dd class="num" th:text="${@vesselFormat.number(pos.courseOverGround()) + '°'}">212.4°</dd></th:block>
+                        <th:block th:if="${pos.heading() != null}"><dt th:text="#{vessel.heading}">Heading</dt><dd class="num" th:text="${@vesselFormat.number(pos.heading()) + '°'}">210°</dd></th:block>
+                        <th:block th:if="${pos.navigationStatus() != null}">
+                            <dt th:text="#{vessel.navStatus}">Navigation status</dt>
+                            <dd th:text="${pos.knownNavigationStatus()} ? #{${'vessel.navStatus.' + pos.navigationStatus()}} : ${pos.navigationStatus()}">At anchor</dd>
+                        </th:block>
+                    </dl>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.positionCard})}"></div>
+            </section>
+        </div>
+
+        <!-- Destination and ETA (GET /vessel/{imo}/eta), as the crew entered them; ETA and report time apart, in UTC. -->
+        <div>
+            <section class="card h-100" aria-labelledby="etaTitle">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-3" id="etaTitle" th:text="#{vessel.endpoint.eta}">Destination and ETA</h2>
+                    <p th:if="${vesselData.etaCard.notFound()}" class="mb-3" role="note">
+                        <span th:text="#{vessel.result.NOT_FOUND.eta}">No ETA report available</span><th:block
+                            th:if="${eta != null}">. <span th:text="#{vessel.eta.lastKnown}">The last one stored is below.</span></th:block>
+                    </p>
+                    <p th:if="${eta == null and vesselData.etaCard.snapshot() == null}" class="mb-0 text-body-secondary" th:text="#{vessel.notFetched}">Not fetched yet</p>
+                    <dl th:if="${eta != null}" class="static-fields vessel-fields">
+                        <th:block th:if="${eta.destination()}"><dt th:text="#{vessel.destination}">Destination (declared by the vessel)</dt><dd class="text-break" th:text="${eta.destination()}">NL RTM</dd></th:block>
+                        <th:block th:if="${eta.destinationPort()}"><dt th:text="#{vessel.destinationPort}">Port code</dt><dd class="num" th:text="${eta.destinationPort()}">NLRTM</dd></th:block>
+                        <th:block th:if="${eta.etaText()}">
+                            <dt th:text="#{vessel.eta}">ETA</dt>
+                            <dd>
+                                <th:block th:if="${eta.eta() != null}"><time th:replace="~{layout/parts :: localTime(${eta.eta()})}"></time></th:block>
+                                <th:block th:if="${eta.eta() == null}" th:text="${eta.etaText()}">20-11 06:00</th:block>
+                            </dd>
+                        </th:block>
+                        <th:block th:if="${eta.draught() != null}"><dt th:text="#{vessel.draught}">Declared draught</dt><dd class="num" th:text="${@vesselFormat.withUnit(eta.draught(), 'm')}">12.4 m</dd></th:block>
+                        <th:block th:if="${eta.reportedAt() != null}"><dt th:text="#{vessel.eta.reportedAt}">Report time</dt><dd><time th:replace="~{layout/parts :: localTime(${eta.reportedAt()})}"></time></dd></th:block>
+                    </dl>
+                </div>
+                <div th:replace="~{ship/vessel :: footer(${vesselData.etaCard})}"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Each call's body exactly as received (unknown fields included), indented, with its fetch time. -->
+    <details class="card vessel-raw mt-3">
+        <summary class="card-body fw-semibold" th:text="#{vessel.raw.heading}">Full VesselAPI response</summary>
+        <div class="card-body pt-0">
+            <th:block th:each="c : ${vesselData.cards}" th:if="${c.hasData()}">
+                <h3 class="h6 fw-bold mt-3 mb-1" th:text="#{${'vessel.endpoint.' + c.endpoint().key()}}">Particulars</h3>
+                <p class="small text-body-secondary mb-1">[[#{vessel.card.fetched}]] <time th:replace="~{layout/parts :: localTime(${c.fetchedAt()})}"></time></p>
+                <pre class="vessel-json"><code th:text="${c.prettyJson()}">{}</code></pre>
+            </th:block>
+        </div>
+    </details>
+    </th:block>
+</main>
+
+<!-- The bottom of a card: "Provider time … UTC · fetched … UTC" (provider time only when VesselAPI gives one), and the
+     last refresh in words when it failed ("Refresh failed at … UTC: rate limit reached"). card: VesselDataView.Card. -->
+<div th:fragment="footer(card)" th:if="${card.snapshot() != null}" class="card-footer vessel-card-footer small text-body-secondary">
+    <p th:if="${card.hasData()}" class="mb-0">
+        <th:block th:if="${card.providerReportedAt() != null}">[[#{vessel.card.providerTime}]] <time th:replace="~{layout/parts :: localTime(${card.providerReportedAt()})}"></time>
+            <span aria-hidden="true">·</span> </th:block>[[${card.providerReportedAt() != null} ? #{vessel.card.fetchedLower} : #{vessel.card.fetched}]] <time th:replace="~{layout/parts :: localTime(${card.fetchedAt()})}"></time>
+    </p>
+    <p th:if="${card.lastAttemptFailed()}" class="vessel-card-failed mb-0" role="note"
+       th:text="#{vessel.card.failed(${@dates.dateTime(card.lastAttemptAt())}, #{${'vessel.failure.' + card.lastAttemptResult().name()}})}">Refresh failed at 14 Nov 2026 · 10:20 UTC: rate limit reached</p>
+</div>
+</body>
+</html>

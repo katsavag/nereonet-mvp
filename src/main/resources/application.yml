@@ -1,6 +1,10 @@
 spring:
   application:
     name: nereonet-mvp
+  config:
+    # Local secrets (P45: VESSELAPI_API_KEY=...) in .env in the working directory, KEY=value per line. Gitignored;
+    # optional, and the environment works the same way.
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -95,6 +99,14 @@ app:
     token-url: ${RIGHTSHIP_TOKEN_URL:}
     # The nightly sync (Spring cron), in UTC.
     sync-cron: ${RIGHTSHIP_SYNC_CRON:0 30 2 * * *}
+  # Optional (P45): VesselAPI, read only, for "Look up by IMO" (Add vessel) and "Refresh from VesselAPI" (Edit vessel),
+  # called by the server only when a user presses one of them. Off while the key is empty: the buttons are hidden and
+  # the app never calls VesselAPI. The key comes from the environment or the local .env; never put it in a checked-in
+  # file. fake: true answers with built-in sample data instead (dev screens; core/vesseldata/FakeVesselApiClient).
+  vesselapi:
+    base-url: ${VESSELAPI_BASE_URL:https://api.vesselapi.com/v1}
+    api-key: ${VESSELAPI_API_KEY:}
+    fake: ${VESSELAPI_FAKE:false}
   # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
   # by hand; the app never connects to OCIMF.
   sire:

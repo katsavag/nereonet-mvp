@@ -5,10 +5,11 @@
 <main th:with="noShips=${ships.isEmpty()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=${noShips} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newShipModal">
+            <!-- Opens the pop-up; without JavaScript the Add vessel page (P45). -->
+            <a class="btn btn-primary" th:href="@{/office/ships/new}" data-bs-toggle="modal" data-bs-target="#newShipModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{ship.list.add}">Add ship</span>
-            </button>
+            </a>
         </th:block>
     </header>
 
@@ -102,43 +103,7 @@
                             th:attr="aria-label=#{common.close}"></button>
                 </div>
                 <div class="modal-body">
-                    <div th:replace="~{layout/parts :: errorSummary(${newForm}, '')}"></div>
-                    <div class="form-grid">
-                        <div>
-                            <label for="imoNumber" class="form-label" th:text="#{ship.imoNumber}">IMO number</label>
-                            <input type="text" th:field="*{imoNumber}" class="form-control num"
-                                   th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
-                                   inputmode="numeric" autocomplete="off" aria-describedby="imoNumberHint" required>
-                            <div class="invalid-feedback" th:errors="*{imoNumber}"></div>
-                            <div class="invalid-feedback" th:errors="*{imoNumberValid}"></div>
-                            <div id="imoNumberHint" class="form-text" th:text="#{ship.imoNumberHint}">7 digits, e.g. 9074729.</div>
-                        </div>
-                        <div>
-                            <label for="name" class="form-label" th:text="#{ship.name}">Name</label>
-                            <input type="text" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
-                                   autocomplete="off" aria-describedby="nameCounter" required>
-                            <div class="invalid-feedback" th:errors="*{name}"></div>
-                            <div class="form-meta">
-                                <div th:replace="~{layout/parts :: counter(${newForm}, 'name', 'name')}"></div>
-                            </div>
-                        </div>
-                        <div class="field-half">
-                            <label for="type" class="form-label">[[#{ship.type}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                            <select th:field="*{type}" class="form-select" th:errorclass="is-invalid">
-                                <option value="" th:text="#{ship.type.none}">Not set</option>
-                                <option th:each="t : ${types}" th:value="${t}" th:text="#{${'ship.type.' + t}}">Bulk carrier</option>
-                            </select>
-                            <div class="invalid-feedback" th:errors="*{type}"></div>
-                        </div>
-                        <div class="field-half">
-                            <label for="flag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                            <input type="text" th:field="*{flag}" class="form-control" list="countryOptions"
-                                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
-                                   autocomplete="off" aria-describedby="flagHint">
-                            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
-                            <div id="flagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{ship/parts :: newFields}"></th:block>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ghost" data-bs-dismiss="modal"

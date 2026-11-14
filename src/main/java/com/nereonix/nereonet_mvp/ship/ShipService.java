@@ -58,6 +58,12 @@ public class ShipService {
         return shipRepository.findAllByOrderByNameAsc();
     }
 
+    // The vessel with this IMO number (7 digits), if the fleet has it (P45: "Already in the fleet").
+    @Transactional(readOnly = true)
+    public java.util.Optional<Ship> findByImoNumber(String digits) {
+        return shipRepository.findByImoNumber(digits);
+    }
+
     // 404 if there is no such ship.
     @Transactional(readOnly = true)
     public Ship get(Long id) {

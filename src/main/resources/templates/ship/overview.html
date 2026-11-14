@@ -7,6 +7,17 @@
 <main>
     <th:block th:replace="~{ship/parts :: header}"></th:block>
 
+    <!-- P45: one line from the stored VesselAPI data (no call): how old the last AIS position is, and where the vessel
+         says it is bound. Only once something was fetched; the details are on the Vessel data tab. -->
+    <p th:unless="${vesselData.empty}" class="vessel-summary"
+       th:with="pos=${vesselData.position}, eta=${vesselData.eta}">
+        <th:block th:if="${pos != null and pos.reportedAt() != null}" th:text="#{vessel.summary.position(${@dates.age(pos.reportedAt())})}">Last AIS position 2 hours ago</th:block>
+        <th:block th:if="${pos == null or pos.reportedAt() == null}" th:text="#{vessel.result.NOT_FOUND.position}">No recent AIS position</th:block>
+        <th:block th:if="${eta != null}"><span aria-hidden="true">·</span> <th:block th:replace="~{ship/parts :: boundFor(${eta})}"></th:block></th:block>
+        <span aria-hidden="true">·</span>
+        <a th:href="@{/office/ships/{id}/vessel(id=${ship.id})}" th:text="#{vessel.summary.link}">Vessel data</a>
+    </p>
+
     <!-- The cards in a grid (P29): one column, two from 992px (open items across both), three from 1600px. -->
     <div class="card-grid card-grid-3">
         <!-- Open items: each listed, so nothing has to be looked up on another page. -->

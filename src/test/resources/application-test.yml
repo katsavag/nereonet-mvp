@@ -25,3 +25,8 @@ app:
   # P42: no starter template of required documents in tests; RequirementsFlowTest seeds it where it needs it.
   requirements:
     starter-template: false
+  # P45: never the real VesselAPI in tests, even with a key in the environment or .env. VesselLookupFlowTest switches
+  # the fake on for itself.
+  vesselapi:
+    api-key: ""
+    fake: false
