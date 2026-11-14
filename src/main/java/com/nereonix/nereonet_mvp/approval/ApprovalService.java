@@ -28,8 +28,9 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 @Service
 public class ApprovalService {
 
-    /** The requests of one tab, and the number waiting (the Waiting tab's count, shown on both tabs). */
-    public record Approvals(Ship ship, ApprovalTab tab, List<ItemRequest> requests, long waiting) {
+    /** The requests of one tab, and the number in each tab (shown on all three). */
+    public record Approvals(Ship ship, ApprovalTab tab, List<ItemRequest> requests, long pending, long approved,
+                            long declined) {
     }
 
     /** One category's lines of a request, in the request's order. */
@@ -50,18 +51,21 @@ public class ApprovalService {
         this.requestService = requestService;
     }
 
-    /** Waiting: PENDING, oldest first. Decided: APPROVED and REJECTED, newest decision first. */
+    /** Pending: PENDING, oldest first. Approved: APPROVED, and Declined: REJECTED, newest decision first. */
     @Transactional(readOnly = true)
     public Approvals list(String email, ApprovalTab tab) {
         Ship ship = ship(email);
-        List<ItemRequest> waiting = requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(
-                ship.getId(), RequestStatus.PENDING);
-        List<ItemRequest> requests = tab == ApprovalTab.WAITING ? waiting
-                : requestRepository.findAllByShipIdAndStatusInOrderByDecidedAtDescIdDesc(ship.getId(),
-                List.of(RequestStatus.APPROVED, RequestStatus.REJECTED));
+        List<ItemRequest> requests = tab == ApprovalTab.PENDING
+                ? requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(ship.getId(), tab.status())
+                : requestRepository.findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(ship.getId(), tab.status());
         // The rows show the number of lines: load them here (in batches, see ItemRequest.lines).
         requests.forEach(request -> request.getLines().size());
-        return new Approvals(ship, tab, requests, waiting.size());
+        return new Approvals(ship, tab, requests, count(ship, RequestStatus.PENDING),
+                count(ship, RequestStatus.APPROVED), count(ship, RequestStatus.REJECTED));
+    }
+
+    private long count(Ship ship, RequestStatus status) {
+        return requestRepository.countByStatusAndShipId(status, ship.getId());
     }
 
     /** A request of the Master's ship with its lines by category (Provisions, then Personal items); otherwise 404. */

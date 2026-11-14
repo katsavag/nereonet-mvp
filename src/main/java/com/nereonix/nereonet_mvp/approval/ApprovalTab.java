@@ -2,15 +2,33 @@ package com.nereonix.nereonet_mvp.approval;
 
 import java.util.Locale;
 
-// The two tabs of /ship/approvals (P33), chosen with ?tab=waiting|decided; anything else is Waiting.
+import com.nereonix.nereonet_mvp.core.request.RequestStatus;
+
+// The three tabs of /ship/approvals (P33, P48), chosen with ?tab=pending|approved|declined; anything else is Pending.
+// The old ?tab=decided is a 301 to Approved (ApprovalController).
 public enum ApprovalTab {
-    WAITING, DECIDED;
+    PENDING(RequestStatus.PENDING), APPROVED(RequestStatus.APPROVED), DECLINED(RequestStatus.REJECTED);
+
+    private final RequestStatus status;
+
+    ApprovalTab(RequestStatus status) {
+        this.status = status;
+    }
+
+    public RequestStatus status() {
+        return status;
+    }
 
     public String key() {
         return name().toLowerCase(Locale.ROOT);
     }
 
     static ApprovalTab of(String value) {
-        return "decided".equals(value) ? DECIDED : WAITING;
+        for (ApprovalTab tab : values()) {
+            if (tab.key().equals(value)) {
+                return tab;
+            }
+        }
+        return PENDING;
     }
 }

@@ -1,6 +1,5 @@
 package com.nereonix.nereonet_mvp.core.request;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,11 +15,11 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     // One ship's requests with this status (the dev data seeds PENDING ones only while there are none).
     long countByStatusAndShipId(RequestStatus status, Long shipId);
 
-    // The Master's approvals (P33): one ship's waiting requests, oldest first, and its decided ones, newest decision
-    // first. The detail page finds a request only within the Master's ship, so another ship's is a 404.
+    // The Master's approvals (P33, P48): one ship's pending requests, oldest first, and its approved or declined ones,
+    // newest decision first. The detail page finds a request only within the Master's ship, so another ship's is a 404.
     List<ItemRequest> findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(Long shipId, RequestStatus status);
 
-    List<ItemRequest> findAllByShipIdAndStatusInOrderByDecidedAtDescIdDesc(Long shipId, Collection<RequestStatus> statuses);
+    List<ItemRequest> findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(Long shipId, RequestStatus status);
 
     Optional<ItemRequest> findByIdAndShipId(Long id, Long shipId);
 

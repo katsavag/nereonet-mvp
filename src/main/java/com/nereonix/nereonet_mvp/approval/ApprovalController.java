@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.view.RedirectView;
 
 import com.nereonix.nereonet_mvp.core.request.RequestService.Decision;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
@@ -34,6 +35,14 @@ public class ApprovalController {
                        @RequestParam(required = false) String tab, Model model) {
         model.addAttribute("approvals", approvalService.list(currentUser.getUsername(), ApprovalTab.of(tab)));
         return "approval/list";
+    }
+
+    // The old Decided tab (before P48) held approved and declined requests; its links go to Approved.
+    @GetMapping(value = "/ship/approvals", params = "tab=decided")
+    public RedirectView decided() {
+        RedirectView redirect = new RedirectView("/ship/approvals?tab=approved", true);
+        redirect.setStatusCode(HttpStatus.MOVED_PERMANENTLY);
+        return redirect;
     }
 
     @GetMapping("/ship/approvals/{id}")
@@ -63,7 +72,7 @@ public class ApprovalController {
                 "approval.declined", redirectAttributes);
     }
 
-    // Decided: back to the list with a success message. Already decided or cancelled (a second click, another tab):
+    // Approved or declined: back to the list with a success message. Already approved, declined or cancelled (a second click, another tab):
     // nothing changed, back to the request with a message saying so.
     private static String afterDecision(Decision decision, Long id, String successKey,
                                         RedirectAttributes redirectAttributes) {

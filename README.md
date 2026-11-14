@@ -893,12 +893,13 @@ Requirements: Java 25, Docker.
    another ship is a 404.
    - **Where**: **Approvals** in the sidebar under On board, with the number waiting as a pill; on phones it is the
      first row of **More** (`/ship/more`), with the same number, and the More tab carries it as a badge.
-   - **List** (`/ship/approvals`): two tabs (ordinary links). **Waiting** (the default, with its count): PENDING
-     requests, oldest first. **Decided** (`?tab=decided`): approved and declined, newest decision first, each with
-     "Approved" or "Declined" and the date. Each row is one link: who asked ("Demo Cook · Chief cook"), the request
+   - **List** (`/ship/approvals`): three tabs (ordinary links), each with its count (P48). **Pending** (the default):
+     PENDING requests, oldest first. **Approved** (`?tab=approved`) and **Declined** (`?tab=declined`): APPROVED or
+     REJECTED requests, newest decision first, each with "Approved" or "Declined" and the date. The old
+     `?tab=decided` is a 301 to Approved. Each row is one link: who asked ("Demo Cook · Chief cook"), the request
      number, when (UTC) and the number of items.
    - **A request** (`/ship/approvals/{id}`): who asked, when, its status ("Waiting for the master", "Approved",
-     "Declined", "Cancelled"), who decided and when, and for a declined one the reason; then its lines in one card per
+     "Declined", "Cancelled"), who approved or declined it and when ("Approved" / "Declined"), and for a declined one the reason; then its lines in one card per
      category (Provisions, then Personal items): name, quantity and unit. A line for an item not in the ship's list
      yet has a **New item** badge (also on the office's request page, 15; such a line is under Provisions, as only
      the Chief cook asks for new items, and the CSV has the name and unit given).
@@ -913,7 +914,7 @@ Requirements: Java 25, Docker.
    - Dev data: while the first ship has no PENDING request, two are submitted for its Master: one from the Chief cook
      (Basmati rice, Olive oil, Eggs) and, 18 hours later, one from Maria Santos (Shower gel, a personal item, and
      Eggs, as in the cook's request). The Master gets their two notifications.
-   - To try it: as `master.demo@example.com` / `crew123`, **Approvals** shows the two requests under Waiting; open
+   - To try it: as `master.demo@example.com` / `crew123`, **Approvals** shows the two requests under Pending; open
      Maria Santos's to see Provisions and Personal items. As `cook.demo@example.com`, `/ship/approvals` is a 403.
 
 22. Approving and declining a request, and the ship order (P34, the Master only). `core/request/RequestService`
@@ -930,7 +931,7 @@ Requirements: Java 25, Docker.
    - **After either**: the person who asked gets a notification, "Your request was approved" or "Your request was
      declined: <reason>", linking to `/ship/requests/{id}` (their request page, which comes later); "Request
      approved" or "Request declined" goes in the audit log; the Master is back on `/ship/approvals` with a message.
-   - **Only once**: the request row is locked while deciding. A request already decided or cancelled (a second click,
+   - **Only once**: the request row is locked while deciding. A request already approved, declined or cancelled (a second click,
      another tab) changes nothing and the request page says so. Another ship's request is a 404; the Chief cook and
      crew get 403.
    - **The ship order** (`ShipOrder`, `ShipOrderLine`): status OPEN, SENT, CONFIRMED or CLOSED, with requested port,

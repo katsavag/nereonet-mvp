@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -104,12 +105,12 @@ class ApprovalFlowTest {
     }
 
     @Test
-    void theMasterSeesAPendingRequestUnderWaiting() throws Exception {
+    void theMasterSeesAPendingRequestUnderPending() throws Exception {
         ItemRequest request = submit(cook, Instant.now().minus(Duration.ofHours(3)), line(rice, "25"), line(eggs, "120"));
 
         String html = page("/ship/approvals", master);
         assertThat(html).contains("<title>Approvals · Nereonet</title>", "MV Demo · IMO 9074729")
-                .containsPattern("(?s)href=\"/ship/approvals\" aria-current=\"page\">\\s*<svg[^>]*>.*?</svg>\\s*<span>Waiting</span>")
+                .containsPattern("(?s)href=\"/ship/approvals\" aria-current=\"page\">\\s*<svg[^>]*>.*?</svg>\\s*<span>Pending</span>\\s*<span class=\"num\">1</span>")
                 .contains("href=\"/ship/approvals/" + request.getId() + "\">Demo Cook · Chief cook</a>",
                         "Request #" + request.getId(), "2 items");
     }
@@ -129,10 +130,37 @@ class ApprovalFlowTest {
         assertThat(waiting).doesNotContain("/ship/approvals/" + approved.getId() + "\"",
                 "/ship/approvals/" + declined.getId() + "\"");
 
-        String decided = page("/ship/approvals?tab=decided", master);
-        assertThat(decided).contains("Approved", "Declined").doesNotContain("/ship/approvals/" + older.getId() + "\"");
-        assertThat(decided.indexOf("/ship/approvals/" + declined.getId() + "\""))
-                .isPositive().isLessThan(decided.indexOf("/ship/approvals/" + approved.getId() + "\""));
+        ItemRequest approvedLater = submit(cook, Instant.now().minus(Duration.ofDays(2)), line(rice, "5"));
+        decide(approvedLater, RequestStatus.APPROVED, null, Instant.now().minus(Duration.ofHours(12)));
+
+        String approvedTab = page("/ship/approvals?tab=approved", master);
+        assertThat(approvedTab)
+                .containsPattern("<span>Pending</span>\\s*<span class=\"num\">2</span>")
+                .containsPattern("(?s)href=\"/ship/approvals\\?tab=approved\" aria-current=\"page\">\\s*<svg[^>]*>.*?</svg>\\s*<span>Approved</span>\\s*<span class=\"num\">2</span>")
+                .containsPattern("<span>Declined</span>\\s*<span class=\"num\">1</span>")
+                .contains("Requests you approved, newest first.")
+                .doesNotContain("/ship/approvals/" + older.getId() + "\"", "/ship/approvals/" + declined.getId() + "\"",
+                        "Decided");
+        assertThat(approvedTab.indexOf("/ship/approvals/" + approvedLater.getId() + "\""))
+                .isPositive().isLessThan(approvedTab.indexOf("/ship/approvals/" + approved.getId() + "\""));
+
+        String declinedTab = page("/ship/approvals?tab=declined", master);
+        assertThat(declinedTab).contains("/ship/approvals/" + declined.getId() + "\"", "Requests you declined, newest first.")
+                .doesNotContain("/ship/approvals/" + approved.getId() + "\"", "/ship/approvals/" + older.getId() + "\"",
+                        "Decided");
+    }
+
+    @Test
+    void theOldDecidedTabMovedToApproved() throws Exception {
+        mockMvc.perform(get("/ship/approvals").param("tab", "decided").with(user(new CurrentUser(master))))
+                .andExpect(status().isMovedPermanently())
+                .andExpect(header().string("Location", "/ship/approvals?tab=approved"));
+    }
+
+    @Test
+    void emptyTabsSayWhatWouldShowThere() throws Exception {
+        assertThat(page("/ship/approvals?tab=approved", master)).contains("Nothing approved yet", "Requests you approved show here.");
+        assertThat(page("/ship/approvals?tab=declined", master)).contains("Nothing declined yet", "Requests you declined show here.");
     }
 
     @Test
@@ -151,7 +179,9 @@ class ApprovalFlowTest {
         assertThat(html.indexOf("Shower gel")).isGreaterThan(html.indexOf(">Personal items<"));
 
         decide(request, RequestStatus.REJECTED, "Not this month.", Instant.now());
-        assertThat(page("/ship/approvals/" + request.getId(), master)).contains("Declined", "Not this month.");
+        assertThat(page("/ship/approvals/" + request.getId(), master)).contains("Not this month.",
+                        "href=\"/ship/approvals?tab=declined\"")
+                .containsPattern("<dt[^>]*>Declined</dt>").doesNotContain("Decided");
     }
 
     @Test

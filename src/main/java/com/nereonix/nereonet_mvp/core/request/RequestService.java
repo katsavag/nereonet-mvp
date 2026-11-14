@@ -103,7 +103,7 @@ public class RequestService {
      * each new-item line is linked to the ship's item of that name (ignoring case), or to a new active Provisions item
      * made from its name and unit; then the request goes into the ship's OPEN order (ShipOrderService). Nothing is
      * sent to the office. Records "Request approved" and notifies the person who asked. NOT_PENDING (nothing changed)
-     * when it was already decided or cancelled; NOT_FOUND when the ship has no such request. AccessDeniedException
+     * when it was already approved, declined or cancelled; NOT_FOUND when the ship has no such request. AccessDeniedException
      * when the user is not an enabled Master with a ship.
      */
     @Transactional

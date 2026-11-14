@@ -4943,7 +4943,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* ---------------------------------------------------------------------------------------------------------------
    The Master's approvals (P33): approval/list.html and detail.html; Approvals on the More page.
      - .approval-row: one request, who asked (a .stretched-link, so the whole row opens it) over its number, when it
-       was sent and the number of items; on the Decided tab the decision badge and its date on the right (below on
+       was sent and the number of items; on the Approved and Declined tabs the decision badge and its date on the right (below on
        phones).
      - .more-count: the number on the More page's Notifications (P47) and Approvals rows, the sidebar's quiet pill on the surface.
    --------------------------------------------------------------------------------------------------------------- */
