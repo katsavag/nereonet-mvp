@@ -84,4 +84,45 @@ class ShipFlowTest {
                 .andExpect(content().string(Matchers.containsString("No VesselAPI data yet")))
                 .andExpect(content().string(Matchers.not(Matchers.containsString("/edit/lookup\""))));
     }
+
+    // P46: the IMO number takes at most 7 digits and the flag at most 2 letters, in the browser and on the server.
+    @Test
+    void imoAndFlagFieldsTakeOnlyValidInput() throws Exception {
+        String page = mockMvc.perform(get("/office/ships/new")).andReturn().getResponse().getContentAsString();
+        assertThat(page).contains("maxlength=\"7\" inputmode=\"numeric\" pattern=\"[0-9]{7}\" autocomplete=\"off\" data-input-filter=\"digits\"",
+                "maxlength=\"2\" pattern=\"[A-Za-z]{2}\" autocapitalize=\"characters\" autocomplete=\"off\" spellcheck=\"false\"",
+                "data-input-filter=\"letters\"", "7 digits, for example 9074729.",
+                "<option value=\"BG\" label=\"Bulgaria\"></option>");
+    }
+
+    @Test
+    void wrongLengthAndWrongCheckDigitHaveTheirOwnMessages() throws Exception {
+        String shortNumber = mockMvc.perform(post("/office/ships/new").param("imoNumber", "907472")
+                        .param("name", "MV Demo").param("flag", "G1").with(csrf()))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(shortNumber).contains("Enter the 7 digits of the IMO number.",
+                        "Enter the 2-letter country code, for example GR.")
+                .doesNotContain("Check the last digit.");
+
+        String checkDigit = mockMvc.perform(post("/office/ships/new").param("imoNumber", "9074728")
+                        .param("name", "MV Demo").with(csrf()))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(checkDigit).contains("This IMO number is not valid. Check the last digit.")
+                .doesNotContain("Enter the 7 digits of the IMO number.");
+        assertThat(shipRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void aPastedImoAndALowerCaseFlagAreStoredClean() throws Exception {
+        mockMvc.perform(post("/office/ships/new").param("imoNumber", "IMO 9328716").param("name", "MV Demo")
+                        .param("flag", "bg").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships"));
+        Ship ship = shipRepository.findAll().getFirst();
+        assertThat(ship.getImoNumber()).isEqualTo("9328716");
+        assertThat(ship.getFlag()).isEqualTo("BG");
+
+        String edit = mockMvc.perform(get("/office/ships/" + ship.getId() + "/edit"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(edit).contains("value=\"BG\"", ">Bulgaria</span>");
+    }
 }

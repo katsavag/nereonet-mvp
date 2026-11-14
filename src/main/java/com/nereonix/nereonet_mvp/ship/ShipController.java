@@ -118,7 +118,7 @@ public class ShipController {
         form.setFlagChoice(null);
         String digits = ImoNumber.normalize(form.getImoNumber());
         if (!ImoNumber.isValid(digits)) {
-            result.rejectValue("imoNumber", "ship.error.imoInvalid");
+            result.rejectValue("imoNumber", ImoNumber.hasSevenDigits(digits) ? "ship.error.imoCheckDigit" : "ship.error.imoFormat");
             return showNewPage(model, null);
         }
         if (inFleet(digits, result, model) || !vesselDataService.configured()) {
@@ -137,7 +137,7 @@ public class ShipController {
                 form.setType(proposal.type());
             }
             if (proposal.flag() != null) {
-                form.setFlag(countries().getOrDefault(proposal.flag(), proposal.flag()));
+                form.setFlag(proposal.flag());
             } else if (proposal.flagConflict()) {
                 form.setFlag(null); // the user chooses between the two (flagChoice)
             }
@@ -196,7 +196,7 @@ public class ShipController {
                           @RequestParam(required = false) String tab, @AuthenticationPrincipal CurrentUser user,
                           Model model) {
         Ship ship = shipService.get(id);
-        EditShipForm shown = form.getName() == null ? EditShipForm.of(ship, countries()) : form;
+        EditShipForm shown = form.getName() == null ? EditShipForm.of(ship) : form;
         shown.setLookupToken(null);
         shown.setAccept(new ArrayList<>());
         shown.setFlagChoice(null);

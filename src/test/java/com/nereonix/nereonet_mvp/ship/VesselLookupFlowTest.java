@@ -86,7 +86,7 @@ class VesselLookupFlowTest {
     @Test
     void anInvalidNumberIsAFieldErrorAndNoCall() throws Exception {
         String html = html(lookup("IMO 9328717").param("name", "Typed name"));
-        assertThat(html).contains("Enter a valid IMO number", "value=\"Typed name\"");
+        assertThat(html).contains("This IMO number is not valid. Check the last digit.", "value=\"Typed name\"");
         assertThat(vesselApi.calls()).isEmpty();
     }
 
@@ -110,7 +110,7 @@ class VesselLookupFlowTest {
         // The three calls, each once; the provider values next to the mapped ones.
         assertThat(vesselApi.calls()).containsExactlyInAnyOrder("PARTICULARS " + IMO, "POSITION " + IMO, "ETA " + IMO);
         assertThat(html).contains("VesselAPI result", "value=\"AEGEAN TRADER\"", "Cargo · Bulk Carrier",
-                        "value=\"BULK_CARRIER\" selected", "value=\"Malta (MT)\"", "Bound for NL RTM",
+                        "value=\"BULK_CARRIER\" selected", "value=\"MT\"", "Bound for NL RTM",
                         "37.9421° N, 23.6107° E")
                 .doesNotContain("Choose the flag");
         // The flag image next to VesselAPI's country and next to the value in the form.

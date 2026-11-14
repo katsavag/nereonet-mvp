@@ -69,7 +69,7 @@
                                        th:data-action="@{/office/ships/{id}/edit(id=${s.id})}"
                                        th:data-imo="#{ship.codeValue(${s.imoNumber})}"
                                        th:data-name="${s.name}" th:data-type="${s.type}"
-                                       th:data-flag="${s.flag} ? (${countries[s.flag]} ?: ${s.flag}) : ''"
+                                       th:data-flag="${s.flag} ?: ''"
                                        th:text="#{ship.edit}">Edit</a>
                                     <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
                                         <button type="submit" class="dropdown-item"
@@ -139,6 +139,7 @@
             form.querySelector('#editName').value = button.dataset.name;
             form.querySelector('#editType').value = button.dataset.type ?? '';
             form.querySelector('#editFlag').value = button.dataset.flag ?? '';
+            form.querySelector('#editFlag').dispatchEvent(new Event('input', {bubbles: true})); // the country name next to it
             form.querySelector('#editName').dispatchEvent(new Event('input')); // update the counter
             form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
             form.querySelector('.error-summary')?.remove();

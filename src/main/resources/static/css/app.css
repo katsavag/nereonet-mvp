@@ -308,6 +308,15 @@ h1, .h1 {
     .form-grid > .field-half { grid-column: auto; }
 }
 
+/* P46: fields as wide as their value. .input-imo: 7 digits plus the padding and border (7.5ch: Inter's tabular
+   digits are a little wider than the 0 that ch measures); .input-flag: 2 letters
+   plus room for the browser's list arrow. .code-field: a short field with the country name of its code next to it
+   (.code-field-name, filled by js/forms.js). */
+.form-control.input-imo { width: calc(7.5ch + 1.5rem + 2px); max-width: 100%; }
+.form-control.input-flag { width: calc(2.6em + 2.75rem); flex: 0 0 auto; }
+.code-field { display: flex; align-items: center; gap: var(--nn-space-2); }
+.code-field-name { min-width: 0; color: var(--bs-body-color); }
+
 .form-section {
     min-width: 0;
     margin: 0;
@@ -6137,7 +6146,7 @@ input.supplier-currency { max-width: 7rem; }
      - .vessel-summary: the Overview's one line (position age, destination and ETA).
    --------------------------------------------------------------------------------------------------------------- */
 .vessel-imo-row { display: flex; flex-wrap: wrap; gap: var(--nn-space-2); }
-.vessel-imo-row > .form-control { flex: 1 1 10rem; min-width: 0; }
+.vessel-imo-row > .form-control { flex: 0 0 auto; min-width: 0; }
 .vessel-imo-row > .btn { flex: 0 0 auto; }
 .vessel-lookup-action { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); margin-top: var(--nn-space-3); }
 .vessel-lookup { margin-top: var(--nn-space-4); background: var(--nn-page); }

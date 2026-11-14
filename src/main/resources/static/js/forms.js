@@ -9,6 +9,7 @@
 //    data-max-size (bytes; text in data-too-large).
 //  - [data-shown-for]: a field shown only while the select with that id has the value data-shown-value (the item
 //    form's Place, for Provisions). Without this script the field stays visible.
+//  - input[data-input-filter]: digits or letters only, as typed or pasted (P46, see below).
 (function () {
     'use strict';
 
@@ -127,6 +128,73 @@
         select.addEventListener('change', () => showAccess(select, hint));
         showAccess(select, hint); // a rank kept by the browser after going back
     });
+
+    // P46: input[data-input-filter="digits" | "letters"]: only those characters are kept as they are typed or pasted
+    // (a pasted "IMO 9328716" becomes "9328716"; letters are upper case), the caret staying where the person was
+    // typing. A paste is filtered before the field's maxlength applies, so it is not cut short by the dropped text.
+    // data-country-name: the id of the element showing the country name of the code (the label of its option in the
+    // field's datalist), empty while it is not a known code. Without this script the pattern and the server still check.
+    // Delegated, so it also works in the pop-ups.
+    const FILTERS = {
+        digits: text => text.replace(/[^0-9]/g, ''),
+        letters: text => text.replace(/[^A-Za-z]/g, '').toUpperCase()
+    };
+
+    function filterOf(target) {
+        return target instanceof HTMLInputElement && FILTERS[target.dataset.inputFilter];
+    }
+
+    function showCountryName(input) {
+        const target = input.dataset.countryName && document.getElementById(input.dataset.countryName);
+        if (!target) {
+            return;
+        }
+        const option = input.list && Array.from(input.list.options).find(o => o.value === input.value);
+        const name = option ? option.label : '';
+        if (target.textContent !== name) {
+            target.textContent = name;
+        }
+    }
+
+    document.addEventListener('input', event => {
+        const input = event.target;
+        const filter = filterOf(input);
+        if (!filter || event.isComposing) {
+            return;
+        }
+        const value = input.value;
+        const kept = filter(value);
+        if (kept !== value) {
+            const caret = input.selectionStart ?? value.length;
+            const before = filter(value.slice(0, caret)).length;
+            input.value = kept;
+            input.setSelectionRange(before, before);
+        }
+        showCountryName(input);
+    });
+
+    document.addEventListener('paste', event => {
+        const input = event.target;
+        const filter = filterOf(input);
+        if (!filter || !event.clipboardData) {
+            return;
+        }
+        event.preventDefault();
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        const room = input.maxLength > 0 ? input.maxLength - (input.value.length - (end - start)) : Infinity;
+        const text = filter(event.clipboardData.getData('text')).slice(0, Math.max(room, 0));
+        input.setRangeText(text, start, end, 'end');
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+    });
+
+    document.addEventListener('compositionend', event => {
+        if (filterOf(event.target)) {
+            event.target.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+    });
+
+    document.querySelectorAll('input[data-country-name]').forEach(showCountryName); // a value kept after going back
 
     document.querySelectorAll('[data-shown-for]').forEach(field => {
         const select = document.getElementById(field.dataset.shownFor);

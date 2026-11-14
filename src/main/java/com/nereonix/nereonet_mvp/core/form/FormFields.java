@@ -28,6 +28,7 @@ public class FormFields {
     // Checks that are a method of the form rather than a field, and the field their error belongs to.
     private static final Map<String, String> FIELD_OF_CHECK = Map.of(
             "imoNumberValid", "imoNumber",
+            "imoNumberFormatValid", "imoNumber",
             "flagValid", "flag",
             "passwordConfirmed", "confirmPassword",
             "contentValid", "text",

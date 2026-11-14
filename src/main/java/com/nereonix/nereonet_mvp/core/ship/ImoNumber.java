@@ -18,9 +18,14 @@ public final class ImoNumber {
         return value.replaceAll("\\s", "");
     }
 
+    // Exactly 7 digits (the form, before the check digit is looked at).
+    public static boolean hasSevenDigits(String digits) {
+        return digits != null && digits.matches("[0-9]{7}");
+    }
+
     // The first six digits times 7, 6, 5, 4, 3, 2, summed: the last digit of the sum is the check digit.
     public static boolean isValid(String digits) {
-        if (digits == null || !digits.matches("[0-9]{7}")) {
+        if (!hasSevenDigits(digits)) {
             return false;
         }
         int sum = 0;

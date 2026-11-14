@@ -42,6 +42,15 @@ public class VesselFormat {
         return Countries.toCode(input);
     }
 
+    /**
+     * P46: the country name of a flag field's text in the page language ("BG" -> "Bulgaria"), shown next to the field
+     * and as the label of each country in the list; empty when the text is not a known country.
+     */
+    public String countryName(String input) {
+        String name = Countries.nameOf(Countries.toCode(input), LocaleContextHolder.getLocale());
+        return name == null ? "" : name;
+    }
+
     /** A number with its unit, "225 m", "9,480 kW"; null for no number (so the template shows a dash). */
     public String withUnit(Number value, String unit) {
         if (value == null) {

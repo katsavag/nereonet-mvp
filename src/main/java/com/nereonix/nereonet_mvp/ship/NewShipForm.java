@@ -18,7 +18,8 @@ public class NewShipForm {
 
     private ShipType type;
 
-    // "Greece (GR)" as picked from the list; only the code is stored.
+    // P46: the 2-letter code ("GR"), typed or picked from the list; stored in upper case. "Greece (GR)" is still
+    // accepted (Countries.toCode).
     private String flag;
 
     // P45: the token of a VesselAPI lookup kept by the server (VesselLookupStore) until Save; empty without one.
@@ -27,10 +28,17 @@ public class NewShipForm {
     // P45: the flag chosen when VesselAPI's country and country code disagree (an ISO code); used while flag is empty.
     private String flagChoice;
 
-    // Also false when the field is empty.
-    @AssertTrue(message = "{ship.error.imoInvalid}")
+    // P46: a wrong length or other characters (also an empty field) ...
+    @AssertTrue(message = "{ship.error.imoFormat}")
+    public boolean isImoNumberFormatValid() {
+        return ImoNumber.hasSevenDigits(ImoNumber.normalize(imoNumber));
+    }
+
+    // ... and, only for 7 digits, a wrong check digit: one message per field, never both.
+    @AssertTrue(message = "{ship.error.imoCheckDigit}")
     public boolean isImoNumberValid() {
-        return ImoNumber.isValid(ImoNumber.normalize(imoNumber));
+        String digits = ImoNumber.normalize(imoNumber);
+        return !ImoNumber.hasSevenDigits(digits) || ImoNumber.isValid(digits);
     }
 
     @AssertTrue(message = "{ship.error.flagInvalid}")

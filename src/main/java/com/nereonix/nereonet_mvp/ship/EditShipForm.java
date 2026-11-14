@@ -2,7 +2,6 @@ package com.nereonix.nereonet_mvp.ship;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
@@ -20,7 +19,8 @@ public class EditShipForm {
 
     private ShipType type;
 
-    // "Greece (GR)" as picked from the list; only the code is stored.
+    // P46: the 2-letter code ("GR"), typed or picked from the list; stored in upper case. "Greece (GR)" is still
+    // accepted (Countries.toCode).
     private String flag;
 
     // P45: the token of a "Refresh from VesselAPI" kept by the server (VesselLookupStore) until Save.
@@ -33,12 +33,12 @@ public class EditShipForm {
     // P45: the flag chosen when VesselAPI's country and country code disagree (an ISO code); empty keeps the saved one.
     private String flagChoice;
 
-    /** Filled from the ship. countries: code -> "Greece (GR)", as Countries.labels gives them. */
-    static EditShipForm of(Ship ship, Map<String, String> countries) {
+    /** Filled from the ship; the flag as its code ("GR"). */
+    static EditShipForm of(Ship ship) {
         EditShipForm form = new EditShipForm();
         form.setName(ship.getName());
         form.setType(ship.getType());
-        form.setFlag(ship.getFlag() == null ? null : countries.getOrDefault(ship.getFlag(), ship.getFlag()));
+        form.setFlag(ship.getFlag());
         return form;
     }
 

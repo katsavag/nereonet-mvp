@@ -181,10 +181,17 @@
         </div>
         <div class="field-half">
             <label for="editFlag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-            <input type="text" id="editFlag" th:field="*{flag}" class="form-control" list="countryOptions"
-                   th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
-                   autocomplete="off" aria-describedby="editFlagHint">
-            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
+            <!-- P46: 2 letters, kept upper case by js/forms.js; the country name next to it once it is a known code. -->
+            <div class="code-field">
+                <input type="text" id="editFlag" th:field="*{flag}" class="form-control input-flag" list="countryOptions"
+                       th:classappend="${#fields.hasErrors('flagValid')} ? 'is-invalid'"
+                       maxlength="2" pattern="[A-Za-z]{2}" autocapitalize="characters" autocomplete="off" spellcheck="false"
+                       data-input-filter="letters" data-country-name="editFlagCountry"
+                       aria-describedby="editFlagCountry editFlagHint">
+                <span id="editFlagCountry" class="code-field-name" aria-live="polite"
+                      th:text="${@vesselFormat.countryName(editForm.flag)}">Bulgaria</span>
+            </div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('flagValid')}" th:errors="*{flagValid}"></div>
             <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
         </div>
     </div>
@@ -218,14 +225,17 @@
         <div>
             <label for="imoNumber" class="form-label" th:text="#{ship.imoNumber}">IMO number</label>
             <div class="vessel-imo-row">
-                <input type="text" th:field="*{imoNumber}" class="form-control num"
-                       th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
-                       inputmode="numeric" autocomplete="off" aria-describedby="imoNumberHint" required>
+                <!-- P46: at most 7 digits; js/forms.js drops anything else as it is typed or pasted. -->
+                <input type="text" th:field="*{imoNumber}" class="form-control num input-imo"
+                       th:classappend="${#fields.hasErrors('imoNumber') or #fields.hasErrors('imoNumberFormatValid') or #fields.hasErrors('imoNumberValid')} ? 'is-invalid'"
+                       maxlength="7" inputmode="numeric" pattern="[0-9]{7}" autocomplete="off" data-input-filter="digits"
+                       aria-describedby="imoNumberHint" required>
                 <button th:if="${@vesselApiSettings.configured()}" type="submit" class="btn btn-outline-secondary"
                         formnovalidate th:formaction="@{/office/ships/new/lookup}"
                         th:text="#{vessel.lookup}">Look up by IMO</button>
             </div>
             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('imoNumber')}" th:errors="*{imoNumber}"></div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('imoNumberFormatValid')}" th:errors="*{imoNumberFormatValid}"></div>
             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('imoNumberValid')}" th:errors="*{imoNumberValid}"></div>
             <p th:if="${existingShip != null}" class="vessel-existing mb-1">
                 <a th:href="@{/office/ships/{id}(id=${existingShip.id})}" th:text="#{vessel.lookup.openExisting(${existingShip.name})}">Open MV Demo</a>
@@ -255,11 +265,18 @@
         </div>
         <div class="field-half">
             <label for="flag" class="form-label">[[#{ship.flag}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-            <input type="text" th:field="*{flag}" class="form-control" list="countryOptions"
-                   th:classappend="${#fields.hasErrors('flagValid') or #fields.hasErrors('flag')} ? 'is-invalid'"
-                   autocomplete="off" aria-describedby="flagHint">
-            <div class="invalid-feedback" th:errors="*{flagValid}"></div>
-            <div class="invalid-feedback" th:errors="*{flag}"></div>
+            <!-- P46: as Edit ship's flag. -->
+            <div class="code-field">
+                <input type="text" th:field="*{flag}" class="form-control input-flag" list="countryOptions"
+                       th:classappend="${#fields.hasErrors('flagValid') or #fields.hasErrors('flag')} ? 'is-invalid'"
+                       maxlength="2" pattern="[A-Za-z]{2}" autocapitalize="characters" autocomplete="off" spellcheck="false"
+                       data-input-filter="letters" data-country-name="flagCountry"
+                       aria-describedby="flagCountry flagHint">
+                <span id="flagCountry" class="code-field-name" aria-live="polite"
+                      th:text="${@vesselFormat.countryName(newForm.flag)}">Bulgaria</span>
+            </div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('flagValid')}" th:errors="*{flagValid}"></div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('flag')}" th:errors="*{flag}"></div>
             <div id="flagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
         </div>
     </div>
@@ -319,7 +336,7 @@
                         <span class="text-body-secondary" th:if="${proposal.providerCountryCode()}">· <span class="num" th:text="${proposal.providerCountryCode()}">MT</span></span>
                     </td>
                     <td>
-                        <th:block th:if="${newForm.flag}" th:with="flagCode=${@vesselFormat.codeOfField(newForm.flag)}"><span th:replace="~{layout/parts :: country(${flagCode}, ${newForm.flag})}">Malta (MT)</span></th:block>
+                        <th:block th:if="${newForm.flag}" th:with="flagCode=${@vesselFormat.codeOfField(newForm.flag)}"><span th:replace="~{layout/parts :: country(${flagCode}, ${countries.get(flagCode)} ?: ${newForm.flag})}">Malta (MT)</span></th:block>
                         <th:block th:unless="${newForm.flag}">—</th:block>
                     </td>
                 </tr>
@@ -423,8 +440,10 @@
 </div>
 
 <!-- Countries for the flag fields. The browser filters them as you type. -->
+<!-- P46: the value is the code ("BG", what the flag field holds), the label the country name ("Bulgaria"); the browser
+     matches what is typed against both. js/forms.js reads the label for the name next to the field. -->
 <datalist th:fragment="countryOptions" id="countryOptions">
-    <option th:each="label : ${countries.values()}" th:value="${label}"></option>
+    <option th:each="e : ${countries}" th:value="${e.key}" th:label="${@vesselFormat.countryName(e.key)}"></option>
 </datalist>
 
 </body>

@@ -319,7 +319,7 @@ class ShipPageFlowTest {
         // The pop-up is filled by the server; without JavaScript Edit is a link to the same form as a page.
         assertThat(crewTab).contains("href=\"/office/ships/" + demo.getId() + "/edit?tab=crew\"",
                 "id=\"editShipModal\"", "action=\"/office/ships/" + demo.getId() + "/edit\"",
-                "value=\"MV Demo\"", "value=\"Greece (GR)\"");
+                "value=\"MV Demo\"", "value=\"GR\"");
 
         mockMvc.perform(post("/office/ships/{id}/edit", demo.getId()).param("name", "MV Demo II")
                         .param("type", "TANKER").param("flag", "GR").param("tab", "crew").with(csrf()))

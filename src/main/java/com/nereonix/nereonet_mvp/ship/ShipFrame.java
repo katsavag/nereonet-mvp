@@ -54,7 +54,7 @@ public class ShipFrame {
     static void addEditForm(Model model, Ship ship) {
         Map<String, String> countries = Countries.labels(LocaleContextHolder.getLocale());
         if (!model.containsAttribute("editForm")) {
-            model.addAttribute("editForm", EditShipForm.of(ship, countries));
+            model.addAttribute("editForm", EditShipForm.of(ship));
         }
         model.addAttribute("types", ShipType.values());
         model.addAttribute("countries", countries);
