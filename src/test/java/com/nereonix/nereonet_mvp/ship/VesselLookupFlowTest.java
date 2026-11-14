@@ -113,6 +113,9 @@ class VesselLookupFlowTest {
                         "value=\"BULK_CARRIER\" selected", "value=\"Malta (MT)\"", "Bound for NL RTM",
                         "37.9421° N, 23.6107° E")
                 .doesNotContain("Choose the flag");
+        // The flag image next to VesselAPI's country and next to the value in the form.
+        assertThat(html).containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/mt-[0-9a-f]{32}\\.svg\"[^>]*><span>Malta</span>")
+                .containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/mt-[0-9a-f]{32}\\.svg\"[^>]*><span>Malta \\(MT\\)</span>");
         assertThat(auditDetails("VESSEL_LOOKUP")).singleElement().asString()
                 .contains("IMO " + IMO, "particulars OK", "position OK", "eta OK");
         // Nothing stored before Save.
@@ -162,6 +165,9 @@ class VesselLookupFlowTest {
         assertThat(html).contains("the country is Greece and the country code is CY", "Greece (GR)", "Cyprus (CY)",
                 "name=\"flagChoice\"");
         assertThat(html).containsPattern("id=\"flag\" name=\"flag\" value=\"\"");
+        // Each choice with its own flag.
+        assertThat(html).containsPattern("for=\"flagChoiceCountry\"><img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\"")
+                .containsPattern("for=\"flagChoiceCode\"><img class=\"flag-icon\" src=\"/vendor/flags/cy-[0-9a-f]{32}\\.svg\"");
         String token = token(html);
 
         // No choice: an error, the values kept.
@@ -278,6 +284,9 @@ class VesselLookupFlowTest {
                         "Provider time", "fetched", "Full VesselAPI response", "&quot;vesselPosition&quot;")
                 .doesNotContain("Possible position error", "Refresh failed");
         // Identical former names once.
+        // Flag country and flag code each with the flag image.
+        assertThat(tab).containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/mt-[0-9a-f]{32}\\.svg\"[^>]*><span>Malta</span>")
+                .containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/mt-[0-9a-f]{32}\\.svg\"[^>]*><span>MT</span>");
         assertThat(tab.split("OCEAN PIONEER \\(until 2014\\)", -1)).hasSize(2);
         assertThat(tab).contains("PIONEER (until 2009)");
 

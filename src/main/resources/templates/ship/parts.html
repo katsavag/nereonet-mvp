@@ -313,10 +313,15 @@
                 <tr>
                     <th scope="row" th:text="#{ship.flag}">Flag</th>
                     <td>
-                        <span th:replace="~{ship/parts :: value(${proposal.providerCountry()})}"></span>
+                        <!-- P45 + P43: the flag image of the country (by its name, else by the code). -->
+                        <th:block th:if="${proposal.providerCountry()}"><span th:replace="~{layout/parts :: country(${proposal.flagByCountry() ?: proposal.flagByCode()}, ${proposal.providerCountry()})}">Malta</span></th:block>
+                        <span th:unless="${proposal.providerCountry()}" th:replace="~{ship/parts :: value(${proposal.providerCountry()})}"></span>
                         <span class="text-body-secondary" th:if="${proposal.providerCountryCode()}">· <span class="num" th:text="${proposal.providerCountryCode()}">MT</span></span>
                     </td>
-                    <td th:text="${newForm.flag} ?: '—'">Malta (MT)</td>
+                    <td>
+                        <th:block th:if="${newForm.flag}" th:with="flagCode=${@vesselFormat.codeOfField(newForm.flag)}"><span th:replace="~{layout/parts :: country(${flagCode}, ${newForm.flag})}">Malta (MT)</span></th:block>
+                        <th:block th:unless="${newForm.flag}">—</th:block>
+                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -331,14 +336,14 @@
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCountry"
                        th:value="${proposal.flagByCountry()}" th:checked="${newForm.flagChoice == proposal.flagByCountry()}">
-                <label class="form-check-label" for="flagChoiceCountry"
-                       th:text="#{vessel.flag.byCountry(${countries[proposal.flagByCountry()]})}">Country: Greece (GR)</label>
+                <label class="form-check-label" for="flagChoiceCountry"><img th:replace="~{layout/parts :: flag(${proposal.flagByCountry()})}"> <span
+                       th:text="#{vessel.flag.byCountry(${countries[proposal.flagByCountry()]})}">Country: Greece (GR)</span></label>
             </div>
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="flagChoice" id="flagChoiceCode"
                        th:value="${proposal.flagByCode()}" th:checked="${newForm.flagChoice == proposal.flagByCode()}">
-                <label class="form-check-label" for="flagChoiceCode"
-                       th:text="#{vessel.flag.byCode(${countries[proposal.flagByCode()]})}">Country code: Cyprus (CY)</label>
+                <label class="form-check-label" for="flagChoiceCode"><img th:replace="~{layout/parts :: flag(${proposal.flagByCode()})}"> <span
+                       th:text="#{vessel.flag.byCode(${countries[proposal.flagByCode()]})}">Country code: Cyprus (CY)</span></label>
             </div>
             <p class="form-text mb-0" th:text="#{vessel.flag.chooseHint}">Or type another country in Flag.</p>
         </fieldset>

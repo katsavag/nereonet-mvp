@@ -27,6 +27,21 @@ public class VesselFormat {
         return proposal != null && proposal.flagConflict();
     }
 
+    /** The ISO code of VesselAPI's country name ("Malta" -> "MT"), for the flag next to it; null if unknown. */
+    public String codeOfName(String name) {
+        return Countries.codeOfName(name);
+    }
+
+    /** The ISO code of VesselAPI's country code ("MT" or "MLT" -> "MT"), for the flag next to it; null if unknown. */
+    public String codeOf(String code) {
+        return Countries.codeOf(code);
+    }
+
+    /** The ISO code of a flag field's text ("Malta (MT)" -> "MT"), for the flag next to it; null if unknown. */
+    public String codeOfField(String input) {
+        return Countries.toCode(input);
+    }
+
     /** A number with its unit, "225 m", "9,480 kW"; null for no number (so the template shows a dash). */
     public String withUnit(Number value, String unit) {
         if (value == null) {

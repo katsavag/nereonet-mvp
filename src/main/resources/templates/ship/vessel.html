@@ -45,8 +45,8 @@
                         <th:block th:if="${p.callSign()}"><dt th:text="#{vessel.callSign}">Call sign</dt><dd class="num" th:text="${p.callSign()}">9HA1234</dd></th:block>
                         <th:block th:if="${p.typeText()}"><dt th:text="#{vessel.type}">Type</dt><dd th:text="${p.typeText()}">Bulk Carrier</dd></th:block>
                         <th:block th:if="${p.operatingStatus()}"><dt th:text="#{vessel.status}">Status</dt><dd th:text="${p.operatingStatus()}">Active</dd></th:block>
-                        <th:block th:if="${p.country()}"><dt th:text="#{vessel.flagCountry}">Flag country</dt><dd th:text="${p.country()}">Malta</dd></th:block>
-                        <th:block th:if="${p.countryCode()}"><dt th:text="#{vessel.flagCode}">Flag code</dt><dd class="num" th:text="${p.countryCode()}">MT</dd></th:block>
+                        <th:block th:if="${p.country()}"><dt th:text="#{vessel.flagCountry}">Flag country</dt><dd th:with="flagCode=${@vesselFormat.codeOfName(p.country())}"><span th:replace="~{layout/parts :: country(${flagCode}, ${p.country()})}">Malta</span></dd></th:block>
+                        <th:block th:if="${p.countryCode()}"><dt th:text="#{vessel.flagCode}">Flag code</dt><dd class="num" th:with="flagCode=${@vesselFormat.codeOf(p.countryCode())}"><span th:replace="~{layout/parts :: country(${flagCode}, ${p.countryCode()})}">MT</span></dd></th:block>
                         <th:block th:if="${p.homePort()}"><dt th:text="#{vessel.homePort}">Port of registry</dt><dd th:text="${p.homePort()}">Valletta</dd></th:block>
                         <th:block th:unless="${p.formerNames().isEmpty()}">
                             <dt th:text="#{vessel.formerNames}">Former names</dt>
