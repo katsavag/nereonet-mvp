@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.log.title}, ~{::main})}">
+<body>
+<!-- The store's history (P53), the Chief cook only: every movement of the vessel's provisions, newest first, 50 a page
+     (StockService.HISTORY_PAGE_SIZE): date and time, item (a link to it), type, before, after, difference, who. Filter
+     by type and by UTC days (a GET form). Kept plain on purpose: it will be redesigned. English only.
+     Model: history (StoresService.History), filter (StoresHistoryFilter), types (StockMovementType values), newerUrl
+     and olderUrl (null on the ends). -->
+<main class="stores-log" th:with="h=${history}, rows=${history.movements}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.log.title}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${h.ship})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{stores.title}, '/ship/stores')}"></li>
+        </th:block>
+    </header>
+
+    <form method="get" th:action="@{/ship/stores/history}" class="card card-body mb-4 stores-log-filter" novalidate>
+        <div class="row g-3 align-items-end">
+            <div class="col-sm-4">
+                <label for="type" class="form-label" th:text="#{stores.history.type}">Type</label>
+                <select id="type" name="type" class="form-select">
+                    <option value="" th:text="#{stores.filter.all}">All</option>
+                    <option th:each="t : ${types}"
+                            th:value="${t.name()}" th:selected="${filter.movementType() == t}"
+                            th:text="#{${t.labelKey()}}">Count</option>
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label for="from" class="form-label" th:text="#{audit.filter.from}">From (UTC)</label>
+                <input type="date" th:field="${filter.from}" class="form-control" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="${filter.from}"></div>
+            </div>
+            <div class="col-sm-3">
+                <label for="to" class="form-label" th:text="#{audit.filter.to}">To (UTC)</label>
+                <input type="date" th:field="${filter.to}" class="form-control" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="${filter.to}"></div>
+            </div>
+            <div class="col-sm-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary" th:text="#{stores.log.filter}">Filter</button>
+                <a class="btn btn-outline-secondary" th:href="@{/ship/stores/history}" th:text="#{stores.log.clear}">Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="card">
+        <p th:if="${rows.isEmpty()}" class="card-body mb-0 text-body-secondary" th:text="#{stores.log.empty}">
+            No movements for these filters.</p>
+        <div th:unless="${rows.isEmpty()}" class="table-responsive">
+            <table class="table data-table data-table-stack align-middle mb-0">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{stores.history.at}">Date</th>
+                    <th scope="col" th:text="#{stores.log.item}">Item</th>
+                    <th scope="col" th:text="#{stores.history.type}">Type</th>
+                    <th scope="col" class="text-end" th:text="#{stores.history.before}">Before</th>
+                    <th scope="col" class="text-end" th:text="#{stores.history.after}">After</th>
+                    <th scope="col" class="text-end" th:text="#{stores.history.difference}">Difference</th>
+                    <th scope="col" th:text="#{stores.history.by}">By</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${rows}" data-movement>
+                    <td th:attr="data-label=#{stores.history.at}"><time th:replace="~{layout/parts :: localTime(${m.at})}"></time></td>
+                    <td th:attr="data-label=#{stores.log.item}"><a th:href="@{/ship/stores/items/{id}(id=${m.item.id})}"
+                            th:text="${m.item.name}">Basmati rice</a> <span class="text-body-secondary"
+                            th:text="${m.item.unit}">kg</span></td>
+                    <td th:attr="data-label=#{stores.history.type}">
+                        <span th:text="#{${m.type.labelKey()}}">Count</span>
+                        <span th:if="${m.order != null}" class="text-body-secondary">· <th:block
+                                th:text="#{order.number(${m.order.id})}">Order #12</th:block></span>
+                    </td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{stores.history.before}"
+                        th:text="${m.quantityBefore.stripTrailingZeros().toPlainString()}">10</td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{stores.history.after}"
+                        th:text="${m.quantityAfter.stripTrailingZeros().toPlainString()}">7</td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{stores.history.difference}"><span
+                            th:replace="~{stores/parts :: difference(${m.difference})}"></span></td>
+                    <td th:attr="data-label=#{stores.history.by}"
+                        th:text="${m.by != null} ? ${m.by.fullName} : #{audit.deletedUser}">Demo Cook</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav th:if="${rows.totalPages > 1}" class="card-footer bg-transparent d-flex flex-wrap align-items-center gap-3"
+             th:attr="aria-label=#{stores.log.pages}">
+            <a th:if="${newerUrl != null}" class="btn btn-outline-secondary btn-sm" th:href="@{${newerUrl}}"
+               th:text="#{stores.log.newer}">Newer</a>
+            <span class="small text-body-secondary"
+                  th:text="#{stores.log.page(${rows.number + 1}, ${rows.totalPages}, ${rows.totalElements})}">Page 1 of 3 · 120 movements</span>
+            <a th:if="${olderUrl != null}" class="btn btn-outline-secondary btn-sm" th:href="@{${olderUrl}}"
+               th:text="#{stores.log.older}">Older</a>
+        </nav>
+    </div>
+</main>
+</body>
+</html>

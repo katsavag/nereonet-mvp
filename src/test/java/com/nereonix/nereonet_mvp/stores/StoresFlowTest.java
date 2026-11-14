@@ -2,8 +2,13 @@ package com.nereonix.nereonet_mvp.stores;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -17,10 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
+import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -34,6 +43,7 @@ import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.stock.StockStatus;
+import com.nereonix.nereonet_mvp.core.time.Dates;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
@@ -57,6 +67,8 @@ class StoresFlowTest {
     @Autowired StockLevelRepository levelRepository;
     @Autowired StockMovementRepository movementRepository;
     @Autowired StockService stockService;
+    @Autowired AuditRepository auditRepository;
+    @Autowired Dates dates;
 
     Ship ship;
     Ship otherShip;
@@ -199,6 +211,215 @@ class StoresFlowTest {
         assertThatThrownBy(() -> stockService.level(showerGel)).isInstanceOf(IllegalArgumentException.class);
         assertThat(stockService.levels(ship)).extracting(level -> level.item().getName())
                 .containsExactly("Basmati rice", "Olive oil", "Salt", "Sugar");
+    }
+
+    // ---- P53: counting by hand ----------------------------------------------------------------------------------------
+
+    @Test
+    void theCookCountsSevenWhereTheStoreExpectedTen() throws Exception {
+        Item flour = item(ship, "Flour", "kg", ItemCategory.PROVISIONS, "Dry store");
+        stock(flour, "10");
+
+        mockMvc.perform(post("/ship/stores/items/{id}/count", flour.getId()).param("quantity", "7")
+                        .with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/ship/stores/count#item-" + flour.getId()))
+                .andExpect(flash().attribute("countSaved", flour.getId()));
+
+        assertThat(levelRepository.findByItemId(flour.getId())).get()
+                .satisfies(level -> assertThat(level.getQuantity()).isEqualByComparingTo("7"));
+        assertThat(stockService.history(flour)).singleElement().satisfies(m -> {
+            assertThat(m.getType()).isEqualTo(StockMovementType.COUNT);
+            assertThat(m.getQuantityBefore()).isEqualByComparingTo("10");
+            assertThat(m.getQuantityAfter()).isEqualByComparingTo("7");
+            assertThat(m.getBy().getId()).isEqualTo(cook.getId());
+            assertThat(m.getAt()).isBetween(Instant.now().minusSeconds(60), Instant.now());
+            assertThat(m.getOrder()).isNull();
+        });
+        assertThat(page("/ship/stores", cook)).containsPattern("(?s)href=\"/ship/stores/items/" + flour.getId()
+                + "\">Flour</a>\\s*<span class=\"stores-qty\"><span class=\"num\">7</span> <span>kg</span></span>\\s*"
+                + "<span class=\"badge status-badge status-warning\">Low</span>");
+        assertThat(audit("STOCK_COUNTED")).singleElement().satisfies(e -> {
+            assertThat(e.getDetails()).isEqualTo("Flour: 10 -> 7 kg");
+            assertThat(e.getActor().getId()).isEqualTo(cook.getId());
+            assertThat(e.getShip().getId()).isEqualTo(ship.getId());
+        });
+        // The item's history: before, after and the difference.
+        assertThat(page("/ship/stores/items/" + flour.getId(), cook))
+                .containsPattern("(?s)>10</td>\\s*<td[^>]*>7</td>\\s*<td[^>]*><span class=\"num\">-3</span></td>");
+    }
+
+    @Test
+    void withJavaScriptTheRowComesBackAsJson() throws Exception {
+        mockMvc.perform(post("/ship/stores/items/{id}/count", rice.getId()).param("quantity", "2,5")
+                        .with(user(new CurrentUser(cook))).with(csrf()).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantity").value("2.5"))
+                .andExpect(jsonPath("$.status").value("low"))
+                .andExpect(jsonPath("$.tone").value("warning"))
+                .andExpect(jsonPath("$.statusLabel").value("Low"))
+                .andExpect(jsonPath("$.message").value("Saved"));
+        assertThat(stockService.level(rice).quantity()).isEqualByComparingTo("2.5");
+
+        mockMvc.perform(post("/ship/stores/items/{id}/count", rice.getId()).param("quantity", "-1")
+                        .with(user(new CurrentUser(cook))).with(csrf()).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Enter a quantity of zero or more, with at most 3 decimals."));
+        assertThat(stockService.level(rice).quantity()).isEqualByComparingTo("2.5");
+        assertThat(stockService.history(rice)).hasSize(1);
+    }
+
+    @Test
+    void aCountEqualToTheStoreAndAFirstCountAreSavedToo() throws Exception {
+        count(rice, "40");
+        count(sugar, "0");   // no row yet
+        count(sugar, "12");
+
+        assertThat(stockService.history(rice)).singleElement().satisfies(m -> {
+            assertThat(m.getQuantityBefore()).isEqualByComparingTo("40");
+            assertThat(m.getQuantityAfter()).isEqualByComparingTo("40");
+        });
+        assertThat(stockService.history(sugar)).extracting(StockMovement::getQuantityBefore)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(BigDecimal.ZERO, BigDecimal.ZERO);
+        assertThat(levelRepository.findByItemId(sugar.getId())).get()
+                .satisfies(level -> assertThat(level.getQuantity()).isEqualByComparingTo("12"));
+        // The confirmed count shows a difference of 0.
+        assertThat(page("/ship/stores/items/" + rice.getId(), cook)).contains("<span class=\"num\">0</span></td>");
+    }
+
+    @Test
+    void aWrongValueShowsItsErrorNextToThatRowOnly() throws Exception {
+        for (String wrong : List.of("", "abc", "-1", "1.0001", "1234567890")) {
+            mockMvc.perform(post("/ship/stores/items/{id}/count", oil.getId()).param("quantity", wrong)
+                            .with(user(new CurrentUser(cook))).with(csrf()))
+                    .andExpect(redirectedUrl("/ship/stores/count#item-" + oil.getId()))
+                    .andExpect(flash().attribute("countError", new StoresController.CountError(oil.getId(), wrong)));
+        }
+        assertThat(stockService.history(oil)).isEmpty();
+        assertThat(stockService.level(oil).quantity()).isEqualByComparingTo("4");
+
+        String html = mockMvc.perform(get("/ship/stores/count").with(user(new CurrentUser(cook)))
+                        .flashAttr("countError", new StoresController.CountError(oil.getId(), "-1")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html).containsOnlyOnce("Enter a quantity of zero or more, with at most 3 decimals.")
+                .containsOnlyOnce("is-invalid")
+                .containsPattern("<input(?=[^>]*id=\"count-" + oil.getId() + "\")(?=[^>]*is-invalid)"
+                        + "(?=[^>]*aria-invalid=\"true\")(?=[^>]*value=\"-1\")")
+                .containsPattern("id=\"count-" + oil.getId() + "-error\" data-count-error>Enter a quantity");
+    }
+
+    @Test
+    void theCountPageListsEveryItemWithItsExpectedQuantity() throws Exception {
+        assertThat(page("/ship/stores", cook)).contains("href=\"/ship/stores/count\"", "href=\"/ship/stores/history\"");
+
+        String html = page("/ship/stores/count", cook);
+        assertThat(html).contains("<title>Count the store · Nereonet</title>", "js/stores-count", "data-autosave")
+                .doesNotContain("Shower gel", "Jasmine rice")
+                .containsPattern("<input type=\"number\" inputmode=\"decimal\"[^>]*id=\"count-" + rice.getId()
+                        + "\"[^>]*value=\"40\"")
+                .containsPattern("id=\"count-" + salt.getId() + "\"[^>]*value=\"12.5\"")
+                .containsPattern("id=\"count-" + sugar.getId() + "\"[^>]*value=\"0\"")
+                .contains("action=\"/ship/stores/items/" + rice.getId() + "/count\"")
+                .doesNotContain("is-invalid");
+        // By place, "Other" last; no Save for the whole page.
+        assertThat(html.indexOf(">Dry store</h2>")).isPositive().isLessThan(html.indexOf(">Other</h2>"));
+        // Saved without JavaScript: "Saved" on that row.
+        String saved = mockMvc.perform(get("/ship/stores/count").with(user(new CurrentUser(cook)))
+                        .flashAttr("countSaved", rice.getId()))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(saved).containsOnlyOnce("data-count-saved>Saved</span>");
+    }
+
+    @Test
+    void onlyActiveProvisionsOfTheCooksOwnShip() throws Exception {
+        Item retired = item(ship, "Old tea", "kg", ItemCategory.PROVISIONS, null);
+        retired.setActive(false);
+        itemRepository.save(retired);
+        for (Item item : List.of(otherShipsRice, showerGel, retired)) {
+            mockMvc.perform(post("/ship/stores/items/{id}/count", item.getId()).param("quantity", "1")
+                            .with(user(new CurrentUser(cook))).with(csrf()))
+                    .andExpect(status().isNotFound());
+        }
+        assertThat(stockService.level(otherShipsRice).quantity()).isEqualByComparingTo("3");
+        for (User other : List.of(master, crewMember)) {
+            mockMvc.perform(post("/ship/stores/items/{id}/count", rice.getId()).param("quantity", "1")
+                            .with(user(new CurrentUser(other))).with(csrf()))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/ship/stores/count").with(user(new CurrentUser(other))))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/ship/stores/history").with(user(new CurrentUser(other))))
+                    .andExpect(status().isForbidden());
+            assertThatThrownBy(() -> stockService.count(other, rice.getId(), BigDecimal.ONE, null))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+        cook.setEnabled(false);
+        assertThatThrownBy(() -> stockService.count(cook, rice.getId(), BigDecimal.ONE, null))
+                .isInstanceOf(AccessDeniedException.class);
+        cook.setEnabled(true);
+        assertThatThrownBy(() -> stockService.count(cook, rice.getId(), new BigDecimal("-1"), null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> stockService.count(cook, rice.getId(), BigDecimal.ONE, "x".repeat(201)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(stockService.history(rice)).isEmpty();
+    }
+
+    @Test
+    void theLastCountIsTheRealOne() throws Exception {
+        assertThat(page("/ship/stores", cook)).contains("Not counted yet");
+        count(rice, "38");
+        assertThat(page("/ship/stores", cook)).doesNotContain("Not counted yet")
+                .contains(dates.utcDate(Instant.now()));
+    }
+
+    @Test
+    void theHistoryOfTheShipNewestFirstFilteredAndFiftyAPage() throws Exception {
+        Instant day = Instant.parse("2026-11-01T10:00:00Z");
+        for (int i = 0; i < 55; i++) {
+            movementRepository.save(StockMovement.of(rice, StockMovementType.COUNT, new BigDecimal(i),
+                    new BigDecimal(i + 1), cook, day.plus(Duration.ofMinutes(i)), null, null));
+        }
+        movementRepository.save(StockMovement.of(oil, StockMovementType.RECEIPT, new BigDecimal("4"),
+                new BigDecimal("24"), cook, day.plus(Duration.ofDays(3)), null, null));
+        movementRepository.save(StockMovement.of(otherShipsRice, StockMovementType.COUNT, BigDecimal.ZERO,
+                new BigDecimal("3"), cook, day, null, null));
+
+        String first = page("/ship/stores/history", cook);
+        assertThat(first).contains("<title>History · Nereonet</title>", "Page 1 of 2 · 56 movements",
+                        "href=\"/ship/stores/history?page=1\"")
+                .doesNotContain("Jasmine rice");
+        assertThat(rows(first)).isEqualTo(50);
+        // Newest first: the delivery, then the latest count.
+        assertThat(first.indexOf(">Delivery received</span>")).isPositive()
+                .isLessThan(first.indexOf(">Count</span>"));
+        assertThat(first).containsPattern("(?s)>Olive oil</a>.*?>4</td>\\s*<td[^>]*>24</td>\\s*"
+                + "<td[^>]*><span class=\"num\">\\+20</span></td>\\s*<td[^>]*>Demo Cook</td>");
+        assertThat(rows(page("/ship/stores/history?page=1", cook))).isEqualTo(6);
+
+        assertThat(rows(page("/ship/stores/history?type=RECEIPT", cook))).isEqualTo(1);
+        String counts = page("/ship/stores/history?type=COUNT", cook);
+        assertThat(counts).contains("href=\"/ship/stores/history?type=COUNT&amp;page=1\"")
+                .contains("<option value=\"COUNT\" selected=\"selected\">Count</option>")
+                .doesNotContain(">Delivery received</span>");
+        assertThat(rows(page("/ship/stores/history?from=2026-11-02&to=2026-11-04", cook))).isEqualTo(1);
+        assertThat(rows(page("/ship/stores/history?to=2026-11-01", cook))).isEqualTo(50);
+        assertThat(page("/ship/stores/history?from=2026-12-01", cook)).contains("No movements for these filters.");
+        // Not a date: its error, and nothing filtered.
+        assertThat(page("/ship/stores/history?from=nonsense", cook)).contains("is-invalid", "56 movements");
+    }
+
+    private static int rows(String html) {
+        return html.split("data-movement", -1).length - 1;
+    }
+
+    private void count(Item item, String quantity) throws Exception {
+        mockMvc.perform(post("/ship/stores/items/{id}/count", item.getId()).param("quantity", quantity)
+                        .with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(flash().attribute("countSaved", item.getId()));
+    }
+
+    private List<AuditEntry> audit(String action) {
+        return auditRepository.findAll().stream().filter(e -> e.getAction().equals(action)).toList();
     }
 
     private void stock(Item item, String quantity) {

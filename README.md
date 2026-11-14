@@ -1456,10 +1456,10 @@ Requirements: Java 25, Docker.
    - To try it without a key: start with `VESSELAPI_FAKE=true`, open **Vessels › Add vessel**, type `9328716` and
      press **Look up by IMO**; or open MV Demo, **Edit**, **Refresh from VesselAPI**.
 
-30. Stores (P52, the Chief cook only): the stock of the vessel's provisions. `core/stock/` (`StockLevel`,
+30. Stores (P52, counting P53; the Chief cook only): the stock of the vessel's provisions. `core/stock/` (`StockLevel`,
    `StockMovement`, `StockMovementType`, `StockStatus`, `StockService` and the two repositories), `stores/`
-   (`StoresController`, `StoresService`), `templates/stores/`; styles in `app.css` section "Stores (P52)". English
-   only, as every crew screen. `/ship/stores` and `/ship/stores/**` are for CHIEF_COOK only (`SecurityConfig`, next to
+   (`StoresController`, `StoresService`, `StoresHistoryFilter`), `templates/stores/`, `js/stores-count.js`; styles in
+   `app.css`, "Stores (P52)" and "Counting the store (P53)". English only, as every crew screen. `/ship/stores` and `/ship/stores/**` are for CHIEF_COOK only (`SecurityConfig`, next to
    the Master's rules): the Master and crew members get 403. The pages always show the signed-in cook's own vessel.
    - **The stock** (`core/stock`, shared: the request page, the receipt on board and the office use it later). Only
      PROVISIONS items have stock; personal items never appear in the store.
@@ -1472,8 +1472,9 @@ Requirements: Java 25, Docker.
      - `StockService`: `levels(ship)` every active PROVISIONS item of the vessel, by name, with its quantity and status;
        `status(quantity)` **Out of stock** at 0, **Low** above 0 and below `app.stock.low-threshold`
        (`STOCK_LOW_THRESHOLD`, default 10, one threshold for every item), otherwise **OK**; `history(item)` its
-       movements, newest first; `lastCount(ship)` the latest COUNT movement.
-     Nothing changes the stock yet: counting and receipts come with their own pages.
+       movements, newest first; `lastCount(ship)` the latest COUNT movement; `count(cook, item, quantity, note)` and
+       `history(ship, type, from, to, page)` (P53, below).
+     Receipts change the stock later, with their own page.
    - **Where**: **Stores** in the sidebar under On board, with the number of provisions Low or Out of stock as a pill
      (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is a row of **More**
      (`/ship/more`) with the same number, and the More tab carries it in its badge, as the Master's Approvals (21).
@@ -1492,13 +1493,43 @@ Requirements: Java 25, Docker.
      newest first: date and time, type (Count, Delivery received with the order number), before, after, who
      ("Deleted user" once the account is gone) and the note. An item of another vessel, or one that is not
      PROVISIONS, is a 404.
+   - **Counting by hand** (P53). `StockService.count(cook, itemId, counted, note)` sets the item's stock to the
+     counted quantity at once and saves a COUNT movement: before is what the store expected, after what was counted,
+     by the cook, now. A count equal to what was expected is saved too: it confirms the count. Audit log "Stores
+     counted on board" with "Flour: 10 -> 7 kg". No approval, no draft, no count session. Checks: zero or more with
+     the store's precision (`isValidQuantity`), a note of at most 200 characters (IllegalArgumentException); the item
+     an active PROVISIONS item of the cook's vessel (otherwise nothing changes, and the page answers 404); the user an
+     enabled Chief cook with a vessel (AccessDeniedException). The item's row is locked first (PESSIMISTIC_WRITE, as
+     the order code locks the vessel's row), so two tabs counting one item are saved one after the other. The lock is
+     on the item rather than its `StockLevel` because an item never counted has no `StockLevel` row yet.
+     - **Count** (a button on Stores, only with provisions) opens `/ship/stores/count`: every active provisions item
+       by place, as on Stores, each row with the quantity the store expects in a number input
+       (`inputmode="decimal"`), its unit and status badge. Each row is its own small form,
+       `POST /ship/stores/items/{id}/count` (`quantity`, "2,5" accepted), as the Master's line quantity on
+       `/ship/order`. With JavaScript (`js/stores-count.js`) a row is sent the moment its input changes, with
+       `Accept: application/json` (`StoresController.Counted`), and updated in place: the quantity as stored, the
+       badge and "Saved" for a few seconds; Save is hidden. Without it, the row's Save posts and the page comes back at
+       the same row (`#item-<id>`) with "Saved". A wrong value (blank, not a number, below zero, too many decimals)
+       saves nothing and shows "Enter a quantity of zero or more, with at most 3 decimals." under that row only, the
+       value kept (JSON: 422). Offline or a dropped connection: "Not saved: no connection…" under the row. There is no
+       Save for the page and nothing to resume: the forms carry `data-autosave`, so `js/save.js` never asks "leave this
+       page?" there.
+     - **History** (a button on Stores) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
+       page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
+       difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
+       (both included; not a date: its error under the field, nothing filtered). One query with the item and who
+       (`StockMovementRepository.findOnShip`). Plain on purpose: it will be redesigned.
+     - An item's history has a **Difference** column: counted minus expected for a count ("-3"), a dash for a
+       delivery. The summary's **Last count** is the date of the latest count.
    - Tables `stock_level` and `stock_movement` (Hibernate creates them on start).
    - Dev data: while the demo vessel has no stock at all, its provisions get some, counted by Demo Cook two days ago
      (one COUNT movement each): Basmati rice 40 kg, Flour 25 kg, Eggs 180, Tomatoes 12 kg, Chicken breast 30 kg (OK),
      Olive oil 4 lt and Coffee 6.5 kg (Low), Sugar and Butter (Out of stock), and Salt 15 kg without a place (Other).
-   - Tests: `stores/StoresFlowTest`; the dev data in `approval/ApprovalFlowTest`.
+   - Tests: `stores/StoresFlowTest` (P53 too: counting, the JSON answer, the history); the dev data in `approval/ApprovalFlowTest`.
    - To try it: as `cook.demo@example.com` / `crew123`, **Stores** shows 4 in the sidebar; open it, choose **Low**,
-     then open Olive oil for its history. As `master.demo@example.com`, `/ship/stores` is a 403.
+     then open Olive oil for its history. As `master.demo@example.com`, `/ship/stores` is a 403. P53: press **Count**,
+     change Basmati rice to 7 and leave the field: "Saved", and the badge turns Low; type -2 for Eggs for the error.
+     **History** then shows the count, 40 → 7, -33.
 
 Run the tests (H2 in memory, no Docker needed):
 

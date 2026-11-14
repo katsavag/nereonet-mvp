@@ -15,7 +15,8 @@
 //    ([data-flash="success"]). Any other page (the form with errors, the sign-in page after the session expired)
 //    keeps it, so after signing in again the form opens with the text (P12).
 //  - Unsaved changes: leaving a signed-in page with a form whose fields changed asks first (beforeunload), except when
-//    a form is being sent. Fields of a closed pop-up, and of a download form (data-file), do not count.
+//    a form is being sent. Fields of a closed pop-up, of a download form (data-file) and of a form saved as it changes
+//    (data-autosave, P53) do not count.
 //  - Offline: while the browser reports no connection, a banner at the bottom says so (layout/parts :: offlineBanner)
 //    and sending a POST form is stopped with a message next to its button, instead of a failed request.
 // Storage can be full, blocked or missing (private windows, strict settings): every access is wrapped, and without it
@@ -218,8 +219,9 @@
     const tracked = []; // {form, initial}: forms whose changes count for "leave this page?"
 
     document.querySelectorAll('form').forEach(form => {
-        // A download form's fields (checked rows to export) are a choice, not unsaved work.
-        if (form.method !== 'post' || form.hasAttribute('data-file')) {
+        // A download form's fields (checked rows to export) are a choice, not unsaved work; a form saved as it
+        // changes (data-autosave, the count of the store, P53) has nothing left unsaved.
+        if (form.method !== 'post' || form.hasAttribute('data-file') || form.hasAttribute('data-autosave')) {
             return;
         }
         tracked.push({form: form, initial: valuesOf(userFields(form))});

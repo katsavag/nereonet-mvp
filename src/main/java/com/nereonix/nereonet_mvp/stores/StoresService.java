@@ -1,12 +1,15 @@
 package com.nereonix.nereonet_mvp.stores;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,7 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.stock.StockMovement;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.stock.StockService.Level;
 import com.nereonix.nereonet_mvp.core.stock.StockStatus;
@@ -25,7 +29,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
  * The Chief cook's Stores pages (P52): the provisions of the signed-in cook's own ship with their stock. An item of
- * another ship, or one that is not PROVISIONS, is a 404, never a 403. Read only.
+ * another ship, or one that is not PROVISIONS, is a 404, never a 403. P53: counting by hand and the ship's history.
  */
 @Service
 public class StoresService {
@@ -127,6 +131,27 @@ public class StoresService {
                 .filter(found -> found.getCategory() == ItemCategory.PROVISIONS)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         return new ItemDetail(ship, stockService.level(item), stockService.history(item));
+    }
+
+    /** The cook counts an item of their ship by hand (P53, StockService.count): its new quantity and status. 404 for
+     *  an item that is not an active provisions item of the cook's ship. IllegalArgumentException for a quantity that
+     *  is not valid. */
+    @Transactional
+    public Level count(String email, Long itemId, BigDecimal counted) {
+        User cook = userRepository.findByEmail(email).orElseThrow();
+        return stockService.count(cook, itemId, counted, null)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** The movements of the cook's ship (P53), newest first, StockService.HISTORY_PAGE_SIZE a page. */
+    public record History(Ship ship, Page<StockMovement> movements) {
+    }
+
+    /** type: one type or all (null); from and to: UTC days, both included, or open (null); page from 0. */
+    @Transactional(readOnly = true)
+    public History history(String email, StockMovementType type, LocalDate from, LocalDate to, int page) {
+        Ship ship = ship(email);
+        return new History(ship, stockService.history(ship, type, from, to, page));
     }
 
     private Ship ship(String email) {

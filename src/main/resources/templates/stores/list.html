@@ -10,7 +10,14 @@
      Model: stores (StoresService.Stores), list (ListQuery), status ("low", "out" or null). -->
 <main class="stores-page" th:with="s=${stores}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.title}, eyebrowShip=${s.ship},
-            subtitle=#{stores.hint})}"></header>
+            subtitle=#{stores.hint}, actions=~{::pageActions})}">
+        <!-- P53: History, every movement of the vessel; Count, counting by hand (only with something to count). -->
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-outline-secondary" th:href="@{/ship/stores/history}" th:text="#{stores.log.title}">History</a>
+            <a th:if="${s.total > 0}" class="btn btn-primary" th:href="@{/ship/stores/count}"
+               th:text="#{stores.count.open}">Count</a>
+        </th:block>
+    </header>
 
     <section class="stores-summary" aria-labelledby="storesSummaryTitle">
         <h2 class="visually-hidden" id="storesSummaryTitle" th:text="#{stores.summary.heading}">Summary</h2>

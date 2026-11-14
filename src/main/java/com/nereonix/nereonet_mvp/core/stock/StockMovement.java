@@ -75,6 +75,11 @@ public class StockMovement {
     @JoinColumn(name = "order_id")
     private ShipOrder order;
 
+    /** After minus before: -3 for a count that found 3 less than the store expected (P53). */
+    public BigDecimal getDifference() {
+        return quantityAfter.subtract(quantityBefore);
+    }
+
     /** A new movement. IllegalArgumentException for a quantity that is not valid (StockService.isValidQuantity). A
      *  blank note is stored as null. */
     public static StockMovement of(Item item, StockMovementType type, BigDecimal quantityBefore,

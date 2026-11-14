@@ -3,7 +3,8 @@
 <body>
 <!-- One provisions item of the Chief cook's store (P52): its unit, place ("Not set" without one), quantity on board and
      status, then its history, newest first: date and time, type (Count, Delivery received with its order number),
-     before and after, who ("Deleted user" when the account is gone) and the note. Read only. English only.
+     before and after, for a count the difference, counted minus expected ("-3", P53; a dash for a delivery), who ("Deleted user" when the account is gone) and the
+     note. Read only. English only.
      Model: detail (StoresService.ItemDetail). -->
 <main class="stores-item" th:with="l=${detail.level}, item=${detail.level.item}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${item.name}, crumbs=~{::pageCrumbs},
@@ -40,6 +41,7 @@
                     <th scope="col" th:text="#{stores.history.type}">Type</th>
                     <th scope="col" class="text-end" th:text="#{stores.history.before}">Before</th>
                     <th scope="col" class="text-end" th:text="#{stores.history.after}">After</th>
+                    <th scope="col" class="text-end" th:text="#{stores.history.difference}">Difference</th>
                     <th scope="col" th:text="#{stores.history.by}">By</th>
                     <th scope="col" th:text="#{stores.history.note}">Note</th>
                 </tr>
@@ -56,6 +58,9 @@
                         th:text="${m.quantityBefore.stripTrailingZeros().toPlainString()}">0</td>
                     <td class="text-end font-monospace" th:attr="data-label=#{stores.history.after}"
                         th:text="${m.quantityAfter.stripTrailingZeros().toPlainString()}">40</td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{stores.history.difference}"><th:block
+                            th:if="${m.type.name() == 'COUNT'}"><span th:replace="~{stores/parts :: difference(${m.difference})}"></span></th:block><th:block
+                            th:unless="${m.type.name() == 'COUNT'}">—</th:block></td>
                     <td th:attr="data-label=#{stores.history.by}"
                         th:text="${m.by != null} ? ${m.by.fullName} : #{audit.deletedUser}">Demo Cook</td>
                     <td class="stores-note" th:attr="data-label=#{stores.history.note}"

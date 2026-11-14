@@ -18,6 +18,15 @@ public enum StockStatus {
         return name().toLowerCase(Locale.ROOT);
     }
 
+    /** The tone of its badge (layout/parts :: status): ok, warning or danger. */
+    public String tone() {
+        return switch (this) {
+            case OK -> "ok";
+            case LOW -> "warning";
+            case OUT -> "danger";
+        };
+    }
+
     public String labelKey() {
         return "stores.status." + name();
     }

@@ -6437,3 +6437,22 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     white-space: nowrap;
 }
 .master-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }
+
+/* Counting the store (P53), stores/count.html: one row per item, the name, its quantity in a small form (the input,
+   the unit and, without JavaScript, Save), the status badge and a short "Saved"; a refused value's error on its own
+   line under the row. The input is wide enough for 123456.125 and tall enough for a finger. */
+.stores-count-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-3);
+    min-height: 3.5rem;
+    scroll-margin-top: 5rem;   /* back at the row (#item-<id>) below the sticky top bar */
+}
+.stores-count-form { display: flex; align-items: center; gap: var(--nn-space-2); }
+.stores-count-input { width: 8rem; min-height: 2.75rem; text-align: end; }
+.stores-count-unit { min-width: 2rem; color: var(--nn-text-secondary); }
+.stores-count-status { min-width: 6.5rem; }   /* the widest badge, Out of stock: the inputs line up */
+.stores-count-saved { min-width: 3.5rem; font-size: var(--nn-font-sm); color: var(--nn-ok-text); font-weight: 600; }
+.stores-count-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
+.stores-count-error[hidden] { display: none; }

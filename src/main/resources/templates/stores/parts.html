@@ -7,8 +7,11 @@
      repeats it.
      Use: <span th:replace="~{stores/parts :: statusBadge(${level.status})}"></span> -->
 <span th:fragment="statusBadge(status)"
-      th:replace="~{layout/parts :: status(${status.name() == 'OK'} ? 'ok' : (${status.name() == 'LOW'} ? 'warning'
-              : 'danger'), #{${status.labelKey()}})}"></span>
+      th:replace="~{layout/parts :: status(${status.tone()}, #{${status.labelKey()}})}"></span>
+
+<!-- A movement's difference, after minus before (P53): "+3", "-3" or "0". -->
+<span th:fragment="difference(difference)" class="num"
+      th:text="${(difference.signum() > 0 ? '+' : '') + difference.stripTrailingZeros().toPlainString()}">-3</span>
 
 <!-- A quantity with its unit, "12.5 kg": the quantity without trailing zeros. -->
 <span th:fragment="quantity(quantity, unit)" class="stores-qty"><span class="num"
