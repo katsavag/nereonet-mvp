@@ -32,6 +32,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Confirmation;
 import com.nereonix.nereonet_mvp.core.export.XlsExport;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
+import com.nereonix.nereonet_mvp.core.rfq.RfqService;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -59,12 +60,14 @@ public class OfficeOrderController {
     private final ShipOrderService orderService;
     private final ShipRepository shipRepository;
     private final UserRepository userRepository;
+    private final RfqService rfqService;
 
     public OfficeOrderController(ShipOrderService orderService, ShipRepository shipRepository,
-                                 UserRepository userRepository) {
+                                 UserRepository userRepository, RfqService rfqService) {
         this.orderService = orderService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
+        this.rfqService = rfqService;
     }
 
     // shipId, status (sent, confirmed, closed) and exported=no (not exported yet) filter the list; anything else in
@@ -97,7 +100,7 @@ public class OfficeOrderController {
     @GetMapping(LIST + "/{id}")
     public String detail(@PathVariable Long id, Model model) {
         ShipOrder order = sent(id);
-        return showDetail(order, ConfirmOrderForm.of(order), model);
+        return showDetail(order, ConfirmOrderForm.of(order, rfqService.awarded(id).orElse(null)), model);
     }
 
     /**
@@ -159,6 +162,10 @@ public class OfficeOrderController {
                 .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
         model.addAttribute("canConfirm", order.getStatus() != ShipOrderStatus.CLOSED);
         model.addAttribute("confirmForm", confirmForm);
+        // P44: the order's requests for quotes, the open one, whether one can be started, and the latest award.
+        model.addAttribute("rfqs", rfqService.forOrder(order.getId()));
+        model.addAttribute("canRequestQuotes", rfqService.canRequest(order));
+        model.addAttribute("award", rfqService.awarded(order.getId()).orElse(null));
         return "officeorder/detail";
     }
 

@@ -39,6 +39,7 @@ import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
+import com.nereonix.nereonet_mvp.core.rfq.RfqComparison;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -64,10 +65,11 @@ import com.nereonix.nereonet_mvp.requirement.RequiredDocument;
  * category or vessel), and the cards By category, Next 30 days, Fleet and Recent activity; also the Overview tab of
  * the ship page.
  *
- * load() always runs the same 12 queries, whatever the size of the fleet: the active ships with their crew, the
+ * load() always runs the same 13 queries, whatever the size of the fleet: the active ships with their crew, the
  * certificates, the required documents' rules, the vessels' RightShip rows, SIRE 2.0 (two, SireService.attention),
- * the orders, the invitations, the announcements, the library items, the snoozes (SnoozeService.sync, which also
- * ends the snoozes that no longer apply: a write, so load() is not read-only) and the newest audit entries.
+ * the orders, the open requests for quotes (P44), the invitations, the announcements, the library items, the
+ * snoozes (SnoozeService.sync, which also ends the snoozes that no longer apply: a write, so load() is not
+ * read-only) and the newest audit entries.
  * Required documents (P42) add two more when any rule is set: the crew on board and their certificates
  * (ComplianceService.onBoard). DashboardFlowTest counts them. Snoozed items (P43) are left out of everything but
  * the "snoozed" detail of the Items tile.
@@ -135,7 +137,7 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, InvitationItem, AnnouncementItem,
+            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, RfqItem, InvitationItem, AnnouncementItem,
             LibraryAttentionItem {
 
         AttentionType type();
@@ -280,6 +282,35 @@ public class DashboardService {
 
         public long sortKey() {
             return sentAt == null ? Long.MIN_VALUE : sentAt.getEpochSecond();
+        }
+    }
+
+    /**
+     * An open request for quotes (P44): RFQ_READY with quotes from at least two suppliers (the oldest request first),
+     * or RFQ_PAST_REPLY_BY when the reply-by date has passed with fewer (the longest overdue first). quoted: suppliers
+     * who quoted; waiting: suppliers not yet answered.
+     */
+    public record RfqItem(AttentionType type, Long id, Long orderId, FleetShip ship, LocalDate replyBy, Instant sentAt,
+                          long quoted, long waiting) implements AttentionItem {
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            if (type == AttentionType.RFQ_PAST_REPLY_BY) {
+                return replyBy.toEpochDay();
+            }
+            return sentAt == null ? Long.MIN_VALUE : sentAt.getEpochSecond();
+        }
+
+        public LocalDate dueDate() {
+            return type == AttentionType.RFQ_PAST_REPLY_BY ? replyBy : null;
+        }
+
+        /** The RFQ's page, where the comparison and the quotes are. */
+        public String url() {
+            return "/office/orders/" + orderId + "/rfqs/" + id;
         }
     }
 
@@ -522,6 +553,15 @@ public class DashboardService {
                 all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
             }
         }
+        // P44: open requests for quotes with two quotes to compare, or past their reply-by date with fewer.
+        for (DashboardQueries.RfqRow r : queries.openRfqs()) {
+            AttentionType type = r.quoted() >= RfqComparison.MIN_QUOTES ? AttentionType.RFQ_READY
+                    : r.replyBy().isBefore(today) ? AttentionType.RFQ_PAST_REPLY_BY : null;
+            if (type != null) {
+                all.add(new RfqItem(type, r.id(), r.orderId(), shipsById.get(r.shipId()), r.replyBy(), r.sentAt(),
+                        r.quoted(), r.waiting()));
+            }
+        }
         // expiresAt is (last) sent + the validity, so "sent more than 48 hours ago" is a bound on expiresAt.
         // It includes the expired ones: they were sent at least the validity ago.
         Duration validity = Duration.ofDays(invitationValidDays);
@@ -714,7 +754,7 @@ public class DashboardService {
                 case CERTIFICATES -> certificates++;
                 case ACKNOWLEDGEMENTS -> acknowledgements++;
                 case ORDERS -> orders++;
-                case INVITATIONS, VETTING, DOCUMENTS -> { }
+                case QUOTES, INVITATIONS, VETTING, DOCUMENTS -> { }
             }
         }
         return new FleetRow(ship, ship.crew(), view, certificates, acknowledgements, orders, open);

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.new.title}, ~{::main})}">
+<body>
+<!-- Request quotes (P44), step 1 of 2: from a SENT vessel order, the port and delivery date (prefilled from the
+     order's requested port and needed by date), the reply-by date and the suppliers to ask (at least one; those whose
+     ports served mention the port first, with "Serves Piraeus"). Review (P10) shows what will be sent before anything
+     is. Beside the form from 1200px, under it below: the order's lines, which the request copies. Without an active
+     supplier the list says so and links to Add supplier. Model: order, form (RfqForm), suppliers, serving (how many
+     serve the port), groups (RfqController.LineGroup). -->
+<main class="form-page form-page-aside">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{rfq.new.heading}, crumbs=~{rfq/parts :: crumbs(${order}, null)},
+            eyebrowShip=${order.ship}, subtitle=#{rfq.new.hint})}"></header>
+
+    <div class="card form-box">
+            <div class="card-body p-3 p-md-4">
+                <form th:object="${form}" method="post" novalidate th:action="@{/office/orders/{id}/rfq/review(id=${order.id})}">
+                    <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                    <div class="form-grid">
+                        <div>
+                            <label for="port" class="form-label" th:text="#{rfq.port}">Port</label>
+                            <input type="text" th:field="*{port}" class="form-control" th:errorclass="is-invalid"
+                                   autocomplete="off" aria-describedby="portHint portCounter" required>
+                            <div class="invalid-feedback" th:errors="*{port}"></div>
+                            <div class="form-meta">
+                                <div id="portHint" class="form-text" th:text="#{rfq.port.hint(${order.requestedPort})}">The vessel asked for Rotterdam.</div>
+                                <div th:replace="~{layout/parts :: counter(${form}, 'port', 'port')}"></div>
+                            </div>
+                        </div>
+                        <div class="field-half">
+                            <label for="deliveryDate" class="form-label" th:text="#{rfq.deliveryDate}">Delivery date</label>
+                            <input type="date" th:field="*{deliveryDate}" class="form-control" th:errorclass="is-invalid"
+                                   th:min="${@formFields.minDate(form, 'deliveryDate')}"
+                                   th:max="${@formFields.maxDate(form, 'deliveryDate')}" required>
+                            <div class="invalid-feedback" th:errors="*{deliveryDate}"></div>
+                        </div>
+                        <div class="field-half">
+                            <label for="replyBy" class="form-label" th:text="#{rfq.replyBy}">Reply by</label>
+                            <input type="date" th:field="*{replyBy}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('replyBy') or #fields.hasErrors('replyByInTime')} ? 'is-invalid'"
+                                   th:min="${@formFields.minDate(form, 'replyBy')}"
+                                   th:max="${@formFields.maxDate(form, 'replyBy')}" aria-describedby="replyByHint" required>
+                            <div class="invalid-feedback" th:errors="*{replyBy}"></div>
+                            <div class="invalid-feedback" th:errors="*{replyByInTime}"></div>
+                            <div class="form-meta">
+                                <div id="replyByHint" class="form-text" th:text="#{rfq.replyBy.hint}">After this date a supplier who has not answered shows No reply.</div>
+                            </div>
+                        </div>
+
+                        <fieldset id="supplierIds" class="rfq-suppliers" th:with="suppliersError=${#fields.hasErrors('supplierIds')}"
+                                  th:attr="aria-describedby=${suppliersError} ? 'supplierIdsError' : 'supplierIdsHint'">
+                            <legend class="form-group-legend" th:text="#{rfq.suppliers}">Suppliers to ask</legend>
+                            <p id="supplierIdsHint" class="form-text mt-0 mb-2" th:text="#{rfq.suppliers.hint}">Each supplier gets its own email and never sees the others.</p>
+                            <p th:if="${suppliersError}" id="supplierIdsError" class="invalid-feedback d-block mt-0 mb-2" th:errors="*{supplierIds}">Choose at least one supplier.</p>
+                            <th:block th:if="${suppliers.isEmpty()}">
+                                <p class="form-text" th:text="#{rfq.suppliers.none}">There is no active supplier yet.</p>
+                                <a class="btn btn-outline-secondary" th:href="@{/office/suppliers/new}" th:text="#{supplier.add}">Add supplier</a>
+                            </th:block>
+                            <ul th:unless="${suppliers.isEmpty()}" class="ship-picker-list rfq-supplier-list">
+                                <li th:each="s : ${suppliers}">
+                                    <label class="ship-pick" th:for="${'supplier' + s.id}">
+                                        <input type="checkbox" name="supplierIds" class="form-check-input" th:id="${'supplier' + s.id}"
+                                               th:value="${s.id}" th:checked="${form.supplierIds.contains(s.id)}"
+                                               th:classappend="${suppliersError} ? 'is-invalid'">
+                                        <span class="ship-pick-text">
+                                            <span class="ship-pick-name" th:text="${s.name}">VANOS (Piraeus)</span>
+                                            <span class="ship-pick-meta"><span th:text="${s.email}">sales@vanos.gr</span> · <span
+                                                    class="num" th:text="${s.currency}">EUR</span><th:block
+                                                    th:if="${s.serves(form.port)}"> · <span class="rfq-serves" th:text="#{rfq.suppliers.serves(${form.port})}">Serves Piraeus</span></th:block></span>
+                                        </span>
+                                    </label>
+                                </li>
+                            </ul>
+                        </fieldset>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" th:text="#{rfq.review}" th:disabled="${suppliers.isEmpty()}">Review</button>
+                        <a class="btn btn-ghost" th:href="@{/office/orders/{id}(id=${order.id})}" th:text="#{form.cancel}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    <aside class="form-aside">
+        <section th:replace="~{rfq/parts :: orderLines(${groups})}"></section>
+    </aside>
+</main>
+</body>
+</html>

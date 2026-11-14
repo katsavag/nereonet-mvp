@@ -90,6 +90,7 @@
                             <li th:replace="~{layout/parts :: navItem('announcements', '/office/announcements', #{nav.announcements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('orders', '/office/orders', #{nav.orders},
                                     ${navCounts.orders}, #{nav.count.orders(${navCounts.orders})})}"></li>
+                            <li th:replace="~{layout/parts :: navItem('suppliers', '/office/suppliers', #{nav.suppliers}, null, null)}"></li>
                         </ul>
                         <p class="nav-group-label" id="navGroupAdministration" th:text="#{nav.group.administration}">Administration</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupAdministration">

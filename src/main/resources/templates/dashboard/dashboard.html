@@ -293,6 +293,30 @@
                     </div>
                 </th:block>
 
+                <!-- c2. Request for quotes (P44): quotes from two suppliers ready to compare, or the reply-by date passed
+                     with fewer. Both open the RFQ, where the comparison and the quotes are. -->
+                <th:block th:if="${type == 'RFQ_READY' or type == 'RFQ_PAST_REPLY_BY'}" th:with="url=@{${item.url()}}">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <th:block th:if="${type == 'RFQ_READY'}"><span th:replace="~{layout/parts :: statusIcon('info', #{dashboard.item.quotesReady(${item.quoted})}, 'check')}"></span></th:block>
+                            <th:block th:unless="${type == 'RFQ_READY'}"><span th:replace="~{layout/parts :: statusIcon('warning', #{dashboard.item.replyByPassed}, 'clock')}"></span></th:block>
+                            <span class="attention-kind" th:text="#{dashboard.kind.rfq}">Request for quotes</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="#{dashboard.item.rfq(${item.id}, ${item.orderId})}">RFQ #3 · order #12</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            · <span th:text="#{dashboard.item.rfqWaiting(${item.waiting})}">1 supplier not answered</span>
+                            · <span th:text="#{rfq.replyBy}">Reply by</span>
+                            <time th:replace="~{layout/parts :: localDate(${item.replyBy})}"></time>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="${type == 'RFQ_READY'} ? #{dashboard.action.compareQuotes} : #{dashboard.action.openRfq}">Compare quotes</a>
+                    </div>
+                </th:block>
+
                 <!-- d. Crew invitation expired, or sent more than 48 hours ago and not accepted. Invitations have no page
                      of their own: the title opens the ship's crew list, where it is listed. -->
                 <th:block th:if="${type == 'INVITATION'}">

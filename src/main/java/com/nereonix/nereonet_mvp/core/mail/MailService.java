@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.core.mail;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,39 @@ public class MailService {
             helper.setText(text, html);
             // After setText, as MimeMessageHelper requires for inline parts.
             helper.addInline(LOGO_CID, LOGO, "image/png");
+        } catch (MessagingException e) {
+            throw new MailPreparationException(e);
+        }
+        mailSender.send(message);
+        log.info("Email sent to {}: {}", to, subject);
+    }
+
+    /** A file sent with an email (P44: the RFQ's workbook). */
+    public record Attachment(String filename, String contentType, byte[] content) {
+    }
+
+    /**
+     * As send(to, subject, text, html), with a Reply-To (the office user a supplier answers, P44) and attachments.
+     * MIME structure: multipart/mixed holding the multipart/related of send(...) and the attachments.
+     */
+    public void send(String to, String replyTo, String subject, String text, String html,
+                     List<Attachment> attachments) {
+        MimeMessage message = mailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            if (replyTo != null && !replyTo.isBlank()) {
+                helper.setReplyTo(replyTo);
+            }
+            helper.setSubject(subject);
+            helper.setText(text, html);
+            helper.addInline(LOGO_CID, LOGO, "image/png");
+            for (Attachment attachment : attachments) {
+                helper.addAttachment(attachment.filename(),
+                        new org.springframework.core.io.ByteArrayResource(attachment.content()), attachment.contentType());
+            }
         } catch (MessagingException e) {
             throw new MailPreparationException(e);
         }

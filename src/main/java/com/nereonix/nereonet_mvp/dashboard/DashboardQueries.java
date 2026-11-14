@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.rfq.QuoteStatus;
+import com.nereonix.nereonet_mvp.core.rfq.RfqStatus;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -42,6 +44,12 @@ public class DashboardQueries {
         public boolean notExported() {
             return exportedAt == null;
         }
+    }
+
+    /** An open request for quotes of an active ship (P44), with how many suppliers have quoted and how many not yet
+     *  answered (sent, neither quoted, declined nor failed). */
+    public record RfqRow(Long id, Long orderId, Long shipId, LocalDate replyBy, Instant sentAt, long quoted,
+                         long waiting) {
     }
 
     public record InvitationRow(Long id, Long shipId, String fullName, Rank rank, Instant expiresAt) {
@@ -127,6 +135,21 @@ public class DashboardQueries {
                 .setParameter("confirmed", ShipOrderStatus.CONFIRMED)
                 .setParameter("today", today)
                 .setParameter("deliveriesUntil", deliveriesUntil)
+                .getResultList();
+    }
+
+    /** The open requests for quotes of active ships (P44), with their quoted and waiting suppliers counted. */
+    List<RfqRow> openRfqs() {
+        return entityManager.createQuery("""
+                select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$RfqRow(
+                    r.id, o.id, s.id, r.replyBy, r.sentAt,
+                    (select count(q) from RfqQuote q where q.rfq = r and q.status = :quoted),
+                    (select count(q) from RfqQuote q where q.rfq = r and q.status = :waiting))
+                from Rfq r join r.order o join o.ship s
+                where s.active = true and r.status = :open""", RfqRow.class)
+                .setParameter("quoted", QuoteStatus.QUOTED)
+                .setParameter("waiting", QuoteStatus.SENT)
+                .setParameter("open", RfqStatus.OPEN)
                 .getResultList();
     }
 

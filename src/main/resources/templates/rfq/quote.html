@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.quote.title(${quote.supplier.name})}, ~{::main})}">
+<body>
+<!-- Enter quote (P44): what one supplier answered, typed in by the office from their email or PDF.
+     1. Per line (by category, P32): unit price (of one pack), quantity offered (in packs), pack size and unit
+        (empty: one of the item's unit; "5" "L" for a 5 L can of an item in lt) and a note. A line without a price is
+        not offered and shows "Not offered" in the comparison. The quantity starts as the quantity asked.
+     2. The quote: currency (the supplier's to start with), delivery cost, delivery date, valid until.
+     3. The supplier's PDF, optional (in place of one uploaded before).
+     Inputs are named lines[i].field and have that as their id, so the error summary's links find them. On phones the
+     lines scroll sideways inside their box with the item column fixed.
+     Model: order, rfq, quote (RfqQuote), form (QuoteForm), groups (RfqController.QuoteGroup). -->
+<main th:with="action=${'/office/orders/' + order.id + '/rfqs/' + rfq.id + '/quotes/' + quote.id}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{rfq.quote.title(${quote.supplier.name})}, crumbs=~{rfq/parts :: crumbs(${order}, ${rfq})},
+            eyebrowShip=${order.ship}, subtitle=#{rfq.quote.hint})}"></header>
+
+    <form th:object="${form}" method="post" enctype="multipart/form-data" novalidate th:action="@{${action}}" class="rfq-quote-form">
+        <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+
+        <!-- 1. The lines -->
+        <section class="card mb-4" id="lines" tabindex="-1" aria-labelledby="quoteLinesTitle">
+            <div class="card-header bg-transparent py-3">
+                <h2 class="h5 fw-bold mb-0" id="quoteLinesTitle" th:text="#{rfq.quote.lines}">Prices</h2>
+                <p class="rfq-compare-hint" th:text="#{rfq.quote.lines.hint}">Leave the price empty for an item the supplier does not offer.</p>
+                <p th:if="${#fields.hasErrors('anyLineOffered')}" class="invalid-feedback d-block mb-0" th:errors="*{anyLineOffered}">Enter a price for at least one item.</p>
+            </div>
+            <div class="rfq-compare-scroll" tabindex="0" role="region" aria-labelledby="quoteLinesTitle">
+                <table class="table rfq-compare rfq-quote-table align-top mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="rfq-compare-item" th:text="#{rfq.compare.item}">Item</th>
+                        <th scope="col" th:text="#{rfq.quote.unitPrice(${form.currency ?: quote.supplier.currency})}">Unit price (EUR)</th>
+                        <th scope="col" th:text="#{rfq.quote.quantityOffered}">Quantity offered</th>
+                        <th scope="col" th:text="#{rfq.quote.packSize}">Pack size</th>
+                        <th scope="col" th:text="#{rfq.quote.packUnit}">Pack unit</th>
+                        <th scope="col" th:text="#{rfq.quote.note}">Note</th>
+                    </tr>
+                    </thead>
+                    <tbody th:each="g : ${groups}">
+                    <tr class="rfq-group-row">
+                        <th scope="colgroup" class="rfq-compare-item" th:text="#{${g.category.labelKey()}}">Provisions</th>
+                        <td colspan="5"></td>
+                    </tr>
+                    <tr th:each="row : ${g.rows}" th:with="i=${row.index}, p=${'lines[' + row.index + '].'}">
+                        <th scope="row" class="rfq-compare-item">
+                            <span class="d-block" th:id="${'lineName' + i}" th:text="${row.line.itemName}">Olive oil</span>
+                            <span class="rfq-cell-detail num" th:text="#{rfq.quote.asked(${@money.quantity(row.line.quantity)}, ${row.line.unit})}">asked: 10 lt</span>
+                            <input type="hidden" th:name="${p + 'lineId'}" th:value="${row.line.id}">
+                        </th>
+                        <td>
+                            <input type="number" class="form-control rfq-input-price" th:id="${p + 'unitPrice'}" th:name="${p + 'unitPrice'}"
+                                   th:value="${form.lines[i].unitPrice}" min="0" step="any" inputmode="decimal"
+                                   th:classappend="${#fields.hasErrors(p + 'unitPrice')} ? 'is-invalid'"
+                                   th:attr="aria-label=#{rfq.quote.unitPriceFor(${row.line.itemName})}">
+                            <div class="invalid-feedback" th:errors="*{__${p}__unitPrice}"></div>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control rfq-input-qty" th:id="${p + 'quantityOffered'}" th:name="${p + 'quantityOffered'}"
+                                   th:value="${form.lines[i].quantityOffered}" min="0" step="any" inputmode="decimal"
+                                   th:classappend="${#fields.hasErrors(p + 'quantityOffered')} ? 'is-invalid'"
+                                   th:attr="aria-label=#{rfq.quote.quantityOfferedFor(${row.line.itemName})}">
+                            <div class="invalid-feedback" th:errors="*{__${p}__quantityOffered}"></div>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control rfq-input-qty" th:id="${p + 'packSize'}" th:name="${p + 'packSize'}"
+                                   th:value="${form.lines[i].packSize}" min="0" step="any" inputmode="decimal"
+                                   th:classappend="${#fields.hasErrors(p + 'packSize')} ? 'is-invalid'"
+                                   th:attr="aria-label=#{rfq.quote.packSizeFor(${row.line.itemName})}">
+                            <div class="invalid-feedback" th:errors="*{__${p}__packSize}"></div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control rfq-input-unit" th:id="${p + 'packUnit'}" th:name="${p + 'packUnit'}"
+                                   th:value="${form.lines[i].packUnit}" maxlength="20" autocomplete="off" th:placeholder="${row.line.unit}"
+                                   list="packUnits" th:classappend="${#fields.hasErrors(p + 'packUnit')} ? 'is-invalid'"
+                                   th:attr="aria-label=#{rfq.quote.packUnitFor(${row.line.itemName})}">
+                            <div class="invalid-feedback" th:errors="*{__${p}__packUnit}"></div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control rfq-input-note" th:id="${p + 'note'}" th:name="${p + 'note'}"
+                                   th:value="${form.lines[i].note}" maxlength="200" autocomplete="off"
+                                   th:classappend="${#fields.hasErrors(p + 'note')} ? 'is-invalid'"
+                                   th:attr="aria-label=#{rfq.quote.noteFor(${row.line.itemName})}">
+                            <div class="invalid-feedback" th:errors="*{__${p}__note}"></div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <datalist id="packUnits">
+                <option value="kg"></option><option value="g"></option><option value="lt"></option><option value="ml"></option>
+                <option value="pcs"></option><option value="dozen"></option>
+            </datalist>
+        </section>
+
+        <!-- 2. The quote -->
+        <section class="card form-box mb-4" aria-labelledby="quoteTermsTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h5 fw-bold mb-3" id="quoteTermsTitle" th:text="#{rfq.quote.terms}">Delivery and validity</h2>
+                <div class="form-grid">
+                    <div class="field-half">
+                        <label for="currency" class="form-label" th:text="#{rfq.quote.currency}">Currency</label>
+                        <input type="text" th:field="*{currency}" class="form-control supplier-currency" th:errorclass="is-invalid"
+                               maxlength="3" autocomplete="off" spellcheck="false" aria-describedby="currencyHint" required>
+                        <div class="invalid-feedback" th:errors="*{currency}"></div>
+                        <div class="form-meta"><div id="currencyHint" class="form-text" th:text="#{rfq.quote.currency.hint}">Quotes are compared only with others in the same currency.</div></div>
+                    </div>
+                    <div class="field-half">
+                        <label for="deliveryCost" class="form-label">[[#{rfq.quote.deliveryCost}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="number" th:field="*{deliveryCost}" class="form-control" th:errorclass="is-invalid"
+                               min="0" step="0.01" inputmode="decimal">
+                        <div class="invalid-feedback" th:errors="*{deliveryCost}"></div>
+                    </div>
+                    <div class="field-half">
+                        <label for="deliveryDate" class="form-label" th:text="#{rfq.quote.deliveryDate}">Delivery date</label>
+                        <input type="date" th:field="*{deliveryDate}" class="form-control" th:errorclass="is-invalid"
+                               th:min="${@formFields.minDate(form, 'deliveryDate')}"
+                               th:max="${@formFields.maxDate(form, 'deliveryDate')}" aria-describedby="deliveryDateHint" required>
+                        <div class="invalid-feedback" th:errors="*{deliveryDate}"></div>
+                        <div class="form-meta"><div id="deliveryDateHint" class="form-text" th:text="#{rfq.quote.deliveryDate.hint(${@dates.date(rfq.deliveryDate)})}">Asked for 20 Nov 2026.</div></div>
+                    </div>
+                    <div class="field-half">
+                        <label for="validUntil" class="form-label">[[#{rfq.quote.validUntil}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="date" th:field="*{validUntil}" class="form-control" th:errorclass="is-invalid"
+                               th:min="${@formFields.minDate(form, 'validUntil')}"
+                               th:max="${@formFields.maxDate(form, 'validUntil')}">
+                        <div class="invalid-feedback" th:errors="*{validUntil}"></div>
+                    </div>
+                    <!-- 3. The supplier's PDF -->
+                    <div>
+                        <label for="file" class="form-label">[[#{rfq.quote.file}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <p th:if="${quote.hasFile()}" class="form-text mt-0" th:text="#{rfq.quote.file.replaces(${quote.fileName})}">This replaces vanos.pdf.</p>
+                        <input type="file" id="file" name="file" class="form-control" accept=".pdf,application/pdf"
+                               aria-describedby="fileHint fileInfo" data-file-info="fileInfo"
+                               th:data-max-size="${form.maxFileSize}" th:data-too-large="#{quote.error.fileTooLarge}"
+                               th:classappend="${param.fileTooLarge != null or #fields.hasErrors('fileTypeAllowed') or #fields.hasErrors('fileSizeAllowed')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{fileTypeAllowed}"></div>
+                        <div class="invalid-feedback" th:errors="*{fileSizeAllowed}"></div>
+                        <div th:if="${param.fileTooLarge != null}" class="invalid-feedback" th:text="#{quote.error.fileTooLarge}">The file is larger than 10 MB.</div>
+                        <div id="fileHint" class="form-text" th:text="#{rfq.quote.file.hint}">The supplier's own quote, a PDF of at most 10 MB, kept with the request.</div>
+                        <p id="fileInfo" class="form-file-info" aria-live="polite" hidden></p>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="#{rfq.quote.save}">Save quote</button>
+                    <a class="btn btn-ghost" th:href="@{/office/orders/{o}/rfqs/{r}(o=${order.id}, r=${rfq.id})}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </div>
+        </section>
+    </form>
+</main>
+</body>
+</html>

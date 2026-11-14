@@ -14,6 +14,15 @@
             <li th:replace="~{layout/parts :: crumb(#{nav.orders}, '/office/orders')}"></li>
         </th:block>
         <th:block th:fragment="pageActions">
+            <!-- P44: ask suppliers for prices (a SENT order without an open RFQ), or go to the open one. -->
+            <a th:if="${canRequestQuotes}" class="btn btn-outline-secondary" th:href="@{/office/orders/{id}/rfq/new(id=${order.id})}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{rfq.request}">Request quotes</span>
+            </a>
+            <th:block th:each="r : ${rfqs}" th:if="${r.open}">
+                <a class="btn btn-outline-secondary" th:href="@{/office/orders/{o}/rfqs/{r}(o=${order.id}, r=${r.id})}"
+                   th:text="#{rfq.openNamed(${r.id})}">Open RFQ #3</a>
+            </th:block>
             <button type="submit" form="exportOrderForm" class="btn btn-outline-secondary">
                 <svg th:replace="~{layout/parts :: icon('download')}"></svg>
                 <span th:text="#{officeorder.export}">Export</span>
@@ -51,10 +60,48 @@
                 <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.confirmedBy}">Confirmed by</dt>
                 <dd class="col-sm-8 col-lg-9" th:text="${order.confirmedBy} ? ${order.confirmedBy.fullName} : #{audit.deletedUser}">Jane Doe</dd>
             </th:block>
+            <!-- P44: the latest award of a request for quotes. -->
+            <th:block th:if="${award != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{rfq.awardedTo}">Awarded to</dt>
+                <dd class="col-sm-8 col-lg-9">
+                    <a class="fw-semibold" th:href="@{/office/orders/{o}/rfqs/{r}(o=${order.id}, r=${award.rfq().id})}"
+                       th:text="#{rfq.awardSummary(${award.supplierName()}, ${@money.total(award.currency(), award.total())})}">Awarded to VANOS · EUR 1,240.50</a>
+                </dd>
+            </th:block>
             <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.exported}">Exported</dt>
             <dd class="col-sm-8 col-lg-9 mb-0"><th:block th:replace="~{officeorder/parts :: exported(${order})}"></th:block></dd>
         </dl>
     </div>
+
+    <!-- P44: the order's requests for quotes, newest first. -->
+    <section th:unless="${rfqs.isEmpty()}" class="card mb-4" aria-labelledby="rfqsTitle">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="h5 fw-bold mb-0" id="rfqsTitle" th:text="#{rfq.list.heading}">Requests for quotes</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table data-table data-table-stack align-middle mb-0">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{rfq.list.number}">Request</th>
+                    <th scope="col" th:text="#{rfq.status}">Status</th>
+                    <th scope="col" th:text="#{rfq.sentBy}">Sent by</th>
+                    <th scope="col" th:text="#{rfq.replyBy}">Reply by</th>
+                    <th scope="col" th:text="#{rfq.list.answers}">Answers</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${rfqs}">
+                    <td class="cell-primary"><a th:href="@{/office/orders/{o}/rfqs/{r}(o=${order.id}, r=${r.id})}" th:text="#{rfq.number(${r.id})}">RFQ #3</a></td>
+                    <td th:attr="data-label=#{rfq.status}"><span th:replace="~{rfq/parts :: statusBadge(${r.status})}"></span></td>
+                    <td th:attr="data-label=#{rfq.sentBy}"><time th:replace="~{layout/parts :: localTime(${r.sentAt})}"></time></td>
+                    <td th:attr="data-label=#{rfq.replyBy}"><time th:replace="~{layout/parts :: localDate(${r.replyBy})}"></time></td>
+                    <td th:attr="data-label=#{rfq.list.answers}"
+                        th:text="#{rfq.list.answered(${r.quotes.?[quoted].size()}, ${r.quotes.size()})}">2 quotes from 3 suppliers</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <!-- The lines by category, read-only. -->
     <section th:each="g, it : ${groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"

@@ -45,6 +45,7 @@ import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -70,6 +71,7 @@ class ApprovalFlowTest {
     @Autowired RequestService requestService;
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
+    @Autowired SupplierRepository supplierRepository;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditRepository auditRepository;
     @Autowired UserRepository userRepository;
@@ -190,7 +192,8 @@ class ApprovalFlowTest {
     @Test
     void theDevDataSeedsTwoPendingRequestsOnce() throws Exception {
         DevData devData = new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService);
+                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
+                supplierRepository);
         devData.run(null);
         devData.run(null);
 
@@ -207,6 +210,10 @@ class ApprovalFlowTest {
         assertThat(fromCrew.getLines()).extracting(RequestLine::getName, RequestLine::getCategory)
                 .containsExactly(tuple("Shower gel", ItemCategory.PERSONAL_ITEMS), tuple("Eggs", ItemCategory.PROVISIONS));
         assertThat(notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc(master.getEmail())).hasSize(2);
+        // P44: the two suppliers, once; VANOS with a test address only.
+        assertThat(supplierRepository.findAll()).extracting(s -> s.getName(), s -> s.getEmail(), s -> s.getCurrency())
+                .containsExactlyInAnyOrder(tuple("VANOS (Piraeus)", "quotes.vanos@example.com", "EUR"),
+                        tuple("Harbour Provisions (Test)", "sales.harbour@example.com", "USD"));
     }
 
     @Test

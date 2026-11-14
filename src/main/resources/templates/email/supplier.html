@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+  The HTML version of an email to a supplier (P44): the request for quotation (with its lines as a table), "not
+  selected" and "request withdrawn". Rendered by core/supplier/SupplierEmails from a SupplierEmails.Email ("email",
+  every text final and in English) and "logoSrc" (the inline logo, or the app's URL in the dev preview). The same
+  frame as email/action.html (P29, P36): tables for layout, inline styles only (the one exception to app.css, see
+  DesignTokensTest), at most 600px wide, every text 4.5:1 or more on its own background. No button: the supplier
+  answers by replying to the email.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title th:text="${email.subject()}">RFQ #12: request for quotation</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f1ea;color:#13202f;">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;"
+     th:text="${email.preheader()}">Please quote for 4 items for delivery at Piraeus by 20 Nov 2026.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f1ea"
+       style="background-color:#f4f1ea;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="max-width:600px;width:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <tr>
+                    <td bgcolor="#10223a" style="background-color:#10223a;padding:16px 24px;border-radius:12px 12px 0 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="padding-right:12px;vertical-align:middle;">
+                                    <img th:src="${logoSrc}" src="cid:nereonix-logo" width="80" height="56" alt=""
+                                         style="display:block;width:80px;height:56px;border:0;">
+                                </td>
+                                <td style="vertical-align:middle;font-size:22px;line-height:28px;font-weight:700;color:#ffffff;">Nereonix</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px 24px;border-radius:0 0 12px 12px;color:#13202f;">
+                        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;font-weight:700;color:#13202f;"
+                            th:text="${email.heading()}">Request for quotation RFQ #12</h1>
+                        <p th:each="p : ${email.paragraphs()}" style="margin:0 0 16px;font-size:16px;line-height:24px;color:#13202f;"
+                           th:text="${p}">Dear VANOS (Piraeus),</p>
+                        <!-- The items: category, item, quantity and unit. -->
+                        <table th:unless="${email.lines().isEmpty()}" role="presentation" width="100%" cellpadding="0"
+                               cellspacing="0" border="0" style="margin:8px 0 24px;border-collapse:collapse;">
+                            <tr>
+                                <th align="left" style="padding:8px;border-bottom:2px solid #10223a;font-size:13px;line-height:18px;color:#474c55;">Category</th>
+                                <th align="left" style="padding:8px;border-bottom:2px solid #10223a;font-size:13px;line-height:18px;color:#474c55;">Item</th>
+                                <th align="right" style="padding:8px;border-bottom:2px solid #10223a;font-size:13px;line-height:18px;color:#474c55;">Quantity</th>
+                                <th align="left" style="padding:8px;border-bottom:2px solid #10223a;font-size:13px;line-height:18px;color:#474c55;">Unit</th>
+                            </tr>
+                            <tr th:each="line : ${email.lines()}">
+                                <td style="padding:8px;border-bottom:1px solid #dcd8cf;font-size:14px;line-height:20px;color:#474c55;" th:text="${line.category()}">Provisions</td>
+                                <td style="padding:8px;border-bottom:1px solid #dcd8cf;font-size:14px;line-height:20px;font-weight:600;color:#13202f;" th:text="${line.item()}">Basmati rice</td>
+                                <td align="right" style="padding:8px;border-bottom:1px solid #dcd8cf;font-size:14px;line-height:20px;color:#13202f;" th:text="${line.quantity()}">25</td>
+                                <td style="padding:8px;border-bottom:1px solid #dcd8cf;font-size:14px;line-height:20px;color:#13202f;" th:text="${line.unit()}">kg</td>
+                            </tr>
+                        </table>
+                        <p th:each="p : ${email.afterLines()}" style="margin:0 0 16px;font-size:16px;line-height:24px;color:#13202f;"
+                           th:text="${p}">For each item, please give the unit price.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 24px 0;">
+                        <p th:each="line : ${email.footer()}" style="margin:0 0 8px;font-size:13px;line-height:20px;color:#474c55;"
+                           th:text="${line}">Sent by Nereonix on behalf of Jane Doe.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
