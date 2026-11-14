@@ -141,7 +141,7 @@ class DashboardFlowTest {
                 "1 Active vessels none with open items",
                 "2 Crew on board no invitations waiting",
                 "0 Items needing attention none snoozed",
-                "0 Orders waiting for the office none to export");
+                "0 Pending orders none to export");
         assertThat(html).contains("<a class=\"overview-tile-link\" href=\"/office/ships\">",
                 "<a class=\"overview-tile-link\" href=\"/office/crew?status=active\">",
                 "<a class=\"overview-tile-link\" href=\"#attention\">",
@@ -191,7 +191,7 @@ class DashboardFlowTest {
                 "1 Active vessels 1 with open items",
                 "3 Crew on board 2 invitations waiting",
                 "7 Items needing attention none snoozed",
-                "2 Orders waiting for the office 1 not exported yet");
+                "2 Pending orders 1 not exported yet");
         assertThat(html).containsPattern("(?s)attention-total.*?<span class=\"num\">7</span>");
         // The filter chips (P43), each with its count, links that work without JavaScript.
         assertThat(html).contains("<a class=\"chip is-current\" href=\"/office\" aria-current=\"true\">",
@@ -306,14 +306,14 @@ class DashboardFlowTest {
         // The Fleet card (P43): the ship's open items link to the Overview filtered to it; the Orders tile counts the
         // order sent and not confirmed.
         assertThat(group(FLEET_TABLE, html)).contains("class=\"count-link\" href=\"/office?shipId=" + ship.getId() + "\">1</a>");
-        assertThat(tiles(html)).contains("1 Orders waiting for the office 1 not exported yet");
+        assertThat(tiles(html)).contains("1 Pending orders 1 not exported yet");
 
         mockMvc.perform(post("/office/orders/export").param("ids", sent.getId().toString()).with(csrf()))
                 .andExpect(status().isOk());
 
         String after = html(get("/office"));
         assertThat(after).doesNotContain(">Vessel order</span>");
-        assertThat(tiles(after)).contains("1 Orders waiting for the office none to export");
+        assertThat(tiles(after)).contains("1 Pending orders none to export");
     }
 
     @Test
@@ -395,7 +395,7 @@ class DashboardFlowTest {
                 "2 Active vessels 1 with open items",
                 "2 Crew on board no invitations waiting",
                 "3 Items needing attention none snoozed",
-                "1 Orders waiting for the office 1 not exported yet");
+                "1 Pending orders 1 not exported yet");
         long busyId = busy.getId();
         // Each row: the name (to the ship page), the Safety Score (to its Vetting page) and the open items (to the
         // Overview filtered to the ship); a zero is a muted dash.

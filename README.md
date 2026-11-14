@@ -992,8 +992,8 @@ Requirements: Java 25, Docker.
    - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
      `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xls` (P39; CSV before; `.xls` since P40; the
      format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
-     and item name: `imo_number,ship_name,order_id,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
-     (`sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
+     and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity`
+     (`status` `pending`, `confirmed` or `closed` (P49); `sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
      category `Provisions` or `Personal items`). It sets
      `exportedAt` on the exported orders and records "Orders exported" (counts and ids). An order can be exported
      again. Nothing checked: back to the list with "Select at least one order to export.". The page stays as it is

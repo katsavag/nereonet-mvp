@@ -65,7 +65,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 class OfficeOrderFlowTest {
 
     // The export's columns: a file format.
-    private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "sent_at",
+    private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
             "quantity");
     private static final Instant SENT_AT = Instant.parse("2026-11-10T09:30:15.123Z");
@@ -109,7 +109,7 @@ class OfficeOrderFlowTest {
         // The list: the sent order with its details, never the OPEN one.
         String list = page("/office/orders");
         assertThat(list).contains("href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
-                        "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Sent</span>", "Not yet")
+                        "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Pending</span>", "Not yet")
                 .doesNotContain("Order #" + open.getId() + "<");
         // The order: its note and its lines by category, read-only.
         String detail = page("/office/orders/" + order.getId());
@@ -154,7 +154,7 @@ class OfficeOrderFlowTest {
                 .andReturn();
         XlsSheet sheet = XlsSheet.of(export.getResponse().getContentAsByteArray());
         assertThat(sheet.name()).isEqualTo("Orders");
-        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(),
+        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(), "confirmed",
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
         assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
         assertThat(sheet.body()).containsExactly(
@@ -230,6 +230,32 @@ class OfficeOrderFlowTest {
         mockMvc.perform(post("/office/orders/export").param("ids", order.getId().toString()).with(csrf()))
                 .andExpect(status().isOk());
         assertThat(order.getExportedAt()).isAfter(before);
+    }
+
+    @Test
+    void aSentOrderIsPendingForTheOfficeAndSentToOfficeForTheShip() throws Exception {
+        ShipOrder order = sentOrderWithTwoLines();
+
+        // P49: the office's status label, filter option and filter chip say Pending; Greek: Σε εκκρεμότητα.
+        assertThat(page("/office/orders")).contains(">Pending</span>", ">Pending</option>").doesNotContain(">Sent<");
+        assertThat(page("/office/orders?status=sent")).contains("Order #" + order.getId() + "<", "Pending");
+        assertThat(page("/office/orders/" + order.getId())).contains(">Pending</span>");
+        assertThat(mockMvc.perform(get("/office/orders").param("lang", "el")).andReturn().getResponse()
+                .getContentAsString(StandardCharsets.UTF_8)).contains(">Σε εκκρεμότητα</span>").doesNotContain("Εστάλη");
+
+        // The export's status column: pending.
+        MvcResult export = mockMvc.perform(post("/office/orders/export").param("ids", order.getId().toString())
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn();
+        XlsSheet sheet = XlsSheet.of(export.getResponse().getContentAsByteArray());
+        int column = EXPORT_HEADER.indexOf("status");
+        assertThat(sheet.body()).extracting(row -> row.get(column)).containsExactly("pending", "pending");
+
+        // The ship keeps "Sent to office".
+        assertThat(mockMvc.perform(get("/ship/orders/{id}", order.getId()).with(user(new CurrentUser(master))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
+                .contains("Sent to office").doesNotContain("Pending");
     }
 
     // ---------------------------------------------------------------------------------------------------------------

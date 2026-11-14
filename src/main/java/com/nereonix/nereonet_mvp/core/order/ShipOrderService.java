@@ -61,7 +61,7 @@ public class ShipOrderService {
 
     /** The columns of the office's export (P36; an Excel workbook since P39, .xls since P40, the same columns), one row per order
      *  line. A file format: never translated. */
-    static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "sent_at",
+    static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
             "quantity");
 
@@ -365,7 +365,8 @@ public class ShipOrderService {
     /**
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
      * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
-     * category (Provisions, then Personal items) and item name; order_id and quantity are numbers, sent_at a date and
+     * category (Provisions, then Personal items) and item name; status as the office sees it (P49: pending, confirmed,
+     * closed); order_id and quantity are numbers, sent_at a date and
      * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
      * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
@@ -387,6 +388,7 @@ public class ShipOrderService {
                         order.getShip().getImoNumber(),
                         order.getShip().getName(),
                         order.getId(),
+                        exportStatus(order.getStatus()),
                         order.getSentAt().truncatedTo(ChronoUnit.SECONDS),
                         order.getRequestedPort(),
                         order.getNeededBy(),
@@ -408,6 +410,11 @@ public class ShipOrderService {
                         + (lineCount == 1 ? " line, ids " : " lines, ids ")
                         + orders.stream().map(order -> order.getId().toString()).toList(), officeUser);
         return Optional.of(sheet.file("ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC)));
+    }
+
+    /** The status column of the export: the office's word, so SENT (waiting for the office) is "pending" (P49). */
+    static String exportStatus(ShipOrderStatus status) {
+        return status == ShipOrderStatus.SENT ? "pending" : status.name().toLowerCase(Locale.ROOT);
     }
 
     /** An order's lines by category (Provisions, then Personal items), then item name: the office's order. */
