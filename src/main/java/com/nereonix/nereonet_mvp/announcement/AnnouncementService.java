@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -293,6 +295,21 @@ public class AnnouncementService {
     @Transactional(readOnly = true)
     public List<AnnouncementRecipient> forUser(String email) {
         return recipientRepository.findAllForUser(email);
+    }
+
+    /**
+     * The first {@code limit} of forUser, in the same order, limited in the database (the crew's News, P47); the
+     * Slice says whether there are older ones to show.
+     */
+    @Transactional(readOnly = true)
+    public Slice<AnnouncementRecipient> forUser(String email, int limit) {
+        return recipientRepository.findForUser(email, PageRequest.of(0, limit));
+    }
+
+    /** How many news items this user has not opened yet (P37). */
+    @Transactional(readOnly = true)
+    public long unreadFor(String email) {
+        return recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email);
     }
 
     /**

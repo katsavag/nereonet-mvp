@@ -150,7 +150,8 @@
     <!-- min-width: 0, so a wide table scrolls inside its card instead of widening the page. -->
     <div class="app-main flex-grow-1">
         <!-- Office: menu button, page name, "EN | ΕΛ", bell; from md only "EN | ΕΛ", on the right (P29). Ship crew:
-             the page name only, on phones; the tab bar at the bottom has the navigation and Notifications (P26). -->
+             the page name only, on phones; the tab bar at the bottom has the navigation, and its More page Notifications
+             (P26, P47). -->
         <header class="topbar" th:with="office=${#authorization.expression('hasRole(''OFFICE_USER'')')}"
                 th:classappend="${office} ? 'topbar-office' : 'd-md-none'">
             <button sec:authorize="hasRole('OFFICE_USER')" type="button" class="btn topbar-button d-md-none"
@@ -184,8 +185,8 @@
             <main th:replace="${content}"></main>
         </div>
     </div>
-    <!-- Ship crew on phones (P26): Home, News (P39), Library, Notifications and More (P31) at the bottom of the
-         screen. -->
+    <!-- Ship crew on phones (P26): Home, News (P39), Library and More (P31) at the bottom of the screen;
+         Notifications is the first row of the More page (P47). -->
     <th:block sec:authorize="!hasRole('OFFICE_USER')">
         <nav th:replace="~{layout/parts :: tabBar}"></nav>
     </th:block>

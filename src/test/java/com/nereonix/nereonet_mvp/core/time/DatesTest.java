@@ -27,6 +27,16 @@ class DatesTest {
         LocaleContextHolder.resetLocaleContext();
     }
 
+    // P47: a news item's meta line drops the year when it is this year (UTC).
+    @Test
+    void shortDateLeavesOutThisYear() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        assertThat(dates.shortDate(Instant.parse("2026-01-01T00:00:00Z"))).isEqualTo("1 Jan");
+        assertThat(dates.shortDate(NOW)).isEqualTo("21 Oct");
+        assertThat(dates.shortDate(Instant.parse("2025-12-31T23:59:00Z"))).isEqualTo("31 Dec 2025");
+        assertThat(dates.shortDate(null)).isEmpty();
+    }
+
     @Test
     void oneFormatWithMonthNamesInThePageLanguage() {
         LocaleContextHolder.setLocale(Locale.ENGLISH);

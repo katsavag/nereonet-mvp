@@ -187,19 +187,22 @@
 <!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
      sidebar has the same entries (layout/layout.html, group On board). Fixed at the bottom of the screen, above the
      safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each entry is
-     tabItem. News (P27 announcements, "News" since P39) sits between Home and Library, here and in the sidebar. More (P31) is last: a link to
-     a page (/ship/more) listing My profile, My crew and Sign out, which the sidebar shows directly from 768px. -->
-<nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}">
+     tabItem. Four equal tabs since P47: Home, News (P27 announcements, "News" since P39), Library and More (P31), a link
+     to a page (/ship/more) listing Notifications (first, with its unread count, P47), the Master's Approvals and Ship
+     order, My profile, My crew and Sign out, which the sidebar shows directly from 768px.
+     More's badge is what waits behind it: the unread notifications plus, for the Master, the requests waiting for
+     them (P33). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the number)
+     let js/notifications.js recount it after Mark as read. -->
+<nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}"
+     th:with="moreBase=${approvalsWaiting ?: 0}, moreCount=${moreBase + (unreadNotifications ?: 0)}"
+     th:data-more-base="${moreBase}" th:data-more-label="#{nav.count.more('{0}')}">
     <ul class="tab-bar-list">
         <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
         <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/news', #{nav.news},
                 ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
         <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
-        <li th:replace="~{layout/parts :: tabItem('notifications', '/notifications', #{nav.notifications},
-                ${unreadNotifications}, #{nav.count.notifications(${unreadNotifications ?: 0})})}"></li>
-        <!-- For the Master, More carries the number of requests waiting for them: Approvals is on the More page (P33). -->
         <li th:replace="~{layout/parts :: tabItem('more', '/ship/more', #{nav.more},
-                ${approvalsWaiting}, #{nav.count.approvals(${approvalsWaiting ?: 0})})}"></li>
+                ${moreCount}, #{nav.count.more(${moreCount})})}"></li>
     </ul>
 </nav>
 
@@ -358,14 +361,6 @@
     <th:block th:if="${read}"><path d="m1.5 12.5 4.5 4.5 9.5-9.5"/><path d="m10.5 15.5 1.5 1.5 9.5-9.5"/></th:block>
     <path th:unless="${read}" d="m4.5 12.5 5 5 10-11"/>
 </svg>
-
-<!-- The crew's list (P39): not read yet, a filled dot and "New"; read, the two ticks with "Read" for screen readers.
-     readAt: when this person read it, or null. -->
-<span th:fragment="newsState(readAt)" class="news-state" th:classappend="${readAt == null} ? 'is-new'">
-    <th:block th:if="${readAt == null}"><span class="news-state-dot" aria-hidden="true"></span><span th:text="#{announcement.ship.new}">New</span></th:block>
-    <th:block th:unless="${readAt == null}"><svg th:replace="~{layout/parts :: readTicks(true)}"></svg>
-        <span class="visually-hidden" th:text="#{announcement.read}">Read</span></th:block>
-</span>
 
 <!-- When it was read: the two ticks, "Read" and the time ("Read 13 Nov 2026 · 10:07 UTC"); not read yet, one grey tick
      and "Not read yet". The crew's news item page and each recipient on the office's announcement page. -->

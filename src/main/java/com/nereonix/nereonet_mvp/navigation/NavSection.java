@@ -56,10 +56,11 @@ public enum NavSection {
     }
 
     /** The phone tab (P26) that is active on this section's pages: More for My profile, My crew and More itself
-     *  (P31) and for Approvals (P33) and Ship order (P35); every other section is its own tab. The office has no tab
-     *  bar. */
+     *  (P31), for Approvals (P33) and Ship order (P35), and for Notifications (P47: no longer a tab of its own); every
+     *  other section is its own tab. The office has no tab bar. */
     public String tab() {
-        return this == PROFILE || this == MORE || this == CREW || this == APPROVALS || this == ORDER ? MORE.key : key;
+        return this == PROFILE || this == MORE || this == CREW || this == APPROVALS || this == ORDER
+                || this == NOTIFICATIONS ? MORE.key : key;
     }
 
     /**

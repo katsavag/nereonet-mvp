@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -28,6 +30,14 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
             where r.user.email = :email
             order by case when r.acknowledgedAt is null then 0 else 1 end, a.createdAt desc, a.id desc""")
     List<AnnouncementRecipient> findAllForUser(String email);
+
+    /** The first rows of findAllForUser, in the same order, limited in the database (the crew's News, P47: 10 a page,
+     *  "Show older"); the Slice says whether there are more. */
+    @Query("""
+            select r from AnnouncementRecipient r join fetch r.announcement a
+            where r.user.email = :email
+            order by case when r.acknowledgedAt is null then 0 else 1 end, a.createdAt desc, a.id desc""")
+    Slice<AnnouncementRecipient> findForUser(String email, Pageable pageable);
 
     /** How many announcements this user has still to acknowledge: the crew's sidebar counter (P37). */
     long countByUserEmailAndAcknowledgedAtIsNull(String email);

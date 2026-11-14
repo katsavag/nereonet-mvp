@@ -3752,11 +3752,11 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* ---------------------------------------------------------------------------------------------------------------
    Crew navigation on phones (P26): layout/parts :: tabBar and tabItem, for ship users (body.has-tab-bar).
      - .tab-bar: fixed at the bottom below 768px (from 768px the sidebar has the same entries), on the surface with a
-       line above, padded over the safe area of phones with a home indicator. Equal columns, however many entries.
+       line above, padded over the safe area of phones with a home indicator. Four equal columns (P47).
      - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
        aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
-     - .tab-bar-count: the unread count on the Notifications icon, white on the danger colour (6.7:1); the number is
-       repeated in words for screen readers.
+     - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the Master's
+       approvals, P47), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
    The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
    this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
    --------------------------------------------------------------------------------------------------------------- */
@@ -3785,9 +3785,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .tab-bar-list {
     display: grid;
     grid-auto-flow: column;
-    /* Equal tabs, except that a tab is never narrower than its label on one line ("Announcements", P27, on a
-       360px phone): that one takes what it needs and the others share the rest. */
-    grid-auto-columns: minmax(max-content, 1fr);
+    /* Four equal tabs (P47: Home, News, Library, More); the labels are short enough for a 320px phone. */
+    grid-auto-columns: minmax(0, 1fr);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -4074,11 +4073,20 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .master-card.is-due .master-card-count { font-weight: 700; }
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Crew News (P27 announcements, "News" since P39): announcement/ship-list.html and ship-detail.html; read receipts
-   (P39, layout/parts :: readTicks, newsState, readReceipt) there and on the office's announcement page.
-     - .announcement-row: one news item, the title (a .stretched-link, so the whole row opens it) and the date sent;
-       on the right its state. Not read yet (.is-unread): a bold title and .news-state.is-new, a filled dot and "New"
-       in words; read: a regular title and the two ticks, with "Read" for screen readers.
+   Crew News (P27 announcements, "News" since P39, made for phones in P47): announcement/ship-list.html and
+   ship-detail.html; read receipts (P39, layout/parts :: readTicks, readReceipt) there and on the office's announcement
+   page.
+     - main.news-page: one centred column of at most 720px (--nn-news-width), on phones and desktops alike; 16px body
+       text at line height 1.5.
+     - .news-group: "New" (not read yet) and "Earlier" (read), each with a small uppercase heading.
+     - .news-row: one news item, a card-like row at least 72px high, the whole row one link (the title is a
+       .stretched-link). Unread (.is-unread): a dot before it and a bold title. The title on at most two lines, a
+       one-line preview (.news-row-preview), then "Office · 13 Nov" and, read, the two ticks. Below 576px the cards
+       reach the screen edges (no side border, no radius, the content's 16px gutter as their padding), one under the
+       other with a 1px gap; from 576px separate rounded cards.
+     - .news-older: "Show older" at the end of the list.
+     - .news-item: the detail page; .news-back: "Back to News" at the top and the bottom; a 22px bold title; the body
+       at 16px / 1.6 with blank lines as paragraph spacing, links underlined.
      - .read-ticks: 16px; read (.is-read) two ticks in the primary blue (9.6:1 on white), not read one grey tick
        (--nn-text-secondary, 6.6:1). .read-receipt: the ticks, "Read" and the time, or "Not read yet".
      - .announcement-read: the message and the read receipt, at a comfortable line length (--nn-read-measure).
@@ -4087,56 +4095,139 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     --nn-read-measure: 48rem;        /* 768px, about 90 characters a line */
     --nn-read-color: var(--nn-blue);
     --nn-unread-dot: .5rem;          /* 8px, as a notification's */
+    --nn-news-width: 45rem;          /* 720px, the News column (P47) */
 }
 
-.announcement-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2) var(--nn-space-4);
-    padding-block: var(--nn-space-3);
+.news-page {
+    max-width: var(--nn-news-width);
+    margin-inline: auto;
+    font-size: var(--nn-font-body);
+    line-height: 1.5;
 }
-.announcement-row-main {
-    flex: 1 1 16rem;
+.news-group + .news-group { margin-top: var(--nn-space-5); }
+.news-group-heading {
+    margin: 0 0 var(--nn-space-2);
+    font-size: var(--nn-font-xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.news-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.news-row {
+    position: relative;              /* the title's .stretched-link covers the row */
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+    min-height: 72px;
+    padding: var(--nn-space-3) var(--nn-space-4);
+    background: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+}
+.news-row:hover { background-color: var(--nn-hover); }
+.news-row:focus-within { outline: var(--nn-focus-width) solid var(--nn-focus-color); outline-offset: calc(-1 * var(--nn-focus-width)); }
+.news-row-dot {
+    flex: none;
+    width: var(--nn-unread-dot);
+    height: var(--nn-unread-dot);
+    margin-top: .5rem;               /* centred on the title's first line */
+    border-radius: 50%;
+    background: var(--nn-blue);
+}
+.news-row-main {
+    flex: 1 1 auto;
     min-width: 0;
 }
-.announcement-row-title {
-    font-weight: 400;
+.news-row-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    font-weight: 500;
     color: var(--nn-text);
     text-decoration: none;
     overflow-wrap: anywhere;
 }
-.announcement-row.is-unread .announcement-row-title { font-weight: 700; }
-.announcement-row:hover .announcement-row-title,
-.announcement-row-title:focus-visible { text-decoration: underline; }
-.announcement-row-meta {
+.news-row.is-unread .news-row-title { font-weight: 700; }
+/* The ring is on the whole row (.news-row:focus-within). */
+.news-row-title:focus-visible { outline: none; }
+.news-row-preview {
     margin: 2px 0 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--nn-text-secondary);
+}
+.news-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1);
+    margin: var(--nn-space-1) 0 0;
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
+.news-row-meta .read-ticks { margin-left: var(--nn-space-1); }
+.news-older {
+    margin: var(--nn-space-4) 0 0;
+    text-align: center;
+}
+.news-older a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: var(--nn-space-4);
+    font-weight: 600;
+}
+/* Phones: the cards reach the screen edges, flat, with the content's gutter as their padding. */
+@media (max-width: 575.98px) {
+    .news-page .news-list {
+        gap: 1px;
+        margin-inline: calc(-1 * var(--nn-gutter));
+        background: var(--nn-divider);
+        border-block: 1px solid var(--nn-divider);
+    }
+    .news-page .news-row {
+        padding-inline: var(--nn-gutter);
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .news-group-heading { padding-inline: 0; }
+}
+
+.news-back { margin: 0 0 var(--nn-space-3); }
+.announcement-read .news-back { margin: var(--nn-space-5) 0 0; }
+.news-back a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-weight: 600;
+}
+.news-item .page-title { font-size: 1.375rem; font-weight: 700; line-height: 1.3; }   /* 22px */
+.news-body { font-size: var(--nn-font-body); line-height: 1.6; }
+.news-item a { text-decoration: underline; }
 
 .announcement-read { max-width: var(--nn-read-measure); }
 
 .read-ticks { flex: none; }
 .read-ticks.is-read { color: var(--nn-read-color); }
 .read-ticks.is-unread { color: var(--nn-text-secondary); }
-.news-state,
 .read-receipt {
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--nn-space-1) var(--nn-space-2);
-}
-.news-state.is-new {
-    font-size: var(--nn-font-sm);
-    font-weight: 700;
-    color: var(--nn-blue);
-}
-.news-state-dot {
-    width: var(--nn-unread-dot);
-    height: var(--nn-unread-dot);
-    border-radius: 50%;
-    background: var(--nn-blue);
 }
 .read-receipt.is-unread { color: var(--nn-text-secondary); }
 .news-read-at {
@@ -4854,7 +4945,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .approval-row: one request, who asked (a .stretched-link, so the whole row opens it) over its number, when it
        was sent and the number of items; on the Decided tab the decision badge and its date on the right (below on
        phones).
-     - .more-count: the number waiting on the More page's Approvals row, the sidebar's quiet pill on the surface.
+     - .more-count: the number on the More page's Notifications (P47) and Approvals rows, the sidebar's quiet pill on the surface.
    --------------------------------------------------------------------------------------------------------------- */
 .approval-row {
     display: flex;

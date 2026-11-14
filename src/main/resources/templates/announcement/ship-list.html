@@ -1,32 +1,66 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.ship.title}, ~{::main})}">
 <body>
-<!-- The crew's News (P27 announcements, "News" on the crew side since P39, /ship/news): the items the signed-in person
-     is a recipient of, the ones not read yet first (P37), each group newest first. English only, as every crew screen.
-     Each row is one link (the title, stretched over the row): title, date sent (UTC) and the person's own state. Not
-     read yet: a bold title, a filled dot and "New"; read (opened, P39): a regular title and two ticks in the primary
-     blue with "Read" for screen readers (layout/parts :: newsState). Nothing about anyone else. -->
-<main>
+<!-- The crew's News (P27 announcements, "News" on the crew side since P39, /ship/news; made for phones in P47): the
+     items the signed-in person is a recipient of, in two groups with small headings: "New" (not opened yet) and
+     "Earlier" (read), each newest first. The heading carries the unread count ("News · 2 new"). English only, as every
+     crew screen.
+     Each item is a card-like row, the whole row one link (the title, stretched over the row), at least 72px high:
+     unread, a dot ("New" for screen readers) and a bold title; the title on at most two lines, a one-line preview of the
+     text (plain text, cut with an ellipsis), then "Office · 13 Nov" and, read, the two ticks (P39) with "Read" for
+     screen readers. Nothing about anyone else.
+     Only what is shown is loaded (10 a page, ShipAnnouncementController): "Show older" at the end adds the next 10.
+     Model: ship, unreadRows and readRows (NewsRow), unread (count of all unread), nextPage (or null). -->
+<main class="news-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.ship.title}, eyebrowShip=${ship},
-                         subtitle=${rows.isEmpty()} ? null : #{announcement.ship.hint})}"></header>
+                         count=${unread > 0} ? #{announcement.ship.newCount(${unread})} : null,
+                         subtitle=${unreadRows.isEmpty() and readRows.isEmpty()} ? null : #{announcement.ship.hint})}"></header>
 
-    <div class="card">
-        <th:block th:if="${rows.isEmpty()}">
-            <div th:replace="~{layout/parts :: emptyState(icon='announcements', title=#{announcement.ship.empty.title},
-                    text=#{announcement.ship.empty.text}, action=null)}"></div>
-        </th:block>
-        <ul th:unless="${rows.isEmpty()}" class="list-group list-group-flush announcement-list">
-            <li th:each="r : ${rows}" class="list-group-item list-group-item-action announcement-row"
-                th:classappend="${r.acknowledgedAt == null} ? 'is-unread'" th:with="a=${r.announcement}">
-                <div class="announcement-row-main">
-                    <a class="announcement-row-title stretched-link" th:href="@{/ship/news/{id}(id=${a.id})}"
-                       th:text="${a.title}">Safety drill on Friday</a>
-                    <p class="announcement-row-meta"><time th:replace="~{layout/parts :: utcDate(${a.createdAt})}"></time></p>
-                </div>
-                <span th:replace="~{layout/parts :: newsState(${r.acknowledgedAt})}"></span>
-            </li>
-        </ul>
+    <div th:if="${unreadRows.isEmpty() and readRows.isEmpty()}" class="card">
+        <div th:replace="~{layout/parts :: emptyState(icon='announcements', title=#{announcement.ship.empty.title},
+                text=#{announcement.ship.empty.text}, action=null)}"></div>
     </div>
+
+    <section th:unless="${unreadRows.isEmpty()}" class="news-group" aria-labelledby="newsGroupNew">
+        <h2 class="news-group-heading" id="newsGroupNew" th:text="#{announcement.ship.group.new}">New</h2>
+        <ul class="news-list">
+            <th:block th:each="r : ${unreadRows}"><li th:replace="~{::newsRow(${r})}"></li></th:block>
+        </ul>
+    </section>
+
+    <section th:unless="${readRows.isEmpty()}" class="news-group" aria-labelledby="newsGroupEarlier">
+        <h2 class="news-group-heading" id="newsGroupEarlier" th:text="#{announcement.ship.group.earlier}">Earlier</h2>
+        <ul class="news-list">
+            <th:block th:each="r : ${readRows}"><li th:replace="~{::newsRow(${r})}"></li></th:block>
+        </ul>
+    </section>
+
+    <p th:if="${nextPage != null}" class="news-older">
+        <a th:href="@{/ship/news(page=${nextPage})}" th:text="#{announcement.ship.older}">Show older</a>
+    </p>
 </main>
+
+<!-- One news item, outside main so it is only rendered where it is used. r: a NewsRow. -->
+<li th:fragment="newsRow(r)" class="news-row" th:classappend="${r.unread} ? 'is-unread'"
+    th:with="a=${r.recipient.announcement}">
+    <span th:if="${r.unread}" class="news-row-dot" aria-hidden="true"></span>
+    <div class="news-row-main">
+        <a class="news-row-title stretched-link" th:href="@{/ship/news/{id}(id=${a.id})}">
+            <span th:if="${r.unread}" class="visually-hidden" th:text="#{announcement.ship.new} + ': '">New: </span>
+            <span th:text="${a.title}">Safety drill on Friday</span>
+        </a>
+        <p th:if="${!#strings.isEmpty(r.preview)}" class="news-row-preview" th:text="${r.preview}">Muster at 10:00.</p>
+        <p class="news-row-meta">
+            <span th:text="#{announcement.ship.fromOffice}">Office</span>
+            <span aria-hidden="true">·</span>
+            <time class="local-time text-nowrap" th:datetime="${@dates.iso(a.createdAt)}"
+                  th:text="${@dates.shortDate(a.createdAt)}">13 Nov</time>
+            <th:block th:unless="${r.unread}">
+                <svg th:replace="~{layout/parts :: readTicks(true)}"></svg>
+                <span class="visually-hidden" th:text="#{announcement.read}">Read</span>
+            </th:block>
+        </p>
+    </div>
+</li>
 </body>
 </html>

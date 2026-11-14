@@ -192,18 +192,25 @@ class ShipHomeFlowTest {
                 "/ship/library/" + policy.getId());
         String html = home(cook);
 
-        // The tab bar: Home (active), Announcements, Library, Notifications with the unread count, in words too, and
-        // More (P31).
+        // The tab bar (P47): Home (active), News, Library and More, four tabs; Notifications is on the More page, and
+        // its unread count is on the More tab, in words too.
         String tabBar = section(TAB_BAR, html);
         assertThat(Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
-                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/news", "/ship/library",
-                "/notifications", "/ship/more");
+                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/news", "/ship/library", "/ship/more");
         assertThat(tabBar).contains("aria-label=\"Main navigation\"",
-                        "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">",
-                        "<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>", "1 unread");
+                        "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">")
+                .containsPattern("(?s)href=\"/ship/more\".*?<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>"
+                        + ".*?<span class=\"visually-hidden\">1 new or waiting</span>")
+                .doesNotContain("/notifications");
+        // The More page: Notifications first, with its count; on the notifications page More is the active tab.
+        String more = html(get("/ship/more").with(user(new CurrentUser(cook))));
+        assertThat(more).containsSubsequence("<ul class=\"profile-rows\">", "href=\"/notifications\"", "Notifications",
+                "<span class=\"more-count num\" aria-hidden=\"true\">1</span>", "1 unread", "href=\"/ship/profile\"");
+        assertThat(section(TAB_BAR, html(get("/notifications").with(user(new CurrentUser(cook))))))
+                .contains("<a class=\"tab-bar-link active\" href=\"/ship/more\" aria-current=\"page\">");
         assertThat(section(TAB_BAR, html(get("/ship/library").with(user(new CurrentUser(cook))))))
                 .contains("<a class=\"tab-bar-link active\" href=\"/ship/library\" aria-current=\"page\">");
-        // No offcanvas menu button and no bell for the crew: the tab bar has both.
+        // No offcanvas menu button and no bell for the crew: the tab bar and its More page have both.
         assertThat(html).containsPattern("<body[^>]* class=\"has-tab-bar[ \"]")
                 .doesNotContain("data-bs-toggle=\"offcanvas\"", "id=\"notificationBell\"");
 

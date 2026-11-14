@@ -251,14 +251,19 @@ class AnnouncementFlowTest {
         assertThat(notification.getReadAt()).isNull();
         assertThat(notificationRepository.countByUserEmailAndReadAtIsNull("anna@example.com")).isEqualTo(2);
 
-        // The list: newest first, both new (bold title, a dot and "New").
+        // The list (P47): "News · 2 new"; both under New, newest first (a dot, "New" for screen readers, a bold title),
+        // each with a one-line preview and "Office · <day>"; no Earlier group yet.
         String list = html(get("/ship/news").with(user(new CurrentUser(cook))));
-        assertThat(list).contains("<title>News · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>")
-                .containsSubsequence("href=\"/ship/news/" + galley.getId() + "\"", "Galley inspection",
-                        "<span class=\"news-state-dot\" aria-hidden=\"true\"></span><span>New</span>",
-                        "href=\"/ship/news/" + drill.getId() + "\"", "Safety drill", "<span>New</span>")
-                .doesNotContain("To acknowledge", "Acknowledged", "Announcement");
-        assertThat(count(list, "announcement-row is-unread")).isEqualTo(2);
+        assertThat(list).contains("<title>News · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
+                        "<span class=\"num\">2 new</span>")
+                .containsSubsequence("<h2 class=\"news-group-heading\" id=\"newsGroupNew\">New</h2>",
+                        "<span class=\"news-row-dot\" aria-hidden=\"true\"></span>",
+                        "href=\"/ship/news/" + galley.getId() + "\"", "<span class=\"visually-hidden\">New: </span>",
+                        "Galley inspection", "<p class=\"news-row-preview\">Next week.</p>", "<span>Office</span>",
+                        "href=\"/ship/news/" + drill.getId() + "\"", "Safety drill",
+                        "<p class=\"news-row-preview\">Drill on Friday. Muster at &lt;10:00&gt;.</p>")
+                .doesNotContain("newsGroupEarlier", "Show older", "To acknowledge", "Acknowledged", "Announcement");
+        assertThat(count(list, "news-row is-unread")).isEqualTo(2);
         // News is the active tab (and sidebar entry).
         assertThat(list).contains("<a class=\"tab-bar-link active\" href=\"/ship/news\" aria-current=\"page\">",
                 "<span class=\"tab-bar-label\">News</span>", "<span class=\"sidebar-link-label\">News</span>");
@@ -268,7 +273,7 @@ class AnnouncementFlowTest {
         String detail = html(get("/ship/news/{id}", drill.getId()).with(user(new CurrentUser(cook))));
         assertThat(detail).contains("<h1 class=\"page-title\">", "Safety drill", "Office · " + office, " UTC</time>",
                         "Drill on Friday.\nMuster at &lt;10:00&gt;.", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
-                        "href=\"/ship/news\">News</a>")
+                        "<p class=\"news-back\"><a href=\"/ship/news\">Back to News</a></p>")
                 // It ends with the two ticks and "Read <date and time> UTC".
                 .containsPattern("(?s)<p class=\"news-read-at\">\\s*<span class=\"read-receipt\">\\s*"
                         + "<svg class=\"read-ticks is-read\"[^>]*>.*?</svg>\\s*<span>Read</span>\\s*"
@@ -303,11 +308,13 @@ class AnnouncementFlowTest {
         assertThat(recipientRepository.findByAnnouncementIdAndUserEmail(galley.getId(), "cook@example.com")
                 .orElseThrow().getAcknowledgedAt()).isNull();
 
-        // The list: the drill now read (regular title, the two ticks and "Read" for screen readers), the other new.
+        // The list: the other one under New, the drill now under Earlier (regular title, the two ticks and "Read" for
+        // screen readers); "News · 1 new".
         String listAfter = html(get("/ship/news").with(user(new CurrentUser(cook))));
-        assertThat(count(listAfter, "announcement-row is-unread")).isEqualTo(1);
-        assertThat(listAfter).containsSubsequence("Galley inspection", "<span>New</span>", "Safety drill",
-                "<svg class=\"read-ticks is-read\"", "<span class=\"visually-hidden\">Read</span>");
+        assertThat(count(listAfter, "news-row is-unread")).isEqualTo(1);
+        assertThat(listAfter).contains("<span class=\"num\">1 new</span>")
+                .containsSubsequence("id=\"newsGroupNew\"", "Galley inspection", "id=\"newsGroupEarlier\">Earlier</h2>",
+                        "Safety drill", "<svg class=\"read-ticks is-read\"", "<span class=\"visually-hidden\">Read</span>");
 
         // The office sees it: 1 of 2 read; the cook with the two ticks and the time, Anna with one grey tick.
         String officeDetail = html(get("/office/announcements/{id}", drill.getId()));
@@ -324,6 +331,33 @@ class AnnouncementFlowTest {
         // In Greek on the office side.
         assertThat(html(get("/office/announcements/{id}", drill.getId()).param("lang", "el")))
                 .contains("1 από 2 διάβασαν", "Δεν διαβάστηκε ακόμη", "<span>Διαβάστηκε</span>");
+    }
+
+    // P47: the News list loads 10 at a time; "Show older" adds the next 10 below them. A long text is cut to one line.
+    @Test
+    void newsLoadsTenAtATimeWithShowOlder() throws Exception {
+        Ship demo = ship("9074729", "MV Demo");
+        User cook = crewMember("cook@example.com", "Demo Cook", demo);
+        for (int i = 1; i <= 12; i++) {
+            send(demo, "News " + i, i == 12 ? "Word ".repeat(100) : "Text " + i + ".");
+        }
+        announcementRepository.flush();
+
+        String first = html(get("/ship/news").with(user(new CurrentUser(cook))));
+        assertThat(count(first, "<li class=\"news-row")).isEqualTo(10);
+        assertThat(first).contains("<span class=\"num\">12 new</span>",
+                        "<p class=\"news-older\">", "<a href=\"/ship/news?page=2\">Show older</a>")
+                .containsSubsequence(">News 12<", ">News 11<", ">News 3<")
+                .doesNotContain(">News 2<", ">News 1<")
+                // The preview: at most 160 characters, cut with an ellipsis.
+                .containsPattern("<p class=\"news-row-preview\">(Word ){31}Word…</p>");
+
+        String both = html(get("/ship/news").param("page", "2").with(user(new CurrentUser(cook))));
+        assertThat(count(both, "<li class=\"news-row")).isEqualTo(12);
+        assertThat(both).containsSubsequence(">News 3<", ">News 2<", ">News 1<").doesNotContain("Show older");
+        // A page number out of range is brought back into range.
+        assertThat(count(html(get("/ship/news").param("page", "0").with(user(new CurrentUser(cook)))),
+                "<li class=\"news-row")).isEqualTo(10);
     }
 
     // P39: the old crew URLs (bookmarks, older notifications) move to /ship/news for good.
@@ -361,8 +395,9 @@ class AnnouncementFlowTest {
         announcementRepository.flush();
 
         String list = html(get("/ship/news").with(user(new CurrentUser(master))));
-        assertThat(list).containsSubsequence("Safety drill", "<span>New</span>", "Bunkering plan", "<span>New</span>");
-        assertThat(count(list, "announcement-row is-unread")).isEqualTo(2);
+        assertThat(list).containsSubsequence("id=\"newsGroupNew\"", "Safety drill", "Bunkering plan")
+                .doesNotContain("newsGroupEarlier");
+        assertThat(count(list, "news-row is-unread")).isEqualTo(2);
         // The counter, in the sidebar and on the tab: the number and the same in words.
         assertThat(list).containsPattern("(?s)data-nav=\"announcements\".*?<span class=\"nav-count num\" aria-hidden=\"true\">2</span>"
                         + "\\s*<span class=\"visually-hidden\">2 unread</span>")
@@ -375,9 +410,9 @@ class AnnouncementFlowTest {
 
         // The one not read yet comes first although it is older; the counters are 1.
         String after = html(get("/ship/news").with(user(new CurrentUser(master))));
-        assertThat(after).containsSubsequence("Bunkering plan", "<span>New</span>", "Safety drill",
-                "<span class=\"visually-hidden\">Read</span>");
-        assertThat(count(after, "announcement-row is-unread")).isEqualTo(1);
+        assertThat(after).containsSubsequence("id=\"newsGroupNew\"", "Bunkering plan", "id=\"newsGroupEarlier\"",
+                "Safety drill", "<span class=\"visually-hidden\">Read</span>");
+        assertThat(count(after, "news-row is-unread")).isEqualTo(1);
         // (The notifications keep their own count: a notification is read on the notifications page.)
         assertThat(navItems(after, "announcements")).hasSize(2).allSatisfy(item ->
                 assertThat(item).contains("<span class=\"visually-hidden\">1 unread</span>").doesNotContain("2 unread"));

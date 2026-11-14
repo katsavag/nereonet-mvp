@@ -52,6 +52,17 @@ public class Dates {
         return instant == null ? "" : date(LocalDate.ofInstant(instant, ZoneOffset.UTC));
     }
 
+    /** The UTC date of an instant without the year when it is this year (UTC), "13 Nov", else "13 Nov 2025": a news
+     *  item's meta line on the crew's News (P47); empty for null. */
+    public String shortDate(Instant instant) {
+        if (instant == null) {
+            return "";
+        }
+        LocalDate date = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        return date.getYear() == today().getYear()
+                ? DateTimeFormatter.ofPattern("d MMM", locale()).format(date) : date(date);
+    }
+
     /** "21 Oct 2026 · 12:40 UTC" in the page language; empty for null. */
     public String dateTime(Instant instant) {
         return instant == null ? ""

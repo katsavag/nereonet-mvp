@@ -82,6 +82,11 @@ class MessageKeysTest {
             "announcement.ship.new",
             "announcement.ship.from",
             "announcement.ship.fromOffice",
+            "announcement.ship.newCount",
+            "announcement.ship.group.new",
+            "announcement.ship.group.earlier",
+            "announcement.ship.older",
+            "announcement.ship.back",
             // P39: the crew's word for announcements.
             "nav.news",
             // My profile and My crew (P31). The field names, "Not given", the photo's alt text, the office's Profile
@@ -89,6 +94,7 @@ class MessageKeysTest {
             "nav.profile",
             "nav.myCrew",
             "nav.more",
+            "nav.count.more",
             "more.title",
             "more.signedInAs",
             "profile.title",
