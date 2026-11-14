@@ -1339,6 +1339,10 @@ Requirements: Java 25, Docker.
      usual vessel create and edit rights apply (office users).
    - **Flags that disagree**: when `country` and `country_code` point to different countries, both are shown and the
      user chooses (a radio pair; on Edit "Keep the saved flag" is the default). The saved flag never changes silently.
+   - **Flag icons** (P43 rule): every VesselAPI flag field shows the country's flag icon before it, through
+     `layout/parts :: country` / `flag`: the lookup result (provider country and the value in the form), the flag
+     choice (one icon per option), the Edit comparison, and the Vessel data tab's flag country and code. The ISO code
+     comes from `@vesselFormat` (`codeOfName`, `codeOf`, `codeOfField`); an unknown country gets no icon.
    - **What is stored**: one `VesselDataSnapshot` row per vessel and call (`ship`, `endpoint` PARTICULARS / POSITION /
      ETA, `rawJson`, `providerReportedAt`, `lastSuccessAt`, `lastAttemptAt`, `lastAttemptResult`). `rawJson` is the
      body exactly as received, unknown fields kept; the pages parse their fields from it on read. A failed call keeps
