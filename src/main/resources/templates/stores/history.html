@@ -66,8 +66,8 @@
                             th:text="${m.item.unit}">kg</span></td>
                     <td th:attr="data-label=#{stores.history.type}">
                         <span th:text="#{${m.type.labelKey()}}">Count</span>
-                        <span th:if="${m.order != null}" class="text-body-secondary">· <th:block
-                                th:text="#{order.number(${m.order.id})}">Order #12</th:block></span>
+                        <span th:if="${m.order != null}" class="text-body-secondary">· <a th:href="@{/ship/orders/{id}(id=${m.order.id})}"
+                                th:text="#{order.number(${m.order.id})}">Order #12</a></span>
                     </td>
                     <td class="text-end font-monospace" th:attr="data-label=#{stores.history.before}"
                         th:text="${m.quantityBefore.stripTrailingZeros().toPlainString()}">10</td>

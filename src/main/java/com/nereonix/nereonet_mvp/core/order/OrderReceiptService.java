@@ -28,10 +28,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFileStorage;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -46,6 +48,9 @@ import jakarta.persistence.LockModeType;
  * what arrived of each line and when (confirmReceipt): the order is CLOSED, the files are its receipt, and the office
  * is notified. Lines received short keep the order in the office's Overview until an office user marks the shortage
  * handled (markShortageHandled). Every change locks the order's row, so two tabs never confirm twice.
+ * P56: what arrived of the provisions goes into the Chief cook's store (StockService.receive) in the same transaction.
+ * A confirmed receipt never changes afterwards (CLOSED: no page or service changes its lines, files or time), so the
+ * store gets each line once and needs no correction.
  */
 @Service
 public class OrderReceiptService {
@@ -62,18 +67,20 @@ public class OrderReceiptService {
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final MessageSource messageSource;
+    private final StockService stockService;
     private final EntityManager entityManager;
 
     public OrderReceiptService(OrderReceiptFileRepository fileRepository, UserRepository userRepository,
                                LibraryFileStorage fileStorage, AuditService auditService,
                                NotificationService notificationService, MessageSource messageSource,
-                               EntityManager entityManager) {
+                               StockService stockService, EntityManager entityManager) {
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
         this.auditService = auditService;
         this.notificationService = notificationService;
         this.messageSource = messageSource;
+        this.stockService = stockService;
         this.entityManager = entityManager;
     }
 
@@ -162,7 +169,10 @@ public class OrderReceiptService {
      * The Master confirms receipt of a CONFIRMED order of their ship (P51): each line not removed by the office gets
      * its received quantity and note, the order gets receivedAt, receivedBy and the number of lines received short,
      * and is CLOSED; the files uploaded are its receipt. Recorded as "Receipt confirmed"; every enabled office user is
-     * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". NOT_CONFIRMED or NO_FILE: nothing changed.
+     * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". P56: each PROVISIONS line received above zero
+     * adds to the store (StockService.receive; personal items never do), and when any did the ship's enabled Chief
+     * cook is told: "Order 12 received: stock updated for 5 items", linking to Stores. NOT_CONFIRMED or NO_FILE:
+     * nothing changed.
      * IllegalArgumentException for a line without a valid received quantity, a too long note, or a receipt time in
      * the future or before the order was sent; 404 and AccessDeniedException as stageFile.
      */
@@ -202,6 +212,15 @@ public class OrderReceiptService {
         order.setShortLines(shortLines);
         order.setStatus(ShipOrderStatus.CLOSED);
 
+        int stocked = 0;
+        for (ShipOrderLine line : order.getLines()) {
+            if (!line.isRemoved() && line.getItem().getCategory() == ItemCategory.PROVISIONS
+                    && line.getReceivedQuantity().signum() > 0) {
+                stockService.receive(order, line, master);
+                stocked++;
+            }
+        }
+
         Ship ship = order.getShip();
         auditService.record("ORDER_RECEIVED", ship, "Order #" + order.getId() + ", received " + order.getReceivedAt()
                 + ", " + shortLines + (shortLines == 1 ? " line" : " lines") + " short, " + receiptFiles.size()
@@ -213,6 +232,13 @@ public class OrderReceiptService {
             if (officeUser.isEnabled()) {
                 notificationService.notify(officeUser, NotificationType.ORDER, ship.getName(), text,
                         "/office/orders/" + order.getId());
+            }
+        }
+        if (stocked > 0) {
+            String stockText = messageSource.getMessage("order.notification.stocked",
+                    new Object[] {order.getId(), stocked}, Locale.ENGLISH);
+            for (User cook : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, Role.CHIEF_COOK)) {
+                notificationService.notify(cook, NotificationType.ORDER, ship.getName(), stockText, "/ship/stores");
             }
         }
         return Result.DONE;

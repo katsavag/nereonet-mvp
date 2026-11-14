@@ -20,6 +20,8 @@ import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -31,7 +33,8 @@ import jakarta.persistence.LockModeType;
 /**
  * The stock of a ship's provisions (P52), shared by the Chief cook's Stores pages and, later, the request page, the
  * receipt on board and the office. Only PROVISIONS items have stock; personal items never appear. An item without a
- * StockLevel row has quantity 0. P53: the Chief cook counts an item by hand (count); receipts come with their own page.
+ * StockLevel row has quantity 0. P53: the Chief cook counts an item by hand (count). P56: a delivery the Master
+ * received adds to the store (receive, called by OrderReceiptService.confirmReceipt).
  * Every change of an item's stock locks the item's row first, so two changes of one item never interleave.
  * app.stock.low-threshold (default 10, one threshold for every item, in the item's unit) splits LOW from OK.
  */
@@ -162,6 +165,50 @@ public class StockService {
         auditService.record("STOCK_COUNTED", item.getShip(),
                 item.getName() + ": " + plain(before) + " -> " + plain(counted) + " " + item.getUnit(), cook);
         return Optional.of(level(item, counted));
+    }
+
+    /**
+     * A delivered line adds to the store (P56): the item's stock goes up by the line's received quantity and a RECEIPT
+     * movement keeps before and after, by the Master, at the order's receivedAt, linked to the order. Called by
+     * OrderReceiptService.confirmReceipt in its transaction, once the line's receivedQuantity and the order's
+     * receivedAt are set; a confirmed receipt never changes (the order is CLOSED), so a line is received only once.
+     * The item's row is locked first, as count does. The item may be inactive by now: what arrived is on board.
+     * IllegalArgumentException for a line of another order, a removed line, an item that is not PROVISIONS (personal
+     * items never touch the store), a received quantity that is missing or not above zero, an order without
+     * receivedAt, or a stock that would no longer be a valid quantity; AccessDeniedException when the user is not the
+     * enabled Master of the order's ship.
+     */
+    @Transactional
+    public Level receive(ShipOrder order, ShipOrderLine line, User master) {
+        if (master == null || master.getRole() != Role.MASTER || !master.isEnabled() || master.getShip() == null
+                || !master.getShip().getId().equals(order.getShip().getId())) {
+            throw new AccessDeniedException("Only the Master of the ship receives its deliveries");
+        }
+        if (!line.getOrder().getId().equals(order.getId())) {
+            throw new IllegalArgumentException("The line is not on this order");
+        }
+        BigDecimal received = line.getReceivedQuantity();
+        if (line.isRemoved() || received == null || received.signum() <= 0 || order.getReceivedAt() == null) {
+            throw new IllegalArgumentException("Only a line received above zero adds to the store");
+        }
+        Item item = line.getItem();
+        if (item.getCategory() != ItemCategory.PROVISIONS) {
+            throw new IllegalArgumentException("Only provisions have stock");
+        }
+        entityManager.lock(item, LockModeType.PESSIMISTIC_WRITE);
+        StockLevel level = levelRepository.findByItemId(item.getId()).orElseGet(() -> {
+            StockLevel created = new StockLevel();
+            created.setItem(item);
+            return created;
+        });
+        BigDecimal before = level.getQuantity();
+        BigDecimal after = before.add(received);
+        level.setQuantity(after);
+        level.setUpdatedAt(Instant.now());
+        levelRepository.save(level);
+        movementRepository.save(StockMovement.of(item, StockMovementType.RECEIPT, before, after, master,
+                order.getReceivedAt(), null, order));
+        return level(item, after);
     }
 
     private static String plain(BigDecimal quantity) {

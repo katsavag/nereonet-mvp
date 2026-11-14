@@ -55,6 +55,11 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockLevel;
+import com.nereonix.nereonet_mvp.core.stock.StockLevelRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovement;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
+import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
@@ -63,8 +68,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
  * P51, the Master confirms receipt on board with the delivery receipt: only for a CONFIRMED order (delivery
  * scheduled), the form prefilled with what was ordered, the receipt's files (PDF, JPEG or PNG; sent with the form or one
  * at a time by js/receipt.js), the review step, then CLOSED with what arrived; the office is notified and sees the
- * receipt, shortages stay in the Overview until "Shortage handled". Signed in as the office unless a request says
- * otherwise.
+ * receipt, shortages stay in the Overview until "Shortage handled". P56: the provisions received go into the Chief
+ * cook's store. Signed in as the office unless a request says otherwise.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -86,6 +91,8 @@ class OrderReceiptFlowTest {
     @Autowired OrderReceiptFileRepository fileRepository;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditRepository auditRepository;
+    @Autowired StockLevelRepository stockLevelRepository;
+    @Autowired StockMovementRepository stockMovementRepository;
 
     Ship ship;
     User master;
@@ -262,6 +269,70 @@ class OrderReceiptFlowTest {
         assertThat(page("/office/orders/" + order.getId())).contains("Everything arrived as ordered.")
                 .doesNotContain("/shortage-handled\"");
         assertThat(page("/office")).doesNotContain("received short");
+    }
+
+    @Test
+    void theProvisionsReceivedGoIntoTheStoreAndTheCookIsTold() throws Exception {
+        // 12 kg rice on board; the office removed the oil, so the order is rice (provisions) and gels (personal items).
+        StockLevel riceStock = new StockLevel();
+        riceStock.setItem(rice);
+        riceStock.setQuantity(new BigDecimal("12"));
+        riceStock.setUpdatedAt(Instant.now());
+        stockLevelRepository.save(riceStock);
+        oilLine.setRemoved(true);
+
+        // The Master confirms receipt of 8 kg rice and 2 gels.
+        mockMvc.perform(multipart("/ship/orders/{id}/receipt/files", order.getId())
+                        .file(new MockMultipartFile("file", "receipt.pdf", "application/pdf", PDF))
+                        .with(user(new CurrentUser(master))).with(csrf()))
+                .andExpect(status().isNoContent());
+        String when = INPUT.format(LocalDateTime.now(ZoneOffset.UTC).minusHours(3));
+        MockHttpServletRequestBuilder confirm = post("/ship/orders/{id}/receipt/confirm", order.getId());
+        line(confirm, 0, riceLine, "8", false, "");
+        line(confirm, 1, soapLine, "2", false, "");
+        mockMvc.perform(confirm.param("receivedAt", when).with(user(new CurrentUser(master))).with(csrf()))
+                .andExpect(flash().attribute("successMessage", "order.receipt.confirmed"));
+        assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.CLOSED);
+
+        // Rice: 8 higher, one RECEIPT movement 12 -> 20 by the Master, at the time received, linked to the order.
+        assertThat(stockLevelRepository.findByItemId(rice.getId())).get()
+                .satisfies(l -> assertThat(l.getQuantity()).isEqualByComparingTo("20"));
+        List<StockMovement> movements = stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(rice.getId());
+        assertThat(movements).singleElement().satisfies(m -> {
+            assertThat(m.getType()).isEqualTo(StockMovementType.RECEIPT);
+            assertThat(m.getQuantityBefore()).isEqualByComparingTo("12");
+            assertThat(m.getQuantityAfter()).isEqualByComparingTo("20");
+            assertThat(m.getBy().getId()).isEqualTo(master.getId());
+            assertThat(m.getAt()).isEqualTo(LocalDateTime.parse(when).toInstant(ZoneOffset.UTC));
+            assertThat(m.getOrder().getId()).isEqualTo(order.getId());
+        });
+        // Personal items never touch the store; the removed oil neither.
+        assertThat(stockLevelRepository.findByItemId(soap.getId())).isEmpty();
+        assertThat(stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(soap.getId())).isEmpty();
+        assertThat(stockLevelRepository.findByItemId(oil.getId())).isEmpty();
+
+        // The cook is told, linking to Stores; the office's notification is unchanged.
+        assertThat(notifications("cook@example.com")).singleElement().satisfies(n -> {
+            assertThat(n.getText()).isEqualTo("Order " + order.getId() + " received: stock updated for 1 item");
+            assertThat(n.getLink()).isEqualTo("/ship/stores");
+        });
+        assertThat(notifications("office@example.com")).extracting(Notification::getText)
+                .containsExactly("MV Demo confirmed receipt of order " + order.getId() + " (2 lines short)");
+
+        // The item's history links the delivery to its order, which the cook can open.
+        String itemPage = mockMvc.perform(get("/ship/stores/items/{id}", rice.getId()).with(user(new CurrentUser(cook))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(itemPage).contains("Delivery received",
+                "<a href=\"/ship/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>");
+        mockMvc.perform(get("/ship/orders/{id}", order.getId()).with(user(new CurrentUser(cook))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void notDeliveredProvisionsLeaveTheStoreAndTheCookAlone() throws Exception {
+        receive("0", "0", "6");
+        assertThat(stockLevelRepository.findAllByItemShipId(ship.getId())).isEmpty();
+        assertThat(notifications("cook@example.com")).isEmpty();
     }
 
     @Test

@@ -232,6 +232,8 @@ class MessageKeysTest {
             "order.notification.deliveryChanged",
             "order.notification.received",
             "order.notification.receivedShort",
+            // P56: to the Chief cook when a delivery went into the store.
+            "order.notification.stocked",
             "order.receipt.action",
             "order.receipt.waiting",
             "order.receipt.title",

@@ -1067,7 +1067,8 @@ Requirements: Java 25, Docker.
        is received yet. **Back to edit** (`POST .../receipt/edit`) keeps everything; **Confirm receipt**
        (`POST .../receipt/confirm`) locks the order, saves received quantities, notes, received at/by and the number
        of short lines, and makes it CLOSED; "Receipt confirmed on board" goes in the audit log and every enabled office
-       user gets "ABC IRIS confirmed receipt of order 12 (2 lines short)" (linking to the order). A second confirm
+       user gets "ABC IRIS confirmed receipt of order 12 (2 lines short)" (linking to the order). Since P56 the
+       provisions received go into the Chief cook's store in the same transaction (33). A second confirm
        (another tab, a double click) changes nothing and says so. A GET of `/edit` or `/confirm` goes back to the form.
      - `js/receipt.js` (P15): shows the chosen files, makes photos smaller (at most 2000 px, JPEG) before they are
        sent, uploads each one by XHR to `POST .../receipt/files` with a progress bar (204, or 422/409 with the reason),
@@ -1477,7 +1478,7 @@ Requirements: Java 25, Docker.
        (`STOCK_LOW_THRESHOLD`, default 10, one threshold for every item), otherwise **OK**; `history(item)` its
        movements, newest first; `lastCount(ship)` the latest COUNT movement; `count(cook, item, quantity, note)` and
        `history(ship, type, from, to, page)` (P53, below).
-     Receipts change the stock later, with their own page.
+     A delivery adds to the stock when the Master confirms its receipt (P56, `receive`, see 33).
    - **Where**: **Stores** in the sidebar under On board, with the number of provisions Low or Out of stock as a pill
      (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is a row of **More**
      (`/ship/more`) with the same number, and the More tab carries it in its badge, as the Master's Approvals (21).
@@ -1497,7 +1498,8 @@ Requirements: Java 25, Docker.
      the whole store. Nothing found: "No results for these filters" with **Clear all**; no provisions at all: "No
      provisions yet".
    - **An item** (`/ship/stores/items/{id}`): its quantity and status, unit and place ("Not set"), then its history,
-     newest first: date and time, type (Count, Delivery received with the order number), before, after, who
+     newest first: date and time, type (Count, Delivery received with the order number, since P56 a link to the
+     order, 33), before, after, who
      ("Deleted user" once the account is gone) and the note. An item of another vessel, or one that is not
      PROVISIONS, is a 404.
    - **Counting by hand** (P53). `StockService.count(cook, itemId, counted, note)` sets the item's stock to the
@@ -1627,6 +1629,33 @@ Requirements: Java 25, Docker.
    - To try it: as `master.demo@example.com` approve the requests and send the order; as `office@example.com` schedule
      its delivery. Then as `cook.demo@example.com` / `crew123`: **Ship order** in the sidebar, the notification opens
      the order (no Confirm receipt), and Stores shows **Next delivery**.
+
+33. A received delivery goes into the store (P56). When the Master confirms receipt of an order (24, P51), what arrived
+   of the provisions is added to the Chief cook's store (30), in the same transaction as the receipt.
+   - `StockService.receive(order, line, master)`: the item's stock goes up by the line's received quantity (a
+     `StockLevel` row is created for an item without one) and a RECEIPT movement is saved: before, after, by the
+     Master, at the order's received at (the time the Master entered, not the time of confirming), linked to the
+     order. The item's row is locked first, as for a count. An item deactivated since the order still gets its stock:
+     what arrived is on board. Refuses (IllegalArgumentException) a line of another order, a removed line, an item
+     that is not PROVISIONS, a received quantity not above zero or an order without received at; anyone but the
+     enabled Master of the order's vessel gets an AccessDeniedException.
+   - `OrderReceiptService.confirmReceipt` calls it for every line not removed by the office, whose item is
+     PROVISIONS and whose received quantity is above zero. Personal items never touch the store; "Not delivered"
+     (0) adds nothing and leaves no movement.
+   - **No correction needed.** A confirmed receipt never changes: `confirmReceipt` only works on a CONFIRMED order
+     and makes it CLOSED, the office changes lines only while SENT (P50), and nothing else writes received
+     quantities or received at. So each line reaches the store exactly once.
+   - **Notification**: when at least one item was stocked, the vessel's enabled Chief cook gets "Order 12 received:
+     stock updated for 5 items" (`order.notification.stocked`, type ORDER), linking to `/ship/stores`. No stocked
+     item, no notification. The office's notification is unchanged.
+   - **The store's pages**: on an item's history (and on `/ship/stores/history`) a Delivery received row's "Order
+     #12" is a link to `/ship/orders/{id}`, which the cook reads since P55 (32).
+   - Tests: `shiporder/OrderReceiptFlowTest` (a provisions line and a personal-item line received 8 and 2: the
+     provisions stock 8 higher with one RECEIPT movement linked to the order, no stock for the personal item, the
+     cook's notification, the link on the item page).
+   - To try it: as in 32, send the order and schedule its delivery; as `master.demo@example.com` confirm its receipt.
+     Then as `cook.demo@example.com` the notification opens Stores, and the item's history shows the delivery with
+     its order.
 
 Run the tests (H2 in memory, no Docker needed):
 

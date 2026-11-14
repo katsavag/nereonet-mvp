@@ -2,7 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${detail.level.item.name}, ~{::main})}">
 <body>
 <!-- One provisions item of the Chief cook's store (P52): its unit, place ("Not set" without one), quantity on board and
-     status, then its history, newest first: date and time, type (Count, Delivery received with its order number),
+     status, then its history, newest first: date and time, type (Count, Delivery received with its order number, a
+     link to the order page that the cook reads since P55, P56),
      before and after, for a count the difference, counted minus expected ("-3", P53; a dash for a delivery), who ("Deleted user" when the account is gone) and the
      note. Read only. English only.
      Model: detail (StoresService.ItemDetail). -->
@@ -51,8 +52,8 @@
                     <td th:attr="data-label=#{stores.history.at}"><time th:replace="~{layout/parts :: localTime(${m.at})}"></time></td>
                     <td th:attr="data-label=#{stores.history.type}">
                         <span th:text="#{${m.type.labelKey()}}">Count</span>
-                        <span th:if="${m.order != null}" class="text-body-secondary">· <th:block
-                                th:text="#{order.number(${m.order.id})}">Order #12</th:block></span>
+                        <span th:if="${m.order != null}" class="text-body-secondary">· <a th:href="@{/ship/orders/{id}(id=${m.order.id})}"
+                                th:text="#{order.number(${m.order.id})}">Order #12</a></span>
                     </td>
                     <td class="text-end font-monospace" th:attr="data-label=#{stores.history.before}"
                         th:text="${m.quantityBefore.stripTrailingZeros().toPlainString()}">0</td>
