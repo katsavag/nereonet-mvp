@@ -132,7 +132,8 @@ class OfficeOrderFlowTest {
         assertThat(order.getConfirmedBy().getEmail()).isEqualTo("office@example.com");
         // Scheduled: the lines are read-only again.
         assertThat(page("/office/orders/" + order.getId())).contains(">25<", ">2.5<").doesNotContain("name=\"quantity\"");
-        // The Master (with a link to the order) and the Chief cook are notified; nobody else on board.
+        // The Master and the Chief cook are notified, both with a link to the order (read only for the cook, P55);
+        // nobody else on board.
         assertThat(notifications(master)).singleElement().satisfies(n -> {
             assertThat(n.getType()).isEqualTo(NotificationType.ORDER);
             assertThat(n.getSubject()).isEqualTo("MV Demo");
@@ -141,7 +142,7 @@ class OfficeOrderFlowTest {
         });
         assertThat(notifications(cook)).singleElement().satisfies(n -> {
             assertThat(n.getText()).isEqualTo("Delivery scheduled: Antwerp, 20 Nov 2026");
-            assertThat(n.getLink()).isNull();
+            assertThat(n.getLink()).isEqualTo("/ship/orders/" + order.getId());
         });
         assertThat(notifications(crewMember)).isEmpty();
         assertThat(audit("ORDER_DELIVERY_SCHEDULED")).singleElement().extracting(AuditEntry::getDetails)

@@ -117,7 +117,10 @@
                             <th:block sec:authorize="hasRole('MASTER')">
                                 <li th:replace="~{layout/parts :: navItem('approvals', '/ship/approvals', #{nav.approvals},
                                         ${approvalsWaiting}, #{nav.count.approvals(${approvalsWaiting ?: 0})})}"></li>
-                                <!-- The ship order (P35), with the number of lines in the OPEN order. -->
+                            </th:block>
+                            <!-- The ship order (P35), with the number of lines in the OPEN order for the Master; the
+                                 Chief cook reads it (P55), without the counter (orderLines is null for them). -->
+                            <th:block sec:authorize="hasAnyRole('MASTER', 'CHIEF_COOK')">
                                 <li th:replace="~{layout/parts :: navItem('order', '/ship/order', #{nav.order},
                                         ${orderLines}, #{nav.count.order(${orderLines ?: 0})})}"></li>
                             </th:block>

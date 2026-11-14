@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,9 @@ import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -69,6 +73,7 @@ class StoresFlowTest {
     @Autowired StockService stockService;
     @Autowired AuditRepository auditRepository;
     @Autowired Dates dates;
+    @Autowired ShipOrderRepository orderRepository;
 
     Ship ship;
     Ship otherShip;
@@ -410,6 +415,38 @@ class StoresFlowTest {
 
     private static int rows(String html) {
         return html.split("data-movement", -1).length - 1;
+    }
+
+    @Test
+    void theNextDeliveryLinksToItsOrder() throws Exception {
+        assertThat(page("/ship/stores", cook)).containsPattern("(?s)Next delivery</span>\\s*"
+                + "<span class=\"stores-fact-value stores-fact-none\">None scheduled</span>");
+
+        ShipOrder later = order(LocalDate.of(2026, 12, 3), "Piraeus");
+        ShipOrder next = order(LocalDate.of(2026, 11, 20), "Antwerp");
+
+        String html = page("/ship/stores", cook);
+        assertThat(html).containsPattern("(?s)<a class=\"stores-fact\" href=\"/ship/orders/" + next.getId() + "\">\\s*"
+                        + "<span class=\"stores-fact-label\">Next delivery</span>\\s*"
+                        + "<span class=\"stores-fact-value stores-fact-date\">Antwerp, 20 Nov 2026</span>")
+                .doesNotContain("None scheduled", "/ship/orders/" + later.getId());
+        // The link opens the order, read only for the cook.
+        assertThat(page("/ship/orders/" + next.getId(), cook)).contains("Only the Master can change or send the order.");
+    }
+
+    // A CONFIRMED order of the cook's ship: the office scheduled its delivery.
+    private ShipOrder order(LocalDate deliveryDate, String port) {
+        ShipOrder order = new ShipOrder();
+        order.setShip(ship);
+        order.setStatus(ShipOrderStatus.CONFIRMED);
+        order.setCreatedAt(Instant.now());
+        order.setSentAt(Instant.now());
+        order.setSentBy(master);
+        order.setRequestedPort(port);
+        order.setNeededBy(deliveryDate);
+        order.setConfirmedPort(port);
+        order.setDeliveryDate(deliveryDate);
+        return orderRepository.save(order);
     }
 
     private void count(Item item, String quantity) throws Exception {

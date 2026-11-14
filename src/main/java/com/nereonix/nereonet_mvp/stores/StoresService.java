@@ -18,6 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.stock.StockMovement;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
@@ -49,8 +51,10 @@ public class StoresService {
     /**
      * counts: Low and Out of stock over every item, whatever the filter. lastCount: the latest COUNT movement, or null
      * ("Not counted yet"). total: the number of items in the store; groups: the items the filter and search leave.
+     * nextDelivery (P55): the ship's order with a scheduled delivery (ShipOrderService.nextDelivery), or null.
      */
-    public record Stores(Ship ship, Counts counts, Instant lastCount, int total, List<PlaceGroup> groups) {
+    public record Stores(Ship ship, Counts counts, Instant lastCount, int total, List<PlaceGroup> groups,
+                         ShipOrder nextDelivery) {
 
         public boolean isEmpty() {
             return groups.isEmpty();
@@ -63,11 +67,14 @@ public class StoresService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
     private final StockService stockService;
+    private final ShipOrderService shipOrderService;
 
-    public StoresService(UserRepository userRepository, ItemRepository itemRepository, StockService stockService) {
+    public StoresService(UserRepository userRepository, ItemRepository itemRepository, StockService stockService,
+                         ShipOrderService shipOrderService) {
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
         this.stockService = stockService;
+        this.shipOrderService = shipOrderService;
     }
 
     /**
@@ -85,7 +92,8 @@ public class StoresService {
                 .filter(level -> status == null || level.status() == status)
                 .filter(level -> needle == null || level.item().getName().toLowerCase(Locale.ROOT).contains(needle))
                 .toList();
-        return new Stores(ship, counts, stockService.lastCount(ship), levels.size(), byPlace(shown));
+        return new Stores(ship, counts, stockService.lastCount(ship), levels.size(), byPlace(shown),
+                shipOrderService.nextDelivery(ship.getId()).orElse(null));
     }
 
     /** Low and Out of stock on the cook's ship, for the cook's home page. */

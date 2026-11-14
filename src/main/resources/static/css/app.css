@@ -6369,8 +6369,8 @@ input.supplier-currency { max-width: 7rem; }
 /* ---------------------------------------------------------------------------------------------------------------
    Stores (P52): the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
      - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count, Requests waiting
-       since P54; the next delivery joins later), four per row from 992px, else two; a tile is a link when it leads to
-       a list. .is-low and .is-out tint a tile
+       since P54, Next delivery since P55), five per row from 1200px, else two with Next delivery (.stores-fact-wide)
+       across the row; a tile is a link when it leads to a list or an order. .is-low and .is-out tint a tile
        with something in it (the number says it, the tint repeats it).
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
      - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
@@ -6384,8 +6384,10 @@ input.supplier-currency { max-width: 7rem; }
     padding: 0;
     list-style: none;
 }
-@media (min-width: 992px) {
-    .stores-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stores-fact-wide { grid-column: 1 / -1; }
+@media (min-width: 1200px) {
+    .stores-facts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .stores-fact-wide { grid-column: auto; }
 }
 .stores-fact {
     display: flex;

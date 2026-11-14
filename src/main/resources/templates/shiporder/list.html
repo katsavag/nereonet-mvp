@@ -3,10 +3,11 @@
 <body>
 <!-- The ship's past orders (P35): sent, confirmed and received, newest sent first. Each row is one link (the order
      number, stretched over the row) with its status, the requested port and date and, once the office has set them,
-     the confirmed port and delivery date. English only. Model: past (ShipOrderPageService.PastOrders). -->
+     the confirmed port and delivery date. English only. P55: the Chief cook reads it too (canManage false: the hints say
+     the Master sends the orders). Model: past (ShipOrderPageService.PastOrders), canManage (boolean). -->
 <main th:with="p=${past}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.past.title}, crumbs=~{::pageCrumbs},
-            eyebrowShip=${p.ship}, subtitle=#{order.past.hint})}">
+            eyebrowShip=${p.ship}, subtitle=${canManage} ? #{order.past.hint} : #{order.past.hint.readOnly})}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
         </th:block>
@@ -15,7 +16,7 @@
     <div class="card">
         <th:block th:if="${p.orders.isEmpty()}">
             <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.past.empty.title},
-                    text=#{order.past.empty.text}, action=null)}"></div>
+                    text=${canManage} ? #{order.past.empty.text} : #{order.past.empty.text.readOnly}, action=null)}"></div>
         </th:block>
         <ul th:unless="${p.orders.isEmpty()}" class="list-group list-group-flush">
             <li th:each="o : ${p.orders}" class="list-group-item list-group-item-action approval-row">

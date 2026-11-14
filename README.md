@@ -951,9 +951,10 @@ Requirements: Java 25, Docker.
    - To try it: as `master.demo@example.com`, open a waiting request and **Approve** it; open the other and
      **Decline** it with a reason. Both requesters see their notification.
 
-23. The ship order and "Send to office" (P35, the Master only). `core/order/ShipOrderService` (`changeQuantity`,
+23. The ship order and "Send to office" (P35, the Master only; the Chief cook reads it since P55, see 32). `core/order/ShipOrderService` (`changeQuantity`,
    `removeLine`, `send`) and `shiporder/` (`ShipOrderController`, `ShipOrderPageService`, `SendOrderForm`).
-   - **Ship order** in the sidebar (on phones under More), with the number of lines in the OPEN order.
+   - **Ship order** in the sidebar (on phones under More), with the number of lines in the OPEN order (the Master's
+     counter; the Chief cook has the entry without it, P55).
    - **`/ship/order`**: the ship's OPEN order, its lines by category (Provisions, then Personal items), each with the
      item name, quantity and unit and, under it, who asked for it: "Chief Cook 6, A. Santos 4" (the Master and the
      Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
@@ -975,7 +976,8 @@ Requirements: Java 25, Docker.
      with its lines (the OPEN one redirects to `/ship/order`).
    - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Delivery scheduled" (P51; "Confirmed by
      office" before), CLOSED "Received". The office says "Pending", "Delivery pending" and "Received" (P49, P51).
-   - Another ship's line or order is a 404; the Chief cook and crew get 403. New column `ship_order.office_note`
+   - Another ship's line or order is a 404; crew members get 403, and so does the Chief cook for every POST (the
+     cook reads the pages, P55). New column `ship_order.office_note`
      (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
    - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
      and send it with port "Rotterdam"; `office@example.com` sees the notification.
@@ -999,8 +1001,8 @@ Requirements: Java 25, Docker.
      characters, starts as the requested port) and **Delivery date** (required). `POST /office/orders/{id}/confirm`
      (`ShipOrderService.scheduleDelivery`) sets the port, delivery date, scheduled by and CONFIRMED ("Delivery
      scheduled. The master and the chief cook were notified."); "Delivery scheduled by office" goes in the audit log
-     and the ship's enabled Master (linking to `/ship/orders/{id}`) and Chief cook (no link: the order pages are the
-     Master's) get "Delivery scheduled: Antwerp, 20 Nov 2026". While CONFIRMED the same form is **Change delivery**
+     and the ship's enabled Master and Chief cook, both linking to `/ship/orders/{id}` (read only for the cook, P55;
+     no link for the cook before), get "Delivery scheduled: Antwerp, 20 Nov 2026". While CONFIRMED the same form is **Change delivery**
      ("Delivery changed by office", "Delivery changed: ..."), as often as needed. The office cannot close an order:
      only the Master's receipt does (P51, below); once CLOSED the form is gone and a POST changes nothing ("This order
      was received on board."). The order's row is locked while scheduling.
@@ -1484,7 +1486,9 @@ Requirements: Java 25, Docker.
    - **The store** (`/ship/stores`, titled "Stores"): a summary first, **Low** and **Out of stock** (each a link to
      that filter, tinted when above zero) and **Last count** (the date of the latest COUNT movement, or "Not counted
      yet") and, since P54, **Requests waiting**: the cook's own requests still waiting for the Master, a link to
-     Requests filtered to Waiting (31); the next delivery joins it later. Four tiles in a row from 992 px, two below.
+     Requests filtered to Waiting (31); since P55, **Next delivery** ("Antwerp, 20 Nov 2026", a link to that order,
+     read only for the cook, 32; "None scheduled" without one). Five tiles in a row from 1200 px; below, two per row,
+     Next delivery across the row.
      Then the search (part of the
      name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
      filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
@@ -1590,6 +1594,39 @@ Requirements: Java 25, Docker.
      Running low; enter 10 for Sugar, add "Saffron", g, 50, and **Send to the master**. Then **Edit** it, or
      **Cancel request**. As `master.demo@example.com` the request is under Approvals; `/ship/requests` is a 403. As
      `ab.demo@example.com` the form has no stock and no new items.
+
+32. The Chief cook reads the vessel order (P55). Read only: the cook never creates, changes, sends or receives an
+   order; that stays the Master's (23, 24).
+   - **Access** (`SecurityConfig`, by HTTP method and path): `GET /ship/order`, `GET /ship/orders` and
+     `GET /ship/orders/{id}` (`/ship/orders/*`, one segment) for MASTER and CHIEF_COOK; everything else under
+     `/ship/order/**` and `/ship/orders/**` (every POST, the receipt pages and files under `/ship/orders/{id}/receipt`)
+     stays MASTER only. Crew members get 403 on all of them.
+   - **The services, not the pages, enforce it.** `ShipOrderService.changeQuantity` (now before it checks the
+     quantity), `removeLine` and `send`, and `OrderReceiptService.stageFile`, `removeFiles` and `confirmReceipt`
+     refuse anyone but the ship's enabled Master (`AccessDeniedException`); `addApprovedRequest` refuses a request not
+     decided by an enabled Master of its ship. `ShipOrderPageService` reads (`open`, `past`, `detail`) for the
+     enabled Master or Chief cook, and gives the receipt pages (`order`) and the services' user (`master`) only to the
+     enabled Master. `scheduleDelivery`, `export`, `markShortageHandled` and the office's line changes stay the
+     office's.
+   - **The pages**: the same templates. `ShipOrderController` sets one model flag, `canManage`
+     (`ShipOrderPageService.canManage`: the enabled Master), and the templates use it instead of role checks. For the
+     cook: the OPEN order ("Collecting") with its lines by category and who asked for what, no quantity inputs, no
+     Remove, no Send to office; the past orders with their status (`order.status.*`), requested port, needed by and,
+     once set, delivery port and date; a sent order's page without Confirm receipt; a received order with what arrived
+     per line (Received, "Short by 3 kg"), without the delivery receipt's files. Each page says "Only the Master can
+     change or send the order." instead of the controls; the hints read "Orders the Master sent to the office…".
+   - **Navigation**: **Ship order** in the cook's sidebar and More, without the Master's counter (`orderLines` stays
+     null for the cook).
+   - **Notifications**: "Delivery scheduled" / "Delivery changed" (24) and "The office changed order 12…" (P50) link
+     the cook to `/ship/orders/{id}` too.
+   - **Stores**: the summary's **Next delivery** (30), `ShipOrderService.nextDelivery`: the vessel's CONFIRMED order
+     with the earliest delivery date.
+   - Tests: `shiporder/ShipOrderFlowTest` (the cook's pages, the 403 on send with the order unchanged, the services'
+     checks), `stores/StoresFlowTest` (Next delivery), the notification links in `officeorder/OfficeOrderFlowTest` and
+     `OfficeOrderEditFlowTest`.
+   - To try it: as `master.demo@example.com` approve the requests and send the order; as `office@example.com` schedule
+     its delivery. Then as `cook.demo@example.com` / `crew123`: **Ship order** in the sidebar, the notification opens
+     the order (no Confirm receipt), and Stores shows **Next delivery**.
 
 Run the tests (H2 in memory, no Docker needed):
 

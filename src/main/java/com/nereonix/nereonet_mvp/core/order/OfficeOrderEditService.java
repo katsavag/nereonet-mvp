@@ -259,9 +259,9 @@ public class OfficeOrderEditService {
         String text = message("order.notification.officeChanged", order.getId(), String.join(", ", parts));
         for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
             for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
-                // Only the Master has the order pages (/ship/orders), as for "Order confirmed".
+                // The order page, as for "Delivery scheduled"; the Chief cook reads it since P55.
                 notificationService.notify(user, NotificationType.ORDER, ship.getName(), text,
-                        role == Role.MASTER ? "/ship/orders/" + order.getId() : null);
+                        "/ship/orders/" + order.getId());
             }
         }
         return true;

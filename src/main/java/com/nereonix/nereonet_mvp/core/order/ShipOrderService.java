@@ -107,6 +107,7 @@ public class ShipOrderService {
      * added to the order line of the same item, or a new order line is made, and the request line is linked to it.
      * Every line must have an item (RequestService.approve creates the new ones first). The ship's row is locked
      * first, so two approvals at the same time never make two OPEN orders, or two lines for one item.
+     * AccessDeniedException when the request was not decided by an enabled Master of its ship (P55).
      */
     @Transactional
     public ShipOrder addApprovedRequest(ItemRequest request) {
@@ -114,6 +115,11 @@ public class ShipOrderService {
             throw new IllegalArgumentException("Only an approved request goes into the ship order");
         }
         Ship ship = request.getShip();
+        User decidedBy = request.getDecidedBy();
+        checkMaster(decidedBy);
+        if (!decidedBy.getShip().getId().equals(ship.getId())) {
+            throw new AccessDeniedException("Only the Master of the ship changes or sends its order");
+        }
         lock(ship);
 
         ShipOrder order = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN)
@@ -156,6 +162,7 @@ public class ShipOrderService {
      */
     @Transactional
     public Change changeQuantity(User master, Long lineId, BigDecimal quantity) {
+        checkMaster(master);
         if (!isValidQuantity(quantity)) {
             throw new IllegalArgumentException("A quantity must be above zero, with at most 3 decimals");
         }
@@ -293,6 +300,15 @@ public class ShipOrderService {
         return orderRepository.findByIdAndStatusIn(id, SENT_TO_OFFICE);
     }
 
+    /**
+     * The ship's next delivery (P55, the Chief cook's Stores): its order whose delivery the office scheduled and that is
+     * not received yet (CONFIRMED), the earliest delivery date first; empty when there is none.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ShipOrder> nextDelivery(Long shipId) {
+        return orderRepository.findFirstByShipIdAndStatusOrderByDeliveryDateAscIdAsc(shipId, ShipOrderStatus.CONFIRMED);
+    }
+
     /** Orders Pending or Delivery pending, every ship: the office's sidebar counter (P51; not exported before). */
     @Transactional(readOnly = true)
     public long countNotReceived() {
@@ -330,8 +346,8 @@ public class ShipOrderService {
     /**
      * An office user schedules the delivery of a SENT order, or changes the port or date of a CONFIRMED one (P36;
      * "confirm" until P51): confirmedPort, deliveryDate, confirmedBy and CONFIRMED. Recorded as "Delivery scheduled" or
-     * "Delivery changed"; the ship's enabled Master and Chief cook are notified each time: "Delivery scheduled:
-     * Rotterdam, 20 Nov 2026" or "Delivery changed: ...". RECEIVED (nothing changed) once the Master confirmed receipt;
+     * "Delivery changed"; the ship's enabled Master and Chief cook are notified each time, both linking to the order
+     * (the Chief cook reads it since P55): "Delivery scheduled: Rotterdam, 20 Nov 2026" or "Delivery changed: ...". RECEIVED (nothing changed) once the Master confirmed receipt;
      * NOT_FOUND for an OPEN order or no such order. The order's row is locked, so two at the same time are saved one
      * after the other. IllegalArgumentException for a missing or too long port or a missing date;
      * AccessDeniedException when the user is not an enabled office user.
@@ -370,9 +386,9 @@ public class ShipOrderService {
                 : "order.notification.deliveryScheduled", new Object[] {port, date}, Locale.ENGLISH);
         for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
             for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
-                // Only the Master has the order pages (/ship/orders).
+                // The Master's order page; the Chief cook's is the same page, read only (P55).
                 notificationService.notify(user, NotificationType.ORDER, ship.getName(), text,
-                        role == Role.MASTER ? "/ship/orders/" + order.getId() : null);
+                        "/ship/orders/" + order.getId());
             }
         }
         return change ? Schedule.CHANGED : Schedule.SCHEDULED;

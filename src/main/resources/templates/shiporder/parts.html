@@ -1,7 +1,12 @@
 <!DOCTYPE html>
-<!-- Parts of the Master's ship order (P35). -->
+<!-- Parts of the ship order (P35; the Chief cook reads it since P55). -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+
+<!-- The Chief cook's pages instead of the Master's controls (P55): the one line saying why there is nothing to act on.
+     Use: <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block> -->
+<p th:fragment="readOnlyNote" class="text-body-secondary" th:text="#{order.readOnly}">Only the Master can
+    change or send the order.</p>
 
 <!-- An order's status as a badge: Collecting (neutral), Sent to office (neutral), Delivery scheduled (info: the Master
      confirms receipt next, P51), Received (ok). The words carry the state, the colour repeats it.

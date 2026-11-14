@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -38,7 +39,11 @@ public class SecurityConfig {
                                 "/ship/library/*/acknowledgements/remind").hasRole("MASTER")
                         // The Master's approvals (P33).
                         .requestMatchers("/ship/approvals", "/ship/approvals/**").hasRole("MASTER")
-                        // The Master's ship order and past orders (P35).
+                        // The ship order and past orders (P35): the Chief cook reads them (P55), only the Master
+                        // changes, sends or receives an order. GET of the three pages only: "/ship/orders/*" is one
+                        // segment, so the receipt pages and files under /ship/orders/{id}/ stay the Master's.
+                        .requestMatchers(HttpMethod.GET, "/ship/order", "/ship/orders", "/ship/orders/*")
+                                .hasAnyRole("MASTER", "CHIEF_COOK")
                         .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
                                 .hasRole("MASTER")
                         // The Chief cook's store (P52).

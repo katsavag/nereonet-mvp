@@ -156,7 +156,7 @@ class OfficeOrderEditFlowTest {
                 .getResponse().getContentAsString(StandardCharsets.UTF_8))
                 .contains("Αλλαγή από το γραφείο: 50 kg → 40 kg", "Αφαιρέθηκε από το γραφείο", "Τέλος αλλαγών");
 
-        // Done editing: one notification for the Master (with the link) and the Chief cook, nobody else.
+        // Done editing: one notification for the Master and the Chief cook (both with the link, P55), nobody else.
         mockMvc.perform(post("/office/orders/{id}/edits/done", order.getId()).with(csrf()))
                 .andExpect(redirectedUrl("/office/orders/" + order.getId()))
                 .andExpect(flash().attribute("successMessage", "officeorder.edit.done"));
@@ -168,7 +168,7 @@ class OfficeOrderEditFlowTest {
         });
         assertThat(notifications(cook)).singleElement().satisfies(n -> {
             assertThat(n.getText()).isEqualTo(text);
-            assertThat(n.getLink()).isNull();
+            assertThat(n.getLink()).isEqualTo("/ship/orders/" + order.getId());
         });
         assertThat(notifications(crewMember)).isEmpty();
         assertThat(order.getOfficeEditedAt()).isNull();

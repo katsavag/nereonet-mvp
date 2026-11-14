@@ -427,7 +427,15 @@ class MessageKeysTest {
             "request.form.error.invalid",
             "home.card.requests",
             "home.card.requests.waiting",
-            "stores.summary.requestsWaiting");
+            "stores.summary.requestsWaiting",
+            // P55: the Chief cook reads the vessel order, and the next delivery on Stores.
+            "order.readOnly",
+            "order.hint.readOnly",
+            "order.past.hint.readOnly",
+            "order.past.empty.text.readOnly",
+            "stores.summary.nextDelivery",
+            "stores.summary.nextDelivery.value",
+            "stores.summary.noDelivery");
 
     /**
      * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies

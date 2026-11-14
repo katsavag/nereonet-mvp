@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,12 +29,16 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
 import com.nereonix.nereonet_mvp.core.request.RequestLineRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The Master's ship order pages (P35): the OPEN order of the signed-in Master's own ship, and its past orders. The
- * changes are ShipOrderService's. An order of another ship is a 404, never a 403, so nobody can probe which exist.
+ * The ship order pages (P35): the OPEN order of the signed-in user's own ship, and its past orders. The Master changes
+ * and sends the order, and confirms its receipt; since P55 the Chief cook reads the same pages (open, past, detail),
+ * and nothing more: every change is ShipOrderService's or OrderReceiptService's, which refuse anyone but the ship's
+ * enabled Master, and the receipt pages (order) and the services' user (master) refuse anyone but the Master here.
+ * An order of another ship is a 404, never a 403, so nobody can probe which exist.
  */
 @Service
 public class ShipOrderPageService {
@@ -79,31 +84,31 @@ public class ShipOrderPageService {
         this.messageSource = messageSource;
     }
 
-    /** The ship's OPEN order with its lines; an empty view when there is none. */
+    /** The ship's OPEN order with its lines; an empty view when there is none. The Master or the Chief cook. */
     @Transactional(readOnly = true)
     public OrderView open(String email) {
-        Ship ship = ship(master(email));
+        Ship ship = ship(reader(email));
         ShipOrder order = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElse(null);
         return view(ship, order);
     }
 
-    /** SENT, CONFIRMED and CLOSED orders of the ship, newest sent first. */
+    /** SENT, CONFIRMED and CLOSED orders of the ship, newest sent first. The Master or the Chief cook. */
     @Transactional(readOnly = true)
     public PastOrders past(String email) {
-        Ship ship = ship(master(email));
+        Ship ship = ship(reader(email));
         return new PastOrders(ship, orderRepository.findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(ship.getId(), PAST));
     }
 
-    /** One order of the ship with its lines; 404 for another ship's. */
+    /** One order of the ship with its lines; 404 for another ship's. The Master or the Chief cook. */
     @Transactional(readOnly = true)
     public OrderView detail(String email, Long id) {
-        Ship ship = ship(master(email));
+        Ship ship = ship(reader(email));
         ShipOrder order = orderRepository.findByIdAndShipId(id, ship.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         return view(ship, order);
     }
 
-    /** One order of the ship, OPEN or not; 404 for another ship's (P51: the receipt pages). */
+    /** One order of the ship, OPEN or not; 404 for another ship's (P51: the receipt pages, the Master's only). */
     @Transactional(readOnly = true)
     public ShipOrder order(String email, Long id) {
         Ship ship = ship(master(email));
@@ -183,14 +188,41 @@ public class ShipOrderPageService {
         return name.substring(0, name.offsetByCodePoints(0, 1)) + ". " + name.substring(space + 1).strip();
     }
 
+    /** True when the user with this email changes, sends and receives the ship's order: its enabled Master (P55). */
+    public boolean canManage(String email) {
+        return isEnabled(user(email), Role.MASTER);
+    }
+
+    // The ship's enabled Master: the order's changes and the receipt pages. AccessDeniedException for anyone else.
     User master(String email) {
+        User user = user(email);
+        if (!isEnabled(user, Role.MASTER)) {
+            throw new AccessDeniedException("Only the Master changes, sends or receives the ship's order");
+        }
+        return user;
+    }
+
+    // The ship's enabled Master or Chief cook (P55): the order read only. AccessDeniedException for anyone else.
+    private User reader(String email) {
+        User user = user(email);
+        if (!isEnabled(user, Role.MASTER) && !isEnabled(user, Role.CHIEF_COOK)) {
+            throw new AccessDeniedException("Only the Master and the Chief cook read the ship's order");
+        }
+        return user;
+    }
+
+    private User user(String email) {
         return userRepository.findByEmail(email).orElseThrow();
     }
 
-    private static Ship ship(User master) {
-        if (master.getShip() == null) {
+    private static boolean isEnabled(User user, Role role) {
+        return user.getRole() == role && user.isEnabled();
+    }
+
+    private static Ship ship(User user) {
+        if (user.getShip() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        return master.getShip();
+        return user.getShip();
     }
 }

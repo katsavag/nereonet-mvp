@@ -340,7 +340,8 @@ class OrderReceiptFlowTest {
                 .andExpect(status().isConflict());
         order.setStatus(ShipOrderStatus.CONFIRMED);
 
-        // The Chief cook has no order pages; another ship's Master gets a 404; the office cannot close an order.
+        // The Chief cook reads the order (P55) but has no receipt pages; another ship's Master gets a 404; the office
+        // cannot close an order.
         mockMvc.perform(get("/ship/orders/{id}/receipt", order.getId()).with(user(new CurrentUser(cook))))
                 .andExpect(status().isForbidden());
         Ship other = new Ship();

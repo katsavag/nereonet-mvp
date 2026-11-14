@@ -1,6 +1,7 @@
 package com.nereonix.nereonet_mvp.shiporder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,12 +18,14 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -35,13 +38,19 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptFile;
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptFileRepository;
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderService.SendDetails;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
 import com.nereonix.nereonet_mvp.core.request.RequestService;
+import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -53,7 +62,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 /**
  * P35, the Master's ship order: the OPEN order shows its lines by category with who asked for each; a line's quantity
  * is changed or the line removed, each saved at once; "Send to office" makes it SENT and read-only, records it and
- * notifies every enabled office user. Past orders are listed with their status. Only the Master of the ship.
+ * notifies every enabled office user. Past orders are listed with their status. Only the Master of the ship changes
+ * it; P55: the Chief cook reads the same pages, with nothing to act on, and the services refuse them.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -71,6 +81,9 @@ class ShipOrderFlowTest {
     @Autowired ShipOrderRepository orderRepository;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditRepository auditRepository;
+    @Autowired ShipOrderService shipOrderService;
+    @Autowired OrderReceiptService receiptService;
+    @Autowired OrderReceiptFileRepository receiptFileRepository;
 
     Ship ship;
     User master;
@@ -236,9 +249,13 @@ class ShipOrderFlowTest {
         ShipOrder order = openOrderWithTwoLines();
         ShipOrderLine riceLine = line(order, rice);
 
-        mockMvc.perform(get("/ship/order").with(user(new CurrentUser(cook)))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/ship/order").with(user(new CurrentUser(crewMember)))).andExpect(status().isForbidden());
         mockMvc.perform(get("/ship/orders").with(user(new CurrentUser(crewMember)))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/ship/orders/" + order.getId()).with(user(new CurrentUser(crewMember))))
+                .andExpect(status().isForbidden());
         mockMvc.perform(post("/ship/order/lines/" + riceLine.getId() + "/quantity").param("quantity", "1")
+                .with(user(new CurrentUser(cook))).with(csrf())).andExpect(status().isForbidden());
+        mockMvc.perform(post("/ship/order/lines/" + riceLine.getId() + "/remove")
                 .with(user(new CurrentUser(cook))).with(csrf())).andExpect(status().isForbidden());
         mockMvc.perform(post("/ship/order/lines/" + riceLine.getId() + "/quantity").param("quantity", "1")
                 .with(user(new CurrentUser(otherMaster))).with(csrf())).andExpect(status().isNotFound());
@@ -248,6 +265,135 @@ class ShipOrderFlowTest {
                 .andExpect(status().isNotFound());
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("10");
         assertThat(order.getLines()).hasSize(2);
+    }
+
+    @Test
+    void theChiefCookReadsTheOpenOrderWithNothingToActOn() throws Exception {
+        openOrderWithTwoLines();
+
+        String html = cookPage("/ship/order");
+        String main = main(html);
+
+        assertThat(main).contains("Provisions", "Personal items", "Basmati rice", "Shower gel",
+                "Chief Cook 6, A. Santos 4", "Collecting", "Only the Master can change or send the order.")
+                .doesNotContain("<form", "<input", "/ship/order/lines/", "/ship/order/send", ">Send to office<",
+                        ">Remove<");
+        // The sidebar's Ship order, without the Master's counter.
+        assertThat(html).contains("href=\"/ship/order\"").doesNotContain("in the order</span>");
+        assertThat(page("/ship/order")).contains("2 lines in the order");
+    }
+
+    @Test
+    void theChiefCookReadsASentOrderWithItsLinesAndStatus() throws Exception {
+        ShipOrder order = openOrderWithTwoLines();
+        LocalDate neededBy = LocalDate.now(ZoneOffset.UTC).plusDays(10);
+        send("Rotterdam", neededBy.toString(), "");
+        order.setStatus(ShipOrderStatus.CONFIRMED);
+        order.setConfirmedPort("Antwerp");
+        order.setDeliveryDate(neededBy.plusDays(1));
+
+        String list = main(cookPage("/ship/orders"));
+        assertThat(list).contains("Order #" + order.getId(), "Delivery scheduled", "Requested: Rotterdam",
+                DAY.format(neededBy), "Delivery: Antwerp", DAY.format(neededBy.plusDays(1)),
+                "href=\"/ship/orders/" + order.getId() + "\"");
+
+        String detail = main(cookPage("/ship/orders/" + order.getId()));
+        assertThat(detail).contains("Delivery scheduled", "Basmati rice", "Shower gel", "Chief Cook 6, A. Santos 4",
+                "Rotterdam", "Antwerp", "Only the Master can change or send the order.")
+                .doesNotContain("<form", "<input", "Confirm receipt", "/receipt", ">Send to office<");
+        // The Master still has Confirm receipt.
+        assertThat(page("/ship/orders/" + order.getId())).contains("Confirm receipt")
+                .doesNotContain("Only the Master can change or send the order.");
+    }
+
+    @Test
+    void theChiefCookSeesWhatWasReceivedButNotTheReceiptFiles() throws Exception {
+        ShipOrder order = openOrderWithTwoLines();
+        send("Rotterdam", LocalDate.now(ZoneOffset.UTC).plusDays(10).toString(), "");
+        line(order, rice).setReceivedQuantity(new BigDecimal("7"));
+        line(order, soap).setReceivedQuantity(new BigDecimal("2"));
+        order.setStatus(ShipOrderStatus.CLOSED);
+        order.setReceivedAt(Instant.now());
+        order.setReceivedBy(master);
+        OrderReceiptFile file = new OrderReceiptFile();
+        file.setOrder(order);
+        file.setFileName("delivery-note.pdf");
+        file.setFileContentType("application/pdf");
+        file.setFileSize(100);
+        file.setStoragePath("receipts/none.pdf");
+        file.setUploadedBy(master);
+        file.setUploadedAt(Instant.now());
+        receiptFileRepository.save(file);
+
+        String detail = main(cookPage("/ship/orders/" + order.getId()));
+        assertThat(detail).contains("Received", ">7<", "Short by 3 kg")
+                .doesNotContain("delivery-note.pdf", "/receipt/files/", "Delivery receipt");
+        assertThat(page("/ship/orders/" + order.getId())).contains("delivery-note.pdf");
+        mockMvc.perform(get("/ship/orders/{id}/receipt/files/{f}", order.getId(), file.getId())
+                .with(user(new CurrentUser(cook)))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void theChiefCookCannotSendTheOrder() throws Exception {
+        ShipOrder order = openOrderWithTwoLines();
+
+        mockMvc.perform(post("/ship/order/send").param("requestedPort", "Rotterdam")
+                        .param("neededBy", LocalDate.now(ZoneOffset.UTC).plusDays(5).toString())
+                        .with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(status().isForbidden());
+
+        assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.OPEN);
+        assertThat(order.getSentAt()).isNull();
+        assertThat(order.getRequestedPort()).isNull();
+        assertThat(notificationRepository.countByUserEmailAndReadAtIsNull(office.getEmail())).isZero();
+        assertThat(auditRepository.findAll()).noneMatch(e -> e.getAction().equals("ORDER_SENT"));
+    }
+
+    // Security does not depend on the pages: the services refuse the Chief cook too (P55).
+    @Test
+    void theServicesRefuseAnyoneButTheMaster() throws Exception {
+        ShipOrder order = openOrderWithTwoLines();
+        ShipOrderLine riceLine = line(order, rice);
+        SendDetails details = new SendDetails("Rotterdam", LocalDate.now(ZoneOffset.UTC).plusDays(5), null);
+
+        for (User other : List.of(cook, crewMember, office)) {
+            assertThatThrownBy(() -> shipOrderService.send(other, details)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> shipOrderService.changeQuantity(other, riceLine.getId(), BigDecimal.ONE))
+                    .isInstanceOf(AccessDeniedException.class);
+            // Refused before the quantity is checked.
+            assertThatThrownBy(() -> shipOrderService.changeQuantity(other, riceLine.getId(), BigDecimal.ZERO))
+                    .isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> shipOrderService.removeLine(other, riceLine.getId()))
+                    .isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> receiptService.confirmReceipt(other, order.getId(),
+                    new OrderReceiptService.Receipt(Instant.now(), Map.of()))).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> receiptService.removeFiles(other, order.getId(), List.of()))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+        master.setEnabled(false);
+        assertThatThrownBy(() -> shipOrderService.send(master, details)).isInstanceOf(AccessDeniedException.class);
+        master.setEnabled(true);
+
+        // A request approved by anyone but the ship's enabled Master never reaches the order.
+        ItemRequest request = submit(crewMember, line(rice, "1"));
+        request.setStatus(RequestStatus.APPROVED);
+        for (User decidedBy : List.of(cook, otherMaster)) {
+            request.setDecidedBy(decidedBy);
+            assertThatThrownBy(() -> shipOrderService.addApprovedRequest(request))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+        assertThat(riceLine.getQuantity()).isEqualByComparingTo("10");
+        assertThat(order.getStatus()).isEqualTo(ShipOrderStatus.OPEN);
+    }
+
+    // The page's <main>: the sidebar and its forms (sign out) are left out.
+    private static String main(String html) {
+        return html.substring(html.indexOf("<main"), html.indexOf("</main>"));
+    }
+
+    private String cookPage(String url) throws Exception {
+        return mockMvc.perform(get(url).with(user(new CurrentUser(cook)))).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     // Rice 6 from the Chief cook and 4 from a crew member (one line of 10), shower gel 2 from the crew member.

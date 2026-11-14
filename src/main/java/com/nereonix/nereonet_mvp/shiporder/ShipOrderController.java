@@ -26,10 +26,16 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 // The Master's ship order (P35): the OPEN order of their own ship, its lines edited one at a time (each change is
 // saved at once, nobody is notified), "Send to office", and the past orders; P51: "Confirm receipt" on a past order
-// whose delivery is scheduled (OrderReceiptController), and its receipt once received. SecurityConfig limits /ship/order/** and
-// /ship/orders/** to MASTER. English only, as every crew screen.
+// whose delivery is scheduled (OrderReceiptController), and its receipt once received. P55: the Chief cook reads the
+// same three pages (GET /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig), with nothing to act on: the
+// model's canManage (the ship's enabled Master) decides what the templates offer, and the receipt's files are the
+// Master's only. Every POST stays MASTER only (SecurityConfig), and the services refuse anyone else as well.
+// English only, as every crew screen.
 @Controller
 public class ShipOrderController {
+
+    /** The model flag: true for the Master (edit, send, confirm receipt), false for the Chief cook (read only). */
+    static final String CAN_MANAGE = "canManage";
 
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
@@ -42,6 +48,7 @@ public class ShipOrderController {
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         model.addAttribute("view", pageService.open(currentUser.getUsername()));
+        model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
         model.addAttribute("sendForm", new SendOrderForm());
         return "shiporder/order";
     }
@@ -73,7 +80,8 @@ public class ShipOrderController {
                        Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("view", pageService.open(currentUser.getUsername()));
-                return "shiporder/order";
+            model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
+            return "shiporder/order";
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {
@@ -87,6 +95,7 @@ public class ShipOrderController {
     @GetMapping("/ship/orders")
     public String past(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         model.addAttribute("past", pageService.past(currentUser.getUsername()));
+        model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
         return "shiporder/list";
     }
 
@@ -97,9 +106,11 @@ public class ShipOrderController {
         if (view.order().getStatus() == ShipOrderStatus.OPEN) {
             return "redirect:/ship/order";
         }
+        boolean canManage = pageService.canManage(currentUser.getUsername());
         model.addAttribute("view", view);
-        // P51: once received, the receipt's files.
-        model.addAttribute("receiptFiles", view.order().getStatus() == ShipOrderStatus.CLOSED
+        model.addAttribute(CAN_MANAGE, canManage);
+        // P51: once received, the receipt's files; the Master's only (P55).
+        model.addAttribute("receiptFiles", canManage && view.order().getStatus() == ShipOrderStatus.CLOSED
                 ? receiptService.files(id) : List.of());
         return "shiporder/detail";
     }

@@ -5,10 +5,13 @@
      by date and note and, once the office has set them, the confirmed port and delivery date; then its lines by
      category with who asked for each. P51: once the delivery is scheduled, "Confirm receipt" (the one primary action);
      once received, when and by whom, the delivery receipt's files (each opens in a new tab) and per line what arrived.
-     English only. Model: view (ShipOrderPageService.OrderView), receiptFiles (OrderReceiptFile, once received). -->
+     P55: the Chief cook (canManage false) reads the same page with no Confirm receipt and without the receipt's files;
+     one line says only the Master can change or send the order.
+     English only. Model: view (ShipOrderPageService.OrderView), canManage (boolean), receiptFiles (OrderReceiptFile,
+     once received, the Master's only). -->
 <main th:with="order=${view.order}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.number(${order.id})}, crumbs=~{::pageCrumbs},
-            eyebrowShip=${view.ship}, actions=${order.status.name() == 'CONFIRMED'} ? ~{::pageActions} : null)}">
+            eyebrowShip=${view.ship}, actions=${canManage and order.status.name() == 'CONFIRMED'} ? ~{::pageActions} : null)}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
             <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
@@ -18,8 +21,9 @@
         </th:block>
     </header>
 
-    <p th:if="${order.status.name() == 'CONFIRMED'}" class="text-body-secondary" th:text="#{order.receipt.waiting}">When the
+    <p th:if="${canManage and order.status.name() == 'CONFIRMED'}" class="text-body-secondary" th:text="#{order.receipt.waiting}">When the
         items arrive, confirm receipt and attach the delivery receipt.</p>
+    <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block>
 
     <div class="card mb-4">
         <dl class="card-body row mb-0">
@@ -53,8 +57,8 @@
                     <time th:replace="~{layout/parts :: localTime(${order.receivedAt})}"></time>
                     <span th:text="#{order.receipt.by(${order.receivedBy} ? ${order.receivedBy.fullName} : #{audit.deletedUser})}">by Ship Master</span>
                 </dd>
-                <dt class="col-sm-4 col-lg-3" th:text="#{order.receipt.files}">Delivery receipt</dt>
-                <dd class="col-sm-8 col-lg-9">
+                <dt th:if="${canManage}" class="col-sm-4 col-lg-3" th:text="#{order.receipt.files}">Delivery receipt</dt>
+                <dd th:if="${canManage}" class="col-sm-8 col-lg-9">
                     <ul class="receipt-files list-unstyled mb-0">
                         <li th:each="f : ${receiptFiles}" class="receipt-file">
                             <a th:href="@{/ship/orders/{o}/receipt/files/{f}(o=${order.id}, f=${f.id})}" target="_blank"
