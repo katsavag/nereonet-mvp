@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(${supplier == null} ? #{supplier.add} : #{supplier.editTitle(${supplier.name})}, ~{::main})}">
+<body>
+<!-- Add supplier and Edit supplier (P44), a full page (six fields, P05): name, contact email (where the RFQ emails
+     go), ports served (free text; an RFQ lists the suppliers whose ports mention its port first), currency (ISO code,
+     what its quotes usually come in), website, and active (an inactive supplier is not offered for new RFQs). The
+     channel is Email for every supplier today and is shown, not chosen. Model: form (SupplierForm), supplier (null
+     when adding). -->
+<main class="form-page" th:with="action=${supplier == null} ? '/office/suppliers' : '/office/suppliers/' + ${supplier.id},
+                                 heading=${supplier == null} ? #{supplier.add} : #{supplier.editTitle(${supplier.name})}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${heading}, crumbs=~{::pageCrumbs})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.suppliers}, '/office/suppliers')}"></li>
+        </th:block>
+    </header>
+
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <form th:object="${form}" method="post" novalidate th:action="@{${action}}">
+                <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+                <div class="form-grid">
+                    <div>
+                        <label for="name" class="form-label" th:text="#{supplier.name}">Name</label>
+                        <input type="text" th:field="*{name}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="nameCounter" required>
+                        <div class="invalid-feedback" th:errors="*{name}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'name', 'name')}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="form-label" th:text="#{supplier.email}">Contact email</label>
+                        <input type="email" th:field="*{email}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" spellcheck="false" aria-describedby="emailHint" required>
+                        <div class="invalid-feedback" th:errors="*{email}"></div>
+                        <div class="form-meta">
+                            <div id="emailHint" class="form-text" th:text="#{supplier.email.hint}">Requests for quotes are emailed here.</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="portsServed" class="form-label">[[#{supplier.portsServed}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" th:field="*{portsServed}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="portsServedHint portsServedCounter">
+                        <div class="invalid-feedback" th:errors="*{portsServed}"></div>
+                        <div class="form-meta">
+                            <div id="portsServedHint" class="form-text" th:text="#{supplier.portsServed.hint}">For example "Piraeus, Perama, Elefsina". Suppliers serving the port come first when you request quotes.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'portsServed', 'portsServed')}"></div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <label for="currency" class="form-label" th:text="#{supplier.currency}">Currency</label>
+                        <input type="text" th:field="*{currency}" class="form-control supplier-currency" th:errorclass="is-invalid"
+                               autocomplete="off" spellcheck="false" maxlength="3" aria-describedby="currencyHint" required>
+                        <div class="invalid-feedback" th:errors="*{currency}"></div>
+                        <div class="form-meta">
+                            <div id="currencyHint" class="form-text" th:text="#{supplier.currency.hint}">A three-letter code, such as EUR or USD.</div>
+                        </div>
+                    </div>
+                    <div class="field-half">
+                        <span class="form-label" th:text="#{supplier.channel}">Sent by</span>
+                        <p class="supplier-channel" th:text="#{supplier.channel.EMAIL}">Email</p>
+                    </div>
+                    <div>
+                        <label for="website" class="form-label">[[#{supplier.website}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="url" th:field="*{website}" class="form-control" th:errorclass="is-invalid"
+                               autocomplete="off" spellcheck="false" placeholder="https://" aria-describedby="websiteCounter">
+                        <div class="invalid-feedback" th:errors="*{website}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'website', 'website')}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" th:field="*{active}" aria-describedby="activeHint">
+                            <label class="form-check-label" th:for="${#ids.prev('active')}" th:text="#{supplier.active}">Active</label>
+                        </div>
+                        <div id="activeHint" class="form-text" th:text="#{supplier.active.hint}">Only active suppliers can be asked for quotes.</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" th:text="${supplier == null} ? #{supplier.add} : #{form.save}">Add supplier</button>
+                    <a class="btn btn-ghost" th:href="@{/office/suppliers}" th:text="#{form.cancel}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

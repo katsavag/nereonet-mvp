@@ -22,6 +22,8 @@ public enum NavSection {
     ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/news", "/ship/announcements")),
     // The orders the ships have sent (P36).
     ORDERS("orders", List.of("/office/orders")),
+    // The suppliers the office asks for quotes (P44). An RFQ's pages are below its order, so under Orders.
+    SUPPLIERS("suppliers", List.of("/office/suppliers")),
     // Office, Administration. Office invitations are part of the Office users page.
     USERS("users", List.of("/office/users", "/office/invitations")),
     // Which documents each rank needs, per vessel type (P42).

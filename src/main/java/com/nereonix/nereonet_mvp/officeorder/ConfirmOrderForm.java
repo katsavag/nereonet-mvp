@@ -6,6 +6,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import com.nereonix.nereonet_mvp.core.form.PlausibleDate;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
+import com.nereonix.nereonet_mvp.core.rfq.RfqService;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,7 +35,20 @@ public class ConfirmOrderForm {
 
     /** The form as the order page shows it: the confirmed port and date once set, else the requested port. */
     static ConfirmOrderForm of(ShipOrder order) {
+        return of(order, null);
+    }
+
+    /**
+     * As of(order), but while the order is not confirmed yet and an RFQ was awarded (P44), the RFQ's port and the
+     * awarded quote's delivery date.
+     */
+    static ConfirmOrderForm of(ShipOrder order, RfqService.Award award) {
         ConfirmOrderForm form = new ConfirmOrderForm();
+        if (order.getConfirmedPort() == null && award != null) {
+            form.setConfirmedPort(award.rfq().getPort());
+            form.setDeliveryDate(award.quote().getDeliveryDate());
+            return form;
+        }
         form.setConfirmedPort(order.getConfirmedPort() != null ? order.getConfirmedPort() : order.getRequestedPort());
         form.setDeliveryDate(order.getDeliveryDate());
         return form;

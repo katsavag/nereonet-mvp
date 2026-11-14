@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.number(${rfq.id})}, ~{::main})}">
+<body>
+<!-- One request for quotes (P44). A sealed comparison: only the office sees the prices side by side.
+     1. The request: status, port, delivery date, reply-by date (with its hint), who sent it; once closed, the award
+        or the cancellation.
+     2. Suppliers: one row each with its status (Sent, Quoted, Declined, No reply, Failed), the answer (total and
+        delivery date, the decline reason, the failure) and, while open, Enter quote / Edit quote, Declined (one click,
+        optional reason), Send again (failed or no reply) and Award (quoted); the supplier's PDF when uploaded.
+     3. Comparison, once two or more quotes exist: one table per currency with two or more quotes (never converted),
+        items as rows grouped by category, suppliers as columns; per cell the price per item unit, the quantity offered
+        and the line total, "Not offered" for a line not offered; then subtotal, delivery cost, grand total, delivery
+        date, validity, and the cheapest complete quote marked with an icon and words. A quote alone in its currency is
+        listed under it, not compared. On phones the table scrolls inside its own box with the item column fixed.
+     Cancel request (asks first, danger) is in the header's More menu while open.
+     Model: order, rfq, today, comparison (RfqComparison), lines (by category and name). -->
+<main th:with="base=${'/office/orders/' + order.id + '/rfqs/' + rfq.id}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{rfq.number(${rfq.id})}, crumbs=~{rfq/parts :: crumbs(${order}, null)},
+            eyebrowShip=${order.ship}, actions=${rfq.open} ? ~{::pageActions} : null)}">
+        <th:block th:fragment="pageActions">
+            <details th:replace="~{layout/parts :: moreMenu(#{common.moreActions(#{rfq.number(${rfq.id})})}, ~{::rfqMenu}, 'btn btn-outline-secondary')}">
+                <th:block th:fragment="rfqMenu">
+                    <form th:replace="~{layout/parts :: confirmForm(action=${base + '/cancel'}, label=#{rfq.cancel},
+                            linkClass='dropdown-item dropdown-item-danger', title=#{rfq.cancel.confirm.title(${rfq.id})},
+                            body=#{rfq.cancel.confirm.body}, confirm=#{rfq.cancel}, tone='danger', dismiss=#{rfq.cancel.keep})}"></form>
+                </th:block>
+            </details>
+        </th:block>
+    </header>
+
+    <!-- 1. The request -->
+    <div class="card mb-4">
+        <dl class="card-body row mb-0">
+            <dt class="col-sm-4 col-lg-3" th:text="#{rfq.status}">Status</dt>
+            <dd class="col-sm-8 col-lg-9"><span th:replace="~{rfq/parts :: statusBadge(${rfq.status})}"></span></dd>
+            <th:block th:if="${rfq.status.name() == 'AWARDED' and rfq.awardedQuote != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{rfq.awardedTo}">Awarded to</dt>
+                <dd class="col-sm-8 col-lg-9 fw-semibold"
+                    th:text="${rfq.awardedQuote.supplier.name} + ' · ' + ${@money.total(rfq.awardedQuote.currency, rfq.awardedQuote.grandTotal())}">VANOS (Piraeus) · EUR 1,240.50</dd>
+            </th:block>
+            <th:block th:if="${!rfq.open and rfq.closedAt != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="${rfq.status.name() == 'AWARDED'} ? #{rfq.awardedBy} : #{rfq.cancelledBy}">Awarded by</dt>
+                <dd class="col-sm-8 col-lg-9">
+                    <span th:text="${rfq.closedBy} ? ${rfq.closedBy.fullName} : #{audit.deletedUser}">Jane Doe</span>
+                    · <time th:replace="~{layout/parts :: localTime(${rfq.closedAt})}"></time>
+                </dd>
+            </th:block>
+            <dt class="col-sm-4 col-lg-3" th:text="#{rfq.port}">Port</dt>
+            <dd class="col-sm-8 col-lg-9" th:text="${rfq.port}">Piraeus</dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{rfq.deliveryDate}">Delivery date</dt>
+            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${rfq.deliveryDate})}"></time></dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{rfq.replyBy}">Reply by</dt>
+            <dd class="col-sm-8 col-lg-9">
+                <time th:replace="~{layout/parts :: localDate(${rfq.replyBy})}"></time>
+                <span th:if="${rfq.open and rfq.replyBy.isBefore(today)}" class="date-hint"><span aria-hidden="true">·</span>
+                    <th:block th:text="#{rfq.replyBy.passed}">passed</th:block></span>
+            </dd>
+            <dt class="col-sm-4 col-lg-3" th:text="#{rfq.sentBy}">Sent by</dt>
+            <dd class="col-sm-8 col-lg-9 mb-0">
+                <span th:text="${rfq.sentBy} ? ${rfq.sentBy.fullName} : #{audit.deletedUser}">Jane Doe</span>
+                · <time th:replace="~{layout/parts :: localTime(${rfq.sentAt})}"></time>
+            </dd>
+        </dl>
+    </div>
+
+    <!-- 2. Suppliers -->
+    <section class="card mb-4" aria-labelledby="rfqSuppliersTitle">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="h5 fw-bold mb-0" id="rfqSuppliersTitle" th:text="#{rfq.suppliers.heading}">Suppliers</h2>
+        </div>
+        <ul class="list-group list-group-flush rfq-supplier-rows">
+            <li th:each="q : ${rfq.quotes}" class="list-group-item rfq-supplier-row"
+                th:with="state=${q.state(today)}, quoteUrl=${base + '/quotes/' + q.id}">
+                <div class="rfq-supplier-text">
+                    <div class="rfq-supplier-head">
+                        <span class="rfq-supplier-name" th:id="${'supplierName' + q.id}" th:text="${q.supplier.name}">VANOS (Piraeus)</span>
+                        <span th:replace="~{rfq/parts :: supplierBadge(${q}, ${today})}"></span>
+                        <th:block th:if="${rfq.awardedQuote != null and rfq.awardedQuote.id == q.id}"><span
+                              th:replace="~{layout/parts :: statusIcon('ok', #{rfq.awarded.badge}, 'check')}"></span></th:block>
+                    </div>
+                    <p class="rfq-supplier-meta">
+                        <span th:replace="~{layout/parts :: email(${q.supplier.email})}"></span>
+                        <th:block th:if="${q.quoted}">
+                            · <span class="fw-semibold num" th:text="${@money.total(q.currency, q.grandTotal())}">EUR 1,240.50</span>
+                            · <span th:text="#{rfq.quote.linesOffered(${q.lines.size()}, ${rfq.lines.size()})}">4 of 4 items</span>
+                            <th:block th:if="${q.deliveryDate != null}">· <span th:text="#{rfq.quote.delivery}">delivery</span>
+                                <time th:replace="~{layout/parts :: localDate(${q.deliveryDate})}"></time></th:block>
+                        </th:block>
+                        <th:block th:if="${state.name() == 'DECLINED' and q.declineReason != null}">
+                            · <span th:text="${q.declineReason}">Out of stock</span></th:block>
+                        <th:block th:if="${state.name() == 'FAILED' and q.failure != null}">
+                            · <span class="text-danger-emphasis" th:text="#{rfq.quote.failure(${q.failure})}">Not delivered: mailbox full</span></th:block>
+                        <th:block th:if="${q.hasFile()}">
+                            · <a th:href="@{${quoteUrl + '/file'}}" target="_blank" rel="noopener">
+                                <svg th:replace="~{layout/parts :: icon('paperclip')}"></svg>
+                                <span th:text="${q.fileName}">vanos-quote.pdf</span><span class="visually-hidden" th:text="#{library.file.newTab}"> (opens in a new tab)</span></a>
+                        </th:block>
+                    </p>
+                </div>
+                <div th:if="${rfq.open}" class="rfq-supplier-actions">
+                    <a class="btn btn-outline-secondary btn-sm" th:href="@{${quoteUrl}}"
+                       th:attr="aria-describedby=${'supplierName' + q.id}"
+                       th:text="${q.quoted} ? #{rfq.quote.edit} : #{rfq.quote.enter}">Enter quote</a>
+                    <th:block th:if="${q.quoted}"><form th:replace="~{layout/parts :: confirmForm(action=${quoteUrl + '/award'},
+                            label=#{rfq.award}, linkClass='btn btn-ghost btn-sm', title=#{rfq.award.confirm.title(${q.supplier.name})},
+                            body=#{rfq.award.confirm.body(${rfq.id})}, confirm=#{rfq.award}, tone='neutral')}"></form></th:block>
+                    <form th:if="${state.name() == 'FAILED' or state.name() == 'NO_REPLY'}" method="post"
+                          th:action="@{${quoteUrl + '/resend'}}">
+                        <button type="submit" class="btn btn-ghost btn-sm" th:attr="aria-describedby=${'supplierName' + q.id}"
+                                th:text="#{rfq.quote.resend}">Send again</button>
+                    </form>
+                    <!-- Declined: one click; the reason is optional. -->
+                    <form th:unless="${state.name() == 'DECLINED'}" method="post" class="rfq-decline"
+                          th:action="@{${quoteUrl + '/decline'}}">
+                        <label class="visually-hidden" th:for="${'declineReason' + q.id}"
+                               th:text="#{rfq.quote.declineReasonFor(${q.supplier.name})}">Reason VANOS declined (optional)</label>
+                        <input type="text" class="form-control form-control-sm" name="reason" th:id="${'declineReason' + q.id}"
+                               maxlength="500" autocomplete="off" th:placeholder="#{rfq.quote.declineReason}">
+                        <button type="submit" class="btn btn-ghost btn-sm" th:text="#{rfq.quote.decline}">Declined</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <!-- 3. Comparison -->
+    <section class="card mb-4" aria-labelledby="rfqCompareTitle">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="h5 fw-bold mb-0" id="rfqCompareTitle" th:text="#{rfq.compare.heading}">Comparison</h2>
+            <p class="rfq-compare-hint" th:text="#{rfq.compare.hint}">Prices per item unit, so different pack sizes compare. Suppliers never see each other's prices.</p>
+        </div>
+        <div th:unless="${comparison.shown}" class="card-body">
+            <p class="mb-0 text-body-secondary" th:text="#{rfq.compare.waiting(${comparison.quoted})}">The comparison appears once two suppliers have quoted. Quotes so far: 1.</p>
+        </div>
+        <th:block th:if="${comparison.shown}">
+            <p th:if="${comparison.tables.isEmpty()}" class="card-body mb-0 text-body-secondary" th:text="#{rfq.compare.noCommonCurrency}">The quotes are in different currencies, so they are not compared.</p>
+            <div th:each="t, tIt : ${comparison.tables}" class="rfq-compare-block">
+                <h3 class="rfq-compare-currency" th:id="${'compare' + tIt.index}" th:text="#{rfq.compare.currency(${t.currency})}">Quotes in EUR</h3>
+                <div class="rfq-compare-scroll" tabindex="0" role="region" th:attr="aria-labelledby=${'compare' + tIt.index}">
+                    <table class="table rfq-compare align-top mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="rfq-compare-item" th:text="#{rfq.compare.item}">Item</th>
+                            <th scope="col" class="rfq-compare-asked" th:text="#{rfq.compare.asked}">Asked</th>
+                            <th scope="col" th:each="c : ${t.columns}" class="rfq-compare-supplier" th:classappend="${c.cheapest} ? 'is-cheapest'">
+                                <span class="rfq-compare-supplier-name" th:text="${c.quote.supplier.name}">VANOS (Piraeus)</span>
+                                <th:block th:if="${c.cheapest}"><span th:replace="~{layout/parts :: statusIcon('ok', #{rfq.compare.cheapest}, 'check')}"></span></th:block>
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody th:each="g : ${t.groups}">
+                        <tr class="rfq-group-row">
+                            <th scope="colgroup" class="rfq-compare-item" th:text="#{${g.category.labelKey()}}">Provisions</th>
+                            <td th:attr="colspan=${t.columns.size() + 1}"></td>
+                        </tr>
+                        <tr th:each="r : ${g.rows}">
+                            <th scope="row" class="rfq-compare-item" th:text="${r.line.itemName}">Olive oil</th>
+                            <td class="rfq-compare-asked num" th:text="${@money.quantity(r.line.quantity)} + ' ' + ${r.line.unit}">10 lt</td>
+                            <td th:each="cell : ${r.cells}" class="rfq-cell" th:classappend="${cell.offered} ? '' : 'is-missing'">
+                                <th:block th:if="${cell.offered}" th:with="l=${cell.line}">
+                                    <span class="rfq-cell-price num"><th:block th:text="${@money.price(t.currency, l.pricePerItemUnit())} + ' / ' + ${r.line.unit}">EUR 2.40 / lt</th:block><span
+                                            th:if="${cell.lowest}" class="rfq-cell-lowest" th:text="#{rfq.compare.lowest}">lowest</span></span>
+                                    <span class="rfq-cell-detail num" th:if="${l.packSize != null}"
+                                          th:text="#{rfq.compare.packs(${@money.quantity(l.quantityOffered)}, ${@money.quantity(l.packSize)}, ${l.packUnit ?: r.line.unit}, ${@money.price(t.currency, l.unitPrice)}, ${@money.quantity(l.quantityInItemUnit())}, ${r.line.unit})}">2 × 5 L at EUR 12.00 = 10 lt</span>
+                                    <span class="rfq-cell-detail num" th:unless="${l.packSize != null}"
+                                          th:text="${@money.quantity(l.quantityOffered)} + ' ' + ${r.line.unit}">10 lt</span>
+                                    <span class="rfq-cell-total num" th:text="${@money.total(t.currency, l.total())}">EUR 24.00</span>
+                                    <th:block th:unless="${l.coversQuantity()}"><span th:replace="~{layout/parts :: status('warning', #{rfq.compare.short})}"></span></th:block>
+                                    <span th:if="${l.note != null}" class="rfq-cell-note" th:text="${l.note}">Brand X</span>
+                                </th:block>
+                                <span th:unless="${cell.offered}" class="rfq-cell-missing" th:text="#{rfq.compare.notOffered}">Not offered</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <th scope="row" class="rfq-compare-item" th:text="#{rfq.compare.subtotal}">Items</th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}" class="num" th:text="${@money.total(t.currency, c.subtotal)}">EUR 1,200.50</td>
+                        </tr>
+                        <tr>
+                            <th scope="row" class="rfq-compare-item" th:text="#{rfq.compare.deliveryCost}">Delivery cost</th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}" class="num" th:text="${@money.total(t.currency, c.deliveryCost)}">EUR 40.00</td>
+                        </tr>
+                        <tr class="rfq-compare-total">
+                            <th scope="row" class="rfq-compare-item" th:text="#{rfq.compare.total}">Grand total</th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}" th:classappend="${c.cheapest} ? 'is-cheapest'">
+                                <span class="num" th:text="${@money.total(t.currency, c.total)}">EUR 1,240.50</span>
+                                <span th:unless="${c.complete}" class="rfq-cell-detail" th:text="#{rfq.compare.incomplete(${c.offered})}">Incomplete: 3 items offered</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" class="rfq-compare-item" th:text="#{rfq.compare.deliveryDate}">Delivery date</th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}">
+                                <th:block th:if="${c.quote.deliveryDate != null}"><time th:replace="~{layout/parts :: localDate(${c.quote.deliveryDate})}"></time></th:block>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" class="rfq-compare-item" th:text="#{rfq.compare.validUntil}">Valid until</th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}">
+                                <th:block th:if="${c.quote.validUntil != null}"><time th:replace="~{layout/parts :: localDate(${c.quote.validUntil})}"></time></th:block>
+                                <span th:unless="${c.quote.validUntil != null}" class="text-body-secondary" aria-hidden="true">–</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${rfq.open}">
+                            <th scope="row" class="rfq-compare-item"><span class="visually-hidden" th:text="#{rfq.award}">Award</span></th>
+                            <td></td>
+                            <td th:each="c : ${t.columns}">
+                                <form th:replace="~{layout/parts :: confirmForm(action=${base + '/quotes/' + c.quote.id + '/award'},
+                                        label=#{rfq.awardNamed(${c.quote.supplier.name})}, linkClass='btn btn-outline-secondary btn-sm',
+                                        title=#{rfq.award.confirm.title(${c.quote.supplier.name})},
+                                        body=#{rfq.award.confirm.body(${rfq.id})}, confirm=#{rfq.award}, tone='neutral',
+                                        id=${'award' + tIt.index + '-' + c.quote.id})}"></form>
+                            </td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <!-- Quotes alone in their currency: listed, not compared. -->
+            <div th:unless="${comparison.apart.isEmpty()}" class="card-body rfq-apart">
+                <h3 class="rfq-compare-currency" th:text="#{rfq.compare.apart}">Other currencies, not compared</h3>
+                <ul class="rfq-apart-list">
+                    <li th:each="c : ${comparison.apart}">
+                        <span class="fw-semibold" th:text="${c.quote.supplier.name}">Harbour Provisions</span>
+                        · <span class="num" th:text="${@money.total(c.quote.currency, c.total)}">USD 1,320.00</span>
+                        · <span th:text="#{rfq.quote.linesOffered(${c.offered}, ${rfq.lines.size()})}">4 of 4 items</span>
+                    </li>
+                </ul>
+            </div>
+        </th:block>
+    </section>
+</main>
+</body>
+</html>

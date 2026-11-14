@@ -32,7 +32,10 @@ public class FormFields {
             "passwordConfirmed", "confirmPassword",
             "contentValid", "text",
             "fileTypeAllowed", "file",
-            "fileSizeAllowed", "file");
+            "fileSizeAllowed", "file",
+            // P44: the RFQ form and the quote form.
+            "replyByInTime", "replyBy",
+            "anyLineOffered", "lines");
 
     private final Validator validator;
 

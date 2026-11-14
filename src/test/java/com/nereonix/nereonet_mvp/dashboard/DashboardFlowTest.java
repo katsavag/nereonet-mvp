@@ -67,6 +67,7 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
+import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -116,6 +117,7 @@ class DashboardFlowTest {
     @Autowired RequestService requestService;
     @Autowired VettingService vettingService;
     @Autowired SireService sireService;
+    @Autowired SupplierRepository supplierRepository;
 
     @MockitoBean
     MailService mailService;
@@ -520,7 +522,7 @@ class DashboardFlowTest {
     }
 
     @Test
-    void loadRunsTheSameTwelveQueriesWhateverTheFleetSize() {
+    void loadRunsTheSameThirteenQueriesWhateverTheFleetSize() {
         addShipWithOpenItems();
         long small = queriesOfLoad();
         for (int i = 0; i < 4; i++) {
@@ -530,9 +532,10 @@ class DashboardFlowTest {
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
         // P43: the ships with their crew (one), the certificates, the required documents' rules (none set here:
-        // nobody is then checked, so no queries for them), the RightShip rows, SIRE 2.0 (two), the orders, the
-        // invitations, the announcements, the library items, the snoozes and the newest audit entries: 12.
-        assertThat(small).isEqualTo(12);
+        // nobody is then checked, so no queries for them), the RightShip rows, SIRE 2.0 (two), the orders, the open
+        // requests for quotes (P44), the invitations, the announcements, the library items, the snoozes and the
+        // newest audit entries: 13.
+        assertThat(small).isEqualTo(13);
         assertThat(large).isEqualTo(small);
     }
 
@@ -714,6 +717,7 @@ class DashboardFlowTest {
 
     private DevData devData() {
         return new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
-                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService);
+                libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
+                supplierRepository);
     }
 }

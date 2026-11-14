@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{supplier.list.title}, ~{::main})}">
+<body>
+<!-- The suppliers the office asks for quotes (P44): name (opens Edit), contact email, ports served, currency, website
+     and status, by name. Search (name, email, ports), status filter, sort by name or currency, pages (P19). Empty
+     (P25): what suppliers are for, with Add supplier, which the header then leaves out. Model: list (ListQuery),
+     suppliers (Page of Supplier), status. -->
+<main>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{supplier.list.heading}, count=${suppliers.totalElements},
+            subtitle=#{supplier.list.hint}, actions=${list.emptyUnfiltered(suppliers)} ? null : ~{::pageActions})}">
+        <th:block th:fragment="pageActions">
+            <a class="btn btn-primary" th:href="@{/office/suppliers/new}">
+                <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
+                <span th:text="#{supplier.add}">Add supplier</span>
+            </a>
+        </th:block>
+    </header>
+
+    <div th:replace="~{layout/parts :: filterBar(${list}, #{supplier.search}, ~{::listFilters})}">
+        <th:block th:fragment="listFilters">
+            <div class="filter-field">
+                <label for="filterStatus" class="form-label" th:text="#{supplier.filter.status}">Status</label>
+                <select id="filterStatus" name="status" class="form-select">
+                    <option value="" th:text="#{supplier.filter.status.all}">All</option>
+                    <option value="active" th:selected="${status == 'active'}" th:text="#{supplier.status.active}">Active</option>
+                    <option value="inactive" th:selected="${status == 'inactive'}" th:text="#{supplier.status.inactive}">Inactive</option>
+                </select>
+            </div>
+        </th:block>
+    </div>
+
+    <div class="card">
+        <th:block th:replace="~{layout/parts :: listEmpty(rows=${suppliers}, list=${list}, icon='suppliers',
+                title=#{supplier.list.empty.title}, text=#{supplier.list.empty.text}, action=~{::pageActions})}"></th:block>
+
+        <div th:unless="${suppliers.isEmpty()}" class="table-responsive table-sticky">
+            <table class="table data-table data-table-stack align-middle mb-0">
+                <thead>
+                <tr>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{supplier.name})}"></th>
+                    <th scope="col" th:text="#{supplier.email}">Contact email</th>
+                    <th scope="col" th:text="#{supplier.portsServed}">Ports served</th>
+                    <th th:replace="~{layout/parts :: sortHeader(${list}, 'currency', #{supplier.currency})}"></th>
+                    <th scope="col" th:text="#{supplier.website}">Website</th>
+                    <th scope="col" th:text="#{supplier.status}">Status</th>
+                    <th scope="col"><span class="visually-hidden" th:text="#{supplier.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${suppliers}">
+                    <td class="cell-primary">
+                        <a th:href="@{/office/suppliers/{id}/edit(id=${s.id})}" th:text="${s.name}">VANOS (Piraeus)</a>
+                    </td>
+                    <td th:attr="data-label=#{supplier.email}"><span th:replace="~{layout/parts :: email(${s.email})}"></span></td>
+                    <td th:attr="data-label=#{supplier.portsServed}">
+                        <span th:if="${s.portsServed != null}" class="truncate supplier-ports" th:title="${s.portsServed}" th:text="${s.portsServed}">Piraeus, Perama</span>
+                        <span th:unless="${s.portsServed != null}" class="text-body-secondary" aria-hidden="true">–</span>
+                    </td>
+                    <td class="num" th:attr="data-label=#{supplier.currency}" th:text="${s.currency}">EUR</td>
+                    <td class="stack-hide">
+                        <a th:if="${s.website != null}" class="truncate supplier-website" th:href="${s.website}" target="_blank" rel="noopener noreferrer"
+                           th:title="${s.website}"><span th:text="${#strings.replace(#strings.replace(s.website, 'https://', ''), 'http://', '')}">www.vanos.gr/</span><span
+                                class="visually-hidden" th:text="#{library.file.newTab}"> (opens in a new tab)</span></a>
+                        <span th:unless="${s.website != null}" class="text-body-secondary" aria-hidden="true">–</span>
+                    </td>
+                    <td th:attr="data-label=#{supplier.status}">
+                        <span th:replace="~{layout/parts :: status(${s.active} ? 'ok' : 'neutral', ${s.active} ? #{supplier.status.active} : #{supplier.status.inactive})}"></span>
+                    </td>
+                    <td class="cell-actions">
+                        <a class="btn btn-ghost btn-sm" th:href="@{/office/suppliers/{id}/edit(id=${s.id})}"
+                           th:attr="aria-label=#{supplier.editNamed(${s.name})}" th:text="#{supplier.edit}">Edit</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav th:replace="~{layout/parts :: pager(${suppliers}, ${list})}"></nav>
+    </div>
+</main>
+</body>
+</html>

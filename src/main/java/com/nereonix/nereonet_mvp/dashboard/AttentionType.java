@@ -26,6 +26,10 @@ public enum AttentionType {
     CERTIFICATE_EXPIRING(Group.CERTIFICATES),
     /** An order a ship has sent (P36) that the office has never exported. */
     ORDER_NOT_EXPORTED(Group.ORDERS),
+    /** An open request for quotes (P44) with quotes from at least two suppliers: ready to compare and award. */
+    RFQ_READY(Group.QUOTES),
+    /** An open request for quotes past its reply-by date with fewer than two quotes (P44). */
+    RFQ_PAST_REPLY_BY(Group.QUOTES),
     /** A crew invitation that expired, or was sent more than 48 hours ago and is still not accepted. */
     INVITATION(Group.INVITATIONS),
     /** An announcement sent more than 7 days ago that not every recipient has acknowledged. */
@@ -48,7 +52,7 @@ public enum AttentionType {
      * links to its full list: see the "full lists" links in dashboard/dashboard.html.
      */
     public enum Group {
-        CERTIFICATES, DOCUMENTS, VETTING, ORDERS, INVITATIONS, ACKNOWLEDGEMENTS;
+        CERTIFICATES, DOCUMENTS, VETTING, ORDERS, QUOTES, INVITATIONS, ACKNOWLEDGEMENTS;
 
         /** The full list of this kind outside the Overview (P43: the By category card), or null for the Overview
          *  filtered to it (/office?type=...). */
@@ -58,7 +62,7 @@ public enum AttentionType {
                 case DOCUMENTS -> "/office/crew?status=active&documents=missing";
                 case VETTING -> "/office/vetting?status=attention";
                 case ORDERS -> "/office/orders?exported=no";
-                case INVITATIONS, ACKNOWLEDGEMENTS -> null;
+                case QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> null;
             };
         }
 
@@ -68,6 +72,7 @@ public enum AttentionType {
                 case CERTIFICATES, DOCUMENTS -> "certificates";
                 case VETTING -> "vetting";
                 case ORDERS -> "orders";
+                case QUOTES -> "suppliers";
                 case INVITATIONS -> "crew";
                 case ACKNOWLEDGEMENTS -> "announcements";
             };
@@ -78,7 +83,7 @@ public enum AttentionType {
             return switch (this) {
                 case CERTIFICATES, DOCUMENTS, VETTING -> "danger";
                 case ORDERS -> "warning";
-                case INVITATIONS, ACKNOWLEDGEMENTS -> "info";
+                case QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> "info";
             };
         }
 

@@ -36,6 +36,9 @@ import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
+import com.nereonix.nereonet_mvp.core.supplier.ChannelType;
+import com.nereonix.nereonet_mvp.core.supplier.Supplier;
+import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
@@ -88,12 +91,14 @@ public class DevData implements ApplicationRunner {
     private final RequestService requestService;
     private final VettingService vettingService;
     private final SireService sireService;
+    private final SupplierRepository supplierRepository;
 
     public DevData(ShipRepository shipRepository, UserRepository userRepository, UserService userService,
                    ItemRepository itemRepository, ItemRequestRepository requestRepository,
                    LibraryItemRepository libraryItemRepository, LibraryItemVersionRepository libraryVersionRepository,
                    CrewProfileRepository profileRepository, RequestService requestService,
-                   VettingService vettingService, SireService sireService) {
+                   VettingService vettingService, SireService sireService, SupplierRepository supplierRepository) {
+        this.supplierRepository = supplierRepository;
         this.vettingService = vettingService;
         this.sireService = sireService;
         this.shipRepository = shipRepository;
@@ -148,6 +153,32 @@ public class DevData implements ApplicationRunner {
         if (!shipRepository.existsByImoNumber(SIRE_IMO)) {
             sireDemo();
         }
+        if (supplierRepository.count() == 0) {
+            suppliers();
+        }
+    }
+
+    // P44: two suppliers to ask for quotes. VANOS is a real ship chandler in Piraeus: its name and website only, with
+    // a test address (example.com never delivers), so a dev RFQ never reaches it. The second is made up, in USD, to
+    // show a quote in another currency listed apart from the comparison.
+    private void suppliers() {
+        supplier("VANOS (Piraeus)", "quotes.vanos@example.com", "Piraeus, Perama, Elefsina", "EUR",
+                "https://www.vanos.gr/");
+        supplier("Harbour Provisions (Test)", "sales.harbour@example.com", "Piraeus, Rotterdam, Antwerp", "USD", null);
+        log.info("Created 2 demo suppliers");
+    }
+
+    private void supplier(String name, String email, String ports, String currency, String website) {
+        Supplier supplier = new Supplier();
+        supplier.setName(name);
+        supplier.setEmail(email);
+        supplier.setPortsServed(ports);
+        supplier.setCurrency(currency);
+        supplier.setWebsite(website);
+        supplier.setActive(true);
+        supplier.setChannel(ChannelType.EMAIL);
+        supplier.setCreatedAt(Instant.now());
+        supplierRepository.save(supplier);
     }
 
     // P41: the tanker BIRCH with the SIRE 2.0 inspection of its synthetic sample report (samples/sire, read from the

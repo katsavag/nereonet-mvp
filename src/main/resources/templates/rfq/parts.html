@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Parts of the requests for quotes (P44). -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- An RFQ's status: Open (info), Awarded (ok), Cancelled (neutral).
+     Use: <span th:replace="~{rfq/parts :: statusBadge(${rfq.status})}"></span> -->
+<span th:fragment="statusBadge(status)"
+      th:replace="~{layout/parts :: status(${status.name() == 'OPEN'} ? 'info' : (${status.name() == 'AWARDED'} ? 'ok'
+              : 'neutral'), #{${'rfq.status.' + status.name()}})}"></span>
+
+<!-- One supplier's status on an RFQ: Sent, Quoted, Declined, No reply (sent, reply-by date passed), Failed.
+     Use: <span th:replace="~{rfq/parts :: supplierBadge(${quote}, ${today})}"></span> -->
+<span th:fragment="supplierBadge(quote, today)" th:with="state=${quote.state(today)}"
+      th:replace="~{layout/parts :: status(${state.tone()}, #{${state.labelKey()}})}"></span>
+
+<!-- The breadcrumbs below an order: Orders › Order #12, then the RFQ when rfq is not null.
+     Use: crumbs=~{rfq/parts :: crumbs(${order}, ${rfq})} -->
+<th:block th:fragment="crumbs(order, rfq)">
+    <li th:replace="~{layout/parts :: crumb(#{nav.orders}, '/office/orders')}"></li>
+    <li th:replace="~{layout/parts :: crumb(#{officeorder.number(${order.id})}, ${'/office/orders/' + order.id})}"></li>
+    <th:block th:if="${rfq != null}">
+        <li th:replace="~{layout/parts :: crumb(#{rfq.number(${rfq.id})}, ${'/office/orders/' + order.id + '/rfqs/' + rfq.id})}"></li>
+    </th:block>
+</th:block>
+
+<!-- The order's lines by category, read-only (the request form's aside and the review page): item, quantity, unit.
+     groups: RfqController.LineGroup. -->
+<section th:fragment="orderLines(groups)" class="card rfq-lines" aria-labelledby="rfqLinesTitle">
+    <div class="card-body pb-0">
+        <h2 class="h5 fw-bold mb-1" id="rfqLinesTitle" th:text="#{rfq.lines.heading}">Items to quote</h2>
+        <p class="form-text mt-0" th:text="#{rfq.lines.hint}">Copied from the vessel order when the request is sent.</p>
+    </div>
+    <div class="table-responsive">
+        <table class="table data-table align-middle mb-0">
+            <th:block th:each="g : ${groups}">
+                <tbody>
+                <tr class="rfq-group-row">
+                    <th scope="colgroup" colspan="2" th:text="#{${g.category.labelKey()}}">Provisions</th>
+                </tr>
+                <tr th:each="line : ${g.lines}">
+                    <th scope="row" class="fw-semibold" th:text="${line.item.name}">Basmati rice</th>
+                    <td class="num text-nowrap" th:text="${@money.quantity(line.quantity)} + ' ' + ${line.item.unit}">25 kg</td>
+                </tr>
+                </tbody>
+            </th:block>
+        </table>
+    </div>
+</section>
+
+</body>
+</html>

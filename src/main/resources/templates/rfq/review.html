@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.review.title}, ~{::main})}">
+<body>
+<!-- Request quotes, step 2 of 2 (P10, P44): what will be sent and to whom before anything is. The port, delivery and
+     reply-by dates, the suppliers (each gets its own email; none sees the others), what the email contains, and the
+     items. The form carries everything in hidden fields: "Send to N suppliers" posts it to /office/orders/{id}/rfq,
+     "Back to edit" to /office/orders/{id}/rfq/edit (the form again with the values). Model: order, form (RfqForm),
+     chosen (the suppliers), groups (RfqController.LineGroup). -->
+<main class="form-page">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{rfq.review.heading}, crumbs=~{rfq/parts :: crumbs(${order}, null)},
+            eyebrowShip=${order.ship}, subtitle=#{rfq.review.hint})}"></header>
+
+    <div class="review-stack form-box">
+        <section class="card" aria-labelledby="rfqReviewTitle">
+            <div class="card-body">
+                <h2 class="h5 fw-bold mb-3" id="rfqReviewTitle" th:text="#{rfq.review.request}">The request</h2>
+                <dl class="static-fields">
+                    <dt th:text="#{rfq.port}">Port</dt>
+                    <dd class="fw-semibold" th:text="${form.port}">Piraeus</dd>
+                    <dt th:text="#{rfq.deliveryDate}">Delivery date</dt>
+                    <dd><time th:replace="~{layout/parts :: localDate(${form.deliveryDate})}"></time></dd>
+                    <dt th:text="#{rfq.replyBy}">Reply by</dt>
+                    <dd><time th:replace="~{layout/parts :: localDate(${form.replyBy})}"></time></dd>
+                </dl>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="rfqReviewSuppliers">
+            <div class="card-body">
+                <h2 class="h5 fw-bold mb-1" id="rfqReviewSuppliers" th:text="#{rfq.review.suppliers(${chosen.size()})}">2 suppliers</h2>
+                <p class="form-text mt-0" th:text="#{rfq.review.email}">Each gets an email in English with the items, the port, the dates and an Excel file of the items; replies come to you.</p>
+                <ul class="rfq-review-suppliers">
+                    <li th:each="s : ${chosen}">
+                        <span class="fw-semibold" th:text="${s.name}">VANOS (Piraeus)</span>
+                        <span class="text-body-secondary" th:text="${s.email}">sales@vanos.gr</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section th:replace="~{rfq/parts :: orderLines(${groups})}"></section>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post" th:action="@{/office/orders/{id}/rfq(id=${order.id})}" class="d-inline">
+                    <input type="hidden" name="port" th:value="${form.port}">
+                    <input type="hidden" name="deliveryDate" th:value="${form.deliveryDate}">
+                    <input type="hidden" name="replyBy" th:value="${form.replyBy}">
+                    <input th:each="s : ${chosen}" type="hidden" name="supplierIds" th:value="${s.id}">
+                    <div class="form-actions mt-0">
+                        <button type="submit" class="btn btn-primary" th:text="#{rfq.send(${chosen.size()})}">Send to 2 suppliers</button>
+                        <button type="submit" class="btn btn-ghost" th:formaction="@{/office/orders/{id}/rfq/edit(id=${order.id})}"
+                                th:text="#{rfq.backToEdit}">Back to edit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

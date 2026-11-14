@@ -5938,3 +5938,189 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     margin: var(--nn-space-1) 0 var(--nn-space-2);
 }
 .snooze-list-form { display: none; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Suppliers and quotes (P44): supplier/list.html and form.html; rfq/form.html, review.html, detail.html, quote.html.
+     - .supplier-currency: the three-letter code, tabular and upper case, the input only as wide as it needs.
+       .supplier-ports and .supplier-website are truncated in the list (the full text in the title).
+     - .rfq-suppliers: the suppliers to ask, as ship-pick rows; .rfq-serves names the port in the ok text colour.
+     - .rfq-review-suppliers: the review page's list of names and addresses.
+     - .rfq-supplier-row: on an RFQ, one supplier per row: name, status and the meta line on the left, Enter quote,
+       Award, Send again and Declined (with its optional reason, .rfq-decline) on the right, under the text on phones.
+     - .rfq-compare: items as rows (grouped by category, .rfq-group-row), suppliers as columns. Like .req-grid, the
+       item column (.rfq-compare-item) stays put while the table scrolls sideways inside .rfq-compare-scroll, so the
+       page itself never scrolls sideways on phones. A cell shows the price per item unit, the packs and the line total;
+       a line not offered says so in words (.rfq-cell-missing), never as zero. The cheapest complete quote's column
+       head and grand total have the ok tint (.is-cheapest), with the tick and the words in the head.
+     - .rfq-quote-table: the same scroll box and fixed column for the quote entry inputs, each a set width.
+   Text pairs: names 15:1, hints 6.6:1 on the surface; the ok tint keeps the text colour (15:1).
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-rfq-item-width: 13rem;
+    --nn-rfq-supplier-width: 12rem;
+}
+
+.supplier-currency {
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+}
+input.supplier-currency { max-width: 7rem; }
+.supplier-ports,
+.supplier-website { --nn-truncate-width: 16rem; }
+
+.rfq-suppliers {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.rfq-supplier-list { margin-bottom: 0; }
+.rfq-serves { color: var(--nn-ok-text); font-weight: 600; }
+
+.rfq-review-suppliers {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rfq-review-suppliers > li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--nn-space-2);
+    padding-block: var(--nn-space-1);
+    overflow-wrap: anywhere;
+}
+.rfq-lines .rfq-group-row > th { padding-top: var(--nn-space-3); }
+
+.rfq-supplier-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding-block: var(--nn-space-3);
+}
+.rfq-supplier-text { flex: 1 1 18rem; min-width: 0; }
+.rfq-supplier-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+}
+.rfq-supplier-name { font-weight: 600; overflow-wrap: anywhere; }
+.rfq-supplier-meta {
+    margin: 2px 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.rfq-supplier-meta .truncate { vertical-align: bottom; }
+.rfq-supplier-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+}
+.rfq-supplier-actions > form { margin: 0; }
+.rfq-decline {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-1);
+}
+.rfq-decline > .form-control { width: 11rem; }
+
+.rfq-compare-hint {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.rfq-compare-block + .rfq-compare-block { border-top: 1px solid var(--nn-divider); }
+.rfq-compare-currency {
+    margin: 0;
+    padding: var(--nn-space-3) var(--nn-card-padding) var(--nn-space-2);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+}
+/* position: relative keeps visually hidden text inside the scroll box (see .req-grid-scroll). */
+.rfq-compare-scroll {
+    position: relative;
+    overflow-x: auto;
+}
+.rfq-compare-scroll:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width)); }
+
+.rfq-compare { border-collapse: separate; border-spacing: 0; }
+.rfq-compare > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
+.rfq-compare .rfq-compare-item {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: var(--nn-rfq-item-width);
+    max-width: var(--nn-rfq-item-width);
+    background-color: var(--nn-surface);
+    box-shadow: none;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+.rfq-compare .rfq-compare-item::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--nn-divider);
+}
+.rfq-compare > tbody > tr > th.rfq-compare-item { font-weight: 600; }
+.rfq-compare-asked { white-space: nowrap; color: var(--nn-text-secondary); }
+.rfq-compare-supplier { min-width: var(--nn-rfq-supplier-width); vertical-align: bottom; }
+.rfq-compare-supplier-name { display: block; overflow-wrap: anywhere; }
+.rfq-compare-supplier > .status-badge { margin-top: var(--nn-space-1); }
+.rfq-compare .is-cheapest { --bs-table-bg-state: var(--nn-ok-bg); }
+
+.rfq-compare > tbody > tr.rfq-group-row > * {
+    padding-top: var(--nn-space-3);
+    font-size: var(--nn-font-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--nn-text-secondary);
+}
+.rfq-cell > span { display: block; }
+.rfq-cell-price { font-weight: 600; }
+.rfq-cell-lowest {
+    margin-inline-start: var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    color: var(--nn-ok-text);
+}
+.rfq-cell-detail,
+.rfq-cell-note {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.rfq-cell-note { font-style: italic; overflow-wrap: anywhere; }
+.rfq-cell-total { font-size: var(--nn-font-sm); }
+.rfq-cell > .status-badge { margin-top: 2px; }
+.rfq-cell-missing { color: var(--nn-text-secondary); font-style: italic; }
+.rfq-compare > tfoot > tr > * { font-weight: 600; }
+.rfq-compare > tfoot > tr.rfq-compare-total > * { font-size: var(--nn-font-title); font-weight: 700; }
+.rfq-compare > tfoot > tr.rfq-compare-total .rfq-cell-detail {
+    display: block;
+    font-size: var(--nn-font-sm);
+    font-weight: 400;
+}
+.rfq-compare > tfoot > tr:last-child > * { border-bottom: 0; }
+
+.rfq-apart { border-top: 1px solid var(--nn-divider); }
+.rfq-apart .rfq-compare-currency { padding: 0 0 var(--nn-space-2); }
+.rfq-apart-list {
+    margin: 0;
+    padding-left: var(--nn-space-4);
+    overflow-wrap: anywhere;
+}
+
+.rfq-quote-table .form-control { min-width: 0; }
+.rfq-input-price { width: 8rem; }
+.rfq-input-qty { width: 7rem; }
+.rfq-input-unit { width: 6rem; }
+.rfq-input-note { width: 14rem; }
+.rfq-quote-table > tbody > tr > th.rfq-compare-item > .rfq-cell-detail { display: block; font-weight: 400; }
