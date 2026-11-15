@@ -38,6 +38,8 @@ public class ShipOrder {
 
     public static final int PORT_MAX_LENGTH = 100;
     public static final int NOTE_MAX_LENGTH = 1000;
+    /** P61: the cook's note to the Master, and the Master's note sending a count back. */
+    public static final int COUNT_NOTE_MAX_LENGTH = 500;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -108,6 +110,30 @@ public class ShipOrder {
     @Column(length = NOTE_MAX_LENGTH)
     private String shortageNote;
 
+    // P61: the Chief cook's count of the delivery, while CONFIRMED (DeliveryCountService). Null is NONE (orders from
+    // before P61, or nobody counted). All nullable: Hibernate adds the columns to an existing table.
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private DeliveryCountStatus deliveryCount;
+
+    // The cook who counted last (saved or sent), and when the count was last saved and last sent to the Master.
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User countedBy;
+
+    private Instant countUpdatedAt;
+
+    private Instant countSentAt;
+
+    // The cook's note to the Master (optional), and the Master's note when sending the count back (required then).
+    @Column(length = COUNT_NOTE_MAX_LENGTH)
+    private String countNote;
+
+    @Column(length = COUNT_NOTE_MAX_LENGTH)
+    private String countReturnNote;
+
+    private Instant countReturnedAt;
+
     // Last export by the office. Null until exported.
     private Instant exportedAt;
 
@@ -117,6 +143,21 @@ public class ShipOrder {
     @OneToMany(mappedBy = "order")
     @OrderBy("id")
     private List<ShipOrderLine> lines = new ArrayList<>();
+
+    /** The delivery count's state (P61): NONE when nothing was counted. */
+    public DeliveryCountStatus getDeliveryCountStatus() {
+        return deliveryCount == null ? DeliveryCountStatus.NONE : deliveryCount;
+    }
+
+    /** The cook sent the count and the Master has not decided yet (P61): "Counted by the Chief cook, to approve". */
+    public boolean isCountToApprove() {
+        return status == ShipOrderStatus.CONFIRMED && deliveryCount == DeliveryCountStatus.SENT_TO_MASTER;
+    }
+
+    /** Received after the Master approved the cook's count (P61): the receipt says "Counted by". */
+    public boolean isCountApproved() {
+        return deliveryCount == DeliveryCountStatus.APPROVED;
+    }
 
     /** Received with lines short, and no office user has marked them handled yet (P51). */
     public boolean isShortageOpen() {

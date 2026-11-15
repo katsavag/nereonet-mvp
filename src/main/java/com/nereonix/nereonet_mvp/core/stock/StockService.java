@@ -180,6 +180,13 @@ public class StockService {
      */
     @Transactional
     public Level receive(ShipOrder order, ShipOrderLine line, User master) {
+        return receive(order, line, master, null);
+    }
+
+    /** As receive, with the movement's note (P61: "Counted by Demo Cook" when the Chief cook counted the delivery);
+     *  a blank note is none. */
+    @Transactional
+    public Level receive(ShipOrder order, ShipOrderLine line, User master, String note) {
         if (master == null || master.getRole() != Role.MASTER || !master.isEnabled() || master.getShip() == null
                 || !master.getShip().getId().equals(order.getShip().getId())) {
             throw new AccessDeniedException("Only the Master of the ship receives its deliveries");
@@ -207,7 +214,7 @@ public class StockService {
         level.setUpdatedAt(Instant.now());
         levelRepository.save(level);
         movementRepository.save(StockMovement.of(item, StockMovementType.RECEIPT, before, after, master,
-                order.getReceivedAt(), null, order));
+                order.getReceivedAt(), note, order));
         return level(item, after);
     }
 

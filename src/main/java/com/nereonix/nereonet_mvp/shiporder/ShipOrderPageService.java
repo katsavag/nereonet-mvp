@@ -89,6 +89,11 @@ public class ShipOrderPageService {
         public boolean toReceive() {
             return order.getStatus() == ShipOrderStatus.CONFIRMED;
         }
+
+        /** P61: the Chief cook can still count the delivery (scheduled, and his count not with the Master). */
+        public boolean toCount() {
+            return toReceive() && order.getDeliveryCountStatus().editable();
+        }
     }
 
     private final UserRepository userRepository;
@@ -153,6 +158,33 @@ public class ShipOrderPageService {
         Ship ship = ship(master(email));
         return orderRepository.findByIdAndShipId(id, ship.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * P61: one order of the Chief cook's ship with its lines, for the delivery count; 404 for another ship's or an OPEN
+     * one. AccessDeniedException for anyone but the ship's enabled Chief cook.
+     */
+    @Transactional(readOnly = true)
+    public OrderView countView(String email, Long id) {
+        Ship ship = ship(cook(email));
+        ShipOrder order = orderRepository.findByIdAndShipId(id, ship.getId())
+                .filter(found -> found.getStatus() != ShipOrderStatus.OPEN)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return view(ship, order);
+    }
+
+    /** True when the user with this email counts the ship's deliveries: its enabled Chief cook (P61). */
+    public boolean canCount(String email) {
+        return isEnabled(user(email), Role.CHIEF_COOK);
+    }
+
+    // The ship's enabled Chief cook (P61: the delivery count). AccessDeniedException for anyone else.
+    User cook(String email) {
+        User user = user(email);
+        if (!isEnabled(user, Role.CHIEF_COOK)) {
+            throw new AccessDeniedException("Only the Chief cook counts the ship's deliveries");
+        }
+        return user;
     }
 
     /** A crew text (English only) with its arguments. */

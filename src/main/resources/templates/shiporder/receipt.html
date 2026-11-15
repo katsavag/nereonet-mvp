@@ -12,7 +12,11 @@
      data-draft: js/save.js keeps the quantities, notes and time if the connection drops (P15).
      Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), files (OrderReceiptFile, uploaded so
      far), maxFiles, maxFileSize, noteMax. P60: the received quantities follow the rule of the item's unit, 0 allowed;
-     receivedAtMin is the earliest date (the order sent). -->
+     receivedAtMin is the earliest date (the order sent).
+     P61: when the Chief cook's count waits for the Master (countToApprove), a card on top with who counted, when and
+     the cook's note, and Send back to cook (a note, required); the lines open with the cook's quantities and notes,
+     each with "Counted: 48 kg" and, once the Master changes it, "Changed from 48" (in words; js/receipt.js updates it
+     as they type, the server on Back to edit). countNoteMax: the return note's limit. -->
 <main th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.hint})}">
@@ -22,6 +26,34 @@
             <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
         </th:block>
     </header>
+
+    <!-- P61: the Chief cook's count, to approve or send back. -->
+    <section th:if="${countToApprove}" class="card form-box mb-4 count-approval" aria-labelledby="countTitle">
+        <div class="card-body p-3 p-md-4">
+            <h2 class="h5 fw-bold" id="countTitle" th:text="#{order.receipt.count.heading}">Counted by the Chief cook</h2>
+            <p class="mb-2" th:text="#{order.receipt.count.by(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
+                    ${@dates.dateTime(order.countSentAt)})}">Demo Cook sent the count on 14 Nov 2026, 10:30 UTC.</p>
+            <p class="mb-2" th:text="#{order.receipt.count.hint}">The quantities below are his. Change any that are wrong,
+                then review and confirm, or send the count back.</p>
+            <th:block th:if="${order.countNote != null}">
+                <h3 class="h6 fw-semibold mb-1" th:text="#{order.receipt.count.note}">His note</h3>
+                <q class="d-block count-note mb-3" th:text="${order.countNote}">Frozen meat came in two deliveries.</q>
+            </th:block>
+            <details class="count-return">
+                <summary class="btn btn-outline-secondary" th:text="#{order.count.return.action}">Send back to cook</summary>
+                <form method="post" th:action="@{${'/ship/orders/' + order.id + '/receipt/return'}}" class="mt-3" novalidate>
+                    <label for="returnNote" class="form-label" th:text="#{order.count.return.note}">What should he check?</label>
+                    <textarea id="returnNote" name="returnNote" class="form-control" rows="2" required
+                              th:maxlength="${countNoteMax}" aria-describedby="returnNoteHint"></textarea>
+                    <div id="returnNoteHint" class="form-text" th:text="#{order.count.return.hint}">For example: Recount the
+                        frozen meat. He is notified and the count opens again for him.</div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" th:text="#{order.count.return.submit}">Send back to cook</button>
+                    </div>
+                </form>
+            </details>
+        </div>
+    </section>
 
     <form th:object="${form}" method="post" enctype="multipart/form-data" novalidate class="receipt-form"
           th:action="@{${baseUrl}}" th:data-draft="@{${baseUrl}}" data-receipt-form
@@ -47,7 +79,7 @@
                     </thead>
                     <tbody>
                     <tr th:each="r : ${rows}" th:with="i=${r.index}, line=${r.line}, p=${'lines[' + r.index + ']'}"
-                        data-receipt-line>
+                        data-receipt-line th:attr="data-counted=${r.counted() != null} ? ${r.counted().stripTrailingZeros().toPlainString()} : null">
                         <td class="cell-primary">
                             <input type="hidden" th:name="${p + '.lineId'}" th:value="${line.id}">
                             <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
@@ -77,6 +109,13 @@
                                 </span>
                                 <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'hint-' + i})}"></span>
                             </div>
+                            <!-- P61: what the Chief cook counted, and whether the Master changed it. -->
+                            <p th:if="${r.counted() != null}" class="receipt-counted"
+                               th:with="c=${r.counted().stripTrailingZeros().toPlainString()}">
+                                <span th:text="#{order.receipt.counted(${c}, ${line.item.unit})}">Counted: 48 kg</span>
+                                <strong class="receipt-changed" data-count-changed th:hidden="${!r.changedFromCount()}"
+                                        th:text="#{order.receipt.changedFrom(${c})}">Changed from 48</strong>
+                            </p>
                             <div th:if="${#fields.hasErrors(p + '.received')}" class="invalid-feedback d-block"
                                  th:id="${'error-' + i}" th:errors="*{__${p}__.received}"></div>
                         </td>
@@ -106,6 +145,8 @@
                             <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
                                th:text="${f.fileName}">receipt.jpg</a>
                             <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                            <span th:if="${f.uploadedBy != null and f.uploadedBy.role.name() == 'CHIEF_COOK'}"
+                                  class="small text-body-secondary" th:text="#{order.receipt.files.byCook}">from the Chief cook</span>
                             <span class="form-check ms-auto">
                                 <input class="form-check-input" type="checkbox" name="removeFileIds" th:value="${f.id}"
                                        th:id="${'removeFile' + f.id}" data-draft-skip>

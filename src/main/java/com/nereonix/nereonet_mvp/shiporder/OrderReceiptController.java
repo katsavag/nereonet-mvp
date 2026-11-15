@@ -32,6 +32,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
+import com.nereonix.nereonet_mvp.core.order.DeliveryCountService;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.LineReceipt;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.Receipt;
@@ -65,13 +66,51 @@ public class OrderReceiptController {
 
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
+    private final DeliveryCountService countService;
     private final QuantityRules quantityRules;
 
     public OrderReceiptController(ShipOrderPageService pageService, OrderReceiptService receiptService,
-                                  QuantityRules quantityRules) {
+                                  DeliveryCountService countService, QuantityRules quantityRules) {
         this.pageService = pageService;
         this.receiptService = receiptService;
+        this.countService = countService;
         this.quantityRules = quantityRules;
+    }
+
+    /**
+     * P61, Send back to cook: while the Chief cook's count waits for the Master, the Master returns it with a note
+     * (required, at most ShipOrder.COUNT_NOTE_MAX_LENGTH). Back to the receipt page with what happened.
+     */
+    @PostMapping(BASE + "/return")
+    public String sendBack(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                           @RequestParam(required = false) String returnNote, RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = pageService.order(email, id);
+        String note = returnNote == null ? "" : returnNote.strip();
+        if (note.isEmpty() || note.length() > ShipOrder.COUNT_NOTE_MAX_LENGTH) {
+            redirectAttributes.addFlashAttribute("errorMessage", note.isEmpty() ? "order.count.return.noteRequired"
+                    : "order.count.return.noteTooLong");
+            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {ShipOrder.COUNT_NOTE_MAX_LENGTH});
+            return "redirect:/ship/orders/" + id + "/receipt#countTitle";
+        }
+        switch (countService.sendBack(pageService.master(email), id, note)) {
+            case DONE -> {
+                redirectAttributes.addFlashAttribute("successMessage", "order.count.returned");
+                return "redirect:/ship/orders/" + id;
+            }
+            case WRONG_STATE -> {
+                redirectAttributes.addFlashAttribute("errorMessage", "order.count.return.nothing");
+                return "redirect:/ship/orders/" + id + "/receipt";
+            }
+            default -> {
+                return notConfirmed(order, redirectAttributes);
+            }
+        }
+    }
+
+    @GetMapping(BASE + "/return")
+    public String toFormFromReturn(@PathVariable Long id) {
+        return "redirect:/ship/orders/" + id + "/receipt";
     }
 
     @GetMapping(BASE)
@@ -228,6 +267,24 @@ public class OrderReceiptController {
             return received == null || received.compareTo(line.getQuantity()) >= 0 ? null
                     : line.getQuantity().subtract(received);
         }
+
+        /** P61: what the Chief cook counted, while his count waits for the Master; null otherwise. */
+        public BigDecimal counted() {
+            return line.getOrder().isCountToApprove() ? line.getCountedQuantity() : null;
+        }
+
+        /** P61: the Master's quantity differs from the cook's count ("Changed from 48"). */
+        public boolean changedFromCount() {
+            BigDecimal counted = counted();
+            BigDecimal received = received();
+            return counted != null && received != null && received.compareTo(counted) != 0;
+        }
+
+        /** P61: what arrived differs from what was ordered (short or more). */
+        public boolean differsFromOrder() {
+            BigDecimal received = received();
+            return received != null && received.compareTo(line.getQuantity()) != 0;
+        }
     }
 
     // Checks the lines (exactly the order's lines not removed, each with a quantity of zero or more and a short note)
@@ -285,6 +342,9 @@ public class OrderReceiptController {
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         // P60: the receipt time's min, when the order was sent.
         model.addAttribute("receivedAtMin", ReceiptForm.minFor(order));
+        // P61: the Chief cook's count waiting for the Master (prefilled by ReceiptForm.of), and Send back to cook.
+        model.addAttribute("countToApprove", order.isCountToApprove());
+        model.addAttribute("countNoteMax", ShipOrder.COUNT_NOTE_MAX_LENGTH);
         return "shiporder/receipt";
     }
 
@@ -295,6 +355,10 @@ public class OrderReceiptController {
         model.addAttribute("rows", rows);
         model.addAttribute("shortLines", rows.stream().filter(row -> row.shortBy() != null).count());
         model.addAttribute("files", receiptService.files(order.getId()));
+        // P61: the differences against the order and against the Chief cook's count.
+        model.addAttribute("countToApprove", order.isCountToApprove());
+        model.addAttribute("orderDiffs", rows.stream().filter(LineRow::differsFromOrder).toList());
+        model.addAttribute("countDiffs", rows.stream().filter(LineRow::changedFromCount).toList());
         return "shiporder/receipt-review";
     }
 

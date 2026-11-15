@@ -28,10 +28,20 @@ public class MasterHomeService {
      * number on it, url where it opens. A card with zero is shown quietly, one with something to do highlighted,
      * unless it only informs (Crew on board is never "to do").
      */
-    public record Card(String key, String icon, long count, String url, boolean informs) {
+    public record Card(String key, String icon, long count, String url, boolean informs, String noteKey,
+                       long noteCount) {
+
+        public Card(String key, String icon, long count, String url, boolean informs) {
+            this(key, icon, count, url, informs, null, 0);
+        }
 
         static Card toDo(String key, String icon, long count, String url) {
             return new Card(key, icon, count, url, false);
+        }
+
+        /** P61: a line under the label (masterhome.card.<noteKey>, with noteCount), or none when noteKey is null. */
+        public boolean hasNote() {
+            return noteKey != null && noteCount > 0;
         }
 
         public boolean highlighted() {
@@ -70,12 +80,15 @@ public class MasterHomeService {
         List<ShipOrder> toReceive = orderRepository.findAllByShipIdAndStatus(ship.getId(), ShipOrderStatus.CONFIRMED);
         String deliveriesUrl = toReceive.size() == 1 ? "/ship/orders/" + toReceive.get(0).getId() + "/receipt"
                 : "/ship/order";
+        // P61: the deliveries the Chief cook counted, waiting for the Master's approval: "1 counted by the Chief cook,
+        // to approve" under the card's label.
+        long counted = toReceive.stream().filter(ShipOrder::isCountToApprove).count();
         List<Card> cards = List.of(
                 Card.toDo("approvals", "approvals",
                         requestRepository.countByStatusAndShipId(RequestStatus.PENDING, ship.getId()), "/ship/approvals"),
                 Card.toDo("order", "order",
                         orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email), "/ship/order"),
-                Card.toDo("deliveries", "stores", toReceive.size(), deliveriesUrl),
+                new Card("deliveries", "stores", toReceive.size(), deliveriesUrl, false, "deliveries.counted", counted),
                 Card.toDo("announcements", "announcements",
                         recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email), "/ship/news"),
                 Card.toDo("library", "library",

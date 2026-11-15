@@ -72,16 +72,26 @@ public class ReceiptForm {
 
     private List<Long> removeFileIds = new ArrayList<>();
 
-    /** The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). */
+    /**
+     * The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). P61:
+     * when the Chief cook's count waits for the Master, each line as he counted it (0: Not delivered) with his note.
+     */
     static ReceiptForm of(ShipOrder order) {
         ReceiptForm form = new ReceiptForm();
+        boolean counted = order.isCountToApprove();
         for (ShipOrderLine orderLine : ShipOrderService.byCategoryAndName(order.getLines())) {
             if (orderLine.isRemoved()) {
                 continue;
             }
             Line line = new Line();
             line.setLineId(orderLine.getId());
-            line.setReceived(orderLine.getQuantity().stripTrailingZeros().toPlainString());
+            if (counted && orderLine.getCountedQuantity() != null) {
+                line.setReceived(orderLine.getCountedQuantity().stripTrailingZeros().toPlainString());
+                line.setNotDelivered(orderLine.getCountedQuantity().signum() == 0);
+                line.setNote(orderLine.getCountNote());
+            } else {
+                line.setReceived(orderLine.getQuantity().stripTrailingZeros().toPlainString());
+            }
             form.lines.add(line);
         }
         form.receivedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);

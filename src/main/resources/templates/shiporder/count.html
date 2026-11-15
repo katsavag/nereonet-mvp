@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.title}, ~{::main})}">
+<body>
+<!-- "Count delivery" (P61), the Chief cook's, phone first: what arrived of a CONFIRMED order (delivery scheduled), for
+     the Master to approve. One block per line the office did not remove, by category as the order shows them: the
+     item, the unit and the quantity ordered, "Received" (empty until counted; 0 when nothing arrived) with All arrived
+     (the quantity ordered; js/receipt.js fills it in, without JavaScript it saves the draft with that line filled) and
+     an optional note. Then one note for the Master, and photos of the delivery note (the receipt's staging: they become
+     the Master's staged files; js/receipt.js sends each one alone first, made smaller, with a progress bar).
+     Save draft keeps the count on the order (the server's draft, not the browser's: the cook comes back to it from
+     any device); Send to Master sends it (every line counted). Nothing goes into the store here.
+     P57's Count by voice (stores/parts :: voiceCard) above the lines when it is configured: what was heard fills the
+     matching lines in place ("Heard: five kilos of tomatoes"), nothing saved until Save draft or Send.
+     A count sent back by the Master shows the Master's note on top; a count sent shows what was sent, read only.
+     English only. Model: order, form (DeliveryCountForm), groups (DeliveryCountController.RowGroup), editable, files
+     (his own photos), maxFiles, maxFileSize, noteMax, countNoteMax, voiceEnabled. -->
+<main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.heading}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})}, subtitle=${editable} ? #{order.count.hint} : null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <p class="count-delivery-meta" th:text="#{order.progress.delivery(${order.confirmedPort}, ${@dates.date(order.deliveryDate)})}">Delivery: Antwerp, 20 Nov 2026</p>
+
+    <!-- Sent back by the Master: his note on top. -->
+    <div th:if="${order.deliveryCountStatus.name() == 'RETURNED'}" class="alert alert-warning count-returned" role="note">
+        <p class="fw-semibold mb-1" th:text="#{order.count.returnedBy(${@dates.dateTime(order.countReturnedAt)})}">The Master
+            sent the count back on 14 Nov 2026, 11:00 UTC:</p>
+        <q class="d-block" th:text="${order.countReturnNote}">Recount the frozen meat</q>
+    </div>
+
+    <!-- Sent: read only until the Master confirms receipt or sends it back. -->
+    <th:block th:unless="${editable}">
+        <p class="count-sent" th:with="sentOn=#{order.count.sentOn(${@dates.dateTime(order.countSentAt)})}">
+            <span th:replace="~{layout/parts :: statusIcon('info', ${sentOn}, 'clock')}"></span>
+        </p>
+        <section th:each="g, it : ${groups}" class="card mb-3" th:attr="aria-labelledby=${'countGroup' + it.index}">
+            <div class="card-header py-3">
+                <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li th:each="r : ${g.rows}" class="list-group-item count-line" th:with="line=${r.line}">
+                    <div class="count-line-head">
+                        <span class="fw-semibold" th:text="${line.item.name}">Basmati rice</span>
+                        <span class="count-line-qty font-monospace"
+                              th:text="#{order.count.sentLine(${line.quantity.stripTrailingZeros().toPlainString()},
+                                      ${line.countedQuantity != null} ? ${line.countedQuantity.stripTrailingZeros().toPlainString()} : '-',
+                                      ${line.item.unit})}">Ordered 25 kg · Received 20 kg</span>
+                    </div>
+                    <q th:if="${line.countNote != null}" class="d-block small receipt-note" th:text="${line.countNote}">2 boxes damaged</q>
+                </li>
+            </ul>
+        </section>
+        <section th:if="${order.countNote != null or !files.isEmpty()}" class="card form-box mb-3">
+            <div class="card-body">
+                <th:block th:if="${order.countNote != null}">
+                    <h2 class="h6 fw-semibold" th:text="#{order.count.note}">Note for the Master</h2>
+                    <q class="d-block mb-3" th:text="${order.countNote}">Frozen meat came in two deliveries.</q>
+                </th:block>
+                <th:block th:unless="${files.isEmpty()}">
+                    <h2 class="h6 fw-semibold" th:text="#{order.count.files}">Photos of the delivery note</h2>
+                    <ul class="receipt-files list-unstyled mb-0">
+                        <li th:each="f : ${files}" class="receipt-file">
+                            <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
+                               th:text="${f.fileName}">note.jpg</a>
+                        </li>
+                    </ul>
+                </th:block>
+            </div>
+        </section>
+        <p><a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${order.id})}" th:text="#{order.progress.open}">Open order</a></p>
+    </th:block>
+
+    <th:block th:if="${editable}">
+        <th:block th:if="${voiceEnabled}">
+            <section th:replace="~{stores/parts :: voiceCard(@{${baseUrl + '/voice'}}, #{order.count.voice.hint})}"></section>
+        </th:block>
+        <!-- What the voice count could not match to a line (js/receipt.js fills it). -->
+        <div class="alert alert-info count-unmatched" data-count-unmatched hidden role="status">
+            <p class="fw-semibold mb-1" th:text="#{order.count.voice.unmatched}">Not matched to a line, count these by hand:</p>
+            <ul class="mb-0"></ul>
+        </div>
+
+        <form th:object="${form}" method="post" enctype="multipart/form-data" novalidate class="count-form"
+              th:action="@{${baseUrl}}" data-receipt-form th:data-upload-url="@{${baseUrl + '/files'}}"
+              th:attr="data-heard=#{order.count.voice.heard('{words}')}, data-heard-low=#{order.count.voice.low}">
+            <!-- Enter in a field saves the draft (the first submit button), never All arrived. -->
+            <button type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true" th:text="#{order.count.save}">Save draft</button>
+            <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
+            <p th:if="${param.fileTooLarge != null}" class="alert alert-danger" role="alert"
+               th:text="#{order.receipt.error.tooLargeTogether}">The files were too large to send together.</p>
+
+            <section th:each="g, it : ${groups}" class="card mb-3" th:attr="aria-labelledby=${'countGroup' + it.index}">
+                <div class="card-header d-flex justify-content-between align-items-center py-3">
+                    <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+                    <span class="font-monospace small text-body-secondary" th:text="${g.rows.size()}">3</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li th:each="r : ${g.rows}" class="list-group-item count-line" data-receipt-line
+                        th:with="i=${r.index}, line=${r.line}, p=${'lines[' + r.index + ']'},
+                                 ordered=${line.quantity.stripTrailingZeros().toPlainString()},
+                                 rule=${@quantityRules.forItem(line.item, 'RECEIPT')}, err=${#fields.hasErrors(p + '.counted')}"
+                        th:attr="data-line-id=${line.id}">
+                        <input type="hidden" th:name="${p + '.lineId'}" th:value="${line.id}">
+                        <div class="count-line-head">
+                            <span class="fw-semibold" th:id="${'item-' + i}" th:text="${line.item.name}">Basmati rice</span>
+                            <span class="count-line-qty" th:text="#{order.count.ordered(${ordered}, ${line.item.unit})}">Ordered 25 kg</span>
+                        </div>
+                        <div class="count-line-input">
+                            <label class="form-label small mb-1" th:for="${p + '.counted'}">
+                                <span th:text="#{order.receipt.received}">Received</span>
+                                <span class="visually-hidden" th:text="${line.item.name}">Basmati rice</span>
+                            </label>
+                            <div class="count-line-controls">
+                                <span class="input-group receipt-qty">
+                                    <input th:replace="~{layout/parts :: quantityInput(id=${p + '.counted'}, name=${p + '.counted'},
+                                            value=${r.form.counted}, rule=${rule}, cls='', invalid=${err}, kept=${line.quantity},
+                                            describedBy=${'hint-' + i + (err ? ' error-' + i : '')})}">
+                                    <span class="input-group-text" th:text="${line.item.unit}">kg</span>
+                                </span>
+                                <button type="submit" class="btn btn-outline-secondary count-all" name="allArrived"
+                                        th:value="${line.id}" th:attr="data-count-all=${ordered},
+                                        aria-label=#{order.count.allArrived.label(${line.item.name}, ${ordered}, ${line.item.unit})}"
+                                        th:text="#{order.count.allArrived}">All arrived</button>
+                            </div>
+                            <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'hint-' + i})}"></span>
+                            <div th:if="${err}" class="invalid-feedback d-block" th:id="${'error-' + i}"
+                                 th:errors="*{__${p}__.counted}"></div>
+                            <!-- Count by voice: what was heard for this line. -->
+                            <p class="count-heard" data-count-heard hidden></p>
+                        </div>
+                        <div class="count-line-note">
+                            <label class="visually-hidden" th:for="${p + '.note'}"
+                                   th:text="#{order.receipt.note.label(${line.item.name})}">Note on Basmati rice (optional)</label>
+                            <input type="text" class="form-control form-control-sm" th:id="${p + '.note'}" th:name="${p + '.note'}"
+                                   th:value="${r.form.note}" th:maxlength="${noteMax}" autocomplete="off"
+                                   th:placeholder="#{order.count.note.placeholder}"
+                                   th:classappend="${#fields.hasErrors(p + '.note')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:errors="*{__${p}__.note}"></div>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="card form-box mb-3" aria-labelledby="countNoteTitle">
+                <div class="card-body p-3 p-md-4">
+                    <label for="note" class="form-label h5 fw-bold" id="countNoteTitle">[[#{order.count.note}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                    <textarea id="note" name="note" class="form-control" rows="3" th:maxlength="${countNoteMax}"
+                              th:text="${form.note}" th:classappend="${#fields.hasErrors('note')} ? 'is-invalid'"
+                              th:placeholder="#{order.count.note.example}"></textarea>
+                    <div class="invalid-feedback" th:errors="*{note}"></div>
+                </div>
+            </section>
+
+            <section class="card form-box mb-3" aria-labelledby="countFilesTitle">
+                <div class="card-body p-3 p-md-4">
+                    <h2 class="h5 fw-bold" id="countFilesTitle">[[#{order.count.files}]] <span th:replace="~{layout/parts :: optional}"></span></h2>
+                    <p class="small text-body-secondary" th:text="#{order.count.files.hint}">They go to the Master with the count, as the delivery receipt.</p>
+                    <th:block th:unless="${files.isEmpty()}">
+                        <h3 class="h6 fw-semibold mt-3" th:text="#{order.receipt.files.uploaded}">Already uploaded</h3>
+                        <ul class="receipt-files list-unstyled">
+                            <li th:each="f : ${files}" class="receipt-file">
+                                <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
+                                   th:text="${f.fileName}">note.jpg</a>
+                                <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                                <span class="form-check ms-auto">
+                                    <input class="form-check-input" type="checkbox" name="removeFileIds" th:value="${f.id}"
+                                           th:id="${'removeFile' + f.id}">
+                                    <label class="form-check-label" th:for="${'removeFile' + f.id}">
+                                        <span th:text="#{order.receipt.files.remove}">Remove</span>
+                                        <span class="visually-hidden" th:text="${f.fileName}">note.jpg</span>
+                                    </label>
+                                </span>
+                            </li>
+                        </ul>
+                    </th:block>
+                    <label for="files" class="form-label mt-2" th:text="#{order.count.files.add}">Add photos</label>
+                    <input type="file" id="files" name="files" class="form-control" multiple accept=".pdf,.png,.jpg,.jpeg"
+                           aria-describedby="filesHint" th:classappend="${#fields.hasErrors('files')} ? 'is-invalid'"
+                           th:data-max-size="${maxFileSize}" th:data-max-files="${maxFiles}" th:data-uploaded="${files.size()}"
+                           th:data-too-large="#{order.receipt.upload.tooLarge}" data-receipt-files>
+                    <div class="invalid-feedback" th:each="e : ${#fields.errors('files')}" th:text="${e}"></div>
+                    <div id="filesHint" class="form-text" th:text="#{order.receipt.files.hint}">PDF, JPEG or PNG, at most 10 MB each.</div>
+                    <ul class="receipt-chosen list-unstyled" data-receipt-chosen hidden></ul>
+                    <div class="receipt-progress" data-receipt-progress hidden
+                         th:data-text="#{order.receipt.upload.progress('{name}', '{n}', '{total}', '{percent}')}"
+                         th:data-resizing="#{order.receipt.upload.resizing}" th:data-failed="#{order.count.upload.failed}">
+                        <progress max="100" value="0"></progress>
+                        <p class="small mb-0" role="status" aria-live="polite"></p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions form-box count-actions">
+                <button type="submit" class="btn btn-primary" th:formaction="@{${baseUrl + '/send'}}"
+                        th:text="#{order.count.send}">Send to Master</button>
+                <button type="submit" class="btn btn-outline-secondary" th:text="#{order.count.save}">Save draft</button>
+                <a class="btn btn-ghost" th:href="@{/ship/orders/{id}(id=${order.id})}" th:text="#{order.receipt.cancel}">Cancel</a>
+            </div>
+            <p class="small text-body-secondary form-box" th:text="#{order.count.send.hint}">Nothing goes into the store until
+                the Master confirms receipt.</p>
+        </form>
+        <div th:replace="~{layout/parts :: quantityTexts('RECEIPT', null)}"></div>
+        <script th:src="@{/js/receipt.js}" defer></script>
+        <script th:if="${voiceEnabled}" th:src="@{/js/stores-voice.js}" defer></script>
+    </th:block>
+</main>
+</body>
+</html>

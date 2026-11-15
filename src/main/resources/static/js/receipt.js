@@ -9,6 +9,14 @@
 //    (1 of 3) · 45%". Then the form is sent without them, a small request. A file the server refuses stops there
 //    with its message; a dropped connection stops with "Not sent: the connection dropped..." and the files already
 //    sent are not sent again. Review cannot be pressed twice meanwhile. Offline, js/save.js stops the form as usual.
+// P61: also the Chief cook's delivery count (shiporder/count.html), which has the same files and these:
+//  - "All arrived" (button[data-count-all], the quantity ordered) fills the line's quantity; without the script it
+//    saves the draft with that line filled.
+//  - Count by voice: the "voice:heard" event of js/stores-voice.js fills each line heard ([data-line-id]) and says
+//    under it what was heard ("Heard: “five kilos of tomatoes”", Low confidence in words); phrases not matched are
+//    listed above the lines ([data-count-unmatched]). Nothing is saved until Save draft or Send to Master.
+//  And on the Master's form, a line with the cook's count (tr[data-counted]) shows "Changed from 48" while its
+//  quantity differs from the count.
 (function () {
     'use strict';
 
@@ -43,6 +51,82 @@
         none.addEventListener('change', apply);
         if (none.checked) {
             apply();
+        }
+    });
+
+    // ---- P61: the Chief cook's count -------------------------------------------------------------------------------
+
+    function number(text) {
+        const value = Number(String(text || '').trim().replace(',', '.'));
+        return String(text || '').trim() === '' || Number.isNaN(value) ? null : value;
+    }
+
+    function changed(input) {
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+
+    form.querySelectorAll('button[data-count-all]').forEach(button => {
+        button.addEventListener('click', event => {
+            const row = button.closest('[data-receipt-line]');
+            const quantity = row && row.querySelector('input[data-quantity]');
+            if (!quantity) {
+                return;
+            }
+            event.preventDefault();
+            quantity.value = button.dataset.countAll;
+            changed(quantity);
+        });
+    });
+
+    // The Master's form: "Changed from 48" while the quantity differs from the cook's count.
+    form.querySelectorAll('[data-receipt-line][data-counted]').forEach(row => {
+        const quantity = row.querySelector('input[data-quantity]');
+        const none = row.querySelector('input[data-receipt-none]');
+        const marker = row.querySelector('[data-count-changed]');
+        if (!quantity || !marker) {
+            return;
+        }
+        const counted = number(row.dataset.counted);
+        const update = () => {
+            const value = none && none.checked ? 0 : number(quantity.value);
+            marker.hidden = value === null || value === counted;
+        };
+        quantity.addEventListener('input', update);
+        if (none) {
+            none.addEventListener('change', update);
+        }
+    });
+
+    // Count by voice: fill the lines heard.
+    document.addEventListener('voice:heard', event => {
+        const heard = event.detail || {};
+        (heard.lines || []).forEach(line => {
+            const row = form.querySelector('[data-line-id="' + line.lineId + '"]');
+            const quantity = row && row.querySelector('input[data-quantity]');
+            if (!quantity) {
+                return;
+            }
+            quantity.value = line.quantity;
+            changed(quantity);
+            const said = row.querySelector('[data-count-heard]');
+            if (said) {
+                said.textContent = form.dataset.heard.replace('{words}', line.words || '')
+                    + (line.low ? ' · ' + form.dataset.heardLow : '');
+                said.classList.toggle('is-low', Boolean(line.low));
+                said.hidden = false;
+            }
+        });
+        const box = document.querySelector('[data-count-unmatched]');
+        if (box) {
+            const list = box.querySelector('ul');
+            list.replaceChildren();
+            (heard.unmatched || []).forEach(words => {
+                const item = document.createElement('li');
+                item.textContent = words;
+                list.append(item);
+            });
+            box.hidden = list.children.length === 0;
         }
     });
 

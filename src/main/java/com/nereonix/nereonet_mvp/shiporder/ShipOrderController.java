@@ -40,6 +40,9 @@ public class ShipOrderController {
     /** The model flag: true for the Master (edit, send, confirm receipt), false for the Chief cook (read only). */
     static final String CAN_MANAGE = "canManage";
 
+    /** P61: true for the Chief cook, who counts a scheduled delivery (DeliveryCountController). */
+    static final String CAN_COUNT = "canCount";
+
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
     private final QuantityRules quantityRules;
@@ -118,6 +121,8 @@ public class ShipOrderController {
         boolean canManage = pageService.canManage(currentUser.getUsername());
         model.addAttribute("view", view);
         model.addAttribute(CAN_MANAGE, canManage);
+        // P61: the Chief cook counts the delivery of a CONFIRMED order.
+        model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
         // P51: once received, the receipt's files; the Master's only (P55).
         model.addAttribute("receiptFiles", canManage && view.order().getStatus() == ShipOrderStatus.CLOSED
                 ? receiptService.files(id) : List.of());
@@ -128,6 +133,7 @@ public class ShipOrderController {
         model.addAttribute("view", pageService.open(currentUser.getUsername()));
         model.addAttribute("inProgress", pageService.inProgress(currentUser.getUsername()));
         model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
+        model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
         return "shiporder/order";
     }
 

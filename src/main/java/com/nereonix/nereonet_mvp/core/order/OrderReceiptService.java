@@ -51,6 +51,9 @@ import jakarta.persistence.LockModeType;
  * P56: what arrived of the provisions goes into the Chief cook's store (StockService.receive) in the same transaction.
  * A confirmed receipt never changes afterwards (CLOSED: no page or service changes its lines, files or time), so the
  * store gets each line once and needs no correction.
+ * P61: the vessel's Chief cook may count the delivery first (DeliveryCountService) and add photos of the delivery note
+ * (stageFile, removeFiles: his own files, while his count is not with the Master); they are the Master's staged files.
+ * Confirming receipt of a count sent to the Master approves it: the cook is the receipt's "counted by".
  */
 @Service
 public class OrderReceiptService {
@@ -92,7 +95,9 @@ public class OrderReceiptService {
         // stageFile: the receipt already has MAX_FILES files.
         TOO_MANY_FILES,
         // confirmReceipt: no file uploaded.
-        NO_FILE
+        NO_FILE,
+        // P61, stageFile and removeFiles by the Chief cook: his count is with the Master (or approved). Nothing changed.
+        COUNT_SENT
     }
 
     /** True for a received quantity: zero or more, at most 3 decimals and 9 whole digits. */
@@ -109,14 +114,19 @@ public class OrderReceiptService {
     /**
      * The Master uploads a file of the delivery receipt of a CONFIRMED order of their ship (already checked: PDF, JPEG
      * or PNG, contentType, at most 10 MB). Nothing is recorded or notified until the receipt is confirmed.
+     * P61: the vessel's enabled Chief cook may too, while his delivery count is not with the Master (COUNT_SENT); his
+     * files are staged for the Master like the Master's own.
      * NOT_CONFIRMED, TOO_MANY_FILES: nothing saved. 404 for an order of another ship; AccessDeniedException when the
-     * user is not an enabled Master with a ship.
+     * user is not an enabled Master or Chief cook with a ship.
      */
     @Transactional
-    public Result stageFile(User master, Long orderId, MultipartFile file, String contentType) {
-        ShipOrder order = lockOrder(master, orderId);
+    public Result stageFile(User uploader, Long orderId, MultipartFile file, String contentType) {
+        ShipOrder order = lockOrder(uploader, orderId, true);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return Result.NOT_CONFIRMED;
+        }
+        if (uploader.getRole() == Role.CHIEF_COOK && !order.getDeliveryCountStatus().editable()) {
+            return Result.COUNT_SENT;
         }
         if (fileRepository.countByOrderId(orderId) >= MAX_FILES) {
             return Result.TOO_MANY_FILES;
@@ -132,7 +142,7 @@ public class OrderReceiptService {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        receiptFile.setUploadedBy(master);
+        receiptFile.setUploadedBy(uploader);
         receiptFile.setUploadedAt(Instant.now());
         fileRepository.save(receiptFile);
         return Result.DONE;
@@ -141,15 +151,24 @@ public class OrderReceiptService {
     /**
      * The Master removes files they uploaded to a CONFIRMED order's receipt (ids of other orders are ignored); the
      * files are deleted once this commits. NOT_CONFIRMED: nothing removed (a received order's receipt never changes).
+     * P61: the Chief cook removes only the files he uploaded, and only while his count is not with the Master
+     * (COUNT_SENT).
      */
     @Transactional
-    public Result removeFiles(User master, Long orderId, Collection<Long> fileIds) {
-        ShipOrder order = lockOrder(master, orderId);
+    public Result removeFiles(User user, Long orderId, Collection<Long> fileIds) {
+        ShipOrder order = lockOrder(user, orderId, true);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return Result.NOT_CONFIRMED;
         }
+        boolean cook = user.getRole() == Role.CHIEF_COOK;
+        if (cook && !order.getDeliveryCountStatus().editable()) {
+            return Result.COUNT_SENT;
+        }
         for (Long id : fileIds) {
-            fileRepository.findByIdAndOrderId(id, orderId).ifPresent(receiptFile -> {
+            fileRepository.findByIdAndOrderId(id, orderId)
+                    .filter(receiptFile -> !cook || (receiptFile.getUploadedBy() != null
+                            && receiptFile.getUploadedBy().getId().equals(user.getId())))
+                    .ifPresent(receiptFile -> {
                 fileRepository.delete(receiptFile);
                 fileStorage.deleteLater(receiptFile.getStoragePath());
             });
@@ -172,13 +191,14 @@ public class OrderReceiptService {
      * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". P56: each PROVISIONS line received above zero
      * adds to the store (StockService.receive; personal items never do), and when any did the ship's enabled Chief
      * cook is told: "Order 12 received: stock updated for 5 items", linking to Stores. NOT_CONFIRMED or NO_FILE:
-     * nothing changed.
+     * nothing changed. P61: when the Chief cook's count was sent to the Master, confirming approves it (APPROVED; the
+     * cook stays the order's countedBy): the audit entry and each RECEIPT movement's note say "Counted by Demo Cook".
      * IllegalArgumentException for a line without a valid received quantity, a too long note, or a receipt time in
      * the future or before the order was sent; 404 and AccessDeniedException as stageFile.
      */
     @Transactional
     public Result confirmReceipt(User master, Long orderId, Receipt receipt) {
-        ShipOrder order = lockOrder(master, orderId);
+        ShipOrder order = lockOrder(master, orderId, false);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return Result.NOT_CONFIRMED;
         }
@@ -211,12 +231,19 @@ public class OrderReceiptService {
         order.setReceiptConfirmedAt(Instant.now());
         order.setShortLines(shortLines);
         order.setStatus(ShipOrderStatus.CLOSED);
+        // P61: a count sent to the Master is approved by confirming; a draft the cook never sent is left as it was.
+        String countedBy = null;
+        if (order.getDeliveryCountStatus() == DeliveryCountStatus.SENT_TO_MASTER) {
+            order.setDeliveryCount(DeliveryCountStatus.APPROVED);
+            countedBy = order.getCountedBy() == null ? null : order.getCountedBy().getFullName();
+        }
+        String stockNote = countedBy == null ? null : "Counted by " + countedBy;
 
         int stocked = 0;
         for (ShipOrderLine line : order.getLines()) {
             if (!line.isRemoved() && line.getItem().getCategory() == ItemCategory.PROVISIONS
                     && line.getReceivedQuantity().signum() > 0) {
-                stockService.receive(order, line, master);
+                stockService.receive(order, line, master, stockNote);
                 stocked++;
             }
         }
@@ -224,7 +251,8 @@ public class OrderReceiptService {
         Ship ship = order.getShip();
         auditService.record("ORDER_RECEIVED", ship, "Order #" + order.getId() + ", received " + order.getReceivedAt()
                 + ", " + shortLines + (shortLines == 1 ? " line" : " lines") + " short, " + receiptFiles.size()
-                + (receiptFiles.size() == 1 ? " receipt file" : " receipt files"), master);
+                + (receiptFiles.size() == 1 ? " receipt file" : " receipt files")
+                + (countedBy == null ? "" : ", counted by " + countedBy), master);
         String text = messageSource.getMessage(shortLines == 0 ? "order.notification.received"
                         : "order.notification.receivedShort",
                 new Object[] {ship.getName(), order.getId(), shortLines}, Locale.ENGLISH);
@@ -315,9 +343,11 @@ public class OrderReceiptService {
         }
     }
 
-    // The order of the Master's ship, its row locked; 404 for another ship's or an OPEN one.
-    private ShipOrder lockOrder(User master, Long orderId) {
-        if (master == null || master.getRole() != Role.MASTER || !master.isEnabled() || master.getShip() == null) {
+    // The order of the Master's ship (or, with cookToo, the Chief cook's: P61, the files of his count), its row
+    // locked; 404 for another ship's or an OPEN one.
+    private ShipOrder lockOrder(User master, Long orderId, boolean cookToo) {
+        if (master == null || !master.isEnabled() || master.getShip() == null || !(master.getRole() == Role.MASTER
+                || (cookToo && master.getRole() == Role.CHIEF_COOK))) {
             throw new AccessDeniedException("Only the Master of the ship confirms receipt of its order");
         }
         ShipOrder order = entityManager.find(ShipOrder.class, orderId, LockModeType.PESSIMISTIC_WRITE);

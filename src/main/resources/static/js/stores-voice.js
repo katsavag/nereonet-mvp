@@ -13,6 +13,9 @@
 //    application/json) with "Processing...". The answer is the review's address (the page goes there) or the failure
 //    in plain words; when sending again may help (timeout, provider error, no connection) the recording is kept and
 //    "Try again" sends it again. A new hold replaces it. An answer that is not JSON (the session expired): reload.
+//  - P61, the delivery count (shiporder/count.html): the answer may instead be what was heard ({heard: {lines,
+//    unmatched, summary}}); the page stays, the summary is said, and a "voice:heard" event carries it to
+//    js/receipt.js, which fills the lines.
 //  - No MediaRecorder, no secure context (HTTPS outside localhost), the microphone blocked or missing: the button stays
 //    off and the card says why.
 (function () {
@@ -248,6 +251,18 @@
                 return;
             }
             return response.json().then(data => {
+                // P61, the delivery count: what was heard fills the page's lines in place (js/receipt.js), nothing
+                // is saved and the page stays.
+                if (response.ok && data.heard) {
+                    pending = null;
+                    sending = false;
+                    hold.disabled = false;
+                    retry.hidden = true;
+                    card.classList.remove('is-busy');
+                    say(data.heard.summary, 'ok');
+                    card.dispatchEvent(new CustomEvent('voice:heard', {bubbles: true, detail: data.heard}));
+                    return;
+                }
                 if (response.ok && data.reviewUrl) {
                     pending = null;
                     window.location.assign(data.reviewUrl);

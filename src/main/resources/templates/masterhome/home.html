@@ -7,7 +7,8 @@
      Cards: one link each, at least 72px high, with its label and number. A zero is quiet (muted number, no tint); a card
      with something to do has the primary tint and "to do" in words for screen readers. Crew on board only informs, so it
      is never tinted. P59: Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
-     the receipt itself when there is exactly one. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
+     the receipt itself when there is exactly one. P61: with deliveries the Chief cook counted, "Counted by the Chief
+     cook, to approve" under its label. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
      Recent orders: the three most recently sent, newest first, each with its status, confirmed port and delivery date
      (or "Not confirmed yet"), linking to the order; then All orders. -->
 <main class="master-home" th:with="h=${home}">
@@ -25,7 +26,12 @@
                    th:attr="data-card=${c.key}">
                     <span class="master-card-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon(${c.icon})}"></svg></span>
-                    <span class="master-card-label" th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
+                    <span class="master-card-label">
+                        <span th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
+                        <!-- P61: the deliveries the Chief cook counted, to approve. -->
+                        <span th:if="${c.hasNote()}" class="master-card-note"
+                              th:text="#{${'masterhome.card.' + c.noteKey}(${c.noteCount})}">Counted by the Chief cook, to approve</span>
+                    </span>
                     <span class="master-card-count num" th:text="${c.count}">1</span>
                     <span th:if="${c.highlighted()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
                 </a>

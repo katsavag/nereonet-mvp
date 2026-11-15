@@ -493,8 +493,11 @@ class ShipOrderFlowTest {
                     .isInstanceOf(AccessDeniedException.class);
             assertThatThrownBy(() -> receiptService.confirmReceipt(other, order.getId(),
                     new OrderReceiptService.Receipt(Instant.now(), Map.of()))).isInstanceOf(AccessDeniedException.class);
-            assertThatThrownBy(() -> receiptService.removeFiles(other, order.getId(), List.of()))
-                    .isInstanceOf(AccessDeniedException.class);
+            // P61: the Chief cook stages and removes his own photos of a delivery note (DeliveryCountFlowTest).
+            if (other != cook) {
+                assertThatThrownBy(() -> receiptService.removeFiles(other, order.getId(), List.of()))
+                        .isInstanceOf(AccessDeniedException.class);
+            }
         }
         master.setEnabled(false);
         assertThatThrownBy(() -> shipOrderService.send(master, details)).isInstanceOf(AccessDeniedException.class);

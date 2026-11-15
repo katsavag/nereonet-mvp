@@ -137,12 +137,7 @@ public class VoiceCountService {
      */
     public Proposal propose(User cook, byte[] audio, String contentType) {
         checkCook(cook);
-        if (!configured()) {
-            throw new VoiceCountException(Failure.NOT_CONFIGURED);
-        }
-        if (audio == null || audio.length == 0 || audio.length > MAX_AUDIO_BYTES || !isAudio(contentType)) {
-            throw new VoiceCountException(Failure.NO_AUDIO);
-        }
+        checkReady(audio, contentType);
         Map<Long, Level> levels = new LinkedHashMap<>();
         stockService.levels(cook.getShip()).forEach(level -> levels.put(level.item().getId(), level));
         if (levels.isEmpty()) {
@@ -152,21 +147,9 @@ public class VoiceCountService {
                 .map(level -> new CountExtractor.Item(level.item().getId(), level.item().getName(),
                         level.item().getUnit()))
                 .toList();
-        String transcript;
-        Extraction extraction;
-        try {
-            transcript = speech.transcribe(audio, contentType, items.stream().map(CountExtractor.Item::name).toList());
-            if (transcript == null || transcript.isBlank()) {
-                throw new VoiceCountException(Failure.NOTHING_UNDERSTOOD);
-            }
-            extraction = extractor.extract(transcript, items);
-        } catch (SpeechToTextException e) {
-            throw new VoiceCountException(e.reason() == SpeechToTextException.Reason.TIMEOUT
-                    ? Failure.TIMEOUT : Failure.PROVIDER_ERROR);
-        } catch (CountExtractionException e) {
-            throw new VoiceCountException(e.reason() == CountExtractionException.Reason.TIMEOUT
-                    ? Failure.TIMEOUT : Failure.PROVIDER_ERROR);
-        }
+        Heard heard = listen(audio, contentType, items);
+        String transcript = heard.transcript();
+        Extraction extraction = heard.extraction();
         // Checked once more here, whatever the extractor: an item of the list, once, with a valid quantity.
         List<ProposedLine> lines = new ArrayList<>();
         List<String> unmatched = new ArrayList<>();
@@ -214,6 +197,54 @@ public class VoiceCountService {
             }
         }
         return rows.size();
+    }
+
+    /** What a recording said: the text, and the extractor's lines over the items given (unchecked). */
+    public record Heard(String transcript, Extraction extraction) {
+    }
+
+    /**
+     * P61: a recording against any list of items (the delivery count: the order's lines' items), the same two steps
+     * as propose: the text (the item names as key terms), then CountExtractor over those items. Nothing checked
+     * beyond the extractor's own checks, nothing saved. The caller checks who may record. Not in a transaction.
+     * VoiceCountException: NOT_CONFIGURED, NO_AUDIO, NO_ITEMS (an empty list), TIMEOUT, PROVIDER_ERROR,
+     * NOTHING_UNDERSTOOD (no text).
+     */
+    public Heard listen(User user, byte[] audio, String contentType, List<CountExtractor.Item> items) {
+        if (user == null || !user.isEnabled() || user.getShip() == null) {
+            throw new AccessDeniedException("Only a member of a vessel's crew records a count");
+        }
+        checkReady(audio, contentType);
+        if (items.isEmpty()) {
+            throw new VoiceCountException(Failure.NO_ITEMS);
+        }
+        return listen(audio, contentType, items);
+    }
+
+    private Heard listen(byte[] audio, String contentType, List<CountExtractor.Item> items) {
+        try {
+            String transcript = speech.transcribe(audio, contentType,
+                    items.stream().map(CountExtractor.Item::name).toList());
+            if (transcript == null || transcript.isBlank()) {
+                throw new VoiceCountException(Failure.NOTHING_UNDERSTOOD);
+            }
+            return new Heard(transcript, extractor.extract(transcript, items));
+        } catch (SpeechToTextException e) {
+            throw new VoiceCountException(e.reason() == SpeechToTextException.Reason.TIMEOUT
+                    ? Failure.TIMEOUT : Failure.PROVIDER_ERROR);
+        } catch (CountExtractionException e) {
+            throw new VoiceCountException(e.reason() == CountExtractionException.Reason.TIMEOUT
+                    ? Failure.TIMEOUT : Failure.PROVIDER_ERROR);
+        }
+    }
+
+    private void checkReady(byte[] audio, String contentType) {
+        if (!configured()) {
+            throw new VoiceCountException(Failure.NOT_CONFIGURED);
+        }
+        if (audio == null || audio.length == 0 || audio.length > MAX_AUDIO_BYTES || !isAudio(contentType)) {
+            throw new VoiceCountException(Failure.NO_AUDIO);
+        }
     }
 
     /** Recording types browsers make with MediaRecorder: audio/webm, audio/mp4, audio/ogg... (parameters ignored). */

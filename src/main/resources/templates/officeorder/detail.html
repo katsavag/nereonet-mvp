@@ -74,6 +74,12 @@
                 <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.confirmedBy}">Confirmed by</dt>
                 <dd class="col-sm-8 col-lg-9" th:text="${order.confirmedBy} ? ${order.confirmedBy.fullName} : #{audit.deletedUser}">Jane Doe</dd>
             </th:block>
+            <!-- P61: once received, the Chief cook's count the Master approved. -->
+            <th:block th:if="${order.status.name() == 'CLOSED' and order.countApproved and order.countSentAt != null}">
+                <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.counted}">Delivery count</dt>
+                <dd class="col-sm-8 col-lg-9" th:text="#{officeorder.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
+                        ${@dates.utcDate(order.countSentAt)})}">Counted by Demo Cook on 14 Nov 2026</dd>
+            </th:block>
             <!-- P44: the latest award of a request for quotes. -->
             <th:block th:if="${award != null}">
                 <dt class="col-sm-4 col-lg-3" th:text="#{rfq.awardedTo}">Awarded to</dt>

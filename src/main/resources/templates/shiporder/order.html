@@ -12,7 +12,9 @@
      scheduled ("Delivery was due 12 Nov 2026, Antwerp" with a warning icon once the date has passed), else when it was
      sent. The Master has Confirm receipt (the primary) on a scheduled delivery; everyone has Open order. No section
      without any; with some, the OPEN order follows under "Current order".
-     Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage (boolean),
+     P61: the Chief cook (canCount) has Count delivery on a scheduled delivery (View count once sent); a count sent to
+     the Master says "Counted by the Chief cook, to approve", one sent back says so.
+     Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage, canCount (boolean),
      sendForm (SendOrderForm). P60: the quantities follow the rule of
      the item's unit (README 35). -->
 <main th:with="v=${view}">
@@ -42,11 +44,24 @@
                     <p th:unless="${p.toReceive()}" class="order-progress-meta"
                        th:text="#{order.progress.sent(${@dates.utcDate(o.sentAt)})}">Sent on 14 Nov 2026 · waiting for the
                         office to schedule the delivery</p>
+                    <!-- P61: where the Chief cook's count of the delivery stands. -->
+                    <p th:if="${o.countToApprove}" class="order-progress-meta order-progress-count">
+                        <span th:replace="~{layout/parts :: statusIcon('info', #{order.count.toApprove}, 'clock')}"></span></p>
+                    <p th:if="${p.toReceive() and o.deliveryCountStatus.name() == 'RETURNED'}" class="order-progress-meta order-progress-count"
+                       th:text="#{order.count.returnedShort}">Count sent back to the Chief cook</p>
+                    <p th:if="${canCount and p.toReceive() and o.deliveryCountStatus.name() == 'DRAFT'}"
+                       class="order-progress-meta order-progress-count" th:text="#{order.count.draftShort}">Count saved, not sent yet</p>
                 </div>
                 <div class="order-progress-actions">
                     <a th:if="${canManage and p.toReceive()}" class="btn btn-primary"
                        th:href="@{/ship/orders/{id}/receipt(id=${o.id})}"
                        th:attr="aria-label=#{order.progress.receipt.label(${o.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
+                    <a th:if="${canCount and p.toCount()}" class="btn btn-primary"
+                       th:href="@{/ship/orders/{id}/count(id=${o.id})}"
+                       th:attr="aria-label=#{order.progress.count.label(${o.id})}" th:text="#{order.count.action}">Count delivery</a>
+                    <a th:if="${canCount and p.toReceive() and !p.toCount()}" class="btn btn-outline-secondary"
+                       th:href="@{/ship/orders/{id}/count(id=${o.id})}"
+                       th:attr="aria-label=#{order.progress.countView.label(${o.id})}" th:text="#{order.count.view}">View count</a>
                     <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${o.id})}"
                        th:attr="aria-label=#{order.progress.open.label(${o.id})}" th:text="#{order.progress.open}">Open order</a>
                 </div>

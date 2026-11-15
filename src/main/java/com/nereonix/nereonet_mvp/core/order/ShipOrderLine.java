@@ -74,6 +74,14 @@ public class ShipOrderLine {
     @Column(length = NOTE_MAX_LENGTH)
     private String receiptNote;
 
+    // P61: what the Chief cook counted of this line (0: nothing arrived) and his note on it ("2 boxes damaged"). Null
+    // until counted; kept after the receipt, so the receipt can be read against the count.
+    @Column(precision = 12, scale = 3)
+    private BigDecimal countedQuantity;
+
+    @Column(length = NOTE_MAX_LENGTH)
+    private String countNote;
+
     /** How much less arrived than was ordered (P51); null when the line was not received short. */
     public BigDecimal getShortBy() {
         if (removed || receivedQuantity == null || receivedQuantity.compareTo(quantity) >= 0) {

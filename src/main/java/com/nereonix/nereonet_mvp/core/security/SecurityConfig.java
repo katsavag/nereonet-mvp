@@ -44,6 +44,8 @@ public class SecurityConfig {
                         // segment, so the receipt pages and files under /ship/orders/{id}/ stay the Master's.
                         .requestMatchers(HttpMethod.GET, "/ship/order", "/ship/orders", "/ship/orders/*")
                                 .hasAnyRole("MASTER", "CHIEF_COOK")
+                        // P61: the Chief cook counts a delivery (GET and POST, with its photos and voice).
+                        .requestMatchers("/ship/orders/*/count", "/ship/orders/*/count/**").hasRole("CHIEF_COOK")
                         .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
                                 .hasRole("MASTER")
                         // The Chief cook's store (P52).
