@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
  * (default true); off, the page shows no map and loads no external script. The browser loads the map from
  * vesselfinder.com; the server never calls VesselFinder and stores no positions.
  * To remove the experiment: this class, templates/ship/map.html, its th:replace in ship/overview.html, the .ship-map
- * CSS, the ship.map.* messages and app.ship-map in application.yml.
+ * CSS, the ship.map.* messages, app.ship-map in application.yml and the VesselFinder exception in
+ * layout/StaticAssetsFlowTest.
  */
 @Component("shipMap")
 public class ShipMap {

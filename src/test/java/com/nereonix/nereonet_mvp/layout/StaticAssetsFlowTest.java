@@ -92,6 +92,11 @@ class StaticAssetsFlowTest {
         }
     }
 
+    // The one external script allowed, and only in its template: the VesselFinder map of the ship (the experiment in
+    // ship/ShipMap, off with app.ship-map.enabled; ShipMapFlowTest checks it is not loaded then).
+    private static final Path SHIP_MAP = Path.of("src/main/resources/templates/ship/map.html");
+    private static final String VESSELFINDER_SCRIPT = "https://www.vesselfinder.com/aismap.js";
+
     // Our own templates and CSS never point at another host. XML namespaces are identifiers, not requests.
     @Test
     void templatesAndAppCssHaveNoExternalUrls() throws IOException {
@@ -103,7 +108,9 @@ class StaticAssetsFlowTest {
                     Matcher m = url.matcher(Files.readString(file));
                     while (m.find()) {
                         String u = m.group();
-                        if (!u.startsWith("http://www.thymeleaf.org") && !u.equals("http://www.w3.org/2000/svg")) {
+                        boolean shipMap = file.equals(SHIP_MAP) && u.equals(VESSELFINDER_SCRIPT);
+                        if (!shipMap && !u.startsWith("http://www.thymeleaf.org")
+                                && !u.equals("http://www.w3.org/2000/svg")) {
                             found.add(file + ": " + u);
                         }
                     }
