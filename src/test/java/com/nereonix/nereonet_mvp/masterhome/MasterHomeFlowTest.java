@@ -50,8 +50,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
  * The Master's home page (/ship as MASTER): the ship's name and IMO number; cards with a number each (Requests to
- * approve, Ship order, Announcements to acknowledge, Library to acknowledge, Crew on board), quiet at zero and
- * highlighted with something to do; the three most recently sent orders. The Chief cook and Crew members keep the crew
+ * approve, Ship order, Deliveries to receive since P59, Announcements to acknowledge, Library to acknowledge, Crew on
+ * board), quiet at zero and highlighted with something to do; the three most recently sent orders. The Chief cook and Crew members keep the crew
  * home page.
  */
 @SpringBootTest
@@ -104,7 +104,7 @@ class MasterHomeFlowTest {
         assertThat(card(html, "approvals")).contains("href=\"/ship/approvals\"", "is-due", ">Requests to approve<",
                 "<span class=\"master-card-count num\">1</span>", ">to do<");
         // Nothing else waits: quiet cards with a zero, no tint.
-        for (String key : List.of("order", "announcements", "library")) {
+        for (String key : List.of("order", "deliveries", "announcements", "library")) {
             assertThat(card(html, key)).as(key).contains("<span class=\"master-card-count num\">0</span>")
                     .doesNotContain("is-due", ">to do<");
         }
@@ -147,7 +147,26 @@ class MasterHomeFlowTest {
                 .doesNotContain("is-due");
         // The cards in page order.
         assertThat(Pattern.compile("data-card=\"([a-z]+)\"").matcher(html).results().map(m -> m.group(1)).toList())
-                .containsExactly("approvals", "order", "announcements", "library", "crew");
+                .containsExactly("approvals", "order", "deliveries", "announcements", "library", "crew");
+    }
+
+    // P59: the scheduled deliveries (CONFIRMED) of the Master's ship; one opens its receipt, more open Vessel order.
+    @Test
+    void deliveriesToReceiveCountsTheScheduledDeliveries() throws Exception {
+        Instant now = Instant.now();
+        sentOrder(ShipOrderStatus.SENT, now.minus(Duration.ofDays(1)), null, null);
+        sentOrder(ShipOrderStatus.CLOSED, now.minus(Duration.ofDays(30)), "Hamburg", LocalDate.of(2026, 10, 15));
+        ShipOrder first = sentOrder(ShipOrderStatus.CONFIRMED, now.minus(Duration.ofDays(5)), "Antwerp",
+                LocalDate.of(2026, 11, 20));
+        ShipOrder otherShips = sentOrder(ShipOrderStatus.CONFIRMED, now.minus(Duration.ofDays(5)), "Piraeus",
+                LocalDate.of(2026, 11, 21));
+        otherShips.setShip(otherShip);
+
+        assertThat(card(home(master), "deliveries")).contains(">Deliveries to receive<",
+                "href=\"/ship/orders/" + first.getId() + "/receipt\"", ">1</span>", "is-due", ">to do<");
+
+        sentOrder(ShipOrderStatus.CONFIRMED, now.minus(Duration.ofDays(3)), "Rotterdam", LocalDate.of(2026, 11, 25));
+        assertThat(card(home(master), "deliveries")).contains("href=\"/ship/order\"", ">2</span>", "is-due");
     }
 
     @Test

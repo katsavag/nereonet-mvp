@@ -17,7 +17,9 @@ import jakarta.servlet.http.HttpServletRequest;
  *   navCounts   the office counters (NavCounts); null for crew and when signed out.
  *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
  *               everyone else.
- *   orderLines  the Master's counter of Ship order (P35): lines in their ship's OPEN order; null for everyone else.
+ *   ordersToAct  the Master's counter of Vessel order (P35; orders, not lines, since P59): their ship's OPEN order
+ *               when it has a line (to send) plus its CONFIRMED orders (to receive); null for everyone else (the Chief
+ *               cook reads Vessel order without it, P55).
  *   storesBelowThreshold  the Chief cook's counter of Stores (P52): provisions of their ship that are Low or Out of
  *               stock; null for everyone else.
  *   requestsWaiting  the Chief cook's and crew members' counter of Requests (P54): their own requests still waiting
@@ -36,7 +38,7 @@ public class NavigationAdvice {
     static final String COUNTS = "navCounts";
     static final String TAB = "navTab";
     static final String APPROVALS_WAITING = "approvalsWaiting";
-    static final String ORDER_LINES = "orderLines";
+    static final String ORDERS_TO_ACT = "ordersToAct";
     static final String STORES_BELOW_THRESHOLD = "storesBelowThreshold";
     static final String REQUESTS_WAITING = "requestsWaiting";
     static final String ANNOUNCEMENTS_TO_ACKNOWLEDGE = "announcementsToAcknowledge";
@@ -95,12 +97,12 @@ public class NavigationAdvice {
         return navigationService.approvalsWaiting(currentUser.getUsername());
     }
 
-    @ModelAttribute(ORDER_LINES)
-    public Long orderLines(@AuthenticationPrincipal CurrentUser currentUser) {
+    @ModelAttribute(ORDERS_TO_ACT)
+    public Long ordersToAct(@AuthenticationPrincipal CurrentUser currentUser) {
         if (currentUser == null || currentUser.getRole() != Role.MASTER) {
             return null;
         }
-        return navigationService.orderLines(currentUser.getUsername());
+        return navigationService.ordersToAct(currentUser.getUsername());
     }
 
     @ModelAttribute(STORES_BELOW_THRESHOLD)

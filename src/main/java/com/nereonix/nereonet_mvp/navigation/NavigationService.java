@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.alert.AlertKind;
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipientRepository;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
-import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.profile.CrewProfileRepository;
@@ -26,7 +26,7 @@ public class NavigationService {
 
     private final CertificateRepository certificateRepository;
     private final ItemRequestRepository requestRepository;
-    private final ShipOrderLineRepository orderLineRepository;
+    private final ShipOrderRepository orderRepository;
     private final ShipOrderService orderService;
     private final AnnouncementRecipientRepository announcementRecipientRepository;
     private final VettingService vettingService;
@@ -34,7 +34,7 @@ public class NavigationService {
     private final StockService stockService;
 
     public NavigationService(CertificateRepository certificateRepository, ItemRequestRepository requestRepository,
-                             ShipOrderLineRepository orderLineRepository, ShipOrderService orderService,
+                             ShipOrderRepository orderRepository, ShipOrderService orderService,
                              AnnouncementRecipientRepository announcementRecipientRepository,
                              VettingService vettingService, CrewProfileRepository profileRepository,
                              StockService stockService) {
@@ -42,7 +42,7 @@ public class NavigationService {
         this.profileRepository = profileRepository;
         this.certificateRepository = certificateRepository;
         this.requestRepository = requestRepository;
-        this.orderLineRepository = orderLineRepository;
+        this.orderRepository = orderRepository;
         this.orderService = orderService;
         this.announcementRecipientRepository = announcementRecipientRepository;
         this.vettingService = vettingService;
@@ -65,10 +65,14 @@ public class NavigationService {
         return requestRepository.countByStatusOnShipOf(RequestStatus.PENDING, email);
     }
 
-    /** The Master's counter of Ship order (P35): lines of the OPEN order of the ship of the user with this email. */
+    /**
+     * The Master's counter of Vessel order (P35; orders, not lines, since P59): the orders of the ship of the user with
+     * this email that need the Master, the OPEN one when it has a line (to send) and the CONFIRMED ones (to receive).
+     * SENT orders wait for the office and are not counted.
+     */
     @Transactional(readOnly = true)
-    public long orderLines(String email) {
-        return orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email);
+    public long ordersToAct(String email) {
+        return orderRepository.countToActOnShipOf(email, ShipOrderStatus.OPEN, ShipOrderStatus.CONFIRMED);
     }
 
     /** The Chief cook's counter of Stores (P52): provisions of the ship of the user with this email that are Low or

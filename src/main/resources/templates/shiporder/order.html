@@ -7,14 +7,53 @@
      optional note; after sending the order is read-only (/ship/orders/{id}). English only, as every crew screen.
      P55: the Chief cook (canManage false) sees the same lines and who asked, with no quantity inputs, no Remove and no
      Send to office: one line says only the Master can change or send the order.
-     Model: view (ShipOrderPageService.OrderView), canManage (boolean), sendForm (SendOrderForm). -->
+     P59: above it, "Orders in progress": one card per order sent and not received yet (ShipOrderPageService
+     .inProgress, most urgent first), with its status, number of items and one line: the delivery port and date once
+     scheduled ("Delivery was due 12 Nov 2026, Antwerp" with a warning icon once the date has passed), else when it was
+     sent. The Master has Confirm receipt (the primary) on a scheduled delivery; everyone has Open order. No section
+     without any; with some, the OPEN order follows under "Current order".
+     Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage (boolean),
+     sendForm (SendOrderForm). -->
 <main th:with="v=${view}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${v.ship},
             subtitle=${canManage} ? #{order.hint} : #{order.hint.readOnly}, actions=~{::pageActions})}">
         <th:block th:fragment="pageActions">
-            <a class="btn btn-outline-secondary" th:href="@{/ship/orders}" th:text="#{order.past.title}">Past orders</a>
+            <a class="btn btn-outline-secondary" th:href="@{/ship/orders}" th:text="#{order.past.title}">All orders</a>
         </th:block>
     </header>
+
+    <section th:unless="${inProgress.isEmpty()}" class="order-progress" aria-labelledby="inProgressTitle">
+        <h2 class="h5 fw-bold mb-3" id="inProgressTitle" th:text="#{order.progress.heading}">Orders in progress</h2>
+        <ul class="order-progress-list">
+            <li th:each="p : ${inProgress}" th:with="o=${p.order}" class="card order-progress-card"
+                th:classappend="${p.overdue} ? 'is-overdue'" th:attr="data-order=${o.id}">
+                <div class="order-progress-main">
+                    <div class="order-progress-title">
+                        <h3 class="h6 fw-bold mb-0" th:text="#{order.number(${o.id})}">Order #12</h3>
+                        <span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span>
+                        <span class="small text-body-secondary" th:text="#{order.lineCount(${p.itemCount})}">3 items</span>
+                    </div>
+                    <p th:if="${p.overdue}" class="order-progress-meta"
+                       th:with="due=#{order.progress.overdue(${o.confirmedPort}, ${@dates.date(o.deliveryDate)})}"><span
+                            th:replace="~{layout/parts :: statusIcon('warning', ${due}, 'alert')}"></span></p>
+                    <p th:if="${p.toReceive() and !p.overdue}" class="order-progress-meta"
+                       th:text="#{order.progress.delivery(${o.confirmedPort}, ${@dates.date(o.deliveryDate)})}">Delivery: Antwerp, 20 Nov 2026</p>
+                    <p th:unless="${p.toReceive()}" class="order-progress-meta"
+                       th:text="#{order.progress.sent(${@dates.utcDate(o.sentAt)})}">Sent on 14 Nov 2026 · waiting for the
+                        office to schedule the delivery</p>
+                </div>
+                <div class="order-progress-actions">
+                    <a th:if="${canManage and p.toReceive()}" class="btn btn-primary"
+                       th:href="@{/ship/orders/{id}/receipt(id=${o.id})}"
+                       th:attr="aria-label=#{order.progress.receipt.label(${o.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
+                    <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${o.id})}"
+                       th:attr="aria-label=#{order.progress.open.label(${o.id})}" th:text="#{order.progress.open}">Open order</a>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <h2 th:unless="${inProgress.isEmpty()}" class="h5 fw-bold mb-3" th:text="#{order.current.heading}">Current order</h2>
 
     <div th:if="${v.empty}" class="card">
         <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.empty.title},

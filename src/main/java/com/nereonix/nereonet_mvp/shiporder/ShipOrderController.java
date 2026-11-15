@@ -25,12 +25,14 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 // The Master's ship order (P35): the OPEN order of their own ship, its lines edited one at a time (each change is
-// saved at once, nobody is notified), "Send to office", and the past orders; P51: "Confirm receipt" on a past order
-// whose delivery is scheduled (OrderReceiptController), and its receipt once received. P55: the Chief cook reads the
-// same three pages (GET /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig), with nothing to act on: the
+// saved at once, nobody is notified), "Send to office", and the past orders ("All orders" since P59); P51: "Confirm
+// receipt" on a past order whose delivery is scheduled (OrderReceiptController), and its receipt once received. P55:
+// the Chief cook reads the same three pages (GET /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig), with
+// nothing to act on: the
 // model's canManage (the ship's enabled Master) decides what the templates offer, and the receipt's files are the
 // Master's only. Every POST stays MASTER only (SecurityConfig), and the services refuse anyone else as well.
-// English only, as every crew screen.
+// P59: /ship/order also lists the orders in progress (SENT, CONFIRMED) above the OPEN one, the Master's with Confirm
+// receipt. English only, as every crew screen.
 @Controller
 public class ShipOrderController {
 
@@ -45,12 +47,11 @@ public class ShipOrderController {
         this.receiptService = receiptService;
     }
 
+    // P59: above the OPEN order, the orders in progress (sent, delivery scheduled), most urgent first.
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
-        model.addAttribute("view", pageService.open(currentUser.getUsername()));
-        model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
         model.addAttribute("sendForm", new SendOrderForm());
-        return "shiporder/order";
+        return showOrder(currentUser, model);
     }
 
     // Blank, not a number, zero or less, or more than 3 decimals: back to the order with an error, nothing saved.
@@ -79,9 +80,7 @@ public class ShipOrderController {
                        @Validated @ModelAttribute("sendForm") SendOrderForm sendForm, BindingResult bindingResult,
                        Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("view", pageService.open(currentUser.getUsername()));
-            model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
-            return "shiporder/order";
+            return showOrder(currentUser, model);
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {
@@ -113,6 +112,13 @@ public class ShipOrderController {
         model.addAttribute("receiptFiles", canManage && view.order().getStatus() == ShipOrderStatus.CLOSED
                 ? receiptService.files(id) : List.of());
         return "shiporder/detail";
+    }
+
+    private String showOrder(CurrentUser currentUser, Model model) {
+        model.addAttribute("view", pageService.open(currentUser.getUsername()));
+        model.addAttribute("inProgress", pageService.inProgress(currentUser.getUsername()));
+        model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
+        return "shiporder/order";
     }
 
     // Saved: back to the order with a message. Already sent (another tab): nothing changed, and the page says so.

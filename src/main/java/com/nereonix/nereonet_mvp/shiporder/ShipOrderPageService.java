@@ -1,6 +1,8 @@
 package com.nereonix.nereonet_mvp.shiporder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -46,6 +48,17 @@ public class ShipOrderPageService {
     static final List<ShipOrderStatus> PAST = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED,
             ShipOrderStatus.CLOSED);
 
+    // P59: sent and not received yet.
+    static final List<ShipOrderStatus> IN_PROGRESS = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
+
+    // Most urgent first: the scheduled deliveries by delivery date (earliest first), then the orders waiting for the
+    // office by sent date (waiting longest first).
+    private static final Comparator<ShipOrder> MOST_URGENT_FIRST = Comparator
+            .comparing((ShipOrder order) -> order.getStatus() == ShipOrderStatus.CONFIRMED ? 0 : 1)
+            .thenComparing(ShipOrder::getDeliveryDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(ShipOrder::getSentAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(ShipOrder::getId);
+
     /** One line of the order, and who asked for it: "Chief Cook 6, A. Santos 4" (empty when nobody is linked). */
     public record LineView(ShipOrderLine line, String askedBy) {
     }
@@ -66,6 +79,16 @@ public class ShipOrderPageService {
     }
 
     public record PastOrders(Ship ship, List<ShipOrder> orders) {
+    }
+
+    /**
+     * An order in progress on Vessel order (P59): SENT or CONFIRMED, with its number of items (lines the office did not
+     * remove). overdue: CONFIRMED and its delivery date (UTC) has passed without a receipt.
+     */
+    public record InProgress(ShipOrder order, int itemCount, boolean overdue) {
+        public boolean toReceive() {
+            return order.getStatus() == ShipOrderStatus.CONFIRMED;
+        }
     }
 
     private final UserRepository userRepository;
@@ -90,6 +113,22 @@ public class ShipOrderPageService {
         Ship ship = ship(reader(email));
         ShipOrder order = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElse(null);
         return view(ship, order);
+    }
+
+    /**
+     * The ship's orders in progress (P59): SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
+     * date, then the orders waiting for the office by sent date). The Master or the Chief cook.
+     */
+    @Transactional(readOnly = true)
+    public List<InProgress> inProgress(String email) {
+        Ship ship = ship(reader(email));
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        return orderRepository.findAllByShipIdAndStatusIn(ship.getId(), IN_PROGRESS).stream()
+                .sorted(MOST_URGENT_FIRST)
+                .map(order -> new InProgress(order, (int) order.getLines().stream().filter(l -> !l.isRemoved()).count(),
+                        order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryDate() != null
+                                && order.getDeliveryDate().isBefore(today)))
+                .toList();
     }
 
     /** SENT, CONFIRMED and CLOSED orders of the ship, newest sent first. The Master or the Chief cook. */

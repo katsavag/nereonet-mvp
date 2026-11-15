@@ -71,7 +71,7 @@ public class OfficeOrderController {
     public record LineGroup(ItemCategory category, List<ShipOrderLine> lines) {
     }
 
-    /** One category's active items, by name: the options of "Add an item" (P50). */
+    /** One category's active items, by name: the choices of "Add an item" (P50; P59: only those not on the order). */
     public record ItemGroup(ItemCategory category, List<Item> items) {
     }
 
@@ -348,17 +348,32 @@ public class OfficeOrderController {
         model.addAttribute("editPending", editable && order.getOfficeEditedAt() != null);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         if (editable) {
-            Map<ItemCategory, List<Item>> items = new EnumMap<>(ItemCategory.class);
-            for (Item item : itemRepository.findAllByShipIdOrderByNameAsc(order.getShip().getId())) {
-                if (item.isActive()) {
-                    items.computeIfAbsent(item.getCategory(), category -> new ArrayList<>()).add(item);
-                }
-            }
-            model.addAttribute("itemGroups", items.entrySet().stream()
-                    .map(entry -> new ItemGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
+            // P59: "Add an item" offers the vessel's active items NOT on the order (a removed line's item is not on
+            // it: adding it brings the line back), and lists the lines on it for reference. The server still accepts
+            // an item already on the order (a stale page) and adds to its line.
             Set<Long> onOrder = order.getLines().stream().filter(line -> !line.isRemoved())
                     .map(line -> line.getItem().getId()).collect(Collectors.toSet());
-            model.addAttribute("onOrder", onOrder);
+            Map<ItemCategory, List<Item>> items = new EnumMap<>(ItemCategory.class);
+            boolean hasItems = false;
+            for (Item item : itemRepository.findAllByShipIdOrderByNameAsc(order.getShip().getId())) {
+                if (item.isActive()) {
+                    hasItems = true;
+                    if (!onOrder.contains(item.getId())) {
+                        items.computeIfAbsent(item.getCategory(), category -> new ArrayList<>()).add(item);
+                    }
+                }
+            }
+            model.addAttribute("hasItems", hasItems);
+            model.addAttribute("itemGroups", items.entrySet().stream()
+                    .map(entry -> new ItemGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
+            Map<ItemCategory, List<ShipOrderLine>> lines = new EnumMap<>(ItemCategory.class);
+            for (ShipOrderLine line : ShipOrderService.byCategoryAndName(order.getLines())) {
+                if (!line.isRemoved()) {
+                    lines.computeIfAbsent(line.getItem().getCategory(), category -> new ArrayList<>()).add(line);
+                }
+            }
+            model.addAttribute("onOrderGroups", lines.entrySet().stream()
+                    .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
         }
         model.addAttribute("confirmForm", confirmForm);
         // P44: the order's requests for quotes, the open one, whether one can be started, and the latest award.

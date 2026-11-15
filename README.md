@@ -952,12 +952,29 @@ Requirements: Java 25, Docker.
 
 23. The ship order and "Send to office" (P35, the Master only; the Chief cook reads it since P55, see 32). `core/order/ShipOrderService` (`changeQuantity`,
    `removeLine`, `send`) and `shiporder/` (`ShipOrderController`, `ShipOrderPageService`, `SendOrderForm`).
-   - **Ship order** in the sidebar (on phones under More), with the number of lines in the OPEN order (the Master's
-     counter; the Chief cook has the entry without it, P55).
+   - **Ship order** ("Vessel order" on screen since P39) in the sidebar (on phones under More), with the Master's
+     counter (the Chief cook has the entry without it, P55). P59: it counts orders, not lines (it counted the lines of
+     the OPEN order before): the orders that need the Master, the OPEN order once it has a line (to send) plus the
+     CONFIRMED ones (to receive). One collecting order shows 1 whatever its number of lines; a collecting order and a
+     scheduled delivery show 2; SENT orders wait for the office and do not count. Screen readers hear "2 orders need
+     you". `NavigationService.ordersToAct` (model attribute `ordersToAct`, `orderLines` before), one count query
+     (`ShipOrderRepository.countToActOnShipOf`).
    - **`/ship/order`**: the ship's OPEN order, its lines by category (Provisions, then Personal items), each with the
      item name, quantity and unit and, under it, who asked for it: "Chief Cook 6, A. Santos 4" (the Master and the
      Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
      OPEN order, or with no lines: "Nothing to order yet. Approved requests are collected here."
+   - **Orders in progress** (P59; before, a sent order was only under Past orders, so the Master did not find the
+     delivery to confirm): above the OPEN order, one card per order of the vessel that is SENT ("Sent to office") or
+     CONFIRMED ("Delivery scheduled"), most urgent first: the scheduled deliveries by delivery date (earliest first),
+     then the orders waiting for the office by sent date (waiting longest first). Each card: "Order #12", the status
+     badge (`shiporder/parts :: statusBadge`), the number of items (lines the office did not remove) and one line:
+     "Delivery: Antwerp, 20 Nov 2026" once scheduled (the wording of Stores' Next delivery), or "Sent on 14 Nov 2026 ·
+     waiting for the office to schedule the delivery". A delivery whose date (UTC) has passed and is not received yet
+     keeps its place and says "Delivery was due 12 Nov 2026, Antwerp", in words with a warning icon and border. The
+     enabled Master has **Confirm receipt** (the primary, to `/ship/orders/{id}/receipt`, P51) and **Open order** on
+     a scheduled delivery; everyone else (the Chief cook, 32) only **Open order**. No section without any; with some,
+     the OPEN order follows under "Current order", unchanged. `ShipOrderPageService.inProgress`, one query
+     (`findAllByShipIdAndStatusIn`).
    - **Editing** (only while OPEN): each line's quantity is a small form with **Save**
      (`POST /ship/order/lines/{id}/quantity`; above zero, at most 3 decimals, otherwise an error and nothing saved),
      and **Remove** (`POST /ship/order/lines/{id}/remove`; the requests stay approved, their lines are unlinked). Each
@@ -970,7 +987,8 @@ Requirements: Java 25, Docker.
      its lines, 24; the page then shows each change, P50); each line keeps the quantity sent (`originalQuantity`); the next approved request opens a new OPEN
      order. Every change and the send lock the ship's row, as approvals do, so an approval never lands in an order
      being sent.
-   - **`/ship/orders`**: the past orders (SENT, CONFIRMED, CLOSED), newest sent first, with status, requested port,
+   - **`/ship/orders`**: **All orders** (P59; "Past orders" before, same URL): every order sent (SENT, CONFIRMED,
+     CLOSED), newest sent first, with status, requested port,
      needed by and, once the office has set them, confirmed port and delivery date. `/ship/orders/{id}` shows one
      with its lines (the OPEN one redirects to `/ship/order`).
    - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Delivery scheduled" (P51; "Confirmed by
@@ -978,8 +996,15 @@ Requirements: Java 25, Docker.
    - Another ship's line or order is a 404; crew members get 403, and so does the Chief cook for every POST (the
      cook reads the pages, P55). New column `ship_order.office_note`
      (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
+   - **The Master's home** (`/ship` as MASTER, `masterhome/`): P59 adds **Deliveries to receive** to its cards,
+     after Vessel order: the number of the vessel's CONFIRMED orders, highlighted ("to do") above zero like Requests to
+     approve; it opens Vessel order, or the receipt itself when there is exactly one. (The Vessel order card still
+     counts the lines of the OPEN order.)
+   - Tests: `shiporder/ShipOrderFlowTest` (orders in progress, their order, the Master's and the cook's actions, the
+     overdue delivery, All orders, the counter), `masterhome/MasterHomeFlowTest` (Deliveries to receive).
    - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
-     and send it with port "Rotterdam"; `office@example.com` sees the notification.
+     and send it with port "Rotterdam"; `office@example.com` sees the notification. The sent order is under Orders in
+     progress; once the office schedules its delivery, the card has Confirm receipt and the counter shows it.
 
 24. Ship orders in the office (P36, office users only). `core/order/ShipOrderService` (`findSent`, `scheduleDelivery`,
    `export`, `countNotReceived`) and `officeorder/` (`OfficeOrderController`, `ConfirmOrderForm`).
@@ -1027,9 +1052,20 @@ Requirements: Java 25, Docker.
      **Remove** (`POST .../lines/{lineId}/remove`), which asks first (P10, danger) with an optional note in the dialog
      (`data-confirm-note` on `layout/parts :: confirmForm`; without JavaScript the plain confirmation page,
      `GET .../remove`, has the note field: `ConfirmPages.note`); and **Add an item** (`POST .../lines/add`: `itemId`,
-     `quantity`, `note`) from the vessel's active items, a list box grouped by category with a search field above it
-     (`js/item-search.js`; without it the list box alone). An item already on the order is added to its line ("· on the
-     order" in the list); a removed line comes back with the quantity given. Every change is a plain POST form (CSRF,
+     `quantity`, `note`). P59 (a list box of every item before): two panels, stacked on phones and side by side from
+     768 px. **Not on the order**: the vessel's active items not on the order, grouped by category, each a radio button
+     (`name="itemId"`) with its name and unit as the label, in a list that scrolls within 320 px; a removed line's item
+     is there too, and adding it brings the line back with the quantity given. **On the order**: its lines (name,
+     quantity, unit), read only, for reference; they are changed in the line cards above. Then **Quantity**, **Note**
+     and **Add to order**. `js/item-search.js` adds the search field above the radios, "Adding: Basmati rice (kg)"
+     above the quantity (its description) and the unit in its label, "Quantity (kg)"; without it the radios post as
+     they are. With nothing chosen the button stays enabled and the server answers "Choose the item to add.". An item
+     already on the order is no longer offered, but the server still adds it to its line (a stale page). With every
+     active item on the order: "Every active item of the vessel is on the order already." and no fields.
+   - **Layout** (P59): Add an item and Schedule delivery are as wide as the line cards above them (`.form-box-full`,
+     `app.css`; every other form keeps `.form-box`'s 720 px) and from 992 px lay out their fields in one row with the
+     button at its end (`.form-row-wide`: Schedule delivery's port and date side by side, then the button). Phones and
+     tablets as before. Every change is a plain POST form (CSRF,
      sent once by `js/save.js`), saves at once and comes back with a message; a wrong quantity, a note over 200
      characters or no item chosen changes nothing. An item of another vessel, an inactive one or another order's line is
      a 404; the crew get 403.
@@ -1086,7 +1122,7 @@ Requirements: Java 25, Docker.
      - New columns `ship_order.received_at`, `received_by_id`, `receipt_confirmed_at`, `short_lines` (default 0),
        `shortage_handled_at`, `shortage_handled_by_id`, `shortage_note`, `ship_order_line.received_quantity`,
        `receipt_note` (Hibernate adds them). Crew texts are English only; the office's in English and Greek.
-   - Tests: `officeorder/OfficeOrderFlowTest`, `officeorder/OfficeOrderEditFlowTest` (P50),
+   - Tests: `officeorder/OfficeOrderFlowTest`, `officeorder/OfficeOrderEditFlowTest` (P50; P59 the two panels),
      `shiporder/OrderReceiptFlowTest` (P51); the Overview's rows and counts in `DashboardFlowTest`.
    - To try it: send the order as in 23, then as `office@example.com` open **Orders**, change a quantity, remove a line
      and add an item, press **Done editing** (the Master sees the notification and the changes), schedule the delivery
@@ -1649,8 +1685,9 @@ Requirements: Java 25, Docker.
      once set, delivery port and date; a sent order's page without Confirm receipt; a received order with what arrived
      per line (Received, "Short by 3 kg"), without the delivery receipt's files. Each page says "Only the Master can
      change or send the order." instead of the controls; the hints read "Orders the Master sent to the office…".
-   - **Navigation**: **Ship order** in the cook's sidebar and More, without the Master's counter (`orderLines` stays
-     null for the cook).
+   - **Navigation**: **Ship order** in the cook's sidebar and More, without the Master's counter (`ordersToAct`,
+     `orderLines` before P59, stays null for the cook). P59: the cook sees the Orders in progress on Vessel order (23)
+     with **Open order** only, never Confirm receipt.
    - **Notifications**: "Delivery scheduled" / "Delivery changed" (24) and "The office changed order 12…" (P50) link
      the cook to `/ship/orders/{id}` too.
    - **Stores**: the summary's **Next delivery** (30), `ShipOrderService.nextDelivery`: the vessel's CONFIRMED order

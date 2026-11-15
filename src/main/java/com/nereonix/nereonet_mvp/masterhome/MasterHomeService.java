@@ -66,11 +66,16 @@ public class MasterHomeService {
     public MasterHome load(String email) {
         User master = userRepository.findByEmail(email).orElseThrow();
         Ship ship = master.getShip();
+        // P59: the deliveries the Master confirms receipt of (CONFIRMED); with exactly one, the card opens its receipt.
+        List<ShipOrder> toReceive = orderRepository.findAllByShipIdAndStatus(ship.getId(), ShipOrderStatus.CONFIRMED);
+        String deliveriesUrl = toReceive.size() == 1 ? "/ship/orders/" + toReceive.get(0).getId() + "/receipt"
+                : "/ship/order";
         List<Card> cards = List.of(
                 Card.toDo("approvals", "approvals",
                         requestRepository.countByStatusAndShipId(RequestStatus.PENDING, ship.getId()), "/ship/approvals"),
                 Card.toDo("order", "order",
                         orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email), "/ship/order"),
+                Card.toDo("deliveries", "stores", toReceive.size(), deliveriesUrl),
                 Card.toDo("announcements", "announcements",
                         recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email), "/ship/news"),
                 Card.toDo("library", "library",

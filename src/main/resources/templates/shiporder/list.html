@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.past.title}, ~{::main})}">
 <body>
-<!-- The ship's past orders (P35): sent, confirmed and received, newest sent first. Each row is one link (the order
+<!-- The ship's orders (P35; "Past orders" until P59, now "All orders"): sent, confirmed and received, newest sent first. Each row is one link (the order
      number, stretched over the row) with its status, the requested port and date and, once the office has set them,
      the confirmed port and delivery date. English only. P55: the Chief cook reads it too (canManage false: the hints say
      the Master sends the orders). Model: past (ShipOrderPageService.PastOrders), canManage (boolean). -->

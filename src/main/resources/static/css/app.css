@@ -266,7 +266,11 @@ h1, .h1 {
 
 /* ---------------------------------------------------------------------------------------------------------------
    Forms (P05): one pattern for every form.
-     - .form-box: the form card, at most 720px wide.
+     - .form-box: the form card, at most 720px wide. P59: .form-box-full, as wide as the page's other cards, for a
+       form that sits under full-width cards (the office's order page); then .form-row-wide uses the room.
+     - .form-row-wide (P59, on the form): from 992px its .form-grid's fields sit side by side in one row with the
+       .form-actions at the end of it, the buttons level with the fields; anything else in the form (error summary,
+       a picker) keeps its own full-width row. Below 992px the usual one or two columns.
      - .form-grid: the fields, 16px apart, one per row; from 768px a .field-half sits next to the next one
        (short related fields: Rank + Role, Number + Expires on). Long fields and textareas span the full width.
      - .form-section: a fieldset with a short legend, for forms with more than five fields.
@@ -285,6 +289,7 @@ h1, .h1 {
 }
 
 .form-box { max-width: var(--nn-form-width); }
+.form-box.form-box-full { max-width: none; }
 
 .form-label {
     margin-bottom: var(--nn-label-gap);
@@ -309,6 +314,26 @@ h1, .h1 {
     .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .form-grid > * { grid-column: 1 / -1; }
     .form-grid > .field-half { grid-column: auto; }
+}
+@media (min-width: 992px) {
+    .form-row-wide {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        column-gap: var(--nn-space-4);
+    }
+    .form-row-wide > * { flex: 1 1 100%; }
+    .form-row-wide > .form-grid {
+        flex: 1 1 0;
+        min-width: 0;
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    }
+    .form-row-wide > .form-grid > * { grid-column: auto; }
+    /* Level with the fields: below their labels (one line of 14px text and the label gap). */
+    .form-row-wide > .form-actions {
+        flex: 0 0 auto;
+        margin-top: calc(var(--nn-font-sm) * var(--bs-body-line-height) + var(--nn-label-gap));
+    }
 }
 
 /* P46: fields as wide as their value. .input-imo: 7 digits plus the padding and border (7.5ch: Inter's tabular
@@ -5027,7 +5052,54 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
    The Master's ship order (P35): shiporder/order.html, detail.html and list.html (its rows are .approval-row).
      - .order-asked-by: who asked for a line, under the item's name.
      - .order-qty-form: a line's quantity and its Save button on one row; each saves at once.
+     - .order-progress (P59): "Orders in progress" above the collecting order, one .order-progress-card per order:
+       number, status badge and item count, one line under them, the actions at the right (under it on phones, each
+       button as wide as it can be). .is-overdue: a delivery whose date has passed, a warning border (the line under
+       the number says it in words, with a warning icon).
    --------------------------------------------------------------------------------------------------------------- */
+.order-progress { margin-bottom: var(--nn-section-gap); }
+.order-progress-list {
+    display: grid;
+    gap: var(--nn-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.order-progress-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3);
+    padding: var(--nn-space-3) var(--nn-space-4);
+}
+.order-progress-card.is-overdue { border-color: var(--nn-warning-border); }
+.order-progress-main {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+.order-progress-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-bottom: var(--nn-space-1);
+}
+.order-progress-meta {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.order-progress-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+@media (max-width: 575.98px) {
+    .order-progress-actions { flex: 1 1 100%; }
+    .order-progress-actions > .btn { flex: 1 1 auto; }
+}
 .order-asked-by {
     margin: 2px 0 0;
     font-size: var(--nn-font-sm);
@@ -5052,7 +5124,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .order-line-removed: a line the office removed, its name and quantity struck through and muted.
      - .order-edit-form: a line's quantity, its optional note and Save on one row (wrapping on narrow screens).
      - .order-edit-pending: "not told yet" and Done editing, a quiet info box above the lines.
-     - .order-add-items: the list box of the vessel's items in "Add an item". */
+     - "Add an item" (P59; a list box before): .item-picker, below. */
 .order-office-change {
     margin: 2px 0 0;
     font-size: var(--nn-font-sm);
@@ -5087,7 +5159,117 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     background-color: var(--nn-info-bg);
     color: var(--nn-info-text);
 }
-.order-add-items { min-height: 12rem; }
+/* "Add an item" on the office's order page (P59): officeorder/detail.html, js/item-search.js.
+     - .item-picker: two panels, "Not on the order" (radios) and "On the order" (for reference), stacked on phones
+       and side by side from 768px.
+     - .item-picker-panel / .item-picker-title: a bordered panel and its title (the radios' legend, or a heading).
+     - .item-picker-list: a panel's list, at most --nn-picker-height high and scrolling inside, so a long list never
+       pushes the form off the screen; a little padding keeps the focus ring inside.
+     - .item-picker-category: a category's small heading in a list.
+     - .item-picker-option: one item, its radio and label (name and unit) on a row of at least 40px (44px on phones),
+       all of it clickable; the chosen row is tinted and bold as well as its radio checked.
+     - .item-picker-ref: a line of "On the order": the name, the quantity and unit at the right.
+     - .item-picker-summary: "Adding: Basmati rice (kg)" right above the quantity (tinted); .is-empty "No item
+       chosen yet" (quiet). Shown by the script only. */
+:root {
+    --nn-picker-height: 20rem;   /* 320px */
+}
+.item-picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-4);
+    margin-bottom: var(--nn-space-4);
+}
+@media (min-width: 768px) {
+    .item-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.item-picker-panel {
+    min-width: 0;
+    margin: 0;
+    padding: var(--nn-space-3);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--nn-radius-control);
+}
+/* A legend floats so it sits inside its fieldset (Bootstrap), level with the other panel's heading. */
+.item-picker-title {
+    float: left;
+    width: 100%;
+    padding: 0;
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-body);
+    font-weight: 700;
+    line-height: var(--bs-body-line-height);
+}
+.item-picker-list {
+    max-height: var(--nn-picker-height);
+    overflow-y: auto;
+    margin: 0 calc(-1 * var(--nn-space-1));
+    padding: var(--nn-space-1);
+}
+.item-picker-category {
+    margin: var(--nn-space-3) 0 var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.item-picker-category:first-child { margin-top: 0; }
+.item-picker-items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.item-picker-option {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: 40px;
+    margin: 0;
+    padding: var(--nn-space-1) var(--nn-space-2);
+    border-radius: var(--nn-radius-control);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+.item-picker-option:hover { background-color: var(--nn-hover); }
+.item-picker-option:has(:checked) {
+    background-color: var(--nn-primary-bg);
+    color: var(--nn-text);
+    font-weight: 600;
+}
+.item-picker-option > .form-check-input {
+    flex-shrink: 0;
+    margin: 0;
+}
+@media (max-width: 575.98px) {
+    .item-picker-option { min-height: 44px; }
+}
+.item-picker-ref {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--nn-space-3);
+    padding: var(--nn-space-2);
+    border-bottom: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-sm);
+}
+.item-picker-ref:last-child { border-bottom: 0; }
+.item-picker-ref-name { min-width: 0; overflow-wrap: anywhere; }
+.item-picker-ref-qty { flex-shrink: 0; }
+.item-picker-summary {
+    margin: 0 0 var(--nn-space-4);
+    padding: var(--nn-space-2) var(--nn-space-3);
+    border-radius: var(--nn-radius-control);
+    background-color: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.item-picker-summary.is-empty {
+    padding-inline: 0;
+    background-color: transparent;
+    color: var(--nn-text-secondary);
+    font-weight: 400;
+}
 /* Phones: an editable line is a stacked row: the name (and Remove), then the unit and the quantity form, the note on
    its own line, so nothing scrolls sideways. */
 @media (max-width: 575.98px) {

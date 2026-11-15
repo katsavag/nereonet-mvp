@@ -6,7 +6,8 @@
      Header: the ship's name and IMO number.
      Cards: one link each, at least 72px high, with its label and number. A zero is quiet (muted number, no tint); a card
      with something to do has the primary tint and "to do" in words for screen readers. Crew on board only informs, so it
-     is never tinted. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
+     is never tinted. P59: Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
+     the receipt itself when there is exactly one. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
      Recent orders: the three most recently sent, newest first, each with its status, confirmed port and delivery date
      (or "Not confirmed yet"), linking to the order; then All orders. -->
 <main class="master-home" th:with="h=${home}">

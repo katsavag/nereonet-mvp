@@ -1,36 +1,75 @@
-// "Add an item" on the office's order page (P50, templates/officeorder/detail.html). Only an enhancement: without this
-// script the vessel's items are a list box grouped by category, and the form posts as it is.
-//  - [data-item-search] (hidden until this script runs) filters the options of the select it names in aria-controls
-//    by name, ignoring case; a category with no match is hidden. A chosen item that no longer matches is unchosen.
+// "Add an item" on the office's order page (P50, radios since P59; templates/officeorder/detail.html). Only an
+// enhancement: without this script the items not on the order are plain radios (name="itemId") grouped by category,
+// and the form posts as it is.
+//  - [data-item-search] (hidden until this script runs) filters the rows ([data-item-option]) of the list it names in
+//    aria-controls by name, ignoring case; a category ([data-item-group]) with no match is hidden. A chosen item that
+//    no longer matches is unchosen.
 //  - [data-item-search-empty] (a live region) says when nothing matches.
 //  - Enter in the search field never sends the form: with one match it chooses it and goes to the quantity;
-//    Arrow down goes to the list.
+//    Arrow down goes to the list (the chosen item, else the first one shown).
+//  - [data-item-summary] (hidden until this script runs, then the quantity's description) says what is being added:
+//    "Adding: Basmati rice (kg)" from its data-text and the chosen radio's data-label, or its data-empty text.
+//  - [data-item-quantity-label] reads "Quantity (kg)" (its data-text and the radio's data-unit) once an item is chosen.
 (function () {
     'use strict';
 
-    document.querySelectorAll('[data-item-search]').forEach(input => {
-        const select = document.getElementById(input.getAttribute('aria-controls'));
-        const picker = input.closest('[data-item-picker]');
-        if (!select || !picker) {
+    document.querySelectorAll('[data-item-picker]').forEach(picker => {
+        const radios = Array.from(picker.querySelectorAll('input[type="radio"][name="itemId"]'));
+        const summary = picker.querySelector('[data-item-summary]');
+        const quantity = picker.querySelector('[data-item-quantity]');
+        const quantityLabel = picker.querySelector('[data-item-quantity-label]');
+        const plainLabel = quantityLabel ? quantityLabel.textContent : '';
+
+        function chosen() {
+            return radios.find(radio => radio.checked && !radio.closest('li').hidden) || null;
+        }
+
+        function showChoice() {
+            const radio = chosen();
+            if (summary) {
+                summary.textContent = radio ? summary.dataset.text.replace('{0}', radio.dataset.label)
+                    : summary.dataset.empty;
+                summary.classList.toggle('is-empty', !radio);
+            }
+            if (quantityLabel) {
+                quantityLabel.textContent = radio ? quantityLabel.dataset.text.replace('{0}', radio.dataset.unit)
+                    : plainLabel;
+            }
+        }
+
+        if (summary) {
+            summary.hidden = false;
+            if (quantity) {
+                quantity.setAttribute('aria-describedby', summary.id);
+            }
+        }
+        radios.forEach(radio => radio.addEventListener('change', showChoice));
+        // The browser may bring back a chosen item (Back, reload).
+        showChoice();
+
+        const input = picker.querySelector('[data-item-search]');
+        const list = input && document.getElementById(input.getAttribute('aria-controls'));
+        if (!input || !list) {
             return;
         }
         const empty = picker.querySelector('[data-item-search-empty]');
-        const quantity = picker.querySelector('[data-item-quantity]');
         picker.querySelectorAll('[data-item-search-part]').forEach(part => { part.hidden = false; });
 
         function visible() {
-            return Array.from(select.options).filter(option => !option.hidden);
+            return radios.filter(radio => !radio.closest('li').hidden);
         }
 
         function filter() {
             const query = input.value.trim().toLocaleLowerCase();
-            select.querySelectorAll('optgroup').forEach(group => {
+            list.querySelectorAll('[data-item-group]').forEach(group => {
                 let shown = 0;
-                group.querySelectorAll('option').forEach(option => {
+                group.querySelectorAll('[data-item-option]').forEach(option => {
                     const match = !query || option.textContent.toLocaleLowerCase().includes(query);
-                    option.hidden = !match;
-                    if (!match && option.selected) {
-                        option.selected = false;
+                    const row = option.closest('li');
+                    row.hidden = !match;
+                    const radio = option.querySelector('input');
+                    if (!match && radio.checked) {
+                        radio.checked = false;
                     }
                     shown += match ? 1 : 0;
                 });
@@ -41,20 +80,22 @@
                 empty.hidden = !none;
                 empty.textContent = none ? empty.dataset.text : '';
             }
+            showChoice();
         }
 
         input.addEventListener('input', filter);
         input.addEventListener('keydown', event => {
+            const shown = visible();
             if (event.key === 'Enter') {
                 event.preventDefault();
-                const shown = visible();
                 if (shown.length === 1) {
-                    shown[0].selected = true;
-                    (quantity || select).focus();
+                    shown[0].checked = true;
+                    showChoice();
+                    (quantity || shown[0]).focus();
                 }
-            } else if (event.key === 'ArrowDown' && visible().length > 0) {
+            } else if (event.key === 'ArrowDown' && shown.length > 0) {
                 event.preventDefault();
-                select.focus();
+                (shown.find(radio => radio.checked) || shown[0]).focus();
             }
         });
     });

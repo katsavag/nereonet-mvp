@@ -109,15 +109,13 @@ class OfficeOrderEditFlowTest {
 
     @Test
     void theOfficeChangesRemovesAndAddsAndTheShipIsToldOnce() throws Exception {
-        // While pending: each line has its quantity and note, Remove asks first (with a note), and Add an item lists
-        // the vessel's active items by category.
+        // While pending: each line has its quantity and note, Remove asks first (with a note), and Add an item offers
+        // the vessel's active items not on the order (P59).
         String page = page("/office/orders/" + order.getId());
         assertThat(page).contains("action=\"/office/orders/" + order.getId() + "/lines/" + riceLine.getId() + "/quantity\"",
                         "name=\"note\"", "data-confirm-title=\"Remove Shower gel from the order?\"",
                         "data-confirm-note=\"Note (optional)\"", "Add an item", "action=\"/office/orders/" + order.getId() + "/lines/add\"",
-                        "data-item-search", "Basmati rice (kg) · on the order", ">Olive oil (lt)<")
-                .containsSubsequence("<optgroup label=\"Provisions\">", "Olive oil", "<optgroup label=\"Personal items\">",
-                        "Shower gel")
+                        "data-item-search")
                 .doesNotContain("/edits/done\"");
 
         change(riceLine, "40", "Out of season, reduced")
@@ -193,8 +191,68 @@ class OfficeOrderEditFlowTest {
                 Arrays.asList("Shower gel", "pcs", 0.0, 6.0, "removed", "Not available"));
     }
 
+    // P59: two panels. "Not on the order": the active items not on it, by category, each a radio with its name and
+    // unit (no JavaScript needed); "On the order": its lines, read only. A removed line's item is back on the left.
+    @Test
+    void addAnItemOffersOnlyTheItemsNotOnTheOrder() throws Exception {
+        Item flour = item(ship, "Flour", "kg", ItemCategory.PROVISIONS);
+        Item razor = item(ship, "Razor", "pcs", ItemCategory.PERSONAL_ITEMS);
+        Item inactive = item(ship, "Old flour", "kg", ItemCategory.PROVISIONS);
+        inactive.setActive(false);
+        Ship other = ship("9321483", "MV Other");
+        item(other, "Coffee", "kg", ItemCategory.PROVISIONS);
+
+        String form = addItemForm(page("/office/orders/" + order.getId()));
+        String notOnOrder = form.substring(form.indexOf(">Not on the order<"), form.indexOf(">On the order<"));
+        String onOrder = form.substring(form.indexOf(">On the order<"));
+        assertThat(radios(notOnOrder)).containsExactly(flour.getId(), oil.getId(), razor.getId());
+        assertThat(notOnOrder).containsSubsequence(">Provisions<", ">Flour (kg)<", ">Olive oil (lt)<",
+                        ">Personal items<", ">Razor (pcs)<")
+                .contains(">Not on the order</legend>",
+                        "<label class=\"item-picker-option\" data-item-option>",
+                        "data-label=\"Olive oil (lt)\"", "data-unit=\"lt\"")
+                .doesNotContain("Basmati rice", "Shower gel", "Old flour", "Coffee", "<select");
+        assertThat(onOrder).containsSubsequence(">Provisions<", "Basmati rice", ">50</span>", "kg",
+                ">Personal items<", "Shower gel", ">6</span>", "pcs").doesNotContain("type=\"radio\"");
+        // The summary and the unit in the quantity's label come from the script; the page has their texts.
+        assertThat(form).contains("data-text=\"Adding: {0}\"", "data-empty=\"No item chosen yet.\"",
+                "data-text=\"Quantity ({0})\"", "class=\"form-row-wide\"");
+        assertThat(page("/office/orders/" + order.getId())).contains("card form-box form-box-full mb-4\" aria-labelledby=\"addItemTitle\"",
+                "card form-box form-box-full\" aria-labelledby=\"confirmTitle\"");
+
+        // Posting one adds a line; it leaves the list and joins On the order.
+        add(flour, "5", "").andExpect(flash().attribute("successMessage", "officeorder.edit.added"));
+        assertThat(lineRepository.findByOrderIdAndItemId(order.getId(), flour.getId())).get()
+                .satisfies(line -> assertThat(line.getQuantity()).isEqualByComparingTo("5"));
+        form = addItemForm(page("/office/orders/" + order.getId()));
+        assertThat(radios(form.substring(0, form.indexOf(">On the order<")))).containsExactly(oil.getId(), razor.getId());
+        assertThat(form.substring(form.indexOf(">On the order<"))).contains("Flour", ">5</span>");
+
+        // A removed line's item can be added again.
+        remove(soapLine, "");
+        form = addItemForm(page("/office/orders/" + order.getId()));
+        assertThat(radios(form.substring(0, form.indexOf(">On the order<"))))
+                .containsExactly(oil.getId(), razor.getId(), soap.getId());
+        assertThat(form.substring(form.indexOf(">On the order<"))).doesNotContain("Shower gel");
+
+        // Greek.
+        String greek = mockMvc.perform(get("/office/orders/{id}", order.getId()).param("lang", "el")).andReturn()
+                .getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(greek).contains(">Εκτός παραγγελίας<", ">Στην παραγγελία<", "data-text=\"Προσθήκη: {0}\"");
+    }
+
+    @Test
+    void everyItemOnTheOrderLeavesNothingToAdd() throws Exception {
+        add(oil, "2", "");
+
+        String form = addItemForm(page("/office/orders/" + order.getId()));
+        assertThat(form).contains("Every active item of the vessel is on the order already.", ">On the order<")
+                .doesNotContain("type=\"radio\"", "Add to order");
+    }
+
     @Test
     void anItemAlreadyOnTheOrderAddsToItsLineAndARemovedLineComesBack() throws Exception {
+        // P59: no longer offered on the page, but a stale page may still post it.
         add(rice, "10", "Extra for the crossing").andExpect(flash().attribute("successMessage", "officeorder.edit.added"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("60");
         assertThat(riceLine.isAddedByOffice()).isFalse();
@@ -328,6 +386,19 @@ class OfficeOrderEditFlowTest {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
+
+    // The Add an item form (P59).
+    private static String addItemForm(String html) {
+        int start = html.indexOf("data-item-picker");
+        assertThat(start).as("the Add an item form").isPositive();
+        return html.substring(start, html.indexOf("</form>", start));
+    }
+
+    // The item ids of the radios, in page order.
+    private static List<Long> radios(String html) {
+        return java.util.regex.Pattern.compile("type=\"radio\" name=\"itemId\" class=\"form-check-input\" value=\"(\\d+)\"")
+                .matcher(html).results().map(m -> Long.valueOf(m.group(1))).toList();
+    }
 
     private ResultActions change(ShipOrderLine line, String quantity, String note) throws Exception {
         return mockMvc.perform(post("/office/orders/{id}/lines/{l}/quantity", order.getId(), line.getId())

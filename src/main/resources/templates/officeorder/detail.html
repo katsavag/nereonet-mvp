@@ -15,8 +15,11 @@
      received with shortages marked ("Short by 5 kg"), and while lines are short and not handled, "Shortage handled"
      with a note (required).
      Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
-     editable, editPending, noteMax, received, receiptFiles, shortageNoteMax, and while editable itemGroups
-     (OfficeOrderController.ItemGroup), onOrder (item ids). -->
+     editable, editPending, noteMax, received, receiptFiles, shortageNoteMax, and while editable hasItems (the vessel
+     has active items), itemGroups (OfficeOrderController.ItemGroup: the active items not on the order) and
+     onOrderGroups (OfficeOrderController.LineGroup: the lines not removed).
+     P59: Add an item and Schedule delivery are as wide as the cards above them (.form-box-full) and from 992px lay
+     their fields out in a row with the button at its end (.form-row-wide). -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.number(${order.id})}, crumbs=~{::pageCrumbs},
             eyebrowShip=${order.ship}, actions=~{::pageActions})}">
@@ -251,61 +254,113 @@
         </div>
     </section>
 
-    <!-- P50: add one of the vessel's active items. Without JavaScript a list box grouped by category; js/item-search.js
-         adds the search field. An item already on the order adds to its line; a removed one comes back. -->
-    <section th:if="${editable}" class="card form-box mb-4" aria-labelledby="addItemTitle">
+    <!-- P50: add one of the vessel's active items. P59: two panels, stacked on phones, side by side from 768px. Left,
+         "Not on the order": the active items not on it (a removed line's item included: it comes back), grouped by
+         category, each a radio (name="itemId") with its name and unit as the label, in a list that scrolls within
+         --nn-picker-height. Right, "On the order": its lines (name, quantity, unit), read only; they are changed in
+         the cards above. Then the quantity, the note and Add to order. Without JavaScript the radios post as they are;
+         js/item-search.js adds the search field above the radios, "Adding: Basmati rice (kg)" above the quantity and
+         the unit in the quantity's label ("Quantity (kg)"). Nothing chosen: the server says "Choose the item to add."
+         The server still adds an item already on the order to its line (a stale page). -->
+    <section th:if="${editable}" class="card form-box form-box-full mb-4" aria-labelledby="addItemTitle">
         <div class="card-body p-3 p-md-4">
             <h2 class="h5 fw-bold" id="addItemTitle" th:text="#{officeorder.edit.add.heading}">Add an item</h2>
-            <p class="text-body-secondary small" th:text="#{officeorder.edit.add.hint}">From the vessel's items. An item
-                already on the order is added to its line.</p>
-            <p th:if="${itemGroups.isEmpty()}" class="mb-0" th:text="#{officeorder.edit.add.noItems}">This vessel has no
+            <p class="text-body-secondary small" th:text="#{officeorder.edit.add.hint}">Choose one of the vessel's active
+                items that is not on the order yet.</p>
+            <p th:unless="${hasItems}" class="mb-0" th:text="#{officeorder.edit.add.noItems}">This vessel has no
                 active items.</p>
-            <form th:unless="${itemGroups.isEmpty()}" method="post" novalidate data-item-picker
+            <form th:if="${hasItems}" method="post" novalidate data-item-picker class="form-row-wide"
                   th:action="@{/office/orders/{id}/lines/add(id=${order.id})}">
-                <div class="form-grid">
-                    <div>
-                        <label for="addItemSearch" class="form-label" data-item-search-part hidden
-                               th:text="#{officeorder.edit.add.search}">Search items</label>
-                        <input type="search" id="addItemSearch" class="form-control mb-2" data-item-search
-                               data-item-search-part hidden aria-controls="addItemId" autocomplete="off"
-                               th:placeholder="#{officeorder.edit.add.searchPlaceholder}">
-                        <label for="addItemId" class="form-label" th:text="#{officeorder.edit.add.item}">Item</label>
-                        <select id="addItemId" name="itemId" class="form-select order-add-items" size="8" required>
-                            <optgroup th:each="g : ${itemGroups}" th:label="#{${g.category.labelKey()}}">
-                                <option th:each="i : ${g.items}" th:value="${i.id}"
-                                        th:text="${onOrder.contains(i.id)} ? #{officeorder.edit.add.optionOnOrder(${i.name}, ${i.unit})}
-                                                : #{officeorder.edit.add.option(${i.name}, ${i.unit})}">Basmati rice (kg)</option>
-                            </optgroup>
-                        </select>
-                        <p class="form-text mb-0" data-item-search-empty role="status" hidden
-                           th:data-text="#{officeorder.edit.add.noMatch}"></p>
-                    </div>
-                    <div class="field-half">
-                        <label for="addQuantity" class="form-label" th:text="#{request.quantity}">Quantity</label>
-                        <input type="number" id="addQuantity" name="quantity" class="form-control font-monospace"
-                               min="0.001" step="any" required data-item-quantity>
-                    </div>
-                    <div class="field-half">
-                        <label for="addNote" class="form-label">[[#{officeorder.edit.note}]] <span th:replace="~{layout/parts :: optional}"></span></label>
-                        <input type="text" id="addNote" name="note" class="form-control" th:maxlength="${noteMax}"
-                               autocomplete="off">
-                    </div>
+                <div class="item-picker">
+                    <fieldset class="item-picker-panel">
+                        <legend class="item-picker-title" th:text="#{officeorder.edit.add.notOnOrder}">Not on the order</legend>
+                        <p th:if="${itemGroups.isEmpty()}" class="small text-body-secondary mb-0"
+                           th:text="#{officeorder.edit.add.allOnOrder}">Every active item of the vessel is on the order already.</p>
+                        <th:block th:unless="${itemGroups.isEmpty()}">
+                            <label for="addItemSearch" class="form-label" data-item-search-part hidden
+                                   th:text="#{officeorder.edit.add.search}">Search items</label>
+                            <input type="search" id="addItemSearch" class="form-control mb-2" data-item-search
+                                   data-item-search-part hidden aria-controls="addItemList" autocomplete="off"
+                                   th:placeholder="#{officeorder.edit.add.searchPlaceholder}">
+                            <div class="item-picker-list" id="addItemList">
+                                <div th:each="g, it : ${itemGroups}" role="group" data-item-group
+                                     th:attr="aria-labelledby=${'addItemCategory' + it.index}">
+                                    <p class="item-picker-category" th:id="${'addItemCategory' + it.index}"
+                                       th:text="#{${g.category.labelKey()}}">Provisions</p>
+                                    <ul class="item-picker-items">
+                                        <li th:each="i : ${g.items}">
+                                            <label class="item-picker-option" data-item-option>
+                                                <input type="radio" name="itemId" class="form-check-input" th:value="${i.id}"
+                                                       th:data-unit="${i.unit}"
+                                                       th:data-label="#{officeorder.edit.add.option(${i.name}, ${i.unit})}">
+                                                <span th:text="#{officeorder.edit.add.option(${i.name}, ${i.unit})}">Basmati rice (kg)</span>
+                                            </label>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <p class="form-text mb-0" data-item-search-empty role="status" hidden
+                               th:data-text="#{officeorder.edit.add.noMatch}"></p>
+                        </th:block>
+                    </fieldset>
+                    <section class="item-picker-panel" aria-labelledby="onOrderTitle">
+                        <h3 class="item-picker-title" id="onOrderTitle" th:text="#{officeorder.edit.add.onOrder}">On the order</h3>
+                        <p th:if="${onOrderGroups.isEmpty()}" class="small text-body-secondary mb-0"
+                           th:text="#{officeorder.edit.add.onOrderEmpty}">Nothing on the order.</p>
+                        <!-- Scrolls on its own: focusable, so the keyboard can scroll it too. -->
+                        <div th:unless="${onOrderGroups.isEmpty()}" class="item-picker-list" tabindex="0" role="region"
+                             aria-labelledby="onOrderTitle">
+                            <th:block th:each="g, it : ${onOrderGroups}">
+                                <p class="item-picker-category" th:id="${'onOrderCategory' + it.index}"
+                                   th:text="#{${g.category.labelKey()}}">Provisions</p>
+                                <ul class="item-picker-items" th:attr="aria-labelledby=${'onOrderCategory' + it.index}">
+                                    <li th:each="line : ${g.lines}" class="item-picker-ref">
+                                        <span class="item-picker-ref-name" th:text="${line.item.name}">Basmati rice</span>
+                                        <span class="item-picker-ref-qty"><span class="font-monospace"
+                                                th:text="${line.quantity.stripTrailingZeros().toPlainString()}">50</span>
+                                            <th:block th:text="${line.item.unit}">kg</th:block></span>
+                                    </li>
+                                </ul>
+                            </th:block>
+                        </div>
+                    </section>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.add.submit}">Add to order</button>
-                </div>
+                <th:block th:unless="${itemGroups.isEmpty()}">
+                    <p id="addItemSummary" class="item-picker-summary is-empty" data-item-summary hidden
+                       th:data-text="#{officeorder.edit.add.adding('{0}')}"
+                       th:data-empty="#{officeorder.edit.add.nothingChosen}"
+                       th:text="#{officeorder.edit.add.nothingChosen}">No item chosen yet.</p>
+                    <div class="form-grid">
+                        <div class="field-half">
+                            <label for="addQuantity" class="form-label" data-item-quantity-label
+                                   th:data-text="#{officeorder.edit.add.quantityUnit('{0}')}"
+                                   th:text="#{request.quantity}">Quantity</label>
+                            <input type="number" id="addQuantity" name="quantity" class="form-control font-monospace"
+                                   min="0.001" step="any" required data-item-quantity>
+                        </div>
+                        <div class="field-half">
+                            <label for="addNote" class="form-label">[[#{officeorder.edit.note}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                            <input type="text" id="addNote" name="note" class="form-control" th:maxlength="${noteMax}"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.add.submit}">Add to order</button>
+                    </div>
+                </th:block>
             </form>
         </div>
     </section>
 
     <!-- Schedule delivery (SENT) or Change delivery (CONFIRMED): both fields required. Posted with errors, the page
          comes back with them. Not shown once received. -->
-    <section th:if="${canConfirm}" class="card form-box" aria-labelledby="confirmTitle">
+    <section th:if="${canConfirm}" class="card form-box form-box-full" aria-labelledby="confirmTitle">
         <div class="card-body p-3 p-md-4">
             <h2 class="h5 fw-bold" id="confirmTitle"
                 th:text="${order.status.name() == 'CONFIRMED'} ? #{officeorder.confirm.correctHeading} : #{officeorder.confirm.heading}">Confirm delivery</h2>
             <p class="text-body-secondary small" th:text="#{officeorder.confirm.hint}">The master and the chief cook are notified.</p>
-            <form th:object="${confirmForm}" method="post" novalidate th:action="@{${'/office/orders/' + order.id + '/confirm'}}">
+            <form th:object="${confirmForm}" method="post" novalidate class="form-row-wide"
+                  th:action="@{${'/office/orders/' + order.id + '/confirm'}}">
                 <div th:replace="~{layout/parts :: errorSummary(${confirmForm}, '')}"></div>
                 <div class="form-grid">
                     <div class="field-half">

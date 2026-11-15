@@ -438,6 +438,16 @@ class MessageKeysTest {
             "stores.summary.nextDelivery",
             "stores.summary.nextDelivery.value",
             "stores.summary.noDelivery",
+            // P59: the orders in progress on Vessel order, and the Master's Deliveries to receive.
+            "order.progress.heading",
+            "order.progress.delivery",
+            "order.progress.overdue",
+            "order.progress.sent",
+            "order.progress.open",
+            "order.progress.open.label",
+            "order.progress.receipt.label",
+            "order.current.heading",
+            "masterhome.card.deliveries",
             // P57: counting the store by voice and its review.
             "stores.voice.heading",
             "stores.voice.hint",
