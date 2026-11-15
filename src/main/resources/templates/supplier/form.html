@@ -32,10 +32,11 @@
                     <div>
                         <label for="email" class="form-label" th:text="#{supplier.email}">Contact email</label>
                         <input type="email" th:field="*{email}" class="form-control" th:errorclass="is-invalid"
-                               autocomplete="off" spellcheck="false" aria-describedby="emailHint" required>
+                               autocomplete="off" spellcheck="false" aria-describedby="emailHint emailCounter" required>
                         <div class="invalid-feedback" th:errors="*{email}"></div>
                         <div class="form-meta">
                             <div id="emailHint" class="form-text" th:text="#{supplier.email.hint}">Requests for quotes are emailed here.</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'email', 'email')}"></div>
                         </div>
                     </div>
                     <div>

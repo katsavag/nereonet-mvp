@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -25,7 +27,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
-import com.nereonix.nereonet_mvp.core.stock.StockService;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.stock.StockService.Level;
 import com.nereonix.nereonet_mvp.stores.VoiceCountService.Failure;
 import com.nereonix.nereonet_mvp.stores.VoiceCountService.Proposal;
@@ -55,9 +58,11 @@ public class VoiceCountController {
     private final VoiceCountService voiceCountService;
     private final StoresService storesService;
     private final MessageSource messageSource;
+    private final QuantityRules quantityRules;
 
     public VoiceCountController(VoiceCountService voiceCountService, StoresService storesService,
-                                MessageSource messageSource) {
+                                MessageSource messageSource, QuantityRules quantityRules) {
+        this.quantityRules = quantityRules;
         this.voiceCountService = voiceCountService;
         this.storesService = storesService;
         this.messageSource = messageSource;
@@ -104,7 +109,8 @@ public class VoiceCountController {
         if (proposal == null) {
             return "redirect:" + StoresController.PATH + "/count";
         }
-        return reviewPage(currentUser, proposal, VoiceReviewForm.of(proposal), Map.of(), Map.of(), null, model);
+        return reviewPage(currentUser, proposal, VoiceReviewForm.of(proposal), Map.of(), Map.of(), Set.of(),
+                null, model);
     }
 
     // Every row kept and every phrase given an item, each with a valid quantity and each item once: all saved, the
@@ -124,6 +130,7 @@ public class VoiceCountController {
         storesService.levels(currentUser.getUsername()).forEach(level -> items.put(level.item().getId(), level));
         Map<Integer, String> rowErrors = new HashMap<>();
         Map<Integer, String> extraErrors = new HashMap<>();
+        Set<Integer> extraItemErrors = new HashSet<>();
         Map<Long, String> names = new LinkedHashMap<>();
         List<Row> rows = new ArrayList<>();
         String duplicate = null;
@@ -133,11 +140,15 @@ public class VoiceCountController {
             if (input.isRemoved()) {
                 continue;
             }
-            BigDecimal quantity = StoresController.parse(input.getQuantity());
-            if (!StockService.isValidQuantity(quantity)) {
-                rowErrors.put(i, "stores.count.error");
+            // P60: the rule of the item's unit for a store count.
+            Level known = items.get(line.itemId());
+            QuantityRules.Check check = (known != null ? quantityRules.forItem(known.item(), Use.COUNT)
+                    : quantityRules.forUnit(line.unit(), Use.COUNT)).check(input.getQuantity());
+            if (!check.ok()) {
+                rowErrors.put(i, messageSource.getMessage(check.message(), LocaleContextHolder.getLocale()));
                 continue;
             }
+            BigDecimal quantity = check.value();
             if (names.putIfAbsent(line.itemId(), line.name()) != null && duplicate == null) {
                 duplicate = line.name();
             }
@@ -149,15 +160,17 @@ public class VoiceCountController {
                 continue;
             }
             Level level = items.get(input.getItemId());
-            BigDecimal quantity = StoresController.parse(input.getQuantity());
             if (level == null) {
-                extraErrors.put(j, "stores.voice.extra.itemError");
+                extraErrors.put(j, message("stores.voice.extra.itemError"));
+                extraItemErrors.add(j);
                 continue;
             }
-            if (!StockService.isValidQuantity(quantity)) {
-                extraErrors.put(j, "stores.count.error");
+            QuantityRules.Check check = quantityRules.forItem(level.item(), Use.COUNT).check(input.getQuantity());
+            if (!check.ok()) {
+                extraErrors.put(j, messageSource.getMessage(check.message(), LocaleContextHolder.getLocale()));
                 continue;
             }
+            BigDecimal quantity = check.value();
             if (names.putIfAbsent(level.item().getId(), level.item().getName()) != null && duplicate == null) {
                 duplicate = level.item().getName();
             }
@@ -170,13 +183,14 @@ public class VoiceCountController {
             error = message("stores.voice.error.nothing");
         }
         if (error != null || !rowErrors.isEmpty() || !extraErrors.isEmpty()) {
-            return reviewPage(currentUser, proposal, form, rowErrors, extraErrors, error, model);
+            return reviewPage(currentUser, proposal, form, rowErrors, extraErrors, extraItemErrors, error, model);
         }
         int saved;
         try {
             saved = voiceCountService.confirm(currentUser.getUsername(), rows);
         } catch (VoiceCountException e) {
-            return reviewPage(currentUser, proposal, form, rowErrors, extraErrors, message(e.failure().messageKey()),
+            return reviewPage(currentUser, proposal, form, rowErrors, extraErrors, extraItemErrors,
+                    message(e.failure().messageKey()),
                     model);
         }
         session.removeAttribute(SESSION_KEY);
@@ -208,14 +222,15 @@ public class VoiceCountController {
     }
 
     private String reviewPage(CurrentUser currentUser, Proposal proposal, VoiceReviewForm form,
-                              Map<Integer, String> rowErrors, Map<Integer, String> extraErrors, String error,
-                              Model model) {
+                              Map<Integer, String> rowErrors, Map<Integer, String> extraErrors,
+                              Set<Integer> extraItemErrors, String error, Model model) {
         model.addAttribute("ship", storesService.ship(currentUser.getUsername()));
         model.addAttribute("proposal", proposal);
         model.addAttribute("form", form);
         model.addAttribute("items", storesService.levels(currentUser.getUsername()));
         model.addAttribute("rowErrors", rowErrors);
         model.addAttribute("extraErrors", extraErrors);
+        model.addAttribute("extraItemErrors", extraItemErrors);
         model.addAttribute("reviewError", error);
         return "stores/voice";
     }

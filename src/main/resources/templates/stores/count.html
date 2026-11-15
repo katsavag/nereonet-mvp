@@ -12,7 +12,8 @@
      data-autosave: js/save.js does not ask "leave this page?" for these forms, everything changed is already stored.
      P57: Count by voice above the items (js/stores-voice.js), and a link to a voice count waiting for review.
      English only. Model: stores (StoresService.Stores), countSaved (an item id) or countError (CountError),
-     voiceEnabled, voicePending. -->
+     voiceEnabled, voicePending. P60: each count follows the rule of the item's unit,
+     0 allowed, up to the store maximum (README 35). -->
 <main class="stores-count" th:with="s=${stores}" data-count-page
       th:attr="data-not-sent=#{stores.count.notSent}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.count.title}, crumbs=~{::pageCrumbs},
@@ -82,16 +83,15 @@
             <li th:each="l : ${g.levels}" class="list-group-item stores-count-row" th:id="${'item-' + l.item.id}"
                 data-count-row
                 th:with="id=${l.item.id}, failed=${countError != null and countError.itemId == l.item.id},
+                         rule=${@quantityRules.forItem(l.item, 'COUNT')},
                          saved=${countSaved != null and countSaved == l.item.id}">
                 <label class="stores-row-name" th:for="${'count-' + id}" th:text="${l.item.name}">Basmati rice</label>
                 <form class="stores-count-form" method="post" novalidate data-autosave data-count-form
                       th:action="@{/ship/stores/items/{id}/count(id=${id})}">
-                    <input type="number" inputmode="decimal" min="0" step="any" name="quantity" autocomplete="off"
-                           class="form-control form-control-sm font-monospace stores-count-input"
-                           th:id="${'count-' + id}" th:classappend="${failed} ? 'is-invalid'"
-                           th:attr="aria-invalid=${failed} ? 'true' : null,
-                                   aria-describedby=${'count-' + id + '-unit count-' + id + '-error'}"
-                           th:value="${failed} ? ${countError.value} : ${l.quantity.stripTrailingZeros().toPlainString()}">
+                    <input th:replace="~{layout/parts :: quantityInput(id=${'count-' + id}, name='quantity',
+                            value=${failed} ? ${countError.value} : ${l.quantity.stripTrailingZeros().toPlainString()},
+                            rule=${rule}, cls='form-control-sm stores-count-input', invalid=${failed},
+                            describedBy=${'count-' + id + '-unit count-' + id + '-hint count-' + id + '-error'})}">
                     <span class="stores-count-unit" th:id="${'count-' + id + '-unit'}" th:text="${l.item.unit}">kg</span>
                     <button type="submit" class="btn btn-outline-secondary btn-sm" data-count-save
                             th:text="#{stores.count.save}">Save</button>
@@ -100,7 +100,9 @@
                 <span class="stores-count-saved" role="status" data-count-saved
                       th:text="${saved} ? #{stores.count.saved} : ''"></span>
                 <p class="stores-count-error" th:id="${'count-' + id + '-error'}" data-count-error
-                   th:text="${failed} ? #{stores.count.error} : ''" th:hidden="${!failed}"></p>
+                   th:text="${failed} ? ${#messages.msgWithParams(countError.message.codes[0], countError.message.arguments)} : ''"
+                   th:hidden="${!failed}"></p>
+                <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'count-' + id + '-hint'})}"></span>
             </li>
         </ul>
     </section>
@@ -108,6 +110,7 @@
     <p th:if="${s.total > 0}" class="text-body-secondary small" th:text="#{stores.count.done}">
         Every change is saved as you go. Leave this page whenever you like.</p>
 
+    <div th:replace="~{layout/parts :: quantityTexts('COUNT', null)}"></div>
     <script th:src="@{/js/stores-count.js}" defer></script>
     <script th:if="${voiceEnabled and s.total > 0}" th:src="@{/js/stores-voice.js}" defer></script>
 </main>

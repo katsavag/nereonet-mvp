@@ -200,8 +200,8 @@ class ShipOrderFlowTest {
         ShipOrderLine riceLine = line(openOrderWithTwoLines(), rice);
 
         for (String bad : List.of("0", "-1", "", "abc", "1.2345")) {
-            changeQuantity(riceLine, bad).andExpect(redirectedUrl("/ship/order"))
-                    .andExpect(flash().attribute("errorMessage", "order.quantity.error"));
+            changeQuantity(riceLine, bad).andExpect(redirectedUrl("/ship/order#line-" + riceLine.getId()))
+                    .andExpect(flash().attribute("errorMessage", "quantity.error.line"));
         }
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("10");
     }

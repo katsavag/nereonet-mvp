@@ -60,6 +60,21 @@
                             <div th:replace="~{layout/parts :: counter(${form}, 'place', 'place')}"></div>
                         </div>
                     </div>
+                    <!-- P60: optional, in the item's unit (decimals as its unit: whole numbers for pcs). Replaces the
+                         unit's maximum in requests, orders and receipts; the hint says what that maximum is. -->
+                    <div class="field-half" th:with="unitRule=${@quantityRules.forUnit(form.unit, 'REQUEST')},
+                                                     err=${#fields.hasErrors('maxPerRequest')}">
+                        <label for="maxPerRequest" class="form-label">[[#{item.maxPerRequest}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input th:replace="~{layout/parts :: quantityInput(id='maxPerRequest', name='maxPerRequest',
+                                value=*{maxPerRequest}, rule=null, cls='', invalid=${err},
+                                describedBy=${'maxPerRequestHint' + (err ? ' maxPerRequestError' : '')})}">
+                        <div class="invalid-feedback" id="maxPerRequestError" th:errors="*{maxPerRequest}"></div>
+                        <div class="form-meta">
+                            <div id="maxPerRequestHint" class="form-text"
+                                 th:text="#{item.maxPerRequest.hint(${unitRule.maxText()}, ${unitRule.unitLabel()})}">In the
+                                item's unit. Replaces the usual maximum of 2000 kg for one request, order line or receipt line.</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" th:text="#{form.save}">Save</button>

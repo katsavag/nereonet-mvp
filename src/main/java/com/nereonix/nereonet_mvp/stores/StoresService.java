@@ -141,6 +141,15 @@ public class StoresService {
         return new ItemDetail(ship, stockService.level(item), stockService.history(item));
     }
 
+    /** P60: an active provisions item of the cook's ship (what the count takes, for its quantity rule); otherwise 404. */
+    @Transactional(readOnly = true)
+    public Item countable(String email, Long id) {
+        Ship ship = ship(email);
+        return itemRepository.findByIdAndShipId(id, ship.getId())
+                .filter(found -> found.getCategory() == ItemCategory.PROVISIONS && found.isActive())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
     /** The cook counts an item of their ship by hand (P53, StockService.count): its new quantity and status. 404 for
      *  an item that is not an active provisions item of the cook's ship. IllegalArgumentException for a quantity that
      *  is not valid. */

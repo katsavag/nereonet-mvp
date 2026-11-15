@@ -160,6 +160,17 @@ public class ShipOrderPageService {
         return messageSource.getMessage(key, args, Locale.ENGLISH);
     }
 
+    /** A line of the Master's ship (P60: the rule of its item before a change); 404 for another ship's. */
+    @Transactional(readOnly = true)
+    public ShipOrderLine line(String email, Long lineId) {
+        Ship ship = ship(master(email));
+        ShipOrderLine line = shipOrderService.findLine(ship.getId(), lineId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        // The item is shown in the error message, after this transaction.
+        line.getItem().getName();
+        return line;
+    }
+
     @Transactional
     public Change changeQuantity(String email, Long lineId, BigDecimal quantity) {
         return shipOrderService.changeQuantity(master(email), lineId, quantity);

@@ -13,7 +13,8 @@
      sent. The Master has Confirm receipt (the primary) on a scheduled delivery; everyone has Open order. No section
      without any; with some, the OPEN order follows under "Current order".
      Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage (boolean),
-     sendForm (SendOrderForm). -->
+     sendForm (SendOrderForm). P60: the quantities follow the rule of
+     the item's unit (README 35). -->
 <main th:with="v=${view}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${v.ship},
             subtitle=${canManage} ? #{order.hint} : #{order.hint.readOnly}, actions=~{::pageActions})}">
@@ -67,6 +68,7 @@
         </p>
 
         <th:block th:replace="~{shiporder/parts :: lines(${v}, ${canManage})}"></th:block>
+        <th:block th:if="${canManage}"><div th:replace="~{layout/parts :: quantityTexts('REQUEST', null)}"></div></th:block>
 
         <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block>
 

@@ -103,6 +103,13 @@ public class ReceiptForm {
         return INPUT.format(LocalDateTime.now(ZoneOffset.UTC).toLocalDate().atTime(23, 59));
     }
 
+    /** P60: the earliest a receipt time can be, for the input's min: when the order was sent (UTC, to the minute);
+     *  null when it has no sent time. */
+    public static String minFor(ShipOrder order) {
+        return order.getSentAt() == null ? null
+                : INPUT.format(LocalDateTime.ofInstant(order.getSentAt(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES));
+    }
+
     /** The files chosen in this request (empty parts left out). */
     List<MultipartFile> chosenFiles() {
         return files == null ? List.of() : files.stream().filter(Objects::nonNull).filter(f -> !f.isEmpty()).toList();

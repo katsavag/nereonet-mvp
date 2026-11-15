@@ -12,7 +12,8 @@
      first. Errors stay under their row; errors of the whole request (nothing picked, an item gone from the list) on top.
      js/request-form.js adds the search by name (hidden until it runs) and keeps Enter from sending the form; without
      it the whole list shows and every button works. English only. Model: form (RequestForm), picker
-     (ShipRequestService.Picker). -->
+     (ShipRequestService.Picker). P60: every quantity follows the rule of its item's unit (whole numbers or 3 decimals, a maximum), with the
+     limit under the field (README 35). -->
 <main class="form-page" th:with="p=${picker}, editing=${picker.request != null}">
     <header th:replace="~{layout/parts :: pageHeader(
             heading=${editing} ? #{request.edit.title(${p.request.id})} : #{request.new.title},
@@ -64,12 +65,13 @@
                         <span th:replace="~{stores/parts :: quantity(${row.level.quantity}, ${row.item.unit})}"></span>
                         <span th:replace="~{stores/parts :: statusBadge(${row.level.status})}"></span>
                     </span>
-                    <span class="request-pick-qty">
-                        <input type="text" inputmode="decimal" autocomplete="off" class="form-control request-qty-input"
-                               th:id="${field}" th:name="${field}" th:value="*{lines[__${i}__].quantity}"
-                               th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
-                               th:attr="aria-describedby=${#fields.hasErrors(field)} ? ${unitId + ' ' + field + 'Error'} : ${unitId}">
+                    <span class="request-pick-qty" th:with="err=${#fields.hasErrors(field)}, hintId=${'hint' + i}">
+                        <input th:replace="~{layout/parts :: quantityInput(id=${field}, name=${field},
+                                value=*{lines[__${i}__].quantity}, rule=${row.rule}, cls='request-qty-input',
+                                invalid=${err}, kept=${row.kept},
+                                describedBy=${unitId + ' ' + hintId + (err ? ' ' + field + 'Error' : '')})}">
                         <span class="request-pick-unit" th:id="${unitId}" th:text="${row.item.unit}">kg</span>
+                        <span th:replace="~{layout/parts :: quantityHint(${row.rule}, ${hintId})}"></span>
                     </span>
                     <p th:if="${#fields.hasErrors(field)}" class="request-pick-error" th:id="${field + 'Error'}"
                        th:errors="*{lines[__${i}__].quantity}">Enter a quantity above zero.</p>
@@ -98,15 +100,23 @@
                     <div class="field-half">
                         <label for="newUnit" class="form-label">[[#{request.form.newItem.unit}]] <span th:replace="~{layout/parts :: optional}"></span></label>
                         <input type="text" class="form-control" th:field="*{newUnit}" th:errorclass="is-invalid"
-                               autocomplete="off" aria-describedby="newUnitHint">
+                               autocomplete="off" aria-describedby="newUnitHint newUnitCounter">
                         <div class="invalid-feedback" th:errors="*{newUnit}"></div>
-                        <div id="newUnitHint" class="form-text" th:text="#{request.form.newItem.unitHint}">kg, lt, pcs…</div>
+                        <div class="form-meta">
+                            <div id="newUnitHint" class="form-text" th:text="#{request.form.newItem.unitHint}">kg, lt, pcs…</div>
+                            <div th:replace="~{layout/parts :: counter(${form}, 'newUnit', 'newUnit')}"></div>
+                        </div>
                     </div>
-                    <div class="field-half">
+                    <!-- P60: the rule of the unit typed beside it (js/quantity.js follows the unit as it is typed). -->
+                    <div class="field-half" th:with="newRule=${@shipRequestService.newItemRule(form.newUnit)},
+                                                     err=${#fields.hasErrors('newQuantity')}">
                         <label for="newQuantity" class="form-label" th:text="#{request.quantity}">Quantity</label>
-                        <input type="text" inputmode="decimal" class="form-control" th:field="*{newQuantity}"
-                               th:errorclass="is-invalid" autocomplete="off">
-                        <div class="invalid-feedback" th:errors="*{newQuantity}"></div>
+                        <input th:replace="~{layout/parts :: quantityInput(id='newQuantity', name='newQuantity',
+                                value=*{newQuantity}, rule=${newRule}, cls='', invalid=${err},
+                                describedBy=${'newQuantityHint' + (err ? ' newQuantityError' : '')},
+                                unitField='newUnit')}">
+                        <div class="invalid-feedback" id="newQuantityError" th:errors="*{newQuantity}"></div>
+                        <span th:replace="~{layout/parts :: quantityHint(${newRule}, 'newQuantityHint')}"></span>
                     </div>
                 </div>
                 <div class="form-actions mt-3">
@@ -121,12 +131,13 @@
                         <input type="hidden" th:name="${'newItems[' + i + '].unit'}" th:value="${n.unit}">
                         <label class="request-pick-name" th:for="${field}"><span th:text="${n.name}">Saffron</span>
                             <span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></label>
-                        <span class="request-pick-qty">
-                            <input type="text" inputmode="decimal" autocomplete="off" class="form-control request-qty-input"
-                                   th:id="${field}" th:name="${field}" th:value="${n.quantity}"
-                                   th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
-                                   th:attr="aria-describedby=${#fields.hasErrors(field)} ? ${unitId + ' ' + field + 'Error'} : ${unitId}">
+                        <span class="request-pick-qty" th:with="err=${#fields.hasErrors(field)}, hintId=${'newHint' + i},
+                                                                 rule=${@shipRequestService.newItemRule(n.unit)}">
+                            <input th:replace="~{layout/parts :: quantityInput(id=${field}, name=${field}, value=${n.quantity},
+                                    rule=${rule}, cls='request-qty-input', invalid=${err},
+                                    describedBy=${unitId + ' ' + hintId + (err ? ' ' + field + 'Error' : '')})}">
                             <span class="request-pick-unit" th:id="${unitId}" th:text="${n.unit} ?: #{approval.unit.none}">g</span>
+                            <span th:replace="~{layout/parts :: quantityHint(${rule}, ${hintId})}"></span>
                         </span>
                         <button type="submit" name="remove" th:value="${i}" class="btn btn-ghost btn-sm"
                                 th:data-busy-label="#{request.form.newItem.removing}"
@@ -146,6 +157,9 @@
                th:text="#{form.cancel}">Cancel</a>
         </div>
     </form>
+    <th:block th:with="units=${p.cook} ? ${@quantityRules.unitsJson('REQUEST')} : null">
+        <div th:replace="~{layout/parts :: quantityTexts('REQUEST', ${units})}"></div>
+    </th:block>
     <script th:src="@{/js/request-form.js}" defer></script>
 </main>
 </body>

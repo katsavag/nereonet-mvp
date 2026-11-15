@@ -202,7 +202,7 @@ class VoiceCountFlowTest {
                         .param("rows[2].quantity", "30"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(row(html, "Tomatoes")).contains("value=\"-2\"", "is-invalid",
-                "Enter a quantity of zero or more, with at most 3 decimals.");
+                "Enter zero or more.");
 
         html = mockMvc.perform(confirm()
                         .param("rows[0].quantity", "5")

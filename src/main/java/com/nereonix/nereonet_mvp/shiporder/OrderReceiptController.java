@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
@@ -29,6 +30,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.LineReceipt;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.Receipt;
@@ -62,10 +65,13 @@ public class OrderReceiptController {
 
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
+    private final QuantityRules quantityRules;
 
-    public OrderReceiptController(ShipOrderPageService pageService, OrderReceiptService receiptService) {
+    public OrderReceiptController(ShipOrderPageService pageService, OrderReceiptService receiptService,
+                                  QuantityRules quantityRules) {
         this.pageService = pageService;
         this.receiptService = receiptService;
+        this.quantityRules = quantityRules;
     }
 
     @GetMapping(BASE)
@@ -226,7 +232,7 @@ public class OrderReceiptController {
 
     // Checks the lines (exactly the order's lines not removed, each with a quantity of zero or more and a short note)
     // and the time received (required, not in the future, not before the order was sent).
-    private static void check(ReceiptForm form, ShipOrder order, BindingResult errors) {
+    private void check(ReceiptForm form, ShipOrder order, BindingResult errors) {
         Set<Long> expected = order.getLines().stream().filter(line -> !line.isRemoved()).map(ShipOrderLine::getId)
                 .collect(Collectors.toSet());
         Set<Long> given = form.getLines().stream().map(ReceiptForm.Line::getLineId).collect(Collectors.toSet());
@@ -234,10 +240,17 @@ public class OrderReceiptController {
             // Not this order's lines: a page from before the office changed them, or a forged request.
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
+        Map<Long, ShipOrderLine> orderLines = order.getLines().stream()
+                .collect(Collectors.toMap(ShipOrderLine::getId, Function.identity()));
         for (int i = 0; i < form.getLines().size(); i++) {
             ReceiptForm.Line line = form.getLines().get(i);
-            if (!OrderReceiptService.isValidReceivedQuantity(line.quantity())) {
-                errors.rejectValue("lines[" + i + "].received", "order.receipt.error.quantity");
+            // P60: the rule of the item's unit; 0 is "Not delivered"; the quantity ordered is always accepted, even
+            // above the maximum.
+            if (!line.isNotDelivered()) {
+                ShipOrderLine orderLine = orderLines.get(line.getLineId());
+                quantityRules.forItem(orderLine.getItem(), Use.RECEIPT)
+                        .check(line.getReceived(), orderLine.getQuantity())
+                        .reject(errors, "lines[" + i + "].received");
             }
             if (line.getNote() != null && line.getNote().length() > ShipOrderLine.NOTE_MAX_LENGTH) {
                 errors.rejectValue("lines[" + i + "].note", "order.receipt.error.noteTooLong");
@@ -270,6 +283,8 @@ public class OrderReceiptController {
         model.addAttribute("maxFiles", OrderReceiptService.MAX_FILES);
         model.addAttribute("maxFileSize", CertificateFileStorage.MAX_FILE_SIZE);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
+        // P60: the receipt time's min, when the order was sent.
+        model.addAttribute("receivedAtMin", ReceiptForm.minFor(order));
         return "shiporder/receipt";
     }
 

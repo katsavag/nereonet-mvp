@@ -391,6 +391,16 @@ h1, .h1 {
     font-weight: 600;
     color: var(--nn-danger);
 }
+/* P60: the limit under a quantity field ("Up to 2000 kg", layout/parts :: quantityHint). js/quantity.js puts a live
+   error in it ("Use whole numbers for pcs."): red and bold, and the text says what is wrong, so not by colour alone. */
+.quantity-hint {
+    display: block;
+    margin-top: var(--nn-space-1);
+}
+.quantity-hint.quantity-hint-error {
+    font-weight: 600;
+    color: var(--nn-danger);
+}
 .form-file-info {
     margin: var(--nn-space-1) 0 0;
     font-size: var(--nn-font-sm);
@@ -5108,9 +5118,24 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .order-qty-form {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--nn-space-2);
+    gap: var(--nn-space-1) var(--nn-space-2);
+}
+/* P60: the limit ("Up to 2000 kg") and a refused value's error on their own lines under the field, right-aligned.
+   Also the office's .order-edit-form. The error is red and says what is wrong in words. */
+.order-qty-form > .quantity-hint,
+.order-edit-form > .quantity-hint,
+.quantity-line-error {
+    flex-basis: 100%;
+    margin-top: 0;
+    text-align: end;
+}
+.quantity-line-error {
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-danger-text);
 }
 .order-qty-form .form-control {
     width: 7rem;
@@ -6556,6 +6581,8 @@ input.supplier-currency { max-width: 7rem; }
      - .receipt-short: "Short by 5 kg" under the item's name; .receipt-note the Master's note on the line.
    --------------------------------------------------------------------------------------------------------------- */
 .receipt-received { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
+/* P60: the limit under the quantity and Not delivered, "Up to 2000 kg". */
+.receipt-received > .quantity-hint { flex-basis: 100%; margin-top: 0; }
 .receipt-qty { width: 9rem; flex: 0 0 auto; }
 .receipt-qty > .form-control[readonly] { background: var(--nn-page); }
 .receipt-not-delivered { margin: 0; white-space: nowrap; }
@@ -6669,6 +6696,9 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     scroll-margin-top: 5rem;   /* back at the row (#item-<id>) below the sticky top bar */
 }
 .stores-count-form { display: flex; align-items: center; gap: var(--nn-space-2); }
+/* P60: the limit of the store count ("Up to 20000 kg") on its own line under the row's field. */
+.stores-count-row > .quantity-hint { flex-basis: 100%; margin-top: 0; }
+.voice-row > .quantity-hint { margin-top: var(--nn-space-1); }
 .stores-count-input { width: 8rem; min-height: 2.75rem; text-align: end; }
 .stores-count-unit { min-width: 2rem; color: var(--nn-text-secondary); }
 .stores-count-status { min-width: 6.5rem; }   /* the widest badge, Out of stock: the inputs line up */
@@ -6782,7 +6812,15 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
-.request-pick-qty { display: flex; align-items: center; gap: var(--nn-space-2); }
+.request-pick-qty {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+}
+/* P60: the limit under the field and its unit ("Up to 2000 kg"), right-aligned with them. */
+.request-pick-qty > .quantity-hint { flex-basis: 100%; margin-top: 0; text-align: end; }
 .request-qty-input { width: 7.5rem; min-height: 2.75rem; text-align: end; }
 .request-pick-unit { min-width: 2.5rem; color: var(--nn-text-secondary); }
 .request-pick-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }

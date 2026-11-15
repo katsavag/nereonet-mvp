@@ -1,5 +1,7 @@
 package com.nereonix.nereonet_mvp.rfq;
 
+import java.beans.PropertyEditorSupport;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +29,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
@@ -76,13 +82,40 @@ public class RfqController {
     private final ShipOrderService orderService;
     private final UserRepository userRepository;
     private final ConfirmPages confirmPages;
+    private final QuantityRules quantityRules;
 
     public RfqController(RfqService rfqService, ShipOrderService orderService, UserRepository userRepository,
-                         ConfirmPages confirmPages) {
+                         ConfirmPages confirmPages, QuantityRules quantityRules) {
+        this.quantityRules = quantityRules;
         this.rfqService = rfqService;
         this.orderService = orderService;
         this.userRepository = userRepository;
         this.confirmPages = confirmPages;
+    }
+
+    // P60: the numbers of the quote form (prices, quantities, pack sizes, delivery cost) take a comma as the decimal
+    // separator ("2,5", Greek keyboards). Anything that is not a number: "Enter a number." (typeMismatch).
+    @InitBinder("form")
+    void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(BigDecimal.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                if (text == null || text.isBlank()) {
+                    setValue(null);
+                    return;
+                }
+                try {
+                    setValue(new BigDecimal(text.strip().replace(',', '.')));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException(e);
+                }
+            }
+
+            @Override
+            public String getAsText() {
+                return getValue() == null ? "" : ((BigDecimal) getValue()).toPlainString();
+            }
+        });
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -310,6 +343,8 @@ public class RfqController {
         model.addAttribute("rfq", rfq);
         model.addAttribute("quote", quote);
         model.addAttribute("form", form);
+        // P60: the most a unit price or the delivery cost may be (the inputs' max).
+        model.addAttribute("maxAmount", QuoteForm.MAX_AMOUNT);
         model.addAttribute("groups", rows.entrySet().stream()
                 .map(e -> new QuoteGroup(e.getKey(), List.copyOf(e.getValue()))).toList());
         return "rfq/quote";
@@ -319,7 +354,7 @@ public class RfqController {
      * The rules of a line that need the RFQ line: a price needs a quantity, and a pack unit must compare with the
      * item's unit (kg and g do, kg and lt do not). A line of another RFQ (a changed hidden field) is refused.
      */
-    static void checkLines(Rfq rfq, QuoteForm form, BindingResult result) {
+    void checkLines(Rfq rfq, QuoteForm form, BindingResult result) {
         Map<Long, RfqLine> lines = rfq.getLines().stream().collect(Collectors.toMap(RfqLine::getId, Function.identity()));
         for (int i = 0; i < form.getLines().size(); i++) {
             QuoteForm.Line l = form.getLines().get(i);
@@ -340,6 +375,20 @@ public class RfqController {
                     && !Units.convertible(l.getPackUnit(), line.getUnit())
                     && !result.hasFieldErrors(prefix + "packUnit")) {
                 result.rejectValue(prefix + "packUnit", "quote.error.packUnit", new Object[] {line.getUnit()}, null);
+            }
+            // P60: the quantity rules (core/form/QuantityRules). With a pack size the quantity offered counts packs
+            // (whole numbers); without one it is in the item's unit, and the quantity asked is always accepted. The
+            // pack size follows the rule of its unit (the item's when none is given).
+            if (l.getQuantityOffered() != null && !result.hasFieldErrors(prefix + "quantityOffered")) {
+                QuantityRules.Rule rule = l.getPackSize() != null ? quantityRules.forUnit(null, Use.QUOTE)
+                        : quantityRules.forUnit(line.getUnit(), Use.QUOTE);
+                rule.check(l.getQuantityOffered(), l.getPackSize() == null ? line.getQuantity() : null)
+                        .reject(result, prefix + "quantityOffered");
+            }
+            if (l.getPackSize() != null && !result.hasFieldErrors(prefix + "packSize")) {
+                String packUnit = l.getPackUnit() == null || l.getPackUnit().isBlank() ? line.getUnit() : l.getPackUnit();
+                quantityRules.forUnit(packUnit, Use.QUOTE).check(l.getPackSize(), null)
+                        .reject(result, prefix + "packSize");
             }
         }
         if (form.getLines().size() != lines.size()) {

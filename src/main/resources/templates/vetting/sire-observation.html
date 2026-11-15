@@ -38,7 +38,7 @@
                         <div class="field-half">
                             <label for="questionNumber" class="form-label" th:text="#{sire.question}">Question number</label>
                             <input type="text" th:field="*{questionNumber}" class="form-control num" th:errorclass="is-invalid"
-                                   autocomplete="off" inputmode="decimal" required aria-describedby="questionNumberHint">
+                                   autocomplete="off" inputmode="decimal" maxlength="20" required aria-describedby="questionNumberHint">
                             <div class="invalid-feedback" th:errors="*{questionNumber}"></div>
                             <div id="questionNumberHint" class="form-text" th:text="#{sire.form.questionHint}">As in the report, e.g. 9.1.2.</div>
                         </div>

@@ -1,6 +1,5 @@
 package com.nereonix.nereonet_mvp.officeorder;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -28,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -83,11 +84,13 @@ public class OfficeOrderController {
     private final ItemRepository itemRepository;
     private final ConfirmPages confirmPages;
     private final OrderReceiptService receiptService;
+    private final QuantityRules quantityRules;
 
     public OfficeOrderController(ShipOrderService orderService, ShipRepository shipRepository,
                                  UserRepository userRepository, RfqService rfqService,
                                  OfficeOrderEditService editService, ItemRepository itemRepository,
-                                 ConfirmPages confirmPages, OrderReceiptService receiptService) {
+                                 ConfirmPages confirmPages, OrderReceiptService receiptService,
+                                 QuantityRules quantityRules) {
         this.orderService = orderService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
@@ -96,6 +99,7 @@ public class OfficeOrderController {
         this.itemRepository = itemRepository;
         this.confirmPages = confirmPages;
         this.receiptService = receiptService;
+        this.quantityRules = quantityRules;
     }
 
     // shipId, status (sent, confirmed, closed) and exported=no (not exported yet) filter the list; anything else in
@@ -194,12 +198,20 @@ public class OfficeOrderController {
                                  @RequestParam(required = false) String quantity,
                                  @RequestParam(required = false) String note,
                                  @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
-        BigDecimal value = parse(quantity);
-        String error = !ShipOrderService.isValidQuantity(value) ? "officeorder.edit.quantityError" : noteError(note);
+        ShipOrder order = sent(id);
+        ShipOrderLine line = order.getLines().stream().filter(l -> l.getId().equals(lineId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        // P60: the rule of the item's unit; the quantity already on the line may stay above the maximum.
+        QuantityRules.Check check = quantityRules.forItem(line.getItem(), Use.OFFICE_ORDER)
+                .check(quantity, line.getQuantity());
+        if (!check.ok()) {
+            return quantityError(id, lineId, null, line.getItem().getName(), quantity, check, redirectAttributes);
+        }
+        String error = noteError(note);
         if (error != null) {
             return back(id, "errorMessage", error, redirectAttributes);
         }
-        return afterEdit(id, editService.changeQuantity(user(currentUser), id, lineId, value, note),
+        return afterEdit(id, editService.changeQuantity(user(currentUser), id, lineId, check.value(), note),
                 "officeorder.edit.changed", redirectAttributes);
     }
 
@@ -242,15 +254,25 @@ public class OfficeOrderController {
                           @RequestParam(required = false) String quantity,
                           @RequestParam(required = false) String note,
                           @AuthenticationPrincipal CurrentUser currentUser, RedirectAttributes redirectAttributes) {
-        BigDecimal value = parse(quantity);
-        String error = itemId == null ? "officeorder.edit.add.chooseItem"
-                : !ShipOrderService.isValidQuantity(value) ? "officeorder.edit.quantityError" : noteError(note);
+        if (itemId == null) {
+            return back(id, "errorMessage", "officeorder.edit.add.chooseItem", redirectAttributes);
+        }
+        ShipOrder order = sent(id);
+        Item item = itemRepository.findById(itemId)
+                .filter(i -> i.getShip().getId().equals(order.getShip().getId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        // P60: the rule of the item's unit, for the quantity added.
+        QuantityRules.Check check = quantityRules.forItem(item, Use.OFFICE_ORDER).check(quantity);
+        if (!check.ok()) {
+            return quantityError(id, null, item.getId(), item.getName(), quantity, check, redirectAttributes);
+        }
+        String error = noteError(note);
         if (error != null) {
             return back(id, "errorMessage", error, redirectAttributes);
         }
         Edit edit;
         try {
-            edit = editService.addItem(user(currentUser), id, itemId, value, note);
+            edit = editService.addItem(user(currentUser), id, itemId, check.value(), note);
         } catch (IllegalArgumentException e) {
             // The line's total would be over 9 whole digits.
             return back(id, "errorMessage", "officeorder.edit.quantityError", redirectAttributes);
@@ -288,16 +310,15 @@ public class OfficeOrderController {
                 : null;
     }
 
-    // "6", "2.5" or "2,5"; null for anything else (as the Master's order page).
-    private static BigDecimal parse(String quantity) {
-        if (quantity == null || quantity.isBlank()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(quantity.strip().replace(',', '.'));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    // P60: a refused quantity: the error with the item's name on top, and under the field with what was typed: a
+    // line's ("quantityError", lineId) or Add an item's ("addQuantityError", itemId: the item stays chosen).
+    private static String quantityError(Long id, Long lineId, Long itemId, String itemName, String quantity,
+                                        QuantityRules.Check check, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorArgs", new Object[] {itemName, check.message()});
+        redirectAttributes.addFlashAttribute(lineId != null ? "quantityError" : "addQuantityError",
+                QuantityRules.LineError.of(lineId != null ? lineId : itemId, quantity, check));
+        redirectAttributes.addFlashAttribute("errorMessage", "quantity.error.line");
+        return "redirect:" + LIST + "/" + id + (lineId != null ? "#line-" + lineId : "#addItemTitle");
     }
 
     /**

@@ -10,13 +10,17 @@
 //  - [data-item-summary] (hidden until this script runs, then the quantity's description) says what is being added:
 //    "Adding: Basmati rice (kg)" from its data-text and the chosen radio's data-label, or its data-empty text.
 //  - [data-item-quantity-label] reads "Quantity (kg)" (its data-text and the radio's data-unit) once an item is chosen.
+//  - P60: the quantity field (input[data-quantity]) takes the chosen item's rule (the radio's data-quantity-max and
+//    -decimals, and its unit) and js/quantity.js shows its limit in the hint ("Up to 2000 kg"); nothing chosen, the
+//    hint says the limit depends on the unit (its data-empty).
 (function () {
     'use strict';
 
     document.querySelectorAll('[data-item-picker]').forEach(picker => {
         const radios = Array.from(picker.querySelectorAll('input[type="radio"][name="itemId"]'));
         const summary = picker.querySelector('[data-item-summary]');
-        const quantity = picker.querySelector('[data-item-quantity]');
+        const quantity = picker.querySelector('input[data-quantity]');
+        const quantityHint = picker.querySelector('[data-quantity-hint][data-empty]');
         const quantityLabel = picker.querySelector('[data-item-quantity-label]');
         const plainLabel = quantityLabel ? quantityLabel.textContent : '';
 
@@ -35,12 +39,30 @@
                 quantityLabel.textContent = radio ? quantityLabel.dataset.text.replace('{0}', radio.dataset.unit)
                     : plainLabel;
             }
+            if (quantity) {
+                if (radio) {
+                    quantity.dataset.quantityMax = radio.dataset.quantityMax || '';
+                    quantity.dataset.quantityDecimals = radio.dataset.quantityDecimals || '0';
+                    quantity.dataset.quantityUnit = radio.dataset.unit || '';
+                    quantity.setAttribute('inputmode', quantity.dataset.quantityDecimals === '0' ? 'numeric' : 'decimal');
+                    quantity.dispatchEvent(new Event('quantity-rule'));
+                } else {
+                    delete quantity.dataset.quantityMax;
+                    quantity.dataset.quantityDecimals = '3';
+                    delete quantity.dataset.quantityUnit;
+                    if (quantityHint) {
+                        quantityHint.textContent = quantityHint.dataset.empty;
+                        quantityHint.classList.remove('quantity-hint-error');
+                    }
+                }
+            }
         }
 
         if (summary) {
             summary.hidden = false;
             if (quantity) {
-                quantity.setAttribute('aria-describedby', summary.id);
+                quantity.setAttribute('aria-describedby',
+                    (summary.id + ' ' + (quantity.getAttribute('aria-describedby') || '')).trim());
             }
         }
         radios.forEach(radio => radio.addEventListener('change', showChoice));

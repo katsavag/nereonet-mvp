@@ -26,6 +26,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -276,9 +277,47 @@ class OfficeOrderEditFlowTest {
     }
 
     @Test
+    void addAnItemAndTheLinesFollowTheRuleOfTheItemsUnit() throws Exception {
+        // P60: each item of Add an item carries its limit for the script; the hint says it depends on the unit.
+        String page = page("/office/orders/" + order.getId());
+        assertThat(page).contains("The limit depends on the item", "data-quantity-texts")
+                .containsPattern("value=\"" + oil.getId() + "\"[^>]*data-quantity-max=\"2000\" data-quantity-decimals=\"3\"")
+                .containsPattern("id=\"addQuantity\"[^>]*type=\"text\"|type=\"text\"[^>]*id=\"addQuantity\"")
+                // Each line shows its own limit.
+                .contains("Up to 2000 kg", "Whole numbers, up to 5000 pcs");
+
+        // Too much, letters, decimals for pcs: nothing added, the error with the item's name, the item still chosen
+        // and the value typed back in the field.
+        add(oil, "1000000", "").andExpect(redirectedUrl("/office/orders/" + order.getId() + "#addItemTitle"))
+                .andExpect(flash().attribute("errorMessage", "quantity.error.line"));
+        MvcResult refused = add(oil, "1000000", "").andReturn();
+        String shown = mockMvc.perform(get("/office/orders/" + order.getId())
+                        .flashAttr("errorMessage", "quantity.error.line")
+                        .flashAttr("errorArgs", refused.getFlashMap().get("errorArgs"))
+                        .flashAttr("addQuantityError", refused.getFlashMap().get("addQuantityError")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(shown).contains("Not saved: Olive oil: Up to 2000 lt per line.", "value=\"1000000\"")
+                .containsPattern("value=\"" + oil.getId() + "\"[^>]*checked");
+        add(oil, "abc", "").andExpect(flash().attribute("errorMessage", "quantity.error.line"));
+        add(soap, "1,5", "").andExpect(flash().attribute("errorMessage", "quantity.error.line"));
+        assertThat(order.getLines()).extracting(line -> line.getItem().getName())
+                .containsExactlyInAnyOrder("Basmati rice", "Shower gel");
+
+        // "1,5" lt is 1.5 lt.
+        add(oil, "1,5", "").andExpect(flash().attribute("successMessage", "officeorder.edit.added"));
+        assertThat(order.getLines()).filteredOn(line -> line.getItem().getId().equals(oil.getId())).singleElement()
+                .satisfies(line -> assertThat(line.getQuantity()).isEqualByComparingTo("1.5"));
+
+        // A line's quantity: the same rule; the error is shown under that line with what was typed.
+        change(riceLine, "2500", "").andExpect(flash().attribute("errorMessage", "quantity.error.line"))
+                .andExpect(redirectedUrl("/office/orders/" + order.getId() + "#line-" + riceLine.getId()));
+        assertThat(riceLine.getQuantity()).isEqualByComparingTo("50");
+    }
+
+    @Test
     void wrongInputChangesNothing() throws Exception {
         for (String quantity : List.of("", "0", "-1", "abc", "1.2345")) {
-            change(riceLine, quantity, "").andExpect(flash().attribute("errorMessage", "officeorder.edit.quantityError"));
+            change(riceLine, quantity, "").andExpect(flash().attribute("errorMessage", "quantity.error.line"));
         }
         change(riceLine, "40", "x".repeat(201))
                 .andExpect(flash().attribute("errorMessage", "officeorder.edit.noteTooLong"));

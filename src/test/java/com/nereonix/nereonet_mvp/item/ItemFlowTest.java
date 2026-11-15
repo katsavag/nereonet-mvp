@@ -111,6 +111,43 @@ class ItemFlowTest {
                 .contains(">Basmati rice</a>").doesNotContain(">Cigarettes</a>");
     }
 
+    // P60: the optional Maximum per request, in the item's unit (whole numbers for pcs), replaces the unit's maximum.
+    @Test
+    void anItemMayHaveItsOwnMaximumPerRequest() throws Exception {
+        Ship ship = ship("9074729", "MV Demo");
+        String empty = html(get("/office/ships/{id}/items/new", ship.getId()));
+        assertThat(empty).contains("Maximum per request", "id=\"maxPerRequest\"");
+
+        String wrong = mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
+                        .param("name", "Eggs").param("unit", "pcs").param("category", "PROVISIONS")
+                        .param("maxPerRequest", "1,5").with(csrf()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(wrong).contains("Use whole numbers for pcs.", "value=\"1,5\"",
+                "Replaces the usual maximum of 5000 pcs");
+        String letters = mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
+                        .param("name", "Eggs").param("unit", "pcs").param("category", "PROVISIONS")
+                        .param("maxPerRequest", "lots").with(csrf()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(letters).contains("Enter a number.");
+        assertThat(itemRepository.findAllByShipIdOrderByNameAsc(ship.getId())).isEmpty();
+
+        mockMvc.perform(post("/office/ships/{id}/items/new", ship.getId())
+                        .param("name", "Water").param("unit", "lt").param("category", "PROVISIONS")
+                        .param("maxPerRequest", "6000,5").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + ship.getId() + "/items"));
+        Item water = itemRepository.findAllByShipIdOrderByNameAsc(ship.getId()).getFirst();
+        assertThat(water.getMaxPerRequest()).isEqualByComparingTo("6000.5");
+        assertThat(html(get("/office/ships/{id}/items/{itemId}/edit", ship.getId(), water.getId())))
+                .contains("value=\"6000.5\"");
+
+        // Emptied: the unit's maximum again.
+        mockMvc.perform(post("/office/ships/{id}/items/{itemId}/edit", ship.getId(), water.getId())
+                        .param("name", "Water").param("unit", "lt").param("category", "PROVISIONS")
+                        .param("maxPerRequest", "").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships/" + ship.getId() + "/items"));
+        assertThat(water.getMaxPerRequest()).isNull();
+    }
+
     // The add form: Category is required, and the item is not saved without it.
     @Test
     void anItemNeedsACategory() throws Exception {

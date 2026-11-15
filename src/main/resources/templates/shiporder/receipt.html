@@ -11,7 +11,8 @@
      smaller, with a progress bar, then the form without them; "Not delivered" empties and locks the quantity.
      data-draft: js/save.js keeps the quantities, notes and time if the connection drops (P15).
      Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), files (OrderReceiptFile, uploaded so
-     far), maxFiles, maxFileSize, noteMax. -->
+     far), maxFiles, maxFileSize, noteMax. P60: the received quantities follow the rule of the item's unit, 0 allowed;
+     receivedAtMin is the earliest date (the order sent). -->
 <main th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.hint})}">
@@ -55,15 +56,14 @@
                         <td class="text-end font-monospace text-nowrap" th:attr="data-label=#{order.receipt.ordered}"
                             th:text="${line.quantity.stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">25 kg</td>
                         <td th:attr="data-label=#{order.receipt.received}">
-                            <div class="receipt-received">
+                            <div class="receipt-received" th:with="rule=${@quantityRules.forItem(line.item, 'RECEIPT')},
+                                                                   err=${#fields.hasErrors(p + '.received')}">
                                 <label class="visually-hidden" th:for="${p + '.received'}"
                                        th:text="#{order.receipt.received.label(${line.item.name})}">Received quantity of Basmati rice</label>
                                 <span class="input-group input-group-sm receipt-qty">
-                                    <input type="text" inputmode="decimal" class="form-control font-monospace"
-                                           th:id="${p + '.received'}" th:name="${p + '.received'}" th:value="${r.form.received}"
-                                           th:classappend="${#fields.hasErrors(p + '.received')} ? 'is-invalid'"
-                                           autocomplete="off" data-receipt-quantity
-                                           th:attr="aria-describedby=${#fields.hasErrors(p + '.received')} ? ${'error-' + i} : null">
+                                    <input th:replace="~{layout/parts :: quantityInput(id=${p + '.received'}, name=${p + '.received'},
+                                            value=${r.form.received}, rule=${rule}, cls='', invalid=${err}, kept=${line.quantity},
+                                            describedBy=${'hint-' + i + (err ? ' error-' + i : '')})}">
                                     <span class="input-group-text" th:text="${line.item.unit}">kg</span>
                                 </span>
                                 <span class="form-check receipt-not-delivered">
@@ -75,6 +75,7 @@
                                         <span class="visually-hidden" th:text="${line.item.name}">Basmati rice</span>
                                     </label>
                                 </span>
+                                <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'hint-' + i})}"></span>
                             </div>
                             <div th:if="${#fields.hasErrors(p + '.received')}" class="invalid-feedback d-block"
                                  th:id="${'error-' + i}" th:errors="*{__${p}__.received}"></div>
@@ -139,7 +140,8 @@
             <div class="card-body p-3 p-md-4">
                 <label for="receivedAt" class="form-label h5 fw-bold" id="receiptWhenTitle" th:text="#{order.receipt.receivedAt}">Date and time received (UTC)</label>
                 <input type="datetime-local" id="receivedAt" name="receivedAt" class="form-control receipt-when"
-                       th:value="${form.receivedAtValue}" th:max="${form.receivedAtMax}" required
+                       th:value="${form.receivedAtValue}" th:min="${receivedAtMin}"
+                       th:max="${form.receivedAtMax}" required
                        th:classappend="${#fields.hasErrors('receivedAt')} ? 'is-invalid'" aria-describedby="receivedAtHint">
                 <div class="invalid-feedback" th:errors="*{receivedAt}"></div>
                 <div id="receivedAtHint" class="form-text" th:text="#{order.receipt.receivedAt.hint}">In UTC, as every time in the app.</div>
@@ -151,6 +153,7 @@
             <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${order.id})}" th:text="#{order.receipt.cancel}">Cancel</a>
         </div>
     </form>
+    <div th:replace="~{layout/parts :: quantityTexts('RECEIPT', null)}"></div>
     <script th:src="@{/js/receipt.js}" defer></script>
 </main>
 </body>

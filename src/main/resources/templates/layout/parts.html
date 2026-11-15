@@ -150,7 +150,7 @@
         <div class="password-field">
             <input type="password" th:field="*{confirmPassword}" class="form-control form-control-lg"
                    th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'is-invalid'"
-                   autocomplete="new-password" required>
+                   autocomplete="new-password" maxlength="72" required>
             <th:block th:replace="~{layout/parts :: passwordToggle('confirmPassword')}"></th:block>
         </div>
         <p th:replace="~{layout/parts :: capsLockHint('confirmPassword')}"></p>
@@ -709,12 +709,14 @@
     <div class="date-range-row">
         <div class="date-range-field">
             <label for="from" class="form-label" th:text="#{dateRange.from}">From (UTC)</label>
-            <input type="date" th:field="${__${bean}__.from}" class="form-control" th:errorclass="is-invalid">
+            <input type="date" th:field="${__${bean}__.from}" class="form-control" th:errorclass="is-invalid"
+                   th:min="${@formFields.minDate(__${bean}__, 'from')}" th:max="${@formFields.maxDate(__${bean}__, 'from')}">
             <div class="invalid-feedback" th:errors="${__${bean}__.from}"></div>
         </div>
         <div class="date-range-field">
             <label for="to" class="form-label" th:text="#{dateRange.to}">To (UTC)</label>
-            <input type="date" th:field="${__${bean}__.to}" class="form-control" th:errorclass="is-invalid">
+            <input type="date" th:field="${__${bean}__.to}" class="form-control" th:errorclass="is-invalid"
+                   th:min="${@formFields.minDate(__${bean}__, 'to')}" th:max="${@formFields.maxDate(__${bean}__, 'to')}">
             <div class="invalid-feedback" th:errors="${__${bean}__.to}"></div>
         </div>
         <div class="date-range-actions" th:insert="${actions}"></div>
@@ -895,6 +897,50 @@
          th:text="#{form.counter.limit(${max})}">Up to 4,000 characters</div>
 </th:block>
 
+<!-- Quantity fields (P60): one rule per unit, core/form/QuantityRules (@quantityRules). A text input, so a comma works
+     as the decimal separator (Greek keyboards); inputmode shows the number pad on phones ("numeric" for whole-number
+     units). js/quantity.js filters what is typed to digits and one separator (a comma becomes a dot) and checks the
+     limit as the person types; without it the server checks everything and the form still posts.
+     Use: <input th:replace="~{layout/parts :: quantityInput(id='q1', name='lines[0].quantity', value=${v},
+              rule=${@quantityRules.forItem(item, 'REQUEST')}, cls='request-qty-input', describedBy='unit1 hint1',
+              invalid=${hasError}, kept=${savedValue})}">
+     kept (optional): the value already saved, which may stay above the maximum (not flagged by the script).
+     value: text as typed, or a BigDecimal (written plain: 10, never 1E+1). ariaLabel (optional): where the field has
+     no visible label (the quote table).
+     rule: null where the rule is the server's alone: the item is chosen on the page (the office's Add an item: js/item-search.js sets the rule).
+     unitField (optional): the id of the field where the unit is typed (the rule follows it; needs quantityTexts with
+     the units JSON). -->
+<input th:fragment="quantityInput" type="text" autocomplete="off" spellcheck="false" data-quantity
+       class="form-control font-monospace" th:classappend="${(cls ?: '') + (invalid == true ? ' is-invalid' : '')}"
+       th:id="${id}" th:name="${name}" th:value="${@quantityRules.text(value)}"
+       th:attr="inputmode=${rule == null} ? 'decimal' : ${rule.inputMode()},
+                data-quantity-max=${rule == null} ? null : ${rule.maxText()},
+                data-quantity-decimals=${rule == null} ? '3' : ${rule.decimals()},
+                data-quantity-zero=${rule == null} ? 'true' : ${rule.zeroAllowed()},
+                data-quantity-unit=${rule == null} ? null : ${rule.unit()},
+                data-quantity-kept=${kept == null} ? null : ${kept.stripTrailingZeros().toPlainString()},
+                data-quantity-unit-field=${unitField},
+                aria-describedby=${describedBy}, aria-label=${ariaLabel},
+                aria-invalid=${invalid == true} ? 'true' : null">
+
+<!-- The limit under a quantity field: "Up to 2000 kg" or "Whole numbers, up to 5000 pcs". js/quantity.js shows its
+     live errors here (and puts the limit back once the value is fine). Its id goes in the field's aria-describedby. -->
+<span th:fragment="quantityHint(rule, hintId)" class="form-text quantity-hint" th:id="${hintId}" data-quantity-hint
+      th:text="${#messages.msgWithParams(rule.hintKey(), rule.hintArgs())}">Up to 2000 kg</span>
+
+<!-- The texts of js/quantity.js, once per page with quantity fields: the hints and live errors, {max} {unit} and
+     {decimals} filled in by the script. use: the page's QuantityRules.Use ('REQUEST', 'RECEIPT', ...), for the wording
+     of "too much"; units: the units JSON (only where a unit is typed on the page, the request's new item). -->
+<div th:fragment="quantityTexts(use, units)" hidden data-quantity-texts
+     th:data-hint-max="#{quantity.hint.max('{max}', '{unit}')}"
+     th:data-hint-whole="#{quantity.hint.whole('{max}', '{unit}')}"
+     th:data-error-whole="#{quantity.error.whole('{unit}')}"
+     th:data-error-decimals="#{quantity.error.decimals('{decimals}', '{unit}')}"
+     th:data-error-max="${#messages.msg('quantity.error.max.' + #strings.toLowerCase(#strings.replace(use, '_', '')), '{max}', '{unit}')}"
+     th:data-error-above-zero="#{quantity.error.aboveZero}"
+     th:data-unit-none="#{quantity.unit.none}"
+     th:data-units="${units}"></div>
+
 <!-- Error summary at the top of a form posted with more than one error: one link per error, to its field, in the
      order of the fields; js/forms.js moves focus to it. The messages also stay under each field.
      Use as the form's first child (th:object set): <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
@@ -950,7 +996,7 @@
 </th:block>
 
 <!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
-     "successArgs", an Object[] with the message's arguments ("Invitation sent to {0}."), and "successDownloadUrl",
+     "successArgs" / "errorArgs", an Object[] with the message's arguments ("Invitation sent to {0}."), and "successDownloadUrl",
      the GET URL of a file the action prepared (P21: "3 requests exported · Download again"). js/download.js starts
      that download once when the page opens; the link is there to repeat it, and is all there is without the script. -->
 <!-- data-flash="success": the server confirmed a save; js/save.js then removes the draft of the form just sent (P15). -->
@@ -963,7 +1009,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
     </div>
     <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-        <span th:text="#{${errorMessage}}"></span>
+        <span th:text="${errorArgs != null} ? ${#messages.msgWithParams(errorMessage, errorArgs)} : #{${errorMessage}}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" th:attr="aria-label=#{common.close}"></button>
     </div>
 </th:block>

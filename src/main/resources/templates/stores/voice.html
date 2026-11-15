@@ -41,6 +41,7 @@
             <ul th:unless="${proposal.lines.isEmpty()}" class="list-group list-group-flush">
                 <li th:each="line, it : ${proposal.lines}" class="list-group-item voice-row" data-voice-row
                     th:with="i=${it.index}, error=${rowErrors.get(it.index)}, low=${line.confidence.name() == 'LOW'},
+                             rule=${@quantityRules.forUnit(line.unit, 'COUNT')},
                              tone=${line.confidence.name() == 'HIGH' ? 'ok' : (line.confidence.name() == 'LOW' ? 'warning' : 'neutral')}"
                     th:classappend="${low} ? 'is-low'">
                     <div class="voice-row-head">
@@ -57,12 +58,11 @@
                     <div class="voice-row-fields">
                         <label class="voice-field-label" th:for="${'row-' + i + '-quantity'}"
                                th:text="#{stores.voice.review.counted}">Counted</label>
-                        <input type="number" inputmode="decimal" min="0" step="any" autocomplete="off"
-                               class="form-control form-control-sm font-monospace voice-qty"
-                               th:id="${'row-' + i + '-quantity'}" th:name="${'rows[' + i + '].quantity'}"
-                               th:value="${form.rows[i].quantity}" th:classappend="${error != null} ? 'is-invalid'"
-                               th:attr="aria-invalid=${error != null} ? 'true' : null,
-                                       aria-describedby=${'voice-row-' + i + ' row-' + i + '-error'}">
+                        <input th:replace="~{layout/parts :: quantityInput(id=${'row-' + i + '-quantity'},
+                                name=${'rows[' + i + '].quantity'}, value=${form.rows[i].quantity},
+                                rule=${rule}, cls='form-control-sm voice-qty',
+                                invalid=${error != null},
+                                describedBy=${'voice-row-' + i + ' row-' + i + '-hint row-' + i + '-error'})}">
                         <span class="voice-unit" th:text="${line.unit}">kg</span>
                         <span class="voice-expected">
                             <span class="text-body-secondary" th:text="#{stores.voice.review.expected}">Store expects</span>
@@ -76,8 +76,9 @@
                             <span th:text="#{stores.voice.review.remove}">Remove</span>
                         </label>
                     </div>
-                    <p th:if="${error != null}" class="voice-error" th:id="${'row-' + i + '-error'}" th:text="#{${error}}">
-                        Enter a quantity of zero or more, with at most 3 decimals.</p>
+                    <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'row-' + i + '-hint'})}"></span>
+                    <p th:if="${error != null}" class="voice-error" th:id="${'row-' + i + '-error'}" th:text="${error}">
+                        Enter zero or more.</p>
                 </li>
             </ul>
         </section>
@@ -97,7 +98,7 @@
                                th:text="#{stores.voice.extra.item}">Count as</label>
                         <select class="form-select form-select-sm voice-item" th:id="${'extra-' + j + '-item'}"
                                 th:name="${'extras[' + j + '].itemId'}"
-                                th:classappend="${error == 'stores.voice.extra.itemError'} ? 'is-invalid'"
+                                th:classappend="${extraItemErrors.contains(j)} ? 'is-invalid'"
                                 th:attr="aria-describedby=${'extra-' + j + ' extra-' + j + '-error'}">
                             <option value="" th:text="#{stores.voice.extra.drop}">Don't count</option>
                             <option th:each="l : ${items}" th:value="${l.item.id}"
@@ -106,20 +107,20 @@
                         </select>
                         <label class="voice-field-label" th:for="${'extra-' + j + '-quantity'}"
                                th:text="#{stores.voice.extra.quantity}">Quantity</label>
-                        <input type="number" inputmode="decimal" min="0" step="any" autocomplete="off"
-                               class="form-control form-control-sm font-monospace voice-qty"
-                               th:id="${'extra-' + j + '-quantity'}" th:name="${'extras[' + j + '].quantity'}"
-                               th:value="${form.extras[j].quantity}"
-                               th:classappend="${error == 'stores.count.error'} ? 'is-invalid'"
-                               th:attr="aria-invalid=${error == 'stores.count.error'} ? 'true' : null,
-                                       aria-describedby=${'extra-' + j + ' extra-' + j + '-error'}">
+                        <!-- P60: the item is picked beside it, so the server checks the rule of its unit. -->
+                        <input th:replace="~{layout/parts :: quantityInput(id=${'extra-' + j + '-quantity'},
+                                name=${'extras[' + j + '].quantity'}, value=${form.extras[j].quantity},
+                                rule=null, cls='form-control-sm voice-qty',
+                                invalid=${error != null and !extraItemErrors.contains(j)},
+                                describedBy=${'extra-' + j + ' extra-' + j + '-error'})}">
                     </div>
-                    <p th:if="${error != null}" class="voice-error" th:id="${'extra-' + j + '-error'}" th:text="#{${error}}">
+                    <p th:if="${error != null}" class="voice-error" th:id="${'extra-' + j + '-error'}" th:text="${error}">
                         Pick an item from the list.</p>
                 </li>
             </ul>
         </section>
     </form>
+    <div th:replace="~{layout/parts :: quantityTexts('COUNT', null)}"></div>
 
     <form id="voiceDiscard" method="post" th:action="@{/ship/stores/count/voice/discard}"></form>
 

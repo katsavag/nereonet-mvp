@@ -21,13 +21,13 @@
             <div class="mb-3">
                 <label for="email" class="form-label fw-semibold" th:text="#{login.email}">Email</label>
                 <input type="email" id="email" name="email" class="form-control form-control-lg"
-                       autocomplete="username" required autofocus>
+                       autocomplete="username" maxlength="255" required autofocus>
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label fw-semibold" th:text="#{login.password}">Password</label>
                 <div class="password-field">
                     <input type="password" id="password" name="password" class="form-control form-control-lg"
-                           autocomplete="current-password" required>
+                           autocomplete="current-password" maxlength="72" required>
                     <th:block th:replace="~{layout/parts :: passwordToggle('password')}"></th:block>
                 </div>
                 <p th:replace="~{layout/parts :: capsLockHint('password')}"></p>

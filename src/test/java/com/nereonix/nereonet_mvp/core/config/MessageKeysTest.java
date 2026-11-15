@@ -208,7 +208,6 @@ class MessageKeysTest {
             "order.quantity.label",
             "order.quantity.save",
             "order.quantity.saved",
-            "order.quantity.error",
             "order.line.remove",
             "order.line.remove.label",
             "order.line.removed",
@@ -274,7 +273,6 @@ class MessageKeysTest {
             "order.receipt.alreadyReceived",
             "order.receipt.receivedLine",
             "order.receipt.by",
-            "order.receipt.error.quantity",
             "order.receipt.error.noteTooLong",
             "order.receipt.error.receivedAtRequired",
             "order.receipt.error.receivedAtFuture",
@@ -351,7 +349,6 @@ class MessageKeysTest {
             "stores.count.hint",
             "stores.count.save",
             "stores.count.saved",
-            "stores.count.error",
             "stores.count.notSent",
             "stores.count.done",
             "stores.history.difference",
@@ -417,7 +414,6 @@ class MessageKeysTest {
             "request.form.newItem.removing",
             "request.form.send",
             "request.form.sending",
-            "request.form.error.quantity",
             "request.form.error.nameRequired",
             "request.form.error.nameTooLong",
             "request.form.error.unitTooLong",
@@ -500,7 +496,11 @@ class MessageKeysTest {
             "stores.voice.failure.TIMEOUT",
             "stores.voice.failure.PROVIDER_ERROR",
             "stores.voice.failure.NOTHING_UNDERSTOOD",
-            "stores.voice.failure.ITEM_GONE");
+            "stores.voice.failure.ITEM_GONE",
+            // P60: the limits of the crew screens (requests and the Master's order, the receipt, the store count).
+            "quantity.error.max.request",
+            "quantity.error.max.receipt",
+            "quantity.error.max.count");
 
     /**
      * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies

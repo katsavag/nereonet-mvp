@@ -12,7 +12,7 @@
                 <div>
                     <label for="email" class="form-label" th:text="#{login.email}">Email</label>
                     <input type="email" th:field="*{email}" class="form-control form-control-lg"
-                           th:errorclass="is-invalid" autocomplete="username" required autofocus>
+                           th:errorclass="is-invalid" autocomplete="username" maxlength="255" required autofocus>
                     <div class="invalid-feedback" th:errors="*{email}"></div>
                 </div>
             </div>

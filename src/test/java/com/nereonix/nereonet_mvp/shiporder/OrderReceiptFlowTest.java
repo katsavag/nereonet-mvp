@@ -336,13 +336,40 @@ class OrderReceiptFlowTest {
     }
 
     @Test
+    void theReceivedQuantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
+        // P60: the limit under each field; 0 is Not delivered.
+        String form = asMaster(get("/ship/orders/{id}/receipt", order.getId()));
+        assertThat(form).contains("Up to 2000 kg", "Up to 2000 l", "Whole numbers, up to 5000 pcs", "data-quantity-texts");
+
+        String now = INPUT.format(LocalDateTime.now(ZoneOffset.UTC));
+        String errors = mockMvc.perform(receipt(post("/ship/orders/{id}/receipt", order.getId()),
+                        "1000000", false, "", "abc", false, "", "1,5", false, "", now))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(errors).contains("Up to 2000 kg for this line. Check the quantity received.", "Enter a number.",
+                "Use whole numbers for pcs.");
+
+        // "1,5" l is 1.5 l, and 0 is allowed.
+        receive("25", "1,5", "0");
+        assertThat(oilLine.getReceivedQuantity()).isEqualByComparingTo("1.5");
+        assertThat(soapLine.getReceivedQuantity()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void theQuantityOrderedIsAlwaysAcceptedEvenAboveTheLimit() throws Exception {
+        // An order line from before P60, above today's limit: received as ordered, it is accepted.
+        riceLine.setQuantity(new BigDecimal("2500"));
+        receive("2500", "10", "6");
+        assertThat(riceLine.getReceivedQuantity()).isEqualByComparingTo("2500");
+    }
+
+    @Test
     void theFormComesBackWithErrorsAndKeepsTheFilesSent() throws Exception {
         String future = INPUT.format(LocalDateTime.now(ZoneOffset.UTC).plusDays(1));
         // No file, a quantity that is not one, a note too long, a time in the future.
         String errors = mockMvc.perform(receipt(post("/ship/orders/{id}/receipt", order.getId()),
                         "lots", false, "x".repeat(201), "10", false, "", "6", false, "", future))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(errors).contains("Enter the quantity received: zero or more, with at most 3 decimals.",
+        assertThat(errors).contains("Enter a number.",
                 "The note is too long: at most 200 characters.", "The time received cannot be in the future.",
                 "Add the delivery receipt: a PDF, JPEG or PNG file.");
 

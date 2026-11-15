@@ -77,7 +77,8 @@ public class ItemController {
             return showForm(id, null, model);
         }
         try {
-            itemService.create(id, form.getName(), form.getUnit(), form.getCategory(), form.getPlace());
+            itemService.create(id, form.getName(), form.getUnit(), form.getCategory(), form.getPlace(),
+                    form.maxPerRequestValue());
         } catch (ItemNameTakenException e) {
             result.rejectValue("name", "item.error.nameTaken");
             return showForm(id, null, model);
@@ -102,7 +103,8 @@ public class ItemController {
             return showForm(id, item, model);
         }
         try {
-            itemService.update(id, itemId, form.getName(), form.getUnit(), form.getCategory(), form.getPlace());
+            itemService.update(id, itemId, form.getName(), form.getUnit(), form.getCategory(), form.getPlace(),
+                    form.maxPerRequestValue());
         } catch (ItemNameTakenException e) {
             result.rejectValue("name", "item.error.nameTaken");
             return showForm(id, item, model);

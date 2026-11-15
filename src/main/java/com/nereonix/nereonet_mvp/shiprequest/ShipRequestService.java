@@ -21,7 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
-import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.request.InvalidRequestException;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
@@ -70,7 +71,7 @@ public class ShipRequestService {
     }
 
     /** One item of the form: its index in RequestForm.lines and, on the cook's Running low rows, its stock. */
-    public record Row(int index, Item item, Level level) {
+    public record Row(int index, Item item, Level level, QuantityRules.Rule rule, BigDecimal kept) {
     }
 
     /** key: RUNNING_LOW or an ItemCategory name. */
@@ -99,15 +100,22 @@ public class ShipRequestService {
     private final ItemRequestRepository requestRepository;
     private final RequestService requestService;
     private final StockService stockService;
+    private final QuantityRules quantityRules;
 
     public ShipRequestService(UserRepository userRepository, ItemRepository itemRepository,
                               ItemRequestRepository requestRepository, RequestService requestService,
-                              StockService stockService) {
+                              StockService stockService, QuantityRules quantityRules) {
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
         this.requestRepository = requestRepository;
         this.requestService = requestService;
         this.stockService = stockService;
+        this.quantityRules = quantityRules;
+    }
+
+    /** The rule of a new item's quantity (P60): by its unit as typed; none or unknown: whole numbers. */
+    public QuantityRules.Rule newItemRule(String unit) {
+        return quantityRules.forUnit(unit, Use.REQUEST);
     }
 
     // ---- The list and one request ----
@@ -215,6 +223,7 @@ public class ShipRequestService {
         boolean cook = user.getRole() == Role.CHIEF_COOK;
         Map<Long, Item> items = pickableById(user, request);
         Map<Long, Level> low = lowLevels(user);
+        Map<Long, BigDecimal> saved = savedQuantities(request);
         Map<String, List<Row>> groups = new LinkedHashMap<>();
         groups.put(RUNNING_LOW, new ArrayList<>());
         for (ItemCategory category : ItemCategory.values()) {
@@ -226,7 +235,8 @@ public class ShipRequestService {
                 continue;
             }
             Level level = low.get(item.getId());
-            groups.get(level != null ? RUNNING_LOW : item.getCategory().name()).add(new Row(i, item, level));
+            groups.get(level != null ? RUNNING_LOW : item.getCategory().name()).add(new Row(i, item, level,
+                    quantityRules.forItem(item, Use.REQUEST), saved.get(item.getId())));
         }
         List<Group> shown = groups.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
@@ -268,9 +278,7 @@ public class ShipRequestService {
         if (form.getNewUnit() != null && form.getNewUnit().length() > Item.UNIT_MAX_LENGTH) {
             errors.rejectValue("newUnit", "request.form.error.unitTooLong", new Object[] {Item.UNIT_MAX_LENGTH}, null);
         }
-        if (!ShipOrderService.isValidQuantity(parse(form.getNewQuantity()))) {
-            errors.rejectValue("newQuantity", "request.form.error.quantity");
-        }
+        newItemRule(form.getNewUnit()).check(form.getNewQuantity()).reject(errors, "newQuantity");
         if (errors.hasErrors()) {
             return false;
         }
@@ -342,20 +350,29 @@ public class ShipRequestService {
         User user = user(email);
         ItemRequest request = requestId == null ? null : own(user, requestId);
         Map<Long, Item> items = pickableById(user, request);
+        // P60: a quantity already on the request (editing) may stay above the maximum; a new or changed one may not.
+        Map<Long, BigDecimal> saved = savedQuantities(request);
+        Map<String, BigDecimal> savedNew = new HashMap<>();
+        if (request != null) {
+            request.getLines().stream().filter(RequestLine::isNewItem).forEach(line -> savedNew.putIfAbsent(
+                    line.getNewItemName().toLowerCase(Locale.ROOT), line.getQuantity()));
+        }
         List<RequestLine> lines = new ArrayList<>();
         for (int i = 0; i < form.getLines().size(); i++) {
             RequestForm.Line line = form.getLines().get(i);
             if (!line.isPicked()) {
                 continue;
             }
-            BigDecimal quantity = parse(line.getQuantity());
-            if (!ShipOrderService.isValidQuantity(quantity)) {
-                errors.rejectValue("lines[" + i + "].quantity", "request.form.error.quantity");
+            Item item = items.get(line.getItemId());
+            QuantityRules.Check check = quantityRules.forItem(item, Use.REQUEST)
+                    .check(line.getQuantity(), saved.get(item.getId()));
+            if (!check.ok()) {
+                check.reject(errors, "lines[" + i + "].quantity");
                 continue;
             }
             RequestLine requestLine = new RequestLine();
-            requestLine.setItem(items.get(line.getItemId()));
-            requestLine.setQuantity(quantity);
+            requestLine.setItem(item);
+            requestLine.setQuantity(check.value());
             lines.add(requestLine);
         }
         for (int i = 0; i < form.getNewItems().size(); i++) {
@@ -365,15 +382,16 @@ public class ShipRequestService {
                 errors.rejectValue("newItems[" + i + "].quantity", "request.form.error.newItemInvalid");
                 continue;
             }
-            BigDecimal quantity = parse(line.getQuantity());
-            if (!ShipOrderService.isValidQuantity(quantity)) {
-                errors.rejectValue("newItems[" + i + "].quantity", "request.form.error.quantity");
+            QuantityRules.Check check = newItemRule(line.getUnit())
+                    .check(line.getQuantity(), savedNew.get(line.getName().toLowerCase(Locale.ROOT)));
+            if (!check.ok()) {
+                check.reject(errors, "newItems[" + i + "].quantity");
                 continue;
             }
             RequestLine requestLine = new RequestLine();
             requestLine.setNewItemName(line.getName());
             requestLine.setNewItemUnit(line.getUnit());
-            requestLine.setQuantity(quantity);
+            requestLine.setQuantity(check.value());
             lines.add(requestLine);
         }
         if (read.itemGone()) {
@@ -389,16 +407,14 @@ public class ShipRequestService {
         };
     }
 
-    /** "6", "2.5" or "2,5"; null for anything else. */
-    static BigDecimal parse(String quantity) {
-        if (quantity == null || quantity.isBlank()) {
-            return null;
+    // The quantities on the request being edited, by item (the first line of an item); empty for a new request.
+    private static Map<Long, BigDecimal> savedQuantities(ItemRequest request) {
+        Map<Long, BigDecimal> saved = new HashMap<>();
+        if (request != null) {
+            request.getLines().stream().filter(line -> !line.isNewItem())
+                    .forEach(line -> saved.putIfAbsent(line.getItem().getId(), line.getQuantity()));
         }
-        try {
-            return new BigDecimal(quantity.strip().replace(',', '.'));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return saved;
     }
 
     private static String plain(BigDecimal quantity) {

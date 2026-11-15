@@ -1,5 +1,6 @@
 package com.nereonix.nereonet_mvp.item;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,12 +87,14 @@ public class ItemService {
 
     /** Saves a new, active item. Throws ItemNameTakenException if the ship has an item with this name. */
     @Transactional
-    public Item create(Long shipId, String name, String unit, ItemCategory category, String place) {
+    public Item create(Long shipId, String name, String unit, ItemCategory category, String place,
+                       BigDecimal maxPerRequest) {
         Ship ship = getShip(shipId);
         if (itemRepository.existsByShipIdAndNameIgnoreCase(shipId, name.strip())) {
             throw new ItemNameTakenException();
         }
         Item item = newItem(ship, name, unit, category, place);
+        item.setMaxPerRequest(maxPerRequest);
         itemRepository.save(item);
         auditService.record("ITEM_CREATED", ship, describe(item));
         return item;
@@ -99,12 +102,14 @@ public class ItemService {
 
     /** Throws ItemNameTakenException if another item of the ship has this name. */
     @Transactional
-    public void update(Long shipId, Long itemId, String name, String unit, ItemCategory category, String place) {
+    public void update(Long shipId, Long itemId, String name, String unit, ItemCategory category, String place,
+                       BigDecimal maxPerRequest) {
         Item item = getItem(shipId, itemId);
         if (itemRepository.existsByShipIdAndNameIgnoreCaseAndIdNot(shipId, name.strip(), itemId)) {
             throw new ItemNameTakenException();
         }
         apply(item, name, unit, category, place);
+        item.setMaxPerRequest(maxPerRequest);
         auditService.record("ITEM_UPDATED", item.getShip(), describe(item));
     }
 
@@ -125,10 +130,11 @@ public class ItemService {
         return item;
     }
 
-    // For the audit log, e.g. "Rice, kg, Provisions, Dry store"
+    // For the audit log, e.g. "Rice, kg, Provisions, Dry store" (P60: and ", max 200" when the item has its own maximum)
     private static String describe(Item item) {
         return item.getName() + ", " + item.getUnit() + ", " + item.getCategory().fileValue() + ", "
-                + (item.getPlace() == null ? "-" : item.getPlace());
+                + (item.getPlace() == null ? "-" : item.getPlace())
+                + (item.getMaxPerRequest() == null ? "" : ", max " + item.getMaxPerRequest().stripTrailingZeros().toPlainString());
     }
 
     private static void apply(Item item, String name, String unit, ItemCategory category, String place) {

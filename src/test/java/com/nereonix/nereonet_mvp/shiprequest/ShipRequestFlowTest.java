@@ -112,7 +112,7 @@ class ShipRequestFlowTest {
         String location = mockMvc.perform(as(post("/ship/requests/new"), cook)
                         .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "25")
                         .param("lines[1].itemId", oil.getId().toString()).param("lines[1].quantity", "")
-                        .param("newName", " Saffron ").param("newUnit", "g").param("newQuantity", "2,5"))
+                        .param("newName", " Saffron ").param("newUnit", "kg").param("newQuantity", "0,25"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMessage", "request.sent"))
                 .andReturn().getResponse().getRedirectedUrl();
@@ -127,8 +127,8 @@ class ShipRequestFlowTest {
         assertThat(fromList.getQuantity()).isEqualByComparingTo("25");
         RequestLine newItem = request.getLines().stream().filter(RequestLine::isNewItem).findFirst().orElseThrow();
         assertThat(newItem.getNewItemName()).isEqualTo("Saffron");
-        assertThat(newItem.getNewItemUnit()).isEqualTo("g");
-        assertThat(newItem.getQuantity()).isEqualByComparingTo("2.5");
+        assertThat(newItem.getNewItemUnit()).isEqualTo("kg");
+        assertThat(newItem.getQuantity()).isEqualByComparingTo("0.25");
 
         List<Notification> notifications = notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc(
                 master.getEmail());
@@ -167,6 +167,71 @@ class ShipRequestFlowTest {
     }
 
     @Test
+    void quantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
+        // P60: the form shows the limit of each item under its field, and the script's texts.
+        String form = page("/ship/requests/new", cook);
+        assertThat(form).contains("Up to 2000 kg", "Whole numbers, up to 5000 pcs", "data-quantity-texts",
+                        "data-quantity-max=\"2000\"", "inputmode=\"numeric\"")
+                // data-quantity is what js/quantity.js looks for.
+                .containsPattern("<input type=\"text\"[^>]* data-quantity[\\s>][^>]*id=\"lines\\[\\d+]\\.quantity\"");
+
+        // Letters, decimals for pcs and 1000000 kg are refused, each under its field and in the summary.
+        String wrong = mockMvc.perform(as(post("/ship/requests/new"), cook)
+                        .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "abc")
+                        .param("lines[1].itemId", showerGel.getId().toString()).param("lines[1].quantity", "1,5")
+                        .param("lines[2].itemId", sugar.getId().toString()).param("lines[2].quantity", "1000000"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(wrong).contains("This form has 3 errors", "Enter a number.", "Use whole numbers for pcs.",
+                        "Up to 2000 kg per line. For more, split it or ask the office.")
+                .contains("value=\"abc\"", "value=\"1,5\"", "value=\"1000000\"");
+        assertThat(requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(cook.getId())).isEmpty();
+
+        // "1,5" kg is 1.5 kg.
+        mockMvc.perform(as(post("/ship/requests/new"), cook)
+                        .param("lines[0].itemId", sugar.getId().toString()).param("lines[0].quantity", "1,5"))
+                .andExpect(status().is3xxRedirection());
+        ItemRequest request = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(cook.getId())
+                .getFirst();
+        assertThat(request.getLines()).singleElement()
+                .satisfies(line -> assertThat(line.getQuantity()).isEqualByComparingTo("1.5"));
+    }
+
+    @Test
+    void anItemsOwnMaximumAndAQuantityAlreadySavedAreKept() throws Exception {
+        // The office allows 3000 kg of rice in one request.
+        rice.setMaxPerRequest(new BigDecimal("3000"));
+        itemRepository.save(rice);
+        assertThat(page("/ship/requests/new", cook)).contains("Up to 3000 kg");
+        mockMvc.perform(as(post("/ship/requests/new"), cook)
+                        .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "2500"))
+                .andExpect(status().is3xxRedirection());
+
+        // A request saved with more than today's limit (from before P60) can still be edited and saved as it is,
+        // but not changed to another value above the limit.
+        ItemRequest old = submit(cook, line(sugar, "2500"));
+        mockMvc.perform(as(post("/ship/requests/" + old.getId() + "/edit"), cook)
+                        .param("lines[0].itemId", sugar.getId().toString()).param("lines[0].quantity", "2500"))
+                .andExpect(status().is3xxRedirection());
+        String changed = mockMvc.perform(as(post("/ship/requests/" + old.getId() + "/edit"), cook)
+                        .param("lines[0].itemId", sugar.getId().toString()).param("lines[0].quantity", "2600"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(changed).contains("Up to 2000 kg per line.");
+    }
+
+    @Test
+    void aNewItemsQuantityFollowsTheRuleOfItsUnit() throws Exception {
+        String refused = mockMvc.perform(as(post("/ship/requests/new"), cook)
+                        .param("newName", "Saffron").param("newUnit", "g").param("newQuantity", "2,5").param("add", "1"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(refused).contains("Use whole numbers for g.").doesNotContain("newItems[0].name");
+        // Without a unit: whole numbers, up to the countable maximum.
+        String noUnit = mockMvc.perform(as(post("/ship/requests/new"), cook)
+                        .param("newName", "Saffron").param("newQuantity", "6000").param("add", "1"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(noUnit).contains("Up to 5000 units per line.");
+    }
+
+    @Test
     void aRequestWithoutLinesOrWithAWrongQuantityIsAFormError() throws Exception {
         String empty = mockMvc.perform(as(post("/ship/requests/new"), cook)
                         .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", ""))
@@ -176,7 +241,7 @@ class ShipRequestFlowTest {
         String wrong = mockMvc.perform(as(post("/ship/requests/new"), cook)
                         .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "-2"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(wrong).contains("Enter a quantity above zero, with at most 3 decimals.")
+        assertThat(wrong).contains("Enter a quantity above zero.")
                 .containsPattern("value=\"-2\"");
 
         // An item the office made inactive meanwhile cannot be asked for.

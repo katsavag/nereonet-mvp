@@ -17,13 +17,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -269,7 +272,7 @@ class StoresFlowTest {
         mockMvc.perform(post("/ship/stores/items/{id}/count", rice.getId()).param("quantity", "-1")
                         .with(user(new CurrentUser(cook))).with(csrf()).accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.error").value("Enter a quantity of zero or more, with at most 3 decimals."));
+                .andExpect(jsonPath("$.error").value("Enter zero or more."));
         assertThat(stockService.level(rice).quantity()).isEqualByComparingTo("2.5");
         assertThat(stockService.history(rice)).hasSize(1);
     }
@@ -295,23 +298,45 @@ class StoresFlowTest {
 
     @Test
     void aWrongValueShowsItsErrorNextToThatRowOnly() throws Exception {
-        for (String wrong : List.of("", "abc", "-1", "1.0001", "1234567890")) {
-            mockMvc.perform(post("/ship/stores/items/{id}/count", oil.getId()).param("quantity", wrong)
-                            .with(user(new CurrentUser(cook))).with(csrf()))
-                    .andExpect(redirectedUrl("/ship/stores/count#item-" + oil.getId()))
-                    .andExpect(flash().attribute("countError", new StoresController.CountError(oil.getId(), wrong)));
-        }
+        // P60: the rule of the item's unit for a store count (oil, lt: 3 decimals, up to 20000 lt, 0 allowed).
+        Map<String, String> wrongs = Map.of("", "quantity.error.required", "abc", "quantity.error.number",
+                "-1", "quantity.error.zeroOrMore", "1.0001", "quantity.error.decimals",
+                "20001", "quantity.error.max.count", "1234567890", "quantity.error.max.count");
+        wrongs.forEach((wrong, code) -> {
+            try {
+                MvcResult result = mockMvc.perform(post("/ship/stores/items/{id}/count", oil.getId())
+                                .param("quantity", wrong).with(user(new CurrentUser(cook))).with(csrf()))
+                        .andExpect(redirectedUrl("/ship/stores/count#item-" + oil.getId())).andReturn();
+                StoresController.CountError error =
+                        (StoresController.CountError) result.getFlashMap().get("countError");
+                assertThat(error.itemId()).isEqualTo(oil.getId());
+                assertThat(error.value()).isEqualTo(wrong);
+                assertThat(error.message().getCodes()).as(wrong).containsExactly(code);
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
         assertThat(stockService.history(oil)).isEmpty();
         assertThat(stockService.level(oil).quantity()).isEqualByComparingTo("4");
 
         String html = mockMvc.perform(get("/ship/stores/count").with(user(new CurrentUser(cook)))
-                        .flashAttr("countError", new StoresController.CountError(oil.getId(), "-1")))
+                        .flashAttr("countError", new StoresController.CountError(oil.getId(), "20001",
+                                new DefaultMessageSourceResolvable(new String[] {"quantity.error.max.count"},
+                                        new Object[] {"20000", "lt"}))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html).containsOnlyOnce("Enter a quantity of zero or more, with at most 3 decimals.")
+        assertThat(html).containsOnlyOnce("Up to 20000 lt in the store. Check the count.")
                 .containsOnlyOnce("is-invalid")
                 .containsPattern("<input(?=[^>]*id=\"count-" + oil.getId() + "\")(?=[^>]*is-invalid)"
-                        + "(?=[^>]*aria-invalid=\"true\")(?=[^>]*value=\"-1\")")
-                .containsPattern("id=\"count-" + oil.getId() + "-error\" data-count-error>Enter a quantity");
+                        + "(?=[^>]*aria-invalid=\"true\")(?=[^>]*value=\"20001\")")
+                .containsPattern("id=\"count-" + oil.getId() + "-error\" data-count-error>Up to 20000 lt");
+        // The limit under each field.
+        assertThat(html).contains("Up to 20000 kg");
+
+        // The same answer for the script (422 with the error).
+        mockMvc.perform(post("/ship/stores/items/{id}/count", oil.getId()).param("quantity", "20001")
+                        .accept(MediaType.APPLICATION_JSON).with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Up to 20000 lt in the store. Check the count."));
     }
 
     @Test
@@ -321,8 +346,8 @@ class StoresFlowTest {
         String html = page("/ship/stores/count", cook);
         assertThat(html).contains("<title>Count the store · Nereonet</title>", "js/stores-count", "data-autosave")
                 .doesNotContain("Shower gel", "Jasmine rice")
-                .containsPattern("<input type=\"number\" inputmode=\"decimal\"[^>]*id=\"count-" + rice.getId()
-                        + "\"[^>]*value=\"40\"")
+                .containsPattern("<input type=\"text\"[^>]*id=\"count-" + rice.getId()
+                        + "\"[^>]*value=\"40\"[^>]*inputmode=\"decimal\"")
                 .containsPattern("id=\"count-" + salt.getId() + "\"[^>]*value=\"12.5\"")
                 .containsPattern("id=\"count-" + sugar.getId() + "\"[^>]*value=\"0\"")
                 .contains("action=\"/ship/stores/items/" + rice.getId() + "/count\"")

@@ -1,6 +1,5 @@
 package com.nereonix.nereonet_mvp.shiporder;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -18,7 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
-import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
+import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Change;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Send;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
@@ -41,10 +42,13 @@ public class ShipOrderController {
 
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
+    private final QuantityRules quantityRules;
 
-    public ShipOrderController(ShipOrderPageService pageService, OrderReceiptService receiptService) {
+    public ShipOrderController(ShipOrderPageService pageService, OrderReceiptService receiptService,
+                               QuantityRules quantityRules) {
         this.pageService = pageService;
         this.receiptService = receiptService;
+        this.quantityRules = quantityRules;
     }
 
     // P59: above the OPEN order, the orders in progress (sent, delivery scheduled), most urgent first.
@@ -54,17 +58,23 @@ public class ShipOrderController {
         return showOrder(currentUser, model);
     }
 
-    // Blank, not a number, zero or less, or more than 3 decimals: back to the order with an error, nothing saved.
+    // P60: the rule of the item's unit (core/form/QuantityRules): blank, not a number, zero or less, too many decimals
+    // or above the maximum (unless unchanged): back to the line with the error under it and what was typed, and the
+    // error with the item's name on top; nothing saved.
     @PostMapping("/ship/order/lines/{id}/quantity")
     public String changeQuantity(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                  @RequestParam(required = false) String quantity, RedirectAttributes redirectAttributes) {
-        BigDecimal value = parse(quantity);
-        if (!ShipOrderService.isValidQuantity(value)) {
-            redirectAttributes.addFlashAttribute("errorMessage", "order.quantity.error");
-            return "redirect:/ship/order";
+        ShipOrderLine line = pageService.line(currentUser.getUsername(), id);
+        QuantityRules.Check check = quantityRules.forItem(line.getItem(), Use.REQUEST)
+                .check(quantity, line.getQuantity());
+        if (!check.ok()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "quantity.error.line");
+            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {line.getItem().getName(), check.message()});
+            redirectAttributes.addFlashAttribute("quantityError", QuantityRules.LineError.of(id, quantity, check));
+            return "redirect:/ship/order#line-" + id;
         }
-        return afterChange(pageService.changeQuantity(currentUser.getUsername(), id, value), "order.quantity.saved",
-                redirectAttributes);
+        return afterChange(pageService.changeQuantity(currentUser.getUsername(), id, check.value()),
+                "order.quantity.saved", redirectAttributes);
     }
 
     @PostMapping("/ship/order/lines/{id}/remove")
@@ -136,15 +146,4 @@ public class ShipOrderController {
         };
     }
 
-    // "6", "2.5" or "2,5"; null for anything else.
-    private static BigDecimal parse(String quantity) {
-        if (quantity == null || quantity.isBlank()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(quantity.strip().replace(',', '.'));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 }

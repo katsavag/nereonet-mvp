@@ -80,6 +80,18 @@ app:
     # P50: the ship is told about the office's changes of an order this long after the last change, unless the office
     # presses "Done editing" first (ISO-8601 duration). Checked every minute.
     office-edit-quiet: ${ORDER_OFFICE_EDIT_QUIET:PT10M}
+  quantity:
+    # P60: the most one line of a request, order or receipt may hold, by the kind of the item's unit
+    # (core/form/QuantityRules): kg and lt take 3 decimals, g, ml and every countable or unknown unit (pcs, box, can,
+    # ...) whole numbers. An item's own "Maximum per request" replaces these.
+    max:
+      kg: ${QUANTITY_MAX_KG:2000}
+      lt: ${QUANTITY_MAX_LT:2000}
+      g: ${QUANTITY_MAX_G:50000}
+      ml: ${QUANTITY_MAX_ML:50000}
+      countable: ${QUANTITY_MAX_COUNTABLE:5000}
+    # A store count holds the whole store: this many times the line maximum.
+    store-factor: ${QUANTITY_STORE_FACTOR:10}
   stock:
     # P52: a provisions item above 0 and below this quantity (in its own unit) is Low on the Chief cook's Stores page.
     # One threshold for every item.

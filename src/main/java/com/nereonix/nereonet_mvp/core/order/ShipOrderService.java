@@ -505,6 +505,12 @@ public class ShipOrderService {
     }
 
     // The line, after locking the Master's ship; null when the ship has no such line.
+    /** A line of one of the ship's orders, read only (P60: its item's quantity rule before a change); empty if none. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<ShipOrderLine> findLine(Long shipId, Long lineId) {
+        return lineRepository.findByIdAndOrderShipId(lineId, shipId);
+    }
+
     private ShipOrderLine lineForChange(User master, Long lineId) {
         checkMaster(master);
         lock(master.getShip());

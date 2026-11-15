@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 /**
  * "New request" and "Edit request" (P54). lines: one per item the person can pick, in the order of the page
  * (ShipRequestService.form), with the item's id and the quantity typed: blank means not picked. Quantities are text,
- * so "2,5" is read as 2.5 (ShipRequestService.parse). The Chief cook only: newItems, the items not on the list
+ * so "2,5" is read as 2.5 (P60: core/form/QuantityRules, the rule of the item's unit). The Chief cook only: newItems, the items not on the list
  * already added to the request, and newName, newUnit and newQuantity, the fields of "Add an item that is not on the
  * list". The checks are ShipRequestService's (it reports them into a BindingResult); the @Size limits are here for the
  * counters (layout/parts :: counter) and are checked there too.

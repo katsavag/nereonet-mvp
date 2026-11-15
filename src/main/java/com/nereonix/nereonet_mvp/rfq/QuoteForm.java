@@ -20,6 +20,7 @@ import com.nereonix.nereonet_mvp.core.rfq.Units;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -36,6 +37,9 @@ public class QuoteForm {
 
     public static final long MAX_FILE_SIZE = LibraryItemForm.MAX_FILE_SIZE;
 
+    /** P60: the most a unit price or the delivery cost may be, in the quote's currency. */
+    public static final String MAX_AMOUNT = "1000000";
+
     private List<@Valid Line> lines = new ArrayList<>();
 
     @NotBlank(message = "{quote.error.currencyRequired}")
@@ -44,6 +48,7 @@ public class QuoteForm {
 
     @DecimalMin(value = "0", message = "{quote.error.amount}")
     @Digits(integer = 10, fraction = 2, message = "{quote.error.amount}")
+    @DecimalMax(value = MAX_AMOUNT, message = "{quote.error.amountMax}")
     private BigDecimal deliveryCost;
 
     @NotNull(message = "{quote.error.deliveryDateRequired}")
@@ -62,16 +67,15 @@ public class QuoteForm {
 
         private Long lineId;
 
-        @DecimalMin(value = "0", message = "{quote.error.amount}")
-        @Digits(integer = 10, fraction = 4, message = "{quote.error.price}")
+        // P60: above 0, at most 2 decimals, at most MAX_AMOUNT (4 decimals and 0 before).
+        @DecimalMin(value = "0", inclusive = false, message = "{quote.error.price}")
+        @Digits(integer = 10, fraction = 2, message = "{quote.error.price}")
+        @DecimalMax(value = MAX_AMOUNT, message = "{quote.error.priceMax}")
         private BigDecimal unitPrice;
 
-        @DecimalMin(value = "0", inclusive = false, message = "{quote.error.quantity}")
-        @Digits(integer = 9, fraction = 3, message = "{quote.error.quantity}")
+        // P60: checked by RfqController.checkLines with core/form/QuantityRules (they need the RFQ line's unit).
         private BigDecimal quantityOffered;
 
-        @DecimalMin(value = "0", inclusive = false, message = "{quote.error.packSize}")
-        @Digits(integer = 9, fraction = 3, message = "{quote.error.packSize}")
         private BigDecimal packSize;
 
         @Size(max = Units.UNIT_MAX_LENGTH, message = "{quote.error.tooLong}")

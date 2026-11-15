@@ -19,7 +19,8 @@
      has active items), itemGroups (OfficeOrderController.ItemGroup: the active items not on the order) and
      onOrderGroups (OfficeOrderController.LineGroup: the lines not removed).
      P59: Add an item and Schedule delivery are as wide as the cards above them (.form-box-full) and from 992px lay
-     their fields out in a row with the button at its end (.form-row-wide). -->
+     their fields out in a row with the button at its end (.form-row-wide). P60: the line quantities and Add an item follow the rule of the item's unit, the limit
+     under the field (README 35). -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.number(${order.id})}, crumbs=~{::pageCrumbs},
             eyebrowShip=${order.ship}, actions=~{::pageActions})}">
@@ -216,19 +217,25 @@
                     </td>
                     <td class="order-cell-unit" th:text="${line.item.unit}">kg</td>
                     <td class="text-end order-cell-qty">
-                        <form th:if="${editable and !line.removed}" class="order-edit-form" method="post"
-                              th:action="@{/office/orders/{o}/lines/{l}/quantity(o=${order.id}, l=${line.id})}">
-                            <label class="visually-hidden" th:for="${'quantity-' + line.id}"
+                        <form th:if="${editable and !line.removed}" class="order-edit-form" method="post" novalidate
+                              th:action="@{/office/orders/{o}/lines/{l}/quantity(o=${order.id}, l=${line.id})}"
+                              th:with="qid=${'quantity-' + line.id}, rule=${@quantityRules.forItem(line.item, 'OFFICE_ORDER')},
+                                       failed=${quantityError != null and quantityError.isFor(line.id)}">
+                            <label class="visually-hidden" th:for="${qid}"
                                    th:text="#{officeorder.edit.quantity.label(${line.item.name})}">Quantity of Basmati rice</label>
-                            <input type="number" class="form-control form-control-sm font-monospace order-edit-qty" name="quantity"
-                                   th:id="${'quantity-' + line.id}" min="0.001" step="any" required
-                                   th:value="${line.quantity.stripTrailingZeros().toPlainString()}">
+                            <input th:replace="~{layout/parts :: quantityInput(id=${qid}, name='quantity',
+                                    value=${failed} ? ${quantityError.value} : ${line.quantity.stripTrailingZeros().toPlainString()},
+                                    rule=${rule}, cls='form-control-sm order-edit-qty', invalid=${failed}, kept=${line.quantity},
+                                    describedBy=${qid + '-hint' + (failed ? ' ' + qid + '-error' : '')})}">
                             <label class="visually-hidden" th:for="${'note-' + line.id}"
                                    th:text="#{officeorder.edit.note.label(${line.item.name})}">Note on Basmati rice (optional)</label>
                             <input type="text" class="form-control form-control-sm order-edit-note" name="note"
                                    th:id="${'note-' + line.id}" th:maxlength="${noteMax}" autocomplete="off"
                                    th:placeholder="#{officeorder.edit.note.placeholder}" th:value="${line.changeNote}">
                             <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{officeorder.edit.save}">Save</button>
+                            <span th:replace="~{layout/parts :: quantityHint(${rule}, ${qid + '-hint'})}"></span>
+                            <span th:if="${failed}" class="quantity-line-error" th:id="${qid + '-error'}"
+                                  th:text="${#messages.msgWithParams(quantityError.message.codes[0], quantityError.message.arguments)}">Up to 2000 kg per line.</span>
                         </form>
                         <span th:unless="${editable and !line.removed}" class="font-monospace order-line-qty"
                               th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</span>
@@ -291,6 +298,9 @@
                                         <li th:each="i : ${g.items}">
                                             <label class="item-picker-option" data-item-option>
                                                 <input type="radio" name="itemId" class="form-check-input" th:value="${i.id}"
+                                                       th:with="r=${@quantityRules.forItem(i, 'OFFICE_ORDER')}"
+                                                       th:checked="${addQuantityError != null and addQuantityError.isFor(i.id)}"
+                                                       th:attr="data-quantity-max=${r.maxText()}, data-quantity-decimals=${r.decimals()}"
                                                        th:data-unit="${i.unit}"
                                                        th:data-label="#{officeorder.edit.add.option(${i.name}, ${i.unit})}">
                                                 <span th:text="#{officeorder.edit.add.option(${i.name}, ${i.unit})}">Basmati rice (kg)</span>
@@ -335,8 +345,17 @@
                             <label for="addQuantity" class="form-label" data-item-quantity-label
                                    th:data-text="#{officeorder.edit.add.quantityUnit('{0}')}"
                                    th:text="#{request.quantity}">Quantity</label>
-                            <input type="number" id="addQuantity" name="quantity" class="form-control font-monospace"
-                                   min="0.001" step="any" required data-item-quantity>
+                            <th:block th:with="addFailed=${addQuantityError != null}">
+                                <input th:replace="~{layout/parts :: quantityInput(id='addQuantity', name='quantity',
+                                        value=${addFailed} ? ${addQuantityError.value} : null, rule=null,
+                                        cls='', invalid=${addFailed},
+                                        describedBy=${'addQuantityHint' + (addFailed ? ' addQuantityError' : '')})}">
+                                <span class="form-text quantity-hint" id="addQuantityHint" data-quantity-hint
+                                      th:data-empty="#{officeorder.edit.add.limitHint}"
+                                      th:text="#{officeorder.edit.add.limitHint}">The limit depends on the item's unit.</span>
+                                <span th:if="${addFailed}" class="quantity-line-error text-start" id="addQuantityError"
+                                      th:text="${#messages.msgWithParams(addQuantityError.message.codes[0], addQuantityError.message.arguments)}">Up to 2000 kg per line.</span>
+                            </th:block>
                         </div>
                         <div class="field-half">
                             <label for="addNote" class="form-label">[[#{officeorder.edit.note}]] <span th:replace="~{layout/parts :: optional}"></span></label>
@@ -351,6 +370,7 @@
             </form>
         </div>
     </section>
+    <th:block th:if="${editable}"><div th:replace="~{layout/parts :: quantityTexts('OFFICE_ORDER', null)}"></div></th:block>
 
     <!-- Schedule delivery (SENT) or Change delivery (CONFIRMED): both fields required. Posted with errors, the page
          comes back with them. Not shown once received. -->

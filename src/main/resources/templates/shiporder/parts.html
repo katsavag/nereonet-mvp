@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Parts of the ship order (P35; the Chief cook reads it since P55). -->
+<!-- Parts of the ship order (P35; the Chief cook reads it since P55). P60: the line quantity follows the rule of the item's unit. -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -78,14 +78,20 @@
                         <th:block th:replace="~{shiporder/parts :: receivedShort(${line}, 'order.receipt')}"></th:block>
                     </td>
                     <td class="text-end">
-                        <form th:if="${editable}" class="order-qty-form" method="post"
-                              th:action="@{/ship/order/lines/{id}/quantity(id=${line.id})}">
-                            <label class="visually-hidden" th:for="${'quantity-' + line.id}"
+                        <form th:if="${editable}" class="order-qty-form" method="post" novalidate
+                              th:action="@{/ship/order/lines/{id}/quantity(id=${line.id})}"
+                              th:with="qid=${'quantity-' + line.id}, rule=${@quantityRules.forItem(line.item, 'REQUEST')},
+                                       failed=${quantityError != null and quantityError.isFor(line.id)}">
+                            <label class="visually-hidden" th:for="${qid}"
                                    th:text="#{order.quantity.label(${line.item.name})}">Quantity of Basmati rice</label>
-                            <input type="number" class="form-control form-control-sm font-monospace" name="quantity"
-                                   th:id="${'quantity-' + line.id}" min="0.001" step="any" required
-                                   th:value="${line.quantity.stripTrailingZeros().toPlainString()}">
+                            <input th:replace="~{layout/parts :: quantityInput(id=${qid}, name='quantity',
+                                    value=${failed} ? ${quantityError.value} : ${line.quantity.stripTrailingZeros().toPlainString()},
+                                    rule=${rule}, cls='form-control-sm', invalid=${failed}, kept=${line.quantity},
+                                    describedBy=${qid + '-hint' + (failed ? ' ' + qid + '-error' : '')})}">
                             <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{order.quantity.save}">Save</button>
+                            <span th:replace="~{layout/parts :: quantityHint(${rule}, ${qid + '-hint'})}"></span>
+                            <span th:if="${failed}" class="quantity-line-error" th:id="${qid + '-error'}"
+                                  th:text="${#messages.msgWithParams(quantityError.message.codes[0], quantityError.message.arguments)}">Up to 2000 kg per line.</span>
                         </form>
                         <span th:unless="${editable}" class="font-monospace order-line-qty"
                               th:text="${line.quantity.stripTrailingZeros().toPlainString()}">10</span>
