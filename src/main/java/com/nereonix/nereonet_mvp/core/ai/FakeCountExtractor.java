@@ -13,7 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Answers instead of Mistral when app.mistral.fake is true: dev screens without a key, and the tests. Simple
+ * Answers instead of Claude when app.claude.fake is true: dev screens without a key, and the tests. Simple
  * rules, no model:
  *   - The text is cut into phrases at commas, semicolons, full stops (not decimal points) and "and".
  *   - A phrase's quantity is its first number, in digits ("2.5", "2,5") or English words ("thirty five", "a dozen").
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  * Tests can make it fail with fail().
  */
 @Component
-@ConditionalOnProperty(name = "app.mistral.fake", havingValue = "true")
+@ConditionalOnProperty(name = "app.claude.fake", havingValue = "true")
 public class FakeCountExtractor implements CountExtractor {
 
     static final double WHOLE_NAME = 0.95;

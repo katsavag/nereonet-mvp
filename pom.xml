@@ -20,6 +20,7 @@
 		<commons-csv.version>1.14.1</commons-csv.version>
 		<onnxruntime.version>1.22.0</onnxruntime.version>
 		<pdfbox.version>3.0.5</pdfbox.version>
+		<anthropic.version>3.8.0</anthropic.version>
 	</properties>
 
 	<dependencies>
@@ -77,6 +78,12 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
 			<version>${commons-csv.version}</version>
+		</dependency>
+		<!-- Counting the store by voice (core/ai/ClaudeCountExtractor): Claude turns the text into count lines. -->
+		<dependency>
+			<groupId>com.anthropic</groupId>
+			<artifactId>anthropic-java</artifactId>
+			<version>${anthropic.version}</version>
 		</dependency>
 		<!-- Reading the photographed invoice on the server (core/ai/LocalInvoiceReader): PaddleOCR models in ONNX. -->
 		<dependency>

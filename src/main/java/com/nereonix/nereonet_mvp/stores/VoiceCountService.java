@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.ai.CountExtractionException;
 import com.nereonix.nereonet_mvp.core.ai.CountExtractor;
 import com.nereonix.nereonet_mvp.core.ai.CountExtractor.Extraction;
-import com.nereonix.nereonet_mvp.core.ai.MistralSettings;
+import com.nereonix.nereonet_mvp.core.ai.ClaudeSettings;
 import com.nereonix.nereonet_mvp.core.speech.AssemblyAiSettings;
 import com.nereonix.nereonet_mvp.core.speech.SpeechToTextClient;
 import com.nereonix.nereonet_mvp.core.speech.SpeechToTextException;
@@ -108,21 +108,21 @@ public class VoiceCountService {
     private final SpeechToTextClient speech;
     private final CountExtractor extractor;
     private final AssemblyAiSettings assemblyAi;
-    private final MistralSettings mistral;
+    private final ClaudeSettings claude;
 
     public VoiceCountService(UserRepository userRepository, StockService stockService, SpeechToTextClient speech,
-                             CountExtractor extractor, AssemblyAiSettings assemblyAi, MistralSettings mistral) {
+                             CountExtractor extractor, AssemblyAiSettings assemblyAi, ClaudeSettings claude) {
         this.userRepository = userRepository;
         this.stockService = stockService;
         this.speech = speech;
         this.extractor = extractor;
         this.assemblyAi = assemblyAi;
-        this.mistral = mistral;
+        this.claude = claude;
     }
 
     /** Both providers have a key, or answer with their fake: the Count page offers the microphone. */
     public boolean configured() {
-        return assemblyAi.configured() && mistral.configured();
+        return assemblyAi.configured() && claude.configured();
     }
 
     public Proposal propose(String email, byte[] audio, String contentType) {

@@ -14,7 +14,7 @@ import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReadingException.Reason;
@@ -24,18 +24,17 @@ import jakarta.annotation.PreDestroy;
 
 /**
  * The invoice reader that runs on the server: PaddleOCR models in ONNX Runtime (OnnxOcr), the boxes of text turned
- * into the page's text and table (OcrLayout) and read by InvoicePageParser, as Mistral's answer is. Nothing leaves the
+ * into the page's text and table (OcrLayout) and read by InvoicePageParser, as the fake's pages are. Nothing leaves the
  * server and there is no key; the models are files in app.ocr.model-dir (OcrSettings), loaded on the first page.
  *   - JPEG and PNG are read as they are; a PDF page by page, at 200 dpi, its pages' lines one after the other. WebP
  *     and HEIC cannot be decoded here: such a page fails (PROVIDER_ERROR) and the cook can photograph it again.
  *   - Sideways: no table found but most boxes taller than wide: the page is turned 90 degrees one way, then the other,
  *     and the first turn that finds a table is kept.
  *   - One page at a time on the whole server (the models take some 300 MB and the CPU while they read).
- * Logs say how a page ended (lines, time), never its text. Active when app.invoice.reader is local (the default) and
- * app.mistral.fake is not true.
+ * Logs say how a page ended (lines, time), never its text. Active unless app.invoice.fake is true.
  */
 @Component
-@ConditionalOnExpression("!${app.mistral.fake:false} and '${app.invoice.reader:local}' == 'local'")
+@ConditionalOnProperty(name = "app.invoice.fake", havingValue = "false", matchIfMissing = true)
 public class LocalInvoiceReader implements InvoiceReader {
 
     private static final Logger log = LoggerFactory.getLogger(LocalInvoiceReader.class);
@@ -69,7 +68,7 @@ public class LocalInvoiceReader implements InvoiceReader {
         for (BufferedImage image : images) {
             readings.add(read(image));
         }
-        PageReading reading = MistralInvoiceReader.merge(readings);
+        PageReading reading = PageReading.merge(readings);
         log.info("Local OCR: page {} read in {} ms, {} lines{}", page.number(), System.currentTimeMillis() - start,
                 reading.lines().size(), reading.tableFound() ? "" : ", no table");
         return reading;

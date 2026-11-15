@@ -133,7 +133,7 @@ app:
     base-url: ${VESSELAPI_BASE_URL:https://api.vesselapi.com/v1}
     api-key: ${VESSELAPI_API_KEY:}
     fake: ${VESSELAPI_FAKE:false}
-  # Optional (P57): counting the Chief cook's store by voice. AssemblyAI turns the recording into text; Mistral turns
+  # Optional (P57): counting the Chief cook's store by voice. AssemblyAI turns the recording into text; Claude turns
   # the text into count lines (only the text and the vessel's provisions: id, name, unit). Off while either key is
   # empty: the Count page then has no microphone and the app never calls either. The keys come from the environment or
   # the local .env; never put them in a checked-in file. fake: true answers with built-in rules instead (dev screens;
@@ -145,17 +145,15 @@ app:
     timeout: ${ASSEMBLYAI_TIMEOUT:60s}
     language-code: ${ASSEMBLYAI_LANGUAGE_CODE:en}
     fake: ${ASSEMBLYAI_FAKE:false}
-  mistral:
-    base-url: ${MISTRAL_BASE_URL:https://api.mistral.ai}
-    api-key: ${MISTRAL_API_KEY:}
-    # Mistral Small 4 (March 2026), pinned: a -latest alias may change behaviour without notice.
-    model: ${MISTRAL_MODEL:mistral-small-2603}
-    timeout: ${MISTRAL_TIMEOUT:30s}
-    # P62: reading the photographed delivery invoice with Mistral OCR (only the page images are sent). OCR 4.1 (July
-    # 2026), pinned: mistral-ocr-latest and mistral-ocr-4 are aliases that move. One page per call, this long at most.
-    ocr-model: ${MISTRAL_OCR_MODEL:mistral-ocr-4-1}
-    ocr-timeout: ${MISTRAL_OCR_TIMEOUT:60s}
-    fake: ${MISTRAL_FAKE:false}
+  claude:
+    base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    api-key: ${ANTHROPIC_API_KEY:}
+    # Claude Haiku 5.5.
+    model: ${CLAUDE_MODEL:claude-haiku-5-5}
+    timeout: ${CLAUDE_TIMEOUT:30s}
+    # Tries again after a 429, a 5xx, no connection or a timeout, this many times.
+    max-retries: ${CLAUDE_MAX_RETRIES:1}
+    fake: ${CLAUDE_FAKE:false}
   # P67: the local OCR that reads the photographed delivery invoice on the server (core/ai/LocalInvoiceReader):
   # PaddleOCR models in ONNX, nothing leaves the server, no key. The models are files, not in the repository
   # (docs/configuration.md says where to get them): det.onnx, rec.onnx and rec.yml (or dict.txt) in model-dir.
@@ -165,19 +163,19 @@ app:
     max-side: ${OCR_MAX_SIDE:1600}
     # CPU threads one reading uses.
     threads: ${OCR_THREADS:2}
-  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks). Off while its reader is
-  # off (local: the models are missing; mistral: no key; neither when fake): the photos are still kept as the
-  # receipt's files, nothing is read.
+  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks), read by the local OCR
+  # above. Off while the models are missing (and not fake): the photos are still kept as the receipt's files, nothing
+  # is read.
   invoice:
-    # Who reads the pages (P67): local (the OCR above, on the server) or mistral (Mistral OCR, needs MISTRAL_API_KEY).
-    reader: ${INVOICE_READER:local}
+    # true: FakeInvoiceReader "reads" the sample invoice instead of the local OCR (dev screens and tests).
+    fake: ${INVOICE_FAKE:false}
     # A line whose OCR block is less sure than this is flagged "check" (for the office).
     min-confidence: ${INVOICE_MIN_CONFIDENCE:0.85}
     # Read the pages in the background while the progress page reloads itself (false in the tests: at once).
     read-in-background: true
     # A reading not finished after this long (the server restarted meanwhile) is given up: its pages "timed out".
     reading-stalled-after: ${INVOICE_READING_STALLED_AFTER:15m}
-    # Where the fake reader (app.mistral.fake) finds the synthetic sample invoice A-4471.
+    # Where the fake reader (app.invoice.fake) finds the synthetic sample invoice A-4471.
     sample-dir: ${INVOICE_SAMPLE_DIR:samples/invoice}
   # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
   # by hand; the app never connects to OCIMF.

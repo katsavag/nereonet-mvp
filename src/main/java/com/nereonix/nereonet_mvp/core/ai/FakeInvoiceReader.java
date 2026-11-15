@@ -29,15 +29,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads instead of Mistral when app.mistral.fake is true: dev screens without a key, and the tests. Whatever
+ * Reads instead of the local OCR when app.invoice.fake is true: dev screens without the models, and the tests. Whatever
  * the photo shows, page 1 is page 1 of the synthetic sample invoice A-4471 (samples/invoice/, app.invoice.sample-dir;
  * read from the working directory) and page 2 its page 2: their lines and text are written out as the OCR writes them
- * (a markdown table, Greek number format 1.234,56) and go through the same InvoicePageParser as Mistral's answer.
+ * (a markdown table, Greek number format 1.234,56) and go through the same InvoicePageParser as the local OCR's.
  * Page 3 and later have no table. Every line's confidence is 0.97.
  * Tests change that with fail, failPage, noTable, dropLine, lowConfidence, change and orderReference; reset undoes it.
  */
 @Component
-@ConditionalOnProperty(name = "app.mistral.fake", havingValue = "true")
+@ConditionalOnProperty(name = "app.invoice.fake", havingValue = "true")
 public class FakeInvoiceReader implements InvoiceReader {
 
     public static final String SAMPLE = "invoice-A-4471.expected.json";

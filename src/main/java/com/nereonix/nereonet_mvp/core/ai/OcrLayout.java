@@ -13,7 +13,7 @@ import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 
 /**
  * Turns the boxes of text the local OCR found on a page into the page's text and its table of lines, written as
- * markdown, and reads them with InvoicePageParser (as Mistral's answer is read). Plain Java, no model:
+ * markdown, and reads them with InvoicePageParser (as the fake's pages are read). Plain Java, no model:
  *   - Letters: each word in one alphabet (oneScript), as the Greek model may mix Latin and Greek letters that look
  *     alike.
  *   - Rows: the page may be photographed slightly tilted, so the tilt is measured first (the median slope between

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  *   timeout        how long one recording may take, upload to text, default 60s
  *   language-code  the language asked for, default en
  *   fake           true: FakeSpeechClient answers instead of AssemblyAI (dev screens and tests), with no key needed.
- * Counting by voice is offered only when configured() (and the Mistral settings are configured too).
+ * Counting by voice is offered only when configured() (and the Claude settings are configured too).
  */
 @Component
 public class AssemblyAiSettings {

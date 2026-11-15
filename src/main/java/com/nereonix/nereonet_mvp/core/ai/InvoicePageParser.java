@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 
 /**
  * Turns one page's OCR output (markdown text, and its tables as markdown) into a PageReading. Plain Java, no
- * model: the same for Mistral's OCR and the fake.
+ * model: the same for the local OCR (OcrLayout) and the fake.
  *
  * The table of lines is the first markdown table whose header row names its columns, in English or Greek (accents and
  * case do not matter, a cell may hold both: "Περιγραφή / Description"):

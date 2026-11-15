@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Turns what the Chief cook said while counting the store into count lines, called by the server only
- * (VoiceCountService). MistralCountExtractor is the real one; FakeCountExtractor answers in dev (app.mistral.fake) and
+ * (VoiceCountService). ClaudeCountExtractor is the real one; FakeCountExtractor answers in dev (app.claude.fake) and
  * in the tests. Only the text and the item list are sent anywhere: never a name of the crew or anything else.
  */
 public interface CountExtractor {

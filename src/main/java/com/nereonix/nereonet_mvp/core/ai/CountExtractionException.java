@@ -6,7 +6,7 @@ package com.nereonix.nereonet_mvp.core.ai;
  */
 public class CountExtractionException extends RuntimeException {
 
-    /** TIMEOUT: no answer within app.mistral.timeout. PROVIDER_ERROR: anything else (a status, no connection, no
+    /** TIMEOUT: no answer within app.claude.timeout. PROVIDER_ERROR: anything else (a status, no connection, no
      *  key). An answer that is not valid JSON is not a failure: it is "nothing understood". */
     public enum Reason {
         TIMEOUT, PROVIDER_ERROR

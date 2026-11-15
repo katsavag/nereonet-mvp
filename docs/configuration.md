@@ -29,25 +29,24 @@ Set these environment variables:
 | `VESSELAPI_FAKE` | optional; `true` answers with built-in sample data instead of VesselAPI (dev screens without a key), default `false` |
 | `SIRE_REPORT_CURRENT_MONTHS` | optional (P41); company policy: months a SIRE 2.0 report is treated as current after the inspection, default `12` (see [25](features/25-vetting.md)) |
 | `SIRE_COMMENT_DAYS` | optional (P41); company policy: days for the operator comments on a draft SIRE 2.0 report, default `14` |
-| `ASSEMBLYAI_API_KEY` | optional (P57); the AssemblyAI key for counting the store by voice; with `MISTRAL_API_KEY`, the Count page offers the microphone (see [34](features/34-voice-count.md)). Put it in the environment or the gitignored `.env`, never in a checked-in file |
+| `ASSEMBLYAI_API_KEY` | optional (P57); the AssemblyAI key for counting the store by voice; with `ANTHROPIC_API_KEY`, the Count page offers the microphone (see [34](features/34-voice-count.md)). Put it in the environment or the gitignored `.env`, never in a checked-in file |
 | `ASSEMBLYAI_BASE_URL` | optional; default `https://api.assemblyai.com` (`https://api.eu.assemblyai.com` for the EU) |
 | `ASSEMBLYAI_TIMEOUT` | optional; how long one recording may take, upload to text, default `60s` |
 | `ASSEMBLYAI_LANGUAGE_CODE` | optional; default `en` |
 | `ASSEMBLYAI_FAKE` | optional; `true` answers with a fixed sentence instead of AssemblyAI (dev screens without a key), default `false` |
-| `MISTRAL_API_KEY` | optional (P57); the Mistral key that turns the text into count lines (see [34](features/34-voice-count.md)). Environment or `.env` only |
-| `MISTRAL_BASE_URL` | optional; default `https://api.mistral.ai` |
-| `MISTRAL_MODEL` | optional; default `mistral-small-2603` (Mistral Small 4) |
-| `MISTRAL_TIMEOUT` | optional; default `30s` |
-| `MISTRAL_OCR_MODEL` | optional (P62); default `mistral-ocr-4-1` (OCR 4.1), for reading the delivery invoice (see [37](features/37-invoice-photo.md)) |
-| `MISTRAL_OCR_TIMEOUT` | optional; default `60s` per page |
-| `INVOICE_READER` | optional (P67); who reads the photographed delivery invoice: `local` (default, the OCR on the server, see below) or `mistral` (Mistral OCR, needs `MISTRAL_API_KEY`) (see [37](features/37-invoice-photo.md)) |
+| `ANTHROPIC_API_KEY` | optional (P57, P69); the Anthropic key with which Claude turns the text into count lines (see [34](features/34-voice-count.md)). Environment or `.env` only |
+| `ANTHROPIC_BASE_URL` | optional; default `https://api.anthropic.com` |
+| `CLAUDE_MODEL` | optional; default `claude-haiku-5-5` (Claude Haiku 5.5) |
+| `CLAUDE_TIMEOUT` | optional; default `30s` |
+| `CLAUDE_MAX_RETRIES` | optional; tries again after a 429, a 5xx, no connection or a timeout, default `1` |
 | `OCR_MODEL_DIR` | optional; default `models/ocr` (from the working directory), the folder with the local OCR models; without them invoices are not read |
 | `OCR_MAX_SIDE` | optional; default `1600`, the page is scaled to this many pixels on its long side to find the text |
 | `OCR_THREADS` | optional; default `2`, CPU threads one reading uses |
 | `INVOICE_MIN_CONFIDENCE` | optional; default `0.85`, below it an invoice line is flagged "check" |
 | `INVOICE_READING_STALLED_AFTER` | optional; default `15m`, a reading not finished by then is given up |
+| `INVOICE_FAKE` | optional (P69); `true` "reads" the sample invoice instead of the local OCR (dev screens without the models), default `false` |
 | `INVOICE_SAMPLE_DIR` | optional; default `samples/invoice`, the sample invoice the fake reader reads |
-| `MISTRAL_FAKE` | optional; `true` matches item names with simple rules instead of Mistral, default `false` |
+| `CLAUDE_FAKE` | optional; `true` matches item names with simple rules instead of Claude, default `false` |
 | `QUANTITY_MAX_KG`, `QUANTITY_MAX_LT` | optional (P60); the most one request, order or receipt line may hold in kg / lt, default `2000` (see [35](features/35-input-limits.md)) |
 | `QUANTITY_MAX_G`, `QUANTITY_MAX_ML` | optional; the same in g / ml, default `50000` |
 | `QUANTITY_MAX_COUNTABLE` | optional; the same for pcs, box and every other countable or unknown unit, default `5000` |
@@ -59,7 +58,7 @@ Set these environment variables:
 
 ## Local OCR models
 
-The invoice reader (`INVOICE_READER=local`) needs three files in `OCR_MODEL_DIR` (default `models/ocr`, gitignored).
+The invoice reader needs three files in `OCR_MODEL_DIR` (default `models/ocr`, gitignored).
 They are PaddleOCR's official ONNX exports (Apache 2.0), about 13 MB in all:
 
 | File | Download |

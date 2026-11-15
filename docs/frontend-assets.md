@@ -6,9 +6,9 @@ The app makes no request to any other host: everything a page needs is served fr
 The server itself calls a few external hosts, all optional and off until configured, and never from the browser:
 RightShip (P40, `RIGHTSHIP_BASE_URL`, see [25](features/25-vetting.md)) and VesselAPI (P45, `https://api.vesselapi.com/v1`, only
 while `VESSELAPI_API_KEY` is set, and only when a user presses **Look up by IMO** or **Refresh from VesselAPI**, see
-29), and for counting the store by voice AssemblyAI (P57, `https://api.assemblyai.com`, the recording) and Mistral
-(`https://api.mistral.ai`, the text and the vessel's provisions), only while both `ASSEMBLYAI_API_KEY` and
-`MISTRAL_API_KEY` are set, and only when the Chief cook sends a recording (see [34](features/34-voice-count.md)). The photographed delivery invoice is read on the server by default (P67, nothing is sent); with `INVOICE_READER=mistral` Mistral OCR reads it instead (the page images only, while `MISTRAL_API_KEY` is set, see [37](features/37-invoice-photo.md)). (The VesselFinder map of the ship
+29), and for counting the store by voice AssemblyAI (P57, `https://api.assemblyai.com`, the recording) and Claude
+(P69, `https://api.anthropic.com`, the text and the vessel's provisions), only while both `ASSEMBLYAI_API_KEY` and
+`ANTHROPIC_API_KEY` are set, and only when the Chief cook sends a recording (see [34](features/34-voice-count.md)). The photographed delivery invoice is read on the server (P67, nothing is sent, see [37](features/37-invoice-photo.md)). (The VesselFinder map of the ship
 page is a separate experiment, `SHIP_MAP_ENABLED`.)
 
 - `vendor/bootstrap/`: Bootstrap 5.3.8 (`bootstrap.min.css`, `bootstrap.bundle.min.js`), unchanged from the
