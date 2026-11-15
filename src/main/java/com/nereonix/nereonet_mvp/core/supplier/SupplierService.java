@@ -18,7 +18,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
-// The office's suppliers (P44): the list, adding and editing. A supplier is never deleted (its RFQs keep it);
+// The office's suppliers: the list, adding and editing. A supplier is never deleted (its RFQs keep it);
 // "active" takes it out of new RFQs.
 @Service
 public class SupplierService {

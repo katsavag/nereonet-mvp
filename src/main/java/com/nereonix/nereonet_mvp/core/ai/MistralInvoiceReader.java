@@ -37,7 +37,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The real invoice reader (P62): Mistral's OCR, as its API reference describes it (checked 15 Nov 2026 against
+ * The real invoice reader: Mistral's OCR, as its API reference describes it (checked 15 Nov 2026 against
  * docs.mistral.ai/api/endpoint/ocr and its OpenAPI schema).
  * POST /v1/ocr with "Authorization: Bearer &lt;key&gt;", one page per call:
  *   {"model": app.mistral.ocr-model, "document": {"type": "image_url", "image_url": "data:image/jpeg;base64,..."},

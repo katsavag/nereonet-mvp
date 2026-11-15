@@ -25,7 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 /**
- * Forgot password (P14). Public pages (see SecurityConfig):
+ * Forgot password. Public pages (see SecurityConfig):
  *   /password/forgot       one email field; always answered with a redirect to /password/forgot/sent
  *   /password/forgot/sent  "If an account exists for this address, we sent a link", the same page for every address
  *   /password/reset        the new password, from the emailed link; afterwards the user is signed in
@@ -83,7 +83,7 @@ public class PasswordResetController {
         return "passwordreset/reset";
     }
 
-    // Reset: signed in at once and sent to the home page, as after registration (P13).
+    // Reset: signed in at once and sent to the home page, as after registration.
     @PostMapping("/password/reset")
     public String reset(@Valid @ModelAttribute("form") ResetPasswordForm form, BindingResult result, Model model,
                         RedirectAttributes redirectAttributes,

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.invoice.title(${order.id})}, ~{::main})}">
 <body>
-<!-- P64, View invoice: the photographed pages of a received order's invoice, one at a time ("Page 1 of 2", Previous
+<!-- View invoice: the photographed pages of a received order's invoice, one at a time ("Page 1 of 2", Previous
      and Next; the image opens full size in a new tab to zoom), beside what was read from that page: its lines with the
      flags in words (corrected, hard to read, quantity not read, changed by the office), the value as read where the
-     office changed one, and the P62 checks of the page (and of the whole invoice). While the invoice is not matched
+     office changed one, and the reading checks of the page (and of the whole invoice). While the invoice is not matched
      the office corrects a line read wrong (Correct this line: quantity, unit price, amount, description; an empty
      field keeps the value). Side by side from 992px; on phones the photo is above the lines.
      Model: order, comparison, page, pageCount, pageFile (OrderReceiptFile or null), lines, checks, editable,

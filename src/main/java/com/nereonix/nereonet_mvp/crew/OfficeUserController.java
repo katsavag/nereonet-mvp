@@ -25,7 +25,7 @@ import com.nereonix.nereonet_mvp.ship.ShipTab;
 import jakarta.validation.Valid;
 
 /**
- * The Office users page (P07): office users and pending office invitations in one list, with "Invite office user".
+ * The Office users page: office users and pending office invitations in one list, with "Invite office user".
  * The former Office invitations page (/office/invitations) redirects here; its POST URLs stay.
  * Deactivate, activate and delete are in CrewController (shared with the crew list).
  * /office/** is limited to OFFICE_USER in SecurityConfig.
@@ -35,7 +35,7 @@ public class OfficeUserController {
 
     private static final String LIST = "redirect:/office/users";
 
-    // The columns that sort (P19), the default first.
+    // The columns that sort, the default first.
     private static final ListSort[] SORTS = {ListSort.asc("name"), ListSort.asc("email"), ListSort.asc("status")};
 
     private final CrewService crewService;
@@ -50,7 +50,7 @@ public class OfficeUserController {
     }
 
     // The invite form is a modal on the list page. status: the Status filter (CrewStatus key); listRequest: search,
-    // sort and page (P19).
+    // sort and page.
     @GetMapping("/office/users")
     public String list(@RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
                        Model model) {
@@ -87,7 +87,7 @@ public class OfficeUserController {
     }
 
     // Office and crew invitations. Each returns to the list it was started from (CrewListReturn): Office users, the
-    // Overview's "Needs attention" list (returnTo=overview, P09), the Crew list with its filters (returnTo=crew, P17) or
+    // Overview's "Needs attention" list (returnTo=overview), the Crew list with its filters (returnTo=crew) or
     // a ship page's Crew tab (tab=crew). Never a redirect to a URL taken from the request.
     @PostMapping("/office/invitations/{id}/resend")
     public String resend(@PathVariable Long id, @RequestParam(required = false) String returnTo,
@@ -100,7 +100,7 @@ public class OfficeUserController {
         return "redirect:" + CrewListReturn.of(returnTo, tab, shipId, status, listRequest).url();
     }
 
-    // The confirmation page: where Cancel leads when js/confirm.js did not load (P10). It keeps where to return to, as
+    // The confirmation page: where Cancel leads when js/confirm.js did not load. It keeps where to return to, as
     // fields of its form and in its breadcrumbs. An invitation that is no longer pending goes back to the list with the
     // same message as cancelling it.
     @GetMapping("/office/invitations/{id}/cancel")

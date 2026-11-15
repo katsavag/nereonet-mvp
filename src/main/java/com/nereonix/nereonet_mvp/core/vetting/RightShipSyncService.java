@@ -28,7 +28,7 @@ import com.nereonix.nereonet_mvp.core.vetting.RightShipClient.RightShipException
 import com.nereonix.nereonet_mvp.core.vetting.RightShipClient.VesselInfo;
 
 /**
- * The RightShip API sync (P40), read only, and only when the API is configured (RightShipSettings); otherwise nothing
+ * The RightShip API sync, read only, and only when the API is configured (RightShipSettings); otherwise nothing
  * here ever calls RightShip.
  * <ul>
  *   <li>Nightly (app.rightship.sync-cron, UTC): GET /vessel/v2/updates?SinceDate= the day of the last run that worked,

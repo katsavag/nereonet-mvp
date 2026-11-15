@@ -8,10 +8,10 @@
         <div th:if="${param.error}" class="alert alert-danger" role="alert" th:text="#{login.error}">
             Wrong email or password.
         </div>
-        <!-- Only after the right password (P13, SecurityConfig): a wrong one gets the message above. -->
+        <!-- Only after the right password (SecurityConfig): a wrong one gets the message above. -->
         <div th:if="${param.deactivated != null and param.error == null}" class="alert alert-danger" role="alert"
              th:text="#{login.deactivated}">This account is deactivated. Contact your office.</div>
-        <!-- A form sent after the session expired (P12, core/security/SignedOutHandler); after signing in
+        <!-- A form sent after the session expired (core/security/SignedOutHandler); after signing in
              the user is back on the page the form was on. -->
         <div th:if="${param.expired != null and param.error == null and param.deactivated == null}"
              class="alert alert-info" role="status"
@@ -31,12 +31,13 @@
                     <th:block th:replace="~{layout/parts :: passwordToggle('password')}"></th:block>
                 </div>
                 <p th:replace="~{layout/parts :: capsLockHint('password')}"></p>
-                <!-- P14: a new password by email, without the office. -->
+                <!-- A new password by email, without the office. -->
                 <p th:replace="~{layout/parts :: authLink('/password/forgot', #{login.forgot})}"></p>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100" th:data-busy-label="#{save.busy.signIn}"
                     th:text="#{login.submit}">Continue</button>
         </form>
+        <script th:src="@{/js/password.js}" defer></script>
     </th:block>
 </main>
 </body>

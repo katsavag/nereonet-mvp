@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.quote.title(${quote.supplier.name})}, ~{::main})}">
 <body>
-<!-- Enter quote (P44): what one supplier answered, typed in by the office from their email or PDF.
-     1. Per line (by category, P32): unit price (of one pack), quantity offered (in packs), pack size and unit
+<!-- Enter quote: what one supplier answered, typed in by the office from their email or PDF.
+     1. Per line (by category): unit price (of one pack), quantity offered (in packs), pack size and unit
         (empty: one of the item's unit; "5" "L" for a 5 L can of an item in lt) and a note. A line without a price is
         not offered and shows "Not offered" in the comparison. The quantity starts as the quantity asked.
      2. The quote: currency (the supplier's to start with), delivery cost, delivery date, valid until.
      3. The supplier's PDF, optional (in place of one uploaded before).
      Inputs are named lines[i].field and have that as their id, so the error summary's links find them. On phones the
      lines scroll sideways inside their box with the item column fixed.
-     Model: order, rfq, quote (RfqQuote), form (QuoteForm), groups (RfqController.QuoteGroup). P60: quantities offered and pack sizes follow the rule of their unit; the unit price and
+     Model: order, rfq, quote (RfqQuote), form (QuoteForm), groups (RfqController.QuoteGroup). Quantities offered and pack sizes follow the rule of their unit; the unit price and
      delivery cost are capped at maxAmount. -->
 <main th:with="action=${'/office/orders/' + order.id + '/rfqs/' + rfq.id + '/quotes/' + quote.id}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{rfq.quote.title(${quote.supplier.name})}, crumbs=~{rfq/parts :: crumbs(${order}, ${rfq})},

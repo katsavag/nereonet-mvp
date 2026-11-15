@@ -90,7 +90,7 @@ class SaveFlowTest {
         User office = userRepository.findByEmail("office@example.com").orElseThrow();
         String page = html(get("/office/ships"));
         assertThat(body(page)).contains("data-user=\"" + office.getId() + "\"");
-        assertThat(page).containsPattern("<script src=\"/js/save(-[0-9a-f]+)?\\.js\"></script>")
+        assertThat(page).containsPattern("<script src=\"/js/save(-[0-9a-f]+)?\\.js\" defer></script>")
                 .containsOnlyOnce("id=\"offlineBanner\"")
                 .contains("data-text=\"No connection. Your text is kept on this device.\"",
                         "data-blocked=\"Not sent: there is no connection. Send it again when the connection is back.\"",

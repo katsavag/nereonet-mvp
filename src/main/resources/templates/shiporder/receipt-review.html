@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.receipt.review.title}, ~{::main})}">
 <body>
-<!-- "Confirm receipt" (P51), step 2 of 2 (P10): what will be saved, before anything is. Per line ordered and received,
+<!-- "Confirm receipt", step 2 of 2: what will be saved, before anything is. Per line ordered and received,
      lines short marked with an icon and "Short by 5 kg"; the receipt's files (each opens in a new tab); when they were
      received. The form carries the lines and the time in hidden fields: "Confirm receipt" posts them to /confirm, which
      closes the order and notifies the office; "Back to edit" to /edit, the form with the values. Item names are not
-     links: leaving would lose the review. data-draft-for: once confirmed, js/save.js removes the form's draft (P15).
+     links: leaving would lose the review. data-draft-for: once confirmed, js/save.js removes the form's draft.
      English only. Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), shortLines, files.
-     (P63: a count of the Chief cook is approved on its own page, receipt-approve.html.) -->
+     (a count of the Chief cook is approved on its own page, receipt-approve.html.) -->
 <main class="form-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.review.title}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.review.hint})}">

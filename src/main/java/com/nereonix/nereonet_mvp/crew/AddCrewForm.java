@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The "Add crew member" pop-up on the crew page. Sends an invitation. There is no role: it follows from the rank (P18).
+// The "Add crew member" pop-up on the crew page. Sends an invitation. There is no role: it follows from the rank.
 public class AddCrewForm {
 
     @NotBlank(message = "{user.error.fullNameRequired}")

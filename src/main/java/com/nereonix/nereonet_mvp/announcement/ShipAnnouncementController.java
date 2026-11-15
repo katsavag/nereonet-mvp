@@ -20,12 +20,12 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 // The crew's announcements (P27, SecurityConfig: /ship/** is for ship roles), called News on the crew side since P39
 // (/ship/news; the office keeps "Announcements"). Each person sees only the news items they are a recipient of, and
 // only their own read state: never who else has or has not read them. One they did not receive is a 404. Opening one
-// marks it read (P39: no button). English only, as every crew screen.
+// marks it read (no button). English only, as every crew screen.
 @Controller
 public class ShipAnnouncementController {
 
     static final String NEWS = "/ship/news";
-    /** News items per page (P47): the list shows pages 1 to ?page=n, "Show older" adds the next one. */
+    /** News items per page: the list shows pages 1 to ?page=n, "Show older" adds the next one. */
     static final int PAGE_SIZE = 10;
     /** The most pages one request shows, so a hand-made URL cannot ask for everything at once. */
     static final int MAX_PAGES = 50;
@@ -40,7 +40,7 @@ public class ShipAnnouncementController {
         this.userRepository = userRepository;
     }
 
-    /** One row of the News list (P47): the person's own recipient row and a one-line plain-text preview of the text. */
+    /** One row of the News list: the person's own recipient row and a one-line plain-text preview of the text. */
     public record NewsRow(AnnouncementRecipient recipient, String preview) {
 
         public boolean isUnread() {
@@ -48,7 +48,7 @@ public class ShipAnnouncementController {
         }
     }
 
-    // P47: the first `page` pages (10 each) in one list, limited in the database: unread first ("New"), then read
+    // The first `page` pages (10 each) in one list, limited in the database: unread first ("New"), then read
     // ("Earlier"), each newest first. "Show older" links to page + 1 while there are more.
     @GetMapping(NEWS)
     public String list(@AuthenticationPrincipal CurrentUser currentUser,

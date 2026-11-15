@@ -9,7 +9,7 @@ import com.nereonix.nereonet_mvp.core.importfile.ImportField;
 import com.nereonix.nereonet_mvp.core.importfile.ImportNames;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
-// Matches the rank values of a crewing system's file to the ranks (P24). Exact: the rank's name in any spelling
+// Matches the rank values of a crewing system's file to the ranks. Exact: the rank's name in any spelling
 // ("Chief Engineer", "CHIEF_ENGINEER", "chief engineer"). Suggested: the usual short forms ("C/E", "Ch. Eng.", "2/O"),
 // or the one rank whose name starts with the value ("Chief Eng").
 final class RankMatcher implements ImportField.ValueMatcher {

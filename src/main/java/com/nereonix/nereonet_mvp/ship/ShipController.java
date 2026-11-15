@@ -33,7 +33,7 @@ import com.nereonix.nereonet_mvp.core.vesseldata.VesselDataService;
 import com.nereonix.nereonet_mvp.core.vesseldata.VesselLookup;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipView;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
-import com.nereonix.nereonet_mvp.dashboard.DashboardService;
+import com.nereonix.nereonet_mvp.dashboard.ShipOverviewService;
 
 import jakarta.validation.Validator;
 
@@ -43,7 +43,7 @@ import jakarta.validation.Validator;
 // in its header; its forms send "tab", the key of the tab they were on, and come back to that tab. Without
 // JavaScript, Edit opens /office/ships/{id}/edit, a full page with the same form, and Add vessel /office/ships/new.
 //
-// P45, VesselAPI (only while VesselApiSettings.configured()): "Look up by IMO" on Add vessel and "Refresh from
+// VesselAPI (only while VesselApiSettings.configured()): "Look up by IMO" on Add vessel and "Refresh from
 // VesselAPI" on Edit vessel are submit buttons with their own action (formaction), so they work without JavaScript;
 // both show the full page with the results. The lookup is kept by the server (VesselLookupStore) under a token the
 // form carries; Save takes the provider's values from there, only for that user and that IMO number. The forms keep
@@ -53,7 +53,7 @@ public class ShipController {
 
     private final ShipService shipService;
     private final ShipFrame shipFrame;
-    private final DashboardService dashboardService;
+    private final ShipOverviewService shipOverviewService;
     private final ConfirmPages confirmPages;
     private final VettingService vettingService;
     private final VesselDataService vesselDataService;
@@ -63,12 +63,12 @@ public class ShipController {
     private static final String LIST = "/office/ships";
     private static final ListSort[] SORTS = {ListSort.asc("name"), ListSort.asc("score")};
 
-    public ShipController(ShipService shipService, ShipFrame shipFrame, DashboardService dashboardService,
+    public ShipController(ShipService shipService, ShipFrame shipFrame, ShipOverviewService shipOverviewService,
                           ConfirmPages confirmPages, VettingService vettingService,
                           VesselDataService vesselDataService, VesselLookupStore lookupStore, Validator validator) {
         this.shipService = shipService;
         this.shipFrame = shipFrame;
-        this.dashboardService = dashboardService;
+        this.shipOverviewService = shipOverviewService;
         this.confirmPages = confirmPages;
         this.vettingService = vettingService;
         this.vesselDataService = vesselDataService;
@@ -76,13 +76,13 @@ public class ShipController {
         this.validator = new SpringValidatorAdapter(validator);
     }
 
-    // The ship page's Overview tab: open items, crew on board by department, particulars; P45: a line with the
+    // The ship page's Overview tab: open items, crew on board by department, particulars; a line with the
     // stored position age and destination (no call to VesselAPI).
     @GetMapping("/office/ships/{id}")
     public String overview(@PathVariable Long id, Model model) {
         Ship ship = shipService.get(id);
         shipFrame.show(model, ship, ShipTab.OVERVIEW);
-        model.addAttribute("overview", dashboardService.shipOverview(ship));
+        model.addAttribute("overview", shipOverviewService.shipOverview(ship));
         model.addAttribute("vesselData", vesselDataService.view(ship));
         model.addAttribute("today", LocalDate.now(ZoneOffset.UTC));
         return "ship/overview";
@@ -95,14 +95,14 @@ public class ShipController {
         return showEditPage(shipService.get(id), tab, model, null);
     }
 
-    // Sorted by name (the default) or by RightShip Safety Score (P40: lowest first; not rated last either way). The
+    // Sorted by name (the default) or by RightShip Safety Score (lowest first; not rated last either way). The
     // fleet is small: no search, filters or pages.
     @GetMapping("/office/ships")
     public String list(@ModelAttribute ListRequest listRequest, Model model) {
         return showList(listRequest, model);
     }
 
-    // Add vessel as a page: where Add vessel leads without JavaScript, and where a lookup shows its results (P45).
+    // Add vessel as a page: where Add vessel leads without JavaScript, and where a lookup shows its results.
     @GetMapping("/office/ships/new")
     public String newPage(Model model) {
         model.addAttribute("newForm", new NewShipForm());
@@ -211,7 +211,7 @@ public class ShipController {
     }
 
     // page: posted from the full Edit page (no tab, from the ships list); errors are then shown there, not in the
-    // list's modal. P45: with a lookup token, the ticked rows of the Saved / VesselAPI table take the lookup's values.
+    // list's modal. With a lookup token, the ticked rows of the Saved / VesselAPI table take the lookup's values.
     @PostMapping("/office/ships/{id}/edit")
     public String update(@PathVariable Long id, @ModelAttribute("editForm") EditShipForm form,
                          BindingResult result, @RequestParam(required = false) String tab,
@@ -253,7 +253,7 @@ public class ShipController {
         return back(id, tab);
     }
 
-    // The confirmation page: where Deactivate leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Deactivate leads when js/confirm.js did not load.
     @GetMapping("/office/ships/{id}/deactivate")
     public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
         Ship ship = shipService.get(id);

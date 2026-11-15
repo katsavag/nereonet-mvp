@@ -28,7 +28,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The office corrects the lines of a SENT order before arranging delivery (P50): change a quantity, remove a line, add
+ * The office corrects the lines of a SENT order before arranging delivery: change a quantity, remove a line, add
  * one of the ship's active items (or add to its line when the item is already there). Once the delivery is confirmed
  * (CONFIRMED) the lines are read-only again. Each change locks the order's row (as ShipOrderService.confirm does), is
  * recorded in the audit log (line, before, after, note) and marks the line as changed since the ship was last told.
@@ -78,7 +78,7 @@ public class OfficeOrderEditService {
         this.quiet = quiet;
     }
 
-    /** True while the office can change the order's lines: SENT (P49: "Pending"). */
+    /** True while the office can change the order's lines: SENT ("Pending"). */
     public static boolean isEditable(ShipOrder order) {
         return order.getStatus() == ShipOrderStatus.SENT;
     }

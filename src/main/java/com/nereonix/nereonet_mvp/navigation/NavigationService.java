@@ -59,14 +59,14 @@ public class NavigationService {
                 orderService.countNotReceived(), vettingService.vesselsNeedingAttention());
     }
 
-    /** The Master's counter of Approvals (P33): PENDING requests of the ship of the user with this email. */
+    /** The Master's counter of Approvals: PENDING requests of the ship of the user with this email. */
     @Transactional(readOnly = true)
     public long approvalsWaiting(String email) {
         return requestRepository.countByStatusOnShipOf(RequestStatus.PENDING, email);
     }
 
     /**
-     * The Master's counter of Vessel order (P35; orders, not lines, since P59): the orders of the ship of the user with
+     * The Master's counter of Vessel order (orders, not lines, since P59): the orders of the ship of the user with
      * this email that need the Master, the OPEN one when it has a line (to send) and the CONFIRMED ones (to receive).
      * SENT orders wait for the office and are not counted.
      */
@@ -75,26 +75,26 @@ public class NavigationService {
         return orderRepository.countToActOnShipOf(email, ShipOrderStatus.OPEN, ShipOrderStatus.CONFIRMED);
     }
 
-    /** The Chief cook's counter of Stores (P52): provisions of the ship of the user with this email that are Low or
+    /** The Chief cook's counter of Stores: provisions of the ship of the user with this email that are Low or
      *  Out of stock. */
     @Transactional(readOnly = true)
     public long storesBelowThreshold(String email) {
         return stockService.belowThresholdOnShipOf(email);
     }
 
-    /** The Chief cook's and crew's counter of Requests (P54): their own requests still waiting for the Master. */
+    /** The Chief cook's and crew's counter of Requests: their own requests still waiting for the Master. */
     @Transactional(readOnly = true)
     public long requestsWaiting(String email) {
         return requestRepository.countByRequestedByEmailAndStatus(email, RequestStatus.PENDING);
     }
 
-    /** The crew's counter of Announcements (P37): the ones the user with this email has not acknowledged yet. */
+    /** The crew's counter of Announcements: the ones the user with this email has not acknowledged yet. */
     @Transactional(readOnly = true)
     public long announcementsToAcknowledge(String email) {
         return announcementRecipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email);
     }
 
-    /** The ship user's own 96px photo URL for the sidebar's user block (P43), or null without a photo. One query. */
+    /** The ship user's own 96px photo URL for the sidebar's user block, or null without a photo. One query. */
     @Transactional(readOnly = true)
     public String photoUrl(Long userId) {
         return profileRepository.findByUserId(userId).map(p -> p.photoUrl(96)).orElse(null);

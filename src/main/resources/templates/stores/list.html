@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.title}, ~{::main})}">
 <body>
-<!-- The Chief cook's store (P52): the stock of their own ship's provisions. English only, as every crew screen.
+<!-- The Chief cook's store: the stock of their own ship's provisions. English only, as every crew screen.
      Summary: Low and Out of stock (each a link to that filter), the date of the last count ("Not counted yet") and,
-     since P54, the cook's requests waiting for the Master (to Requests, Waiting); since P55 the next delivery, port
+     the cook's requests waiting for the Master (to Requests, Waiting), and the next delivery, port
      and date, linking to its order (read only for the cook), or "None scheduled".
-     Then the search and the status filter (All, Low, Out of stock; GET, handled on the server, P19) and the items in
+     Then the search and the status filter (All, Low, Out of stock; GET, handled on the server) and the items in
      one card per storage place (alphabetical, the items without a place last under "Other"), each row one link (the
      name, stretched over the row) to the item, with its quantity and unit and its status badge.
      Model: stores (StoresService.Stores), list (ListQuery), status ("low", "out" or null). -->
 <main class="stores-page" th:with="s=${stores}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.title}, eyebrowShip=${s.ship},
             subtitle=#{stores.hint}, actions=~{::pageActions})}">
-        <!-- P53: History, every movement of the vessel; Count, counting by hand (only with something to count). -->
+        <!-- History, every movement of the vessel; Count, counting by hand (only with something to count). -->
         <th:block th:fragment="pageActions">
             <a class="btn btn-outline-secondary" th:href="@{/ship/stores/history}" th:text="#{stores.log.title}">History</a>
             <a th:if="${s.total > 0}" class="btn btn-primary" th:href="@{/ship/stores/count}"
@@ -44,7 +44,7 @@
                           th:text="#{stores.summary.notCounted}">Not counted yet</span>
                 </div>
             </li>
-            <!-- P54: the cook's own requests still waiting for the Master (requestsWaiting, from NavigationAdvice), to
+            <!-- The cook's own requests still waiting for the Master (requestsWaiting, from NavigationAdvice), to
                  Requests filtered to Waiting. -->
             <li>
                 <a class="stores-fact" th:href="@{/ship/requests(status='waiting')}">
@@ -52,7 +52,7 @@
                     <span class="stores-fact-value num" th:text="${requestsWaiting ?: 0}">1</span>
                 </a>
             </li>
-            <!-- P55: the vessel's order with a scheduled delivery, to that order. -->
+            <!-- The vessel's order with a scheduled delivery, to that order. -->
             <li class="stores-fact-wide">
                 <a th:if="${s.nextDelivery != null}" class="stores-fact" th:href="@{/ship/orders/{id}(id=${s.nextDelivery.id})}">
                     <span class="stores-fact-label" th:text="#{stores.summary.nextDelivery}">Next delivery</span>

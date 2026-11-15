@@ -18,7 +18,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
- * What a seafarer chose to say about themselves (P31): up to five languages, a nationality, a short bio and a photo,
+ * What a seafarer chose to say about themselves: up to five languages, a nationality, a short bio and a photo,
  * each optional. One row per user, created on their first Save and deleted with the user (database cascade). Name,
  * rank, department and ship are the office's and stay on User. Visible to everyone on the same ship and to the office.
  */
@@ -112,8 +112,8 @@ public class CrewProfile {
     }
 
     /**
-     * The URL of the person's own photo as the crew pages serve it (P31), with the profile's version so a new photo
-     * shows at once despite the cache header (P43): "/ship/crew/12/photo/<key>/96?v=1763000000"; null without a
+     * The URL of the person's own photo as the crew pages serve it, with the profile's version so a new photo
+     * shows at once despite the cache header: "/ship/crew/12/photo/<key>/96?v=1763000000"; null without a
      * photo. size: 96 or 512. The one place that builds it (layout/parts :: personAvatar shows it).
      */
     public String photoUrl(int size) {

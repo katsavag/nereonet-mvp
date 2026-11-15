@@ -15,7 +15,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
 /**
- * Who is on board a ship now (P31): its users with a crew role (Master, Chief cook, crew members) who are active.
+ * Who is on board a ship now: its users with a crew role (Master, Chief cook, crew members) who are active.
  * Only registered people are users; invited people are invitations and never show. One query, whatever the size of
  * the crew: the users with their profile (left join), selecting only the columns of a CrewmateView.
  */

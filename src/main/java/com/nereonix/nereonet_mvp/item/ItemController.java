@@ -36,14 +36,14 @@ public class ItemController {
         this.confirmPages = confirmPages;
     }
 
-    // The columns that sort (P19), the default first.
+    // The columns that sort, the default first.
     private static final ListSort[] SORTS =
             {ListSort.asc("name"), ListSort.asc("unit"), ListSort.asc("category"), ListSort.asc("place"),
                     ListSort.asc("status")};
 
     // The ship page's Items tab. status: active or inactive (anything else: both); category: PROVISIONS or
     // PERSONAL_ITEMS (anything else: both);
-    // listRequest: search, sort and page (P19).
+    // listRequest: search, sort and page.
     @GetMapping("/office/ships/{id}/items")
     public String list(@PathVariable Long id, @RequestParam(required = false) String status,
                        @RequestParam(required = false) String category, @ModelAttribute ListRequest listRequest,
@@ -113,7 +113,7 @@ public class ItemController {
         return "redirect:/office/ships/" + id + "/items";
     }
 
-    // The confirmation page: where Deactivate leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Deactivate leads when js/confirm.js did not load.
     @GetMapping("/office/ships/{id}/items/{itemId}/deactivate")
     public String confirmDeactivate(@PathVariable Long id, @PathVariable Long itemId, Model model) {
         Ship ship = itemService.getShip(id);

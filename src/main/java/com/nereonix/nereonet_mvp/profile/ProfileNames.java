@@ -9,7 +9,7 @@ import com.nereonix.nereonet_mvp.core.profile.Languages;
 import com.nereonix.nereonet_mvp.ship.Countries;
 
 /**
- * Names of a profile's languages and nationality for the templates (P31), as @profileNames: in English on the crew's
+ * Names of a profile's languages and nationality for the templates, as @profileNames: in English on the crew's
  * pages (English only), in the page language on the office's Profile card ("Ελληνικά", "Ελλάδα").
  */
 @Component("profileNames")

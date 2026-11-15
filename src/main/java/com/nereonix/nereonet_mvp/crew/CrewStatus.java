@@ -6,7 +6,7 @@ import java.util.Optional;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 
 /**
- * The Status filter of the Crew list (P17), sent as ?status=key so other pages (the Overview) can link to it:
+ * The Status filter of the Crew list, sent as ?status=key so other pages (the Overview) can link to it:
  * /office/crew?status=expired. Labels: crew.filter.status.<key> in messages.properties.
  * ACTIVE and INACTIVE are users (enabled or not); INVITED and EXPIRED are PENDING invitations before and after their
  * expiry date.
@@ -33,7 +33,7 @@ public enum CrewStatus {
         return Arrays.stream(values()).filter(status -> status.key.equals(key)).findFirst();
     }
 
-    /** The Status filter of a list (P19), with its chip "Status: Invitation expired"; nothing when status is null. */
+    /** The Status filter of a list, with its chip "Status: Invitation expired"; nothing when status is null. */
     static ListQuery filter(ListQuery list, CrewStatus status) {
         return status == null ? list
                 : list.filterKey("status", status.key, "user.status", "crew.filter.status." + status.key);

@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * The RightShip API, read only (P40), called by the server only (RightShipSyncService), never from the browser, and
+ * The RightShip API, read only, called by the server only (RightShipSyncService), never from the browser, and
  * only when it is configured (RightShipSettings). HttpRightShipClient is the real one; the tests use a fake.
  * Every method throws RightShipException when the call fails (no connection, an error status, an answer it cannot
  * read).

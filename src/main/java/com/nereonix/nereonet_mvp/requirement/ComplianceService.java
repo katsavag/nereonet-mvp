@@ -19,7 +19,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * Who is missing what (P42), worked out on every read from the requirements and the certificates: nothing derived is
+ * Who is missing what, worked out on every read from the requirements and the certificates: nothing derived is
  * stored, so a changed requirement shows everywhere on the next page load. Each method runs a fixed number of
  * queries: the requirements with their ranks (one), then the certificates of the people asked about (one; none when
  * no requirement is set).

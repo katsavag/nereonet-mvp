@@ -11,14 +11,14 @@ import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 /**
- * Where an invitation's Resend or Cancel returns to (P17): the list the button was on, as it was (P19: its search,
+ * Where an invitation's Resend or Cancel returns to: the list the button was on, as it was (its search,
  * filters, sort, page and page size). The forms send it back as fields (params()); the controller rebuilds it from
  * them with of(...). Never a URL taken from the request: only known keys, a numeric ship id, a known status, a sort
  * key of letters, asc or desc, a known page size and a page number; the search is encoded.
  * <ul>
  *   <li>tab=crew&amp;shipId=3, with the status filter when set: the ship page's Crew tab, /office/ships/3/crew;</li>
  *   <li>returnTo=crew, with the filters shipId and status when set: the fleet Crew list, /office/crew?shipId=3&amp;status=expired;</li>
- *   <li>returnTo=overview: the Overview (P09);</li>
+ *   <li>returnTo=overview: the Overview;</li>
  *   <li>anything else: Office users, where office invitations are listed, with its status filter.</li>
  * </ul>
  */

@@ -72,14 +72,14 @@ public class MasterHomeService {
     public MasterHome load(String email) {
         User master = userRepository.findByEmail(email).orElseThrow();
         Ship ship = master.getShip();
-        // P59: the deliveries the Master confirms receipt of (CONFIRMED); with exactly one, the card opens its receipt.
+        // The deliveries the Master confirms receipt of (CONFIRMED); with exactly one, the card opens its receipt.
         List<ShipOrder> toReceive = orderRepository.findAllByShipIdAndStatus(ship.getId(), ShipOrderStatus.CONFIRMED);
         String deliveriesUrl = toReceive.size() == 1 ? "/ship/orders/" + toReceive.get(0).getId() + "/receipt"
                 : "/ship/order";
-        // P61: the deliveries the Chief cook counted, waiting for the Master's approval: "1 counted by the Chief cook,
+        // The deliveries the Chief cook counted, waiting for the Master's approval: "1 counted by the Chief cook,
         // to approve" under the card's label.
         long counted = toReceive.stream().filter(ShipOrder::isCountToApprove).count();
-        // P65: no Approvals card: Approvals is a tab (phones) and a sidebar entry with the same number waiting.
+        // No Approvals card: Approvals is a tab (phones) and a sidebar entry with the same number waiting.
         List<Card> cards = List.of(
                 Card.toDo("order", "order",
                         orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email), "/ship/order"),

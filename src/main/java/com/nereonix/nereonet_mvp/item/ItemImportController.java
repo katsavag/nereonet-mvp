@@ -32,7 +32,7 @@ import com.nereonix.nereonet_mvp.ship.ShipTab;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
 // The import in progress lives in the HTTP session as "itemImport" from the upload until it is done or cancelled; the
-// steps are ImportSteps (P24): upload, sheet, map, values, review, done. The review form binds the edited values onto
+// steps are ImportSteps: upload, sheet, map, values, review, done. The review form binds the edited values onto
 // its rows. An import belongs to the ship it was uploaded for: under another ship's URL every step leads back to that
 // ship's upload page, so rows never land on the wrong ship.
 @Controller

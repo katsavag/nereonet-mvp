@@ -20,14 +20,14 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 /**
- * The read queries of the office Overview (P09). Each method is exactly one SQL query. They return small projections,
+ * The read queries of the office Overview. Each method is exactly one SQL query. They return small projections,
  * never entities: the entities' many-to-one associations are eager, so loading entities would add one query per
  * related row and the page would get slower as the fleet grows.
  */
 @Repository
 public class DashboardQueries {
 
-    /** An active ship, as the Overview shows it (name links to the ship page), with its crew on board (P43). */
+    /** An active ship, as the Overview shows it (name links to the ship page), with its crew on board. */
     public record FleetShip(Long id, String name, String imoNumber, String flag, ShipType type, long crew) {
     }
 
@@ -36,7 +36,7 @@ public class DashboardQueries {
     }
 
     /**
-     * An order the office works on (P36, P43): sent and never exported (an open item), sent and not yet confirmed
+     * An order the office works on: sent and never exported (an open item), sent and not yet confirmed
      * (the "Orders waiting" tile), confirmed with a delivery within the next 30 days (the "Next 30 days" card), or
      * received with lines short and the shortage not handled (P51, an open item), or received with an invoice to match
      * (P64, an open item).
@@ -50,19 +50,19 @@ public class DashboardQueries {
             return exportedAt == null;
         }
 
-        /** Received with lines short, the shortage not handled yet (P51). */
+        /** Received with lines short, the shortage not handled yet. */
         public boolean shortageOpen() {
             return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null
                     && invoiceStatus == null;
         }
 
-        /** Received with a read invoice the office has not matched yet (P64). */
+        /** Received with a read invoice the office has not matched yet. */
         public boolean invoiceToMatch() {
             return status == ShipOrderStatus.CLOSED && invoiceStatus == InvoiceMatchStatus.TO_MATCH;
         }
     }
 
-    /** An open request for quotes of an active ship (P44), with how many suppliers have quoted and how many not yet
+    /** An open request for quotes of an active ship, with how many suppliers have quoted and how many not yet
      *  answered (sent, neither quoted, declined nor failed). */
     public record RfqRow(Long id, Long orderId, Long shipId, LocalDate replyBy, Instant sentAt, long quoted,
                          long waiting) {
@@ -72,7 +72,7 @@ public class DashboardQueries {
     }
 
     /** One announcement's recipients on one ship. fleetWide: sent to all ships; targetShips: how many ships it was
-     *  sent to otherwise (P28); shipId: the target when it is the only one, else null; recipientShipId the ship the
+     *  sent to otherwise; shipId: the target when it is the only one, else null; recipientShipId the ship the
      *  recipients were on when it was sent. */
     public record AnnouncementShipRow(Long id, String title, boolean fleetWide, Integer targetShips, Long shipId,
                                       Instant sentAt, Long recipientShipId, long recipients, long acknowledged) {
@@ -82,7 +82,7 @@ public class DashboardQueries {
                       long acknowledged) {
     }
 
-    /** What exists of the setup steps (P25): ships, crew (users with a ship role, pending crew invitations), library
+    /** What exists of the setup steps: ships, crew (users with a ship role, pending crew invitations), library
      *  items not retired and announcements; firstShipId is the first ship added, null without a ship. */
     public record SetupRow(long ships, long crewUsers, long crewInvitations, long libraryItems, long announcements,
                            Long firstShipId) {
@@ -106,7 +106,7 @@ public class DashboardQueries {
                 .getSingleResult();
     }
 
-    /** The active ships by name, each with its enabled crew on board (ship roles), in one query (P43). */
+    /** The active ships by name, each with its enabled crew on board (ship roles), in one query. */
     List<FleetShip> activeShips() {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$FleetShip(s.id, s.name, s.imoNumber,
@@ -119,7 +119,7 @@ public class DashboardQueries {
 
     /**
      * Certificates that expire on or before "until" (expired included), with the ship of their holder (null without
-     * one). Every ship, active or not (P43: the snooze sync needs the alerts of every certificate the lists can
+     * one). Every ship, active or not (the snooze sync needs the alerts of every certificate the lists can
      * snooze; the caller keeps the active ships' ones as open items).
      */
     List<CertificateRow> certificatesExpiringUntil(LocalDate until) {
@@ -133,9 +133,9 @@ public class DashboardQueries {
     }
 
     /**
-     * The orders of active ships the office works on (P36, P43): sent and never exported, sent and not yet confirmed,
+     * The orders of active ships the office works on: sent and never exported, sent and not yet confirmed,
      * confirmed with a delivery on or before "deliveriesUntil" (today or later), or received with lines short and the
-     * shortage not handled (P51), or received with an invoice not matched yet (P64), with their number of lines (lines removed by the office, P50, not counted).
+     * shortage not handled, or received with an invoice not matched yet, with their number of lines (lines removed by the office, P50, not counted).
      */
     List<OrderRow> orders(LocalDate today, LocalDate deliveriesUntil) {
         return entityManager.createQuery("""
@@ -160,7 +160,7 @@ public class DashboardQueries {
                 .getResultList();
     }
 
-    /** The open requests for quotes of active ships (P44), with their quoted and waiting suppliers counted. */
+    /** The open requests for quotes of active ships, with their quoted and waiting suppliers counted. */
     List<RfqRow> openRfqs() {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$RfqRow(

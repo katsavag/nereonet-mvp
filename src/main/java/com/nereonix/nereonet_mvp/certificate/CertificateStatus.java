@@ -14,7 +14,7 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
 /**
- * The Status filter of the Certificates list (P20): ?status=expired, 30, 60, 90, valid or all, and combinations of
+ * The Status filter of the Certificates list: ?status=expired, 30, 60, 90, valid or all, and combinations of
  * the states joined with a comma, so the Overview and the sidebar counter can link to exactly what they count
  * (?status=expired,30). Without the parameter, or with a value it does not know: expired and within 90 days.
  * <ul>
@@ -26,7 +26,7 @@ import jakarta.persistence.criteria.Predicate;
  * </ul>
  * Labels: certificate.filter.status.&lt;key&gt; (a combination: its own key with "-" for ",", else the states'
  * labels joined).
- * P43: "snoozed" lists only the certificates whose snooze holds (AlertSnooze), whatever their state; every other
+ * "snoozed" lists only the certificates whose snooze holds (AlertSnooze), whatever their state; every other
  * value but "all" leaves them out.
  */
 public record CertificateStatus(Set<State> states, boolean snoozed) {
@@ -77,7 +77,7 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
     /** "all": every certificate. */
     public static final String ALL = "all";
 
-    /** "snoozed": only the certificates whose snooze holds (P43). */
+    /** "snoozed": only the certificates whose snooze holds. */
     public static final String SNOOZED = "snoozed";
 
     /** Without a status: expired and within 90 days, what the list showed before P20. */
@@ -126,7 +126,7 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
         return !snoozed && states.equals(EnumSet.allOf(State.class));
     }
 
-    /** Snoozed certificates are left out: every view but "all" and "snoozed" (P43). */
+    /** Snoozed certificates are left out: every view but "all" and "snoozed". */
     public boolean excludesSnoozed() {
         return !snoozed && !isAll();
     }

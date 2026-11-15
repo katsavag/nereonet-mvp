@@ -17,7 +17,7 @@
 
     <!-- The content, then (Required item) the acknowledgement. The wrapper ends with the acknowledgement, so on phones
          the pinned acknowledge button (.ack-bar.is-pinned) stays at the bottom of the screen while the content
-         scrolls and comes to rest right after it (P22). -->
+         scrolls and comes to rest right after it. -->
     <div class="item-read">
         <th:block th:replace="~{core/library/parts :: itemContent(${'/ship/library/' + item.id + '/file'}, ${toAcknowledge})}"></th:block>
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.review.title}, ~{::main})}">
 <body>
-<!-- Request quotes, step 2 of 2 (P10, P44): what will be sent and to whom before anything is. The port, delivery and
+<!-- Request quotes, step 2 of 2: what will be sent and to whom before anything is. The port, delivery and
      reply-by dates, the suppliers (each gets its own email; none sees the others), what the email contains, and the
      items. The form carries everything in hidden fields: "Send to N suppliers" posts it to /office/orders/{id}/rfq,
      "Back to edit" to /office/orders/{id}/rfq/edit (the form again with the values). Model: order, form (RfqForm),
@@ -29,7 +29,7 @@
             <div class="card-body">
                 <h2 class="h5 fw-bold mb-1" id="rfqReviewSuppliers" th:text="#{rfq.review.suppliers(${chosen.size()})}">2 suppliers</h2>
                 <p class="form-text mt-0" th:text="#{rfq.review.email}">Each gets an email in English with the items, the port, the dates and an Excel file of the items; replies come to you.</p>
-                <ul class="rfq-review-suppliers">
+                <ul class="rfq-review-suppliers list-plain">
                     <li th:each="s : ${chosen}">
                         <span class="fw-semibold" th:text="${s.name}">VANOS (Piraeus)</span>
                         <span class="text-body-secondary" th:text="${s.email}">sales@vanos.gr</span>

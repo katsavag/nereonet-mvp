@@ -16,7 +16,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// "Request quotes" on a vessel order (P44): the port and delivery date (prefilled from the order's requested port
+// "Request quotes" on a vessel order: the port and delivery date (prefilled from the order's requested port
 // and needed by date), the reply-by date and the suppliers to ask (at least one). Shown again on the review page in
 // hidden fields. Dates follow the P39 plausible-date rule.
 public class RfqForm {

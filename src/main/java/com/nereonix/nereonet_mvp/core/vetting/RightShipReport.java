@@ -19,7 +19,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * An official RightShip document of a vessel (P40): the report as RightShip issued it, a PDF, PNG or JPEG of at most
+ * An official RightShip document of a vessel: the report as RightShip issued it, a PDF, PNG or JPEG of at most
  * 10 MB, stored like the library's files (LibraryFileStorage) under a generated name; the uploaded name is only shown
  * and used for the download. The newest (by document date, then upload) is "the official document" beside the
  * dashboard; the others are listed under it. Never changed after the upload.

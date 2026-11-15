@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The state of the RightShip API sync (P40), one row (id 1): when the last run that worked started (the next run asks
+ * The state of the RightShip API sync, one row (id 1): when the last run that worked started (the next run asks
  * for the updates since that day), and the last failure. A failure later than the last success is shown on the
  * Vetting list and on the RightShip pages ("Last sync failed at ... UTC").
  */

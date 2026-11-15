@@ -14,7 +14,7 @@ import org.springframework.data.domain.Page;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
 /**
- * The state of one office list (P19): search, filters, sort, page and page size, all in the URL so a list can be
+ * The state of one office list: search, filters, sort, page and page size, all in the URL so a list can be
  * reloaded, bookmarked and linked to (the Overview links to /office/crew?status=expired). The controller builds it
  * from the request with of(...) and adds its filters with filter(...); the service reads it to query one page in
  * the database (ListQueries, or its own SQL); the shared fragments (layout/parts :: filterBar, sortHeader, pager,
@@ -163,7 +163,7 @@ public final class ListQuery {
     }
 
     /**
-     * No rows and no search or filter set (P25): the list's own empty state, which says what the list is for and
+     * No rows and no search or filter set: the list's own empty state, which says what the list is for and
      * offers its first action, takes the place of the page header's actions. Not "No results for these filters".
      */
     public boolean emptyUnfiltered(Page<?> rows) {
@@ -249,8 +249,8 @@ public final class ListQuery {
         return (long) rows.getNumber() * rows.getSize() + rows.getNumberOfElements();
     }
 
-    /** The same search, filters and chosen sort at another path, without page and page size: the list's export
-     *  (P20), e.g. /office/certificates/export?status=expired. */
+    /** The same search, filters and chosen sort at another path, without page and page size: the list's export,
+     * e.g. /office/certificates/export?status=expired. */
     public String urlAt(String otherPath) {
         String url = build(q, null, sortChosen, sort.key(), descending, defaultSize(), 1, true);
         return otherPath + url.substring(path.length());

@@ -25,7 +25,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Send;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
-// The Master's ship order (P35): the OPEN order of their own ship, its lines edited one at a time (each change is
+// The Master's ship order: the OPEN order of their own ship, its lines edited one at a time (each change is
 // saved at once, nobody is notified), "Send to office", and the past orders ("All orders" since P59); P51: "Confirm
 // receipt" on a past order whose delivery is scheduled (OrderReceiptController), and its receipt once received. P55:
 // the Chief cook reads the same three pages (GET /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig), with
@@ -54,14 +54,14 @@ public class ShipOrderController {
         this.quantityRules = quantityRules;
     }
 
-    // P59: above the OPEN order, the orders in progress (sent, delivery scheduled), most urgent first.
+    // Above the OPEN order, the orders in progress (sent, delivery scheduled), most urgent first.
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         model.addAttribute("sendForm", new SendOrderForm());
         return showOrder(currentUser, model);
     }
 
-    // P60: the rule of the item's unit (core/form/QuantityRules): blank, not a number, zero or less, too many decimals
+    // The rule of the item's unit (core/form/QuantityRules): blank, not a number, zero or less, too many decimals
     // or above the maximum (unless unchanged): back to the line with the error under it and what was typed, and the
     // error with the item's name on top; nothing saved.
     @PostMapping("/ship/order/lines/{id}/quantity")
@@ -121,13 +121,13 @@ public class ShipOrderController {
         boolean canManage = pageService.canManage(currentUser.getUsername());
         model.addAttribute("view", view);
         model.addAttribute(CAN_MANAGE, canManage);
-        // P61: the Chief cook counts the delivery of a CONFIRMED order.
+        // The Chief cook counts the delivery of a CONFIRMED order.
         model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
-        // P62: Confirm receipt and Count delivery open "Photograph the invoice" first, until a page is photographed.
+        // Confirm receipt and Count delivery open "Photograph the invoice" first, until a page is photographed.
         boolean photographed = pageService.invoicePhotographed(id);
         model.addAttribute("invoiceFirstForMaster", ShipOrderPageService.invoiceFirstForMaster(view.order(), photographed));
         model.addAttribute("invoiceFirstForCook", ShipOrderPageService.invoiceFirstForCook(view.order(), photographed));
-        // P51: once received, the receipt's files; the Master's only (P55).
+        // Once received, the receipt's files; the Master's only.
         model.addAttribute("receiptFiles", canManage && view.order().getStatus() == ShipOrderStatus.CLOSED
                 ? receiptService.files(id) : List.of());
         return "shiporder/detail";

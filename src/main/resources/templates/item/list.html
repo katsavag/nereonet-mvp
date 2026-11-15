@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.items}, ~{::main})}">
 <body>
-<!-- The Items tab of the ship page (see ship/ShipFrame). No items yet (P25): the empty state holds Add item and Import,
+<!-- The Items tab of the ship page (see ship/ShipFrame). No items yet: the empty state holds Add item and Import,
      so the tab heading leaves them out. -->
 <main th:with="noItems=${list.emptyUnfiltered(items)}">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
@@ -19,7 +19,7 @@
         </th:block>
     </div>
 
-    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <!-- Search, filters and chips. A GET form, so the filtered page can be bookmarked. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{item.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <div class="filter-field">

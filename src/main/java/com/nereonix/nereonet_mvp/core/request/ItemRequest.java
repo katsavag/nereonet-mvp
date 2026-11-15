@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // A request for galley items from a ship (by the Chief cook or a crew member), approved or rejected by the Master.
-// An approved request goes into the ship's order (P34), which the Master sends to the office (core/order).
+// An approved request goes into the ship's order, which the Master sends to the office (core/order).
 @Entity
 @Getter
 @Setter

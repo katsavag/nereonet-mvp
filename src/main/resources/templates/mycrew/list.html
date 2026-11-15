@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{nav.myCrew}, ~{::main})}">
 <body>
-<!-- My crew (P31): who is on board the signed-in person's ship now (active users with a crew role; never invited or
+<!-- My crew: who is on board the signed-in person's ship now (active users with a crew role; never invited or
      deactivated people, nor other ships), grouped by department (Deck, Engine, Galley, then "Rank not set"), then by
      rank order, then by name. Each row is one link to the person's page (crew/parts :: crewmateRow); the signed-in
      person's row says "· you". Read only, English only, no script of its own. Built from mycrew/CrewmateView only, so

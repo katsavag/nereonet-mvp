@@ -20,7 +20,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * Snoozing alerts (P43): an office user puts a certificate or vetting item aside for a while, with a reason; every
+ * Snoozing alerts: an office user puts a certificate or vetting item aside for a while, with a reason; every
  * office user can undo it. While a snooze holds the item is left out of the counters, the Overview and the
  * reminders (the callers ask {@link #holds}); it stays in its list, muted. A snooze ends by itself (sync) when its
  * date passes, when the item is resolved (it no longer exists) or when it gets worse (its level dropped,

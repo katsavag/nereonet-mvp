@@ -11,7 +11,7 @@ import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
 
 /**
- * The HTML version of an ActionEmail (P29), from the Thymeleaf template templates/email/action.html: a table layout
+ * The HTML version of an ActionEmail, from the Thymeleaf template templates/email/action.html: a table layout
  * at most 600px wide with inline CSS only, the navy header band with the logo and "Nereonix" as text, the white card
  * with one navy button, the link again as text, and the footer. MailService sends it next to the plain text.
  */

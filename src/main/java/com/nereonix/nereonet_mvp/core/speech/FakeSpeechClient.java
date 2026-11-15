@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Answers instead of AssemblyAI when app.assemblyai.fake is true (P57): dev screens without a key, and the tests.
+ * Answers instead of AssemblyAI when app.assemblyai.fake is true: dev screens without a key, and the tests.
  * Whatever the recording, the text is SENTENCE, which names three items of the demo vessel (Tomatoes, Chicken breast
  * by one of its words, Eggs) and one it does not have (herring). Tests set their own text or failure with answer() /
  * fail() and read calls().

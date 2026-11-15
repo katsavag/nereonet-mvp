@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.receipt.title}, ~{::main})}">
 <body>
-<!-- "Confirm receipt" (P51), step 1 of 2: the Master says what arrived of a CONFIRMED order (delivery scheduled).
-     Per line the quantity ordered (after the office's changes, P50; lines the office removed are not listed) and the
+<!-- "Confirm receipt", step 1 of 2: the Master says what arrived of a CONFIRMED order (delivery scheduled).
+     Per line the quantity ordered (after the office's changes; lines the office removed are not listed) and the
      quantity received, prefilled with the ordered one, "Not delivered" (received 0) and an optional note; the delivery
      receipt (required: PDF, JPEG or PNG, at most 10 MB each, up to 10 files) and the date and time received (UTC, now
      to start with). Review shows step 2 (receipt-review.html). English only.
      Without JavaScript the files go with Review (a too large request comes back here with ?fileTooLarge); the files
      uploaded before are listed with a Remove tick. js/receipt.js sends each chosen file alone first, photos made
      smaller, with a progress bar, then the form without them; "Not delivered" empties and locks the quantity.
-     data-draft: js/save.js keeps the quantities, notes and time if the connection drops (P15).
+     data-draft: js/save.js keeps the quantities, notes and time if the connection drops.
      Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), files (OrderReceiptFile, uploaded so
-     far), maxFiles, maxFileSize, noteMax. P60: the received quantities follow the rule of the item's unit, 0 allowed;
+     far), maxFiles, maxFileSize, noteMax. The received quantities follow the rule of the item's unit, 0 allowed;
      receivedAtMin is the earliest date (the order sent).
-     P63: when the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead
+     When the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead
      (receipt-approve.html).
-     P62: the invoice's pages (photographed on "Photograph the invoice", linked above the files) are listed as
+     The invoice's pages (photographed on "Photograph the invoice", linked above the files) are listed as
      "Page 1 · Photograph the invoice" among the files. -->
 <main th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.heading}, crumbs=~{::pageCrumbs},
@@ -101,7 +101,7 @@
         <section class="card form-box mb-4" aria-labelledby="receiptFilesTitle">
             <div class="card-body p-3 p-md-4">
                 <h2 class="h5 fw-bold" id="receiptFilesTitle" th:text="#{order.receipt.files}">Delivery receipt</h2>
-                <!-- P62: the invoice's pages are receipt files too; photographed (or again) on their own page. -->
+                <!-- The invoice's pages are receipt files too; photographed (or again) on their own page. -->
                 <p class="mb-2"><a th:href="@{/ship/orders/{id}/invoice(id=${order.id})}" th:text="#{order.invoice.photograph}">Photograph
                     the invoice</a></p>
 

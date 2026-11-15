@@ -25,7 +25,7 @@ public interface SireObservationRepository extends JpaRepository<SireObservation
             + SireInspectionRepository.LATEST + "and o.closedOn is null and o.targetDate < :today")
     List<SireObservation> findOverdueOnLatest(LocalDate today);
 
-    /** The vessels of findOverdueOnLatest, for the sidebar counter, less the observations whose snooze holds (P43). */
+    /** The vessels of findOverdueOnLatest, for the sidebar counter, less the observations whose snooze holds. */
     @Query("select distinct i.ship.id from SireObservation o join o.inspection i where i.ship.active = true and"
             + SireInspectionRepository.LATEST + "and o.closedOn is null and o.targetDate < :today"
             + " and not exists (select a.id from AlertSnooze a where a.kind = :kind and a.subjectId = o.id"

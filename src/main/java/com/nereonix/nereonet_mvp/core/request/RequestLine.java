@@ -48,7 +48,7 @@ public class RequestLine {
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
 
-    // The ship order line this went into when the Master approved the request (P34), so the order can show who asked
+    // The ship order line this went into when the Master approved the request, so the order can show who asked
     // for what. Null until approved, and for a declined or cancelled request.
     @ManyToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)

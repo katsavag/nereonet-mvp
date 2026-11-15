@@ -17,7 +17,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads the model's answer (P57) and trusts none of it: the model is told the rules, our code checks them.
+ * Reads the model's answer and trusts none of it: the model is told the rules, our code checks them.
  * The answer asked for: {"counts": [{"item_id": 12, "quantity": 5, "words": "five kilos of tomatoes",
  * "confidence": 0.9}], "unmatched": ["three cans of herring"]}.
  *   - A count whose item_id is not one of the items sent, whose quantity is missing or fails the store's rule

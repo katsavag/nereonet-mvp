@@ -28,7 +28,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * Counting the store by voice (P57). propose: the recording becomes text (SpeechToTextClient, the vessel's item names
+ * Counting the store by voice. propose: the recording becomes text (SpeechToTextClient, the vessel's item names
  * as key terms), the text becomes count lines (CountExtractor, only the text and the active provisions: id, name,
  * unit), and the lines become a Proposal for the cook to review. propose never touches the stock and keeps nothing:
  * the recording is only in memory for the call. confirm applies the reviewed rows through StockService.count, with the

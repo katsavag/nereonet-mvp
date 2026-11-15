@@ -67,9 +67,9 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 // board, so My crew shows its departments. P33: while that ship has no PENDING request, two waiting for its Master:
 // one from the Chief cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's
 // request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
-// P40: once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
-// P41: once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
-// P52: while the demo ship has no stock at all, its provisions get some, counted by the Chief cook two days ago: most
+// Once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
+// Once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
+// While the demo ship has no stock at all, its provisions get some, counted by the Chief cook two days ago: most
 // OK, two Low and two Out of stock, one without a place (see stockDemo).
 // P58: @Order(2), after VesselRequirementsMigration and before StarterRequirements (3), so the demo vessels get the
 // defaults of their type on a new database.
@@ -83,10 +83,10 @@ public class DevData implements ApplicationRunner {
     private static final String DEMO_CREW_PASSWORD = "crew123";
 
     private static final String DEMO_SHIP_IMO = "9074729";
-    // P40: ALDER, LAUREL and ROWAN, the RightShip demo vessels.
+    // ALDER, LAUREL and ROWAN, the RightShip demo vessels.
     private static final List<String> VETTING_IMOS = List.of("9300001", "9400007", "9500003");
     private static final LocalDate RIGHTSHIP_DATE = LocalDate.of(2026, 10, 21);
-    // P41: BIRCH, the SIRE 2.0 demo tanker, and the dates of its synthetic sample report.
+    // BIRCH, the SIRE 2.0 demo tanker, and the dates of its synthetic sample report.
     private static final String SIRE_IMO = "9600009";
     private static final LocalDate SIRE_INSPECTION_DATE = LocalDate.of(2026, 6, 12);
     private static final LocalDate SIRE_PUBLISHED_ON = LocalDate.of(2026, 6, 26);
@@ -135,12 +135,12 @@ public class DevData implements ApplicationRunner {
             Ship ship = new Ship();
             ship.setImoNumber("9074729");
             ship.setName("MV Demo");
-            ship.setFlag("GR"); // P43: the flag icon in the lists and headers
+            ship.setFlag("GR"); // The flag icon in the lists and headers
             ship.setCreatedAt(Instant.now());
             shipRepository.save(ship);
             log.info("Created demo ship {}", ship.getName());
         }
-        // The demo ship by its IMO number: the RightShip demo vessels (P40) sort before it by name.
+        // The demo ship by its IMO number: the RightShip demo vessels sort before it by name.
         Ship firstShip = shipRepository.findByImoNumber(DEMO_SHIP_IMO).orElseGet(() -> shipRepository
                 .findAllByOrderByNameAsc().stream()
                 .filter(s -> !VETTING_IMOS.contains(s.getImoNumber()) && !SIRE_IMO.equals(s.getImoNumber())).findFirst()
@@ -177,7 +177,7 @@ public class DevData implements ApplicationRunner {
         }
     }
 
-    // P44: two suppliers to ask for quotes. VANOS is a real ship chandler in Piraeus: its name and website only, with
+    // Two suppliers to ask for quotes. VANOS is a real ship chandler in Piraeus: its name and website only, with
     // a test address (example.com never delivers), so a dev RFQ never reaches it. The second is made up, in USD, to
     // show a quote in another currency listed apart from the comparison.
     private void suppliers() {
@@ -200,7 +200,7 @@ public class DevData implements ApplicationRunner {
         supplierRepository.save(supplier);
     }
 
-    // P41: the tanker BIRCH with the SIRE 2.0 inspection of its synthetic sample report (samples/sire, read from the
+    // The tanker BIRCH with the SIRE 2.0 inspection of its synthetic sample report (samples/sire, read from the
     // working directory; "Sample report · Synthetic vessel data", no real company): Piraeus, 12 Jun 2026, published
     // 26 Jun 2026, and its five observations, two Hardware, two Process, one Human. Three are closed, one is open
     // (target in 30 days) and one is overdue (target 12 days ago), so BIRCH counts in the sidebar and the Overview
@@ -210,7 +210,7 @@ public class DevData implements ApplicationRunner {
         ship.setImoNumber(SIRE_IMO);
         ship.setName("BIRCH");
         ship.setType(ShipType.TANKER);
-        ship.setFlag("LR"); // P43: the flag icon in the lists and headers
+        ship.setFlag("LR"); // The flag icon in the lists and headers
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
 
@@ -270,7 +270,7 @@ public class DevData implements ApplicationRunner {
         sireService.addObservation(inspection, values, null);
     }
 
-    // P40: three bulk carriers with RightShip data (entered by hand, calculated 21 Oct 2026) and each its synthetic
+    // Three bulk carriers with RightShip data (entered by hand, calculated 21 Oct 2026) and each its synthetic
     // sample report (samples/rightship, read from the working directory). ALDER's inspection expires in 38 days, so
     // the sidebar shows "Vetting 1" and the Overview lists it; the demo ship stays without RightShip data.
     private void vettingDemo() {
@@ -289,7 +289,7 @@ public class DevData implements ApplicationRunner {
         ship.setImoNumber(imo);
         ship.setName(name);
         ship.setType(ShipType.BULK_CARRIER);
-        ship.setFlag("MT"); // P43: the flag icon in the lists and headers
+        ship.setFlag("MT"); // The flag icon in the lists and headers
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
 
@@ -322,7 +322,7 @@ public class DevData implements ApplicationRunner {
         log.info("Created RightShip demo vessel {}", name);
     }
 
-    // P33: submitted as the Chief cook and the crew would, so the Master also gets the two notifications.
+    // Submitted as the Chief cook and the crew would, so the Master also gets the two notifications.
     private void createPendingRequests(Ship ship) {
         User cook = crewUser(ship, Role.CHIEF_COOK, "cook.demo@example.com", "Demo Cook");
         User crewMember = userRepository.findByEmail("ab.demo@example.com").orElseThrow();
@@ -344,7 +344,7 @@ public class DevData implements ApplicationRunner {
         log.info("Created 2 pending demo requests for ship {}", ship.getName());
     }
 
-    // P52: the demo store, as the Chief cook counted it two days ago (one COUNT movement per item, from 0). With the
+    // The demo store, as the Chief cook counted it two days ago (one COUNT movement per item, from 0). With the
     // default threshold of 10: Olive oil and Coffee are Low, Sugar and Butter Out of stock, Salt is under "Other".
     private void stockDemo(Ship ship) {
         User cook = userRepository.findByEmail("cook.demo@example.com").orElse(null);
@@ -387,7 +387,7 @@ public class DevData implements ApplicationRunner {
         return line;
     }
 
-    // P31: ranks for the demo Master and Chief cook (created without one before), and three crew members, each once.
+    // Ranks for the demo Master and Chief cook (created without one before), and three crew members, each once.
     private void demoCrew(Ship ship) {
         demoRank("master.demo@example.com", Rank.MASTER);
         demoRank("cook.demo@example.com", Rank.CHIEF_COOK);

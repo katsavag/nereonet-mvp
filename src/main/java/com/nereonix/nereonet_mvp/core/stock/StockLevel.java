@@ -17,7 +17,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// How much of one provisions item is on board now (P52), in the item's unit. At most one row per item; an item without
+// How much of one provisions item is on board now, in the item's unit. At most one row per item; an item without
 // a row has quantity 0 (StockService). Only PROVISIONS items have stock: personal items never get a row. Every change
 // of the quantity is also a StockMovement, the store's history.
 @Entity

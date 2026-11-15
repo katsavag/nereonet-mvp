@@ -23,7 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * An alert the office put aside for a while (P43): the kind and subject id identify the item (AlertKey; nothing else
+ * An alert the office put aside for a while: the kind and subject id identify the item (AlertKey; nothing else
  * of it is stored, it is worked out again on every read), the vessel it concerns, who snoozed it, why (a reason and,
  * for Other, a note), until when, and once it ended, when and why (SnoozeEndReason). level is what the snooze
  * compares against to end by itself when the item gets worse (AlertLevels): the item's level when it was snoozed.

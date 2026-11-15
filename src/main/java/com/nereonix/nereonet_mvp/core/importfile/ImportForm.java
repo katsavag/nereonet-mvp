@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-// An import in progress (P24), kept in the HTTP session from the upload until the import is done or cancelled: the
+// An import in progress, kept in the HTTP session from the upload until the import is done or cancelled: the
 // uploaded file with its mapping, and the review screen's rows (built once the mapping is confirmed). The review form
 // binds the edited values onto the rows.
 public abstract class ImportForm<R extends ImportRow> implements Serializable {

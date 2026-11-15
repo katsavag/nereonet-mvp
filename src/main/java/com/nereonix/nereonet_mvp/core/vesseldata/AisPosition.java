@@ -5,7 +5,7 @@ import java.time.Instant;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The display fields of GET /vessel/{imo}/position (P45): {"vesselPosition": {...}, "positionCheck": {...}}. Null
+ * The display fields of GET /vessel/{imo}/position: {"vesselPosition": {...}, "positionCheck": {...}}. Null
  * where VesselAPI gave no value. reportedAt is when the vessel sent the AIS message (UTC).
  * possibleError: VesselAPI flags the position as doubtful (suspected_glitch, a speed from the previous report above
  * the vessel's typical speed, or an identity that does not match its record).

@@ -11,7 +11,7 @@ import java.util.Map;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 
 /**
- * The sealed comparison of an RFQ's quotes (P44), for the office only. Quotes are compared only within one currency
+ * The sealed comparison of an RFQ's quotes, for the office only. Quotes are compared only within one currency
  * (never converted): each currency with two or more quotes gets a table (the currency with most quotes first), items
  * as rows grouped by category (Provisions, then Personal items), suppliers as columns, each cell the price per item
  * unit (so a 5 L can and 1 L bottles compare per litre), the quantity offered and the line total; then subtotal,

@@ -5,7 +5,7 @@ import java.util.Set;
 
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 
-// The filter of /ship/requests (P54), chosen with ?status=waiting|decided; anything else is All. Waiting: PENDING.
+// The filter of /ship/requests, chosen with ?status=waiting|decided; anything else is All. Waiting: PENDING.
 // Decided: no longer waiting, whether the Master approved or declined it or the person who asked cancelled it.
 public enum RequestFilter {
     ALL(Set.of(RequestStatus.values())),

@@ -7,14 +7,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The Mistral settings (P57), app.mistral.*:
+ * The Mistral settings, app.mistral.*:
  *   base-url  default https://api.mistral.ai (no trailing slash)
  *   api-key   MISTRAL_API_KEY, from the environment or the local .env (gitignored). Never logged, never in a page, an
  *             audit entry or an error message.
  *   model     default mistral-small-2603 (Mistral Small 4, pinned rather than the -latest alias, as Mistral advises,
  *             so the behaviour never changes unnoticed)
  *   timeout   how long one answer may take, default 30s
- *   ocr-model default mistral-ocr-4-1 (P62: OCR 4.1, July 2026, pinned; mistral-ocr-latest and mistral-ocr-4 are
+ *   ocr-model default mistral-ocr-4-1 (OCR 4.1, July 2026, pinned; mistral-ocr-latest and mistral-ocr-4 are
  *             aliases that move), for reading invoice pages (MistralInvoiceReader); tables, blocks and block
  *             confidence scores need OCR 4 or newer
  *   ocr-timeout how long reading one invoice page may take, default 60s

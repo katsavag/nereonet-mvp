@@ -9,7 +9,7 @@ import java.util.Map;
 import org.springframework.context.MessageSource;
 
 /**
- * The mapping step's page (templates/importfile/map.html, P24), model attribute "map": every text resolved, so the
+ * The mapping step's page (templates/importfile/map.html), model attribute "map": every text resolved, so the
  * template only lays it out.
  *
  * rows      one per field: its select, and for a two-column field (Full name) the second one (last name)

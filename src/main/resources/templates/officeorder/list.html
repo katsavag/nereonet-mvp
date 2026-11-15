@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.list.title}, ~{::main})}">
 <body>
-<!-- The orders the ships have sent (P36): SENT, CONFIRMED and CLOSED, never OPEN; newest sent first. Filters: ship,
+<!-- The orders the ships have sent: SENT, CONFIRMED and CLOSED, never OPEN; newest sent first. Filters: ship,
      status and export status (?exported=no: not exported yet, the Overview's link). Export: check rows (the header
      checkbox checks the page) and Export, a POST (an Excel workbook) that answers with the file and marks the orders exported; the
      page stays as it is. Without JavaScript everything still submits; there is no select-all and no selection count,
      and the button is never disabled (nothing checked: back with a message). A row opens its order (data-row-href);
      its number stays the link for the keyboard and without the script. Model: list (ListQuery), orders (Page of
-     ShipOrder), ships, shipId, status, statuses, exported, invoice (P64: "differ" while filtered to the received orders
-     whose invoice has lines that differ). P64: the Invoice column, "Matched", "3 differ", "To confirm" or "None". -->
+     ShipOrder), ships, shipId, status, statuses, exported, invoice ("differ" while filtered to the received orders
+     whose invoice has lines that differ). The Invoice column, "Matched", "3 differ", "To confirm" or "None". -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.list.heading}, count=${orders.totalElements},
             subtitle=#{officeorder.list.hint}, actions=${orders.isEmpty()} ? null : ~{::pageActions})}">
@@ -23,7 +23,7 @@
         </th:block>
     </header>
 
-    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <!-- Search, filters and chips. A GET form, so the filtered page can be bookmarked. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{officeorder.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <div th:replace="~{layout/parts :: shipFilter(${ships}, ${shipId})}"></div>
@@ -42,7 +42,7 @@
                     <option value="no" th:selected="${exported == 'no'}" th:text="#{officeorder.filter.exported.no}">Not exported yet</option>
                 </select>
             </div>
-            <!-- P64: received orders whose invoice has lines that differ, not matched yet. -->
+            <!-- Received orders whose invoice has lines that differ, not matched yet. -->
             <div class="filter-field">
                 <label for="filterInvoice" class="form-label" th:text="#{officeorder.filter.invoice}">Invoice</label>
                 <select id="filterInvoice" name="invoice" class="form-select">
@@ -55,7 +55,7 @@
 
     <form id="exportForm" th:action="@{/office/orders/export}" method="post" data-selection data-file>
         <div class="card">
-            <!-- Empty (P25): no ship has sent an order yet. The header's Export is not shown. -->
+            <!-- Empty: no ship has sent an order yet. The header's Export is not shown. -->
             <th:block th:replace="~{layout/parts :: listEmpty(rows=${orders}, list=${list}, icon='orders',
                     title=#{officeorder.list.empty.title}, text=#{officeorder.list.empty.text},
                     action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
@@ -67,7 +67,7 @@
                     <input class="form-check-input" type="checkbox" id="selectAllPhone" data-select-all>
                     <label class="form-check-label" for="selectAllPhone" th:text="#{officeorder.selectAll.short}">Select all on this page</label>
                 </div>
-                <p id="selectionCount" class="list-selection-count" role="status" data-selection-count
+                <p id="selectionCount" class="list-selection-count text-meta" role="status" data-selection-count
                    th:data-none="#{officeorder.selection.none}" th:data-one="#{officeorder.selection.one}"
                    th:data-many="#{officeorder.selection.many('{count}')}" th:text="#{officeorder.selection.none}">Select the orders to export</p>
             </div>

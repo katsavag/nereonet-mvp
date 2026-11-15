@@ -24,11 +24,11 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The Chief cook counts a delivery, the Master approves it (P61; P63: row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
+ * The Chief cook counts a delivery, the Master approves it (P63: row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
  * vessel's enabled Chief cook counts what arrived of each line (saveDraft, as often as he likes), then sends the count
  * to the Master (send): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
  * confirms receipt (OrderReceiptService.confirmReceipt, which marks the count APPROVED) or sends it back with a note
- * (sendBack): a draft again, the cook's numbers kept. Nothing here touches the store; the receipt still does (P56).
+ * (sendBack): a draft again, the cook's numbers kept. Nothing here touches the store; the receipt still does.
  * The count only helps: the Master can confirm receipt without one. Every change locks the order's row, as the
  * receipt does. The order keeps its status (CONFIRMED) throughout; the office may still change the delivery's port and
  * date, which keeps the count.
@@ -66,7 +66,7 @@ public class DeliveryCountService {
     }
 
     /**
-     * P63: before the count (the cook) or the approval (the Master) is shown: the invoice lines not matched yet are
+     * Before the count (the cook) or the approval (the Master) is shown: the invoice lines not matched yet are
      * matched (InvoiceMatchService.ensureMatched), the order's row locked. Nothing unless the order is CONFIRMED.
      * 404 for another ship's order; AccessDeniedException for anyone but the vessel's enabled Chief cook or Master.
      */
@@ -83,7 +83,7 @@ public class DeliveryCountService {
     }
 
     /**
-     * P63: the cook confirms one row of the count (CountSheet.Row key: "o12" an order line, "i34" an invoice line
+     * The cook confirms one row of the count (CountSheet.Row key: "o12" an order line, "i34" an invoice line
      * matched to an item not on the order): what arrived in the item's unit (0: nothing) and an optional note. The
      * count is saved as he goes: DRAFT (RETURNED kept, the Master's note stays on top until he sends again).
      * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException for a row of
@@ -120,7 +120,7 @@ public class DeliveryCountService {
     }
 
     /**
-     * P63, Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
+     * Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
      * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
      * to the office). The product chosen is learned for the supplier. Refusals as saveRow; IllegalArgumentException for
      * a line of another order's invoice or a product it cannot be.
@@ -176,7 +176,7 @@ public class DeliveryCountService {
     }
 
     /**
-     * P63: the Master changes one row of a count waiting for approval, in the item's unit ("Changed from 23"); the
+     * The Master changes one row of a count waiting for approval, in the item's unit ("Changed from 23"); the
      * cook's number is kept. The same number as counted clears the change. NOT_CONFIRMED, RECEIVED, WRONG_STATE (no
      * count waiting): nothing changed. IllegalArgumentException for a row of another order or a quantity that is not a
      * received quantity; 404 for another ship's order; AccessDeniedException for anyone but the vessel's enabled
@@ -228,7 +228,7 @@ public class DeliveryCountService {
         if (refused != null) {
             return refused;
         }
-        // P63: the Master's changes go; the cook's numbers stay.
+        // The Master's changes go; the cook's numbers stay.
         matchService.sheet(order).getRows().forEach(row -> {
             if (row.getOrderLine() != null) {
                 row.getOrderLine().setApprovedQuantity(null);

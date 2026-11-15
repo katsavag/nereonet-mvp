@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  The HTML version of an email that asks for one action through a link (P29): the invitation and the password reset.
+  The HTML version of an email that asks for one action through a link: the invitation and the password reset.
   Rendered by core/mail/HtmlEmails from a core/mail/ActionEmail ("email": every text final, in the email's language)
   and "logoSrc" ("cid:nereonix-logo", the inline attachment MailService adds; the app's URL in the dev preview).
   Mail clients ignore stylesheets and most layout CSS: tables for layout, inline styles only (the one exception to
@@ -17,7 +17,7 @@
     <title th:text="${email.subject()}">You are invited to Nereonet</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f1ea;color:#13202f;">
-<!-- The line mail clients show after the subject in the inbox; not shown in the email itself. P30: hidden with
+<!-- The line mail clients show after the subject in the inbox; not shown in the email itself. Hidden with
      display:none only. Text in the background colour, 1px high or transparent is what spam filters look for. -->
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;"
      th:text="${email.preheader()}">Maria Papadopoulou invited you to join MV Aegean Star as Second Officer.</div>

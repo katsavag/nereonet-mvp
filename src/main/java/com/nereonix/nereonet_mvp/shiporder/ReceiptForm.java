@@ -18,7 +18,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 
 /**
- * The Master's "Confirm receipt" form (P51): per line the quantity received (prefilled with the quantity ordered)
+ * The Master's "Confirm receipt" form: per line the quantity received (prefilled with the quantity ordered)
  * or "Not delivered", and an optional note; the date and time received (UTC, now to start with); the files of the
  * delivery receipt to add, and the ones already uploaded to remove. The review page carries the same fields, without
  * the files, in hidden fields. Checked by OrderReceiptController (the lines must be the order's).

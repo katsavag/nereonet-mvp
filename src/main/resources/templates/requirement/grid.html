@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{requirement.title}, ~{::main})}">
 <body>
-<!-- Required documents (P42, Administration): which certificate types each rank needs. P58: per vessel, each starting
+<!-- Required documents (Administration): which certificate types each rank needs. Per vessel, each starting
      with the defaults of its type. grid: requirement/RequirementGrid; selection: requirement/RequirementSelection (the
      vessel shown and the filter's options); defaultsName: the vessel's type ("Bulk carrier"), null without a type;
      noteErrors: the rows (by type key) whose note was too long when posted.
@@ -12,15 +12,15 @@
        (type to search, arrow keys, Enter, Esc) that shows the chosen grid at once. The first vessel by name when none
        is chosen; without active vessels an empty state.
      - The card header: "Required on ALDER", "Based on the defaults for Bulk carrier." and "Reset to Bulk carrier
-       defaults", which asks first (P10) and lists what will change; rows that differ from the defaults are marked
+       defaults", which asks first and lists what will change; rows that differ from the defaults are marked
        Changed (a badge with the word).
      - The grid: a plain POST form of checkboxes, so it saves without JavaScript. Certificate types as rows (the first
        column stays put while the grid scrolls sideways inside its card, also on phones), ranks grouped by department
-       as columns (names turned upright to keep the columns narrow), then Optional, Note and (P43) Delete row. Each
+       as columns (names turned upright to keep the columns narrow), then Optional, Note and Delete row. Each
        cell's checkbox fills the cell (a 40px target, 44px on phones) and is named "Passport, Master" for screen
-       readers. P43: each row starts with "Select all ranks for Passport" (js/requirements.js ticks and clears the row
+       readers. Each row starts with "Select all ranks for Passport" (js/requirements.js ticks and clears the row
        and shows the mixed state; without it the server applies it) and ends with Delete row, a bin icon that asks
-       first (P10) and removes the type from this vessel's requirements only.
+       first and removes the type from this vessel's requirements only.
      - Add a document type: a GET form that shows the type as the first row, to tick and save. -->
 <main class="requirements-page" th:with="g=${grid}, sel=${selection}, vessel=${selection.ship}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{requirement.heading}, subtitle=#{requirement.subtitle})}"></header>
@@ -65,7 +65,7 @@
             <div class="card-header requirement-grid-header">
                 <div class="requirement-grid-title">
                     <h2 class="h5 fw-bold mb-0" id="gridTitle" th:text="#{requirement.grid.heading(${vessel.name})}">Required on ALDER</h2>
-                    <!-- P58: where this vessel's rules come from, and the way back to them. -->
+                    <!-- Where this vessel's rules come from, and the way back to them. -->
                     <p class="requirement-defaults-note" id="defaultsNote"
                        th:text="${defaultsName != null} ? #{requirement.defaults.note(${defaultsName})} : #{requirement.defaults.note.none}">Based on the defaults for Bulk carrier.</p>
                 </div>
@@ -106,7 +106,7 @@
                         th:classappend="${row.added} ? 'is-added'" data-requirement-row>
                         <th scope="row" class="req-grid-type">
                             <input type="hidden" th:name="|rows[${i}].type|" th:value="${row.type}">
-                            <!-- The row toggle (P43): ticks or clears every rank of the row, on this vessel. -->
+                            <!-- The row toggle: ticks or clears every rank of the row, on this vessel. -->
                             <label class="req-row-all" th:for="|a${i}|">
                                 <input class="form-check-input" type="checkbox" th:id="|a${i}|" th:name="|rows[${i}].all|"
                                        value="true" data-row-all th:attr="aria-label=#{requirement.row.all(${row.type})}">
@@ -114,7 +114,7 @@
                             <span class="req-grid-type-name" th:text="${row.type}">Passport</span>
                             <th:block th:if="${row.suggestion}"><span th:replace="~{layout/parts :: status('info', #{requirement.badge.suggestion})}"></span></th:block>
                             <th:block th:if="${row.added}"><span th:replace="~{layout/parts :: status('primary', #{requirement.badge.added})}"></span></th:block>
-                            <!-- P58: differs from the defaults of the vessel's type. -->
+                            <!-- Differs from the defaults of the vessel's type. -->
                             <th:block th:if="${row.changed and !row.added}"><span th:replace="~{layout/parts :: status('neutral', #{requirement.badge.changed})}"></span></th:block>
                         </th>
                         <th:block th:each="grp : ${g.groups}">
@@ -143,7 +143,7 @@
                             <div th:if="${noteError}" class="invalid-feedback" th:id="|n${i}Error|"
                                  th:text="#{requirement.error.noteTooLong}">Up to 200 characters.</div>
                         </td>
-                        <!-- Delete row (P43): the trigger of the row's confirmForm, which sits after the grid form
+                        <!-- Delete row: the trigger of the row's confirmForm, which sits after the grid form
                              (a form cannot hold another form). Without the script the link opens the plain
                              confirmation page. -->
                         <td class="req-grid-delete">
@@ -159,12 +159,12 @@
             <div class="card-footer requirement-actions">
                 <button type="submit" class="btn btn-primary"
                         th:text="#{requirement.save(${vessel.name})}">Save for ALDER</button>
-                <p class="requirement-actions-hint" th:text="#{requirement.saveHint}">Saving applies at once to every crew member's page.</p>
+                <p class="requirement-actions-hint text-meta" th:text="#{requirement.saveHint}">Saving applies at once to every crew member's page.</p>
             </div>
         </section>
     </form>
 
-    <!-- The Delete row confirmations (P10, P43), one per row, outside the grid form. -->
+    <!-- The Delete row confirmations, one per row, outside the grid form. -->
     <th:block th:each="row, st : ${g.rows}">
         <form th:replace="~{layout/parts :: confirmForm(id=${'reqDelete' + st.index}, trigger=false, action='/office/requirements/delete',
                 fields=${ {type: row.type, vessel: sel.key()} },
@@ -172,7 +172,7 @@
                 body=#{requirement.row.delete.confirm.body(${row.type}, ${vessel.name})},
                 confirm=#{requirement.row.delete.confirm.submit}, tone='danger')}"></form>
     </th:block>
-    <!-- P58: "Reset to Bulk carrier defaults", listing what will change on this vessel. -->
+    <!-- "Reset to Bulk carrier defaults", listing what will change on this vessel. -->
     <form th:replace="~{layout/parts :: confirmForm(id='reqReset', trigger=false, action='/office/requirements/reset',
             fields=${ {vessel: sel.key()} },
             title=${defaultsName != null} ? #{requirement.reset.confirm.title(${vessel.name}, ${defaultsName})} : #{requirement.reset.confirm.title.none(${vessel.name})},
@@ -194,6 +194,7 @@
         <p class="form-text" id="addTypeHint" th:text="#{requirement.add.hint}">The type appears at the top of the grid: tick the ranks and save.</p>
     </form>
     </th:block>
+    <script th:src="@{/js/requirements.js}" defer></script>
 </main>
 </body>
 </html>

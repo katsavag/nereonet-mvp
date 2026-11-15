@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 /**
- * How bad an alert is right now, as one number (P43): a snooze remembers the level of its item when it was snoozed
+ * How bad an alert is right now, as one number: a snooze remembers the level of its item when it was snoozed
  * and ends by itself when the level drops ("it got worse"). Lower is worse.
  * <ul>
  *   <li>Dates (a certificate's expiry, an inspection's valid until, a SIRE report's current until, a target date):

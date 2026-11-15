@@ -43,7 +43,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
 // Announcements sent by the office. There is no edit or delete: an announcement is the proof of what
-// the crew confirmed. Each recipient reads and acknowledges their own (P27: forUser, recipient, acknowledge).
+// the crew confirmed. Each recipient reads and acknowledges their own (forUser, recipient, acknowledge).
 @Service
 public class AnnouncementService {
 
@@ -79,8 +79,8 @@ public class AnnouncementService {
     }
 
     /**
-     * One page of the Announcements list (P19), paginated in the database, then the recipient counts of that page's
-     * announcements only. With a shipId, only the ones sent to all ships or with that ship among their targets (P28).
+     * One page of the Announcements list, paginated in the database, then the recipient counts of that page's
+     * announcements only. With a shipId, only the ones sent to all ships or with that ship among their targets.
      * The search is the title. Sort keys: sentAt (default, newest first), title, target (All ships first, then the
      * ones to one ship by its name, then those to several ships, fewest first). The target ships of the page are read
      * with one more query (Announcement.targetShips is read in batches).
@@ -158,7 +158,7 @@ public class AnnouncementService {
                 all.stream().filter(r -> r.getAcknowledgedAt() == null).sorted(byShip).toList());
     }
 
-    /** The acknowledgements of one ship's recipients (the detail page, P28). */
+    /** The acknowledgements of one ship's recipients (the detail page). */
     public record ShipAcknowledgements(Ship ship, int recipients, int acknowledged) {
     }
 
@@ -187,7 +187,7 @@ public class AnnouncementService {
                 .toList();
     }
 
-    /** How many people on one ship an announcement would go to (the review step, P10). */
+    /** How many people on one ship an announcement would go to (the review step). */
     public record ShipRecipients(Ship ship, int people) {
     }
 
@@ -196,7 +196,7 @@ public class AnnouncementService {
     }
 
     /**
-     * Where an announcement would go if it were sent now (P28). ships: the active ships, by name (every active ship
+     * Where an announcement would go if it were sent now. ships: the active ships, by name (every active ship
      * for the fleet; the chosen ones that are still active otherwise). leftOut: chosen ships that are no longer active,
      * by name; a chosen id with no ship at all is simply left out.
      */
@@ -239,10 +239,10 @@ public class AnnouncementService {
 
     /**
      * Sends an announcement to the whole fleet (fleet true, shipIds ignored) or to the chosen ships that are still
-     * active (P28): the others are left out, and with none left it is a 400 (the controller checks first). The
+     * active: the others are left out, and with none left it is a 400 (the controller checks first). The
      * recipients are fixed now: every enabled user with a ship role who is on one of those ships (on any active ship
      * for the fleet), counted again here, whatever the review page showed. Each recipient gets an in-app notification,
-     * "Announcement · <title>", that opens the announcement (P27). The audit entry lists the target ship ids.
+     * "Announcement · <title>", that opens the announcement. The audit entry lists the target ship ids.
      */
     @Transactional
     public Sent create(String title, String body, boolean fleet, Collection<Long> shipIds, String actorEmail) {
@@ -289,8 +289,8 @@ public class AnnouncementService {
     }
 
     /**
-     * The announcements this ship user is a recipient of, each with their acknowledgement (P27): still to acknowledge
-     * first (P37), each group newest first.
+     * The announcements this ship user is a recipient of, each with their acknowledgement: still to acknowledge
+     * first, each group newest first.
      */
     @Transactional(readOnly = true)
     public List<AnnouncementRecipient> forUser(String email) {
@@ -298,7 +298,7 @@ public class AnnouncementService {
     }
 
     /**
-     * The first {@code limit} of forUser, in the same order, limited in the database (the crew's News, P47); the
+     * The first {@code limit} of forUser, in the same order, limited in the database (the crew's News); the
      * Slice says whether there are older ones to show.
      */
     @Transactional(readOnly = true)
@@ -306,7 +306,7 @@ public class AnnouncementService {
         return recipientRepository.findForUser(email, PageRequest.of(0, limit));
     }
 
-    /** How many news items this user has not opened yet (P37). */
+    /** How many news items this user has not opened yet. */
     @Transactional(readOnly = true)
     public long unreadFor(String email) {
         return recipientRepository.countByUserEmailAndAcknowledgedAtIsNull(email);
@@ -323,7 +323,7 @@ public class AnnouncementService {
     }
 
     /**
-     * This user opens a news item (P39): their place among its recipients, read from now on. The first time, it
+     * This user opens a news item: their place among its recipients, read from now on. The first time, it
      * records when they read it (acknowledgedAt) and the audit entry "Announcement read", in the same transaction as
      * the page load; opening it again changes nothing. Only the signed-in recipient's own row: 404 for someone who is
      * not a recipient, as recipient(...).

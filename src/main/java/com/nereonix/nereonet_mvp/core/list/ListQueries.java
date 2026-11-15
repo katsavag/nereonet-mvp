@@ -18,7 +18,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
 /**
- * One page of an entity list, queried in the database (P19): a count, then the rows of the page with LIMIT and
+ * One page of an entity list, queried in the database: a count, then the rows of the page with LIMIT and
  * OFFSET, sorted in SQL. The caller gives the conditions and the sort as Criteria expressions (left joins for
  * optional associations, so sorting by a column that may be empty never drops a row). A page past the last one
  * shows the last page, so a bookmarked page 9 still shows rows after some were removed.
@@ -68,7 +68,7 @@ public class ListQueries {
         return new PageImpl<>(rows, PageRequest.of(page, list.getSize()), total);
     }
 
-    /** Every row of the list, in its order, without pages: an export of the list as it is filtered (P20). */
+    /** Every row of the list, in its order, without pages: an export of the list as it is filtered. */
     public <T> List<T> all(Class<T> type, ListQuery list, Where<T> where, SortBy<T> sortBy, Fetch<T> fetch) {
         return entityManager.createQuery(query(type, list, where, sortBy, fetch)).getResultList();
     }

@@ -4,7 +4,7 @@
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{audit.heading}, count=${entries.totalElements})}"></header>
 
-    <!-- Search, filters and chips (P19). A GET form, so the filtered page can be bookmarked. -->
+    <!-- Search, filters and chips. A GET form, so the filtered page can be bookmarked. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{audit.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
             <div th:replace="~{layout/parts :: shipFilter(${ships}, ${filter.shipId})}"></div>
@@ -24,7 +24,7 @@
     </div>
 
     <div class="card">
-        <!-- Nothing recorded yet (P25): the audit log has no action of its own; the setup steps are on the Overview. -->
+        <!-- Nothing recorded yet: the audit log has no action of its own; the setup steps are on the Overview. -->
         <th:block th:replace="~{layout/parts :: listEmpty(rows=${entries}, list=${list}, icon='audit',
                 title=#{audit.empty.title}, text=#{audit.empty.text},
                 action=~{layout/parts :: emptyLink('/office', #{empty.goToOverview}, 'btn btn-primary')})}"></th:block>

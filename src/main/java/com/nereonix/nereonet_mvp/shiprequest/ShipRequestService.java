@@ -39,8 +39,8 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The Chief cook's and crew's own requests to the Master (P54). Only the person who asked sees a request: anyone
- * else's is a 404, never a 403. A request is not an order: the Master approves it (approval, P34) and only then does
+ * The Chief cook's and crew's own requests to the Master. Only the person who asked sees a request: anyone
+ * else's is a 404, never a 403. A request is not an order: the Master approves it (approval) and only then does
  * it go into the ship order. Submitting, changing and cancelling are RequestService's; this builds the pages and the
  * form, reads what was typed, and shows what RequestService refuses as form errors.
  *
@@ -113,7 +113,7 @@ public class ShipRequestService {
         this.quantityRules = quantityRules;
     }
 
-    /** The rule of a new item's quantity (P60): by its unit as typed; none or unknown: whole numbers. */
+    /** The rule of a new item's quantity: by its unit as typed; none or unknown: whole numbers. */
     public QuantityRules.Rule newItemRule(String unit) {
         return quantityRules.forUnit(unit, Use.REQUEST);
     }
@@ -350,7 +350,7 @@ public class ShipRequestService {
         User user = user(email);
         ItemRequest request = requestId == null ? null : own(user, requestId);
         Map<Long, Item> items = pickableById(user, request);
-        // P60: a quantity already on the request (editing) may stay above the maximum; a new or changed one may not.
+        // A quantity already on the request (editing) may stay above the maximum; a new or changed one may not.
         Map<Long, BigDecimal> saved = savedQuantities(request);
         Map<String, BigDecimal> savedNew = new HashMap<>();
         if (request != null) {

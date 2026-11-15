@@ -17,7 +17,7 @@ public interface AlertSnoozeRepository extends JpaRepository<AlertSnooze, Long> 
     Optional<AlertSnooze> findByIdAndEndedAtIsNull(Long id);
 
     /**
-     * The certificates whose snooze still holds today (P43): an EXPIRED snooze of an expired certificate, or an
+     * The certificates whose snooze still holds today: an EXPIRED snooze of an expired certificate, or an
      * EXPIRING snooze of one not yet expired whose level (1 within 30 days, 2 within 60, 3 within 90) has not dropped
      * below the level remembered at the snooze (AlertLevels). For the Certificates list and its export.
      */

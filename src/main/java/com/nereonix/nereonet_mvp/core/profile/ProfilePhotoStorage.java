@@ -17,7 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Profile photos on disk (P31), in the folder "profile-photos" inside the existing file storage
+ * Profile photos on disk, in the folder "profile-photos" inside the existing file storage
  * (app.library.storage-dir), never under static/: they are served by a controller, behind sign-in and only to the
  * people allowed to see them. Each photo is two files, "<key>-512.jpg" and "<key>-96.jpg"; the key is a new UUID for
  * every upload, never anything the user sent.

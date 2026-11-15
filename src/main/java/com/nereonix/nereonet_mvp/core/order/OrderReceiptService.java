@@ -42,25 +42,25 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The receipt of an order on board (P51). Only the vessel can say the items arrived: while the order is CONFIRMED
+ * The receipt of an order on board. Only the vessel can say the items arrived: while the order is CONFIRMED
  * (the office scheduled the delivery) the Master uploads the delivery receipt, one file at a time or several at once
  * (stageFile; they wait on the order, only the Master sees them, and can be removed again), then confirms receipt with
  * what arrived of each line and when (confirmReceipt): the order is CLOSED, the files are its receipt, and the office
  * is notified. Lines received short keep the order in the office's Overview until an office user marks the shortage
  * handled (markShortageHandled). Every change locks the order's row, so two tabs never confirm twice.
- * P56: what arrived of the provisions goes into the Chief cook's store (StockService.receive) in the same transaction.
+ * What arrived of the provisions goes into the Chief cook's store (StockService.receive) in the same transaction.
  * A confirmed receipt never changes afterwards (CLOSED: no page or service changes its lines, files or time), so the
  * store gets each line once and needs no correction.
- * P61: the vessel's Chief cook may count the delivery first (DeliveryCountService) and add photos of the delivery note
+ * The vessel's Chief cook may count the delivery first (DeliveryCountService) and add photos of the delivery note
  * (stageFile, removeFiles: his own files, while his count is not with the Master); they are the Master's staged files.
  * Confirming receipt of a count sent to the Master approves it: the cook is the receipt's "counted by".
- * P62: the pages of the supplier's invoice, photographed on "Photograph the invoice" by the Chief cook or the Master,
+ * The pages of the supplier's invoice, photographed on "Photograph the invoice" by the Chief cook or the Master,
  * are staged receipt files too (stageInvoicePage, removeInvoicePage): numbered 1, 2, ... without gaps, at most
  * MAX_INVOICE_PAGES, counting against MAX_FILES. Removing or replacing a page drops the invoice lines read from it.
- * P63: a count sent to the Master is approved in one step (approveCount): the count's rows (CountSheet) are the
+ * A count sent to the Master is approved in one step (approveCount): the count's rows (CountSheet) are the
  * receipt, in the item's unit; invoice lines matched to a vessel item not on the order become lines added on receipt;
- * each line keeps what the invoice said and the office's marks (P64).
- * P64: an order received with a read invoice is TO_MATCH for the office (InvoiceComparisonService.refresh): matching it
+ * each line keeps what the invoice said and the office's marks.
+ * An order received with a read invoice is TO_MATCH for the office (InvoiceComparisonService.refresh): matching it
  * replaces markShortageHandled, which stays for the orders without one.
  */
 @Service
@@ -72,7 +72,7 @@ public class OrderReceiptService {
     /** P62: an invoice has at most this many pages. */
     public static final int MAX_INVOICE_PAGES = 6;
 
-    // P62: the kinds of file an invoice page may be, by their first bytes.
+    // The kinds of file an invoice page may be, by their first bytes.
     private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
     private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G'};
     private static final byte[] PDF = {'%', 'P', 'D', 'F'};
@@ -128,13 +128,13 @@ public class OrderReceiptService {
         TOO_MANY_FILES,
         // confirmReceipt: no file uploaded.
         NO_FILE,
-        // P61, stageFile and removeFiles by the Chief cook: his count is with the Master (or approved). Nothing changed.
+        // StageFile and removeFiles by the Chief cook: his count is with the Master (or approved). Nothing changed.
         COUNT_SENT,
-        // P62, stageInvoicePage: the invoice already has MAX_INVOICE_PAGES pages.
+        // StageInvoicePage: the invoice already has MAX_INVOICE_PAGES pages.
         TOO_MANY_PAGES,
-        // P62, stageInvoicePage and removeInvoicePage: its pages are being read; nothing changed.
+        // StageInvoicePage and removeInvoicePage: its pages are being read; nothing changed.
         READING,
-        // P63, approveCount: no count of the Chief cook waits for the Master; nothing changed.
+        // ApproveCount: no count of the Chief cook waits for the Master; nothing changed.
         NO_COUNT
     }
 
@@ -152,7 +152,7 @@ public class OrderReceiptService {
     /**
      * The Master uploads a file of the delivery receipt of a CONFIRMED order of their ship (already checked: PDF, JPEG
      * or PNG, contentType, at most 10 MB). Nothing is recorded or notified until the receipt is confirmed.
-     * P61: the vessel's enabled Chief cook may too, while his delivery count is not with the Master (COUNT_SENT); his
+     * The vessel's enabled Chief cook may too, while his delivery count is not with the Master (COUNT_SENT); his
      * files are staged for the Master like the Master's own.
      * NOT_CONFIRMED, TOO_MANY_FILES: nothing saved. 404 for an order of another ship; AccessDeniedException when the
      * user is not an enabled Master or Chief cook with a ship.
@@ -174,7 +174,7 @@ public class OrderReceiptService {
     }
 
     /**
-     * P62: one photographed page of the supplier's invoice (already checked: invoicePageContentType, at most 10 MB),
+     * One photographed page of the supplier's invoice (already checked: invoicePageContentType, at most 10 MB),
      * staged like stageFile's files, by the vessel's enabled Chief cook (while his count is not with the Master) or
      * Master. A new page is numbered after the others; replacing (replaceFileId, Retake) keeps that page's number and
      * drops the old file and the lines read from it. The page waits to be read (WAITING).
@@ -211,7 +211,7 @@ public class OrderReceiptService {
     }
 
     /**
-     * P62: removes one page of the invoice (Remove on "Photograph the invoice"); the pages after it move up and so do
+     * Removes one page of the invoice (Remove on "Photograph the invoice"); the pages after it move up and so do
      * their lines; the lines read from it are dropped. The same rules as stageInvoicePage.
      */
     @Transactional
@@ -235,7 +235,7 @@ public class OrderReceiptService {
     }
 
     /**
-     * P62: the content type of a file an invoice page may be, by its first bytes: image/jpeg, image/png, image/webp,
+     * The content type of a file an invoice page may be, by its first bytes: image/jpeg, image/png, image/webp,
      * image/heic (HEIC and HEIF, as iPhones take them) or application/pdf; null for anything else. (Phones do not
      * always give the file a name with an extension, so only the content decides.)
      */
@@ -341,7 +341,7 @@ public class OrderReceiptService {
     /**
      * The Master removes files they uploaded to a CONFIRMED order's receipt (ids of other orders are ignored); the
      * files are deleted once this commits. NOT_CONFIRMED: nothing removed (a received order's receipt never changes).
-     * P61: the Chief cook removes only the files he uploaded, and only while his count is not with the Master
+     * The Chief cook removes only the files he uploaded, and only while his count is not with the Master
      * (COUNT_SENT).
      */
     @Transactional
@@ -361,7 +361,7 @@ public class OrderReceiptService {
                     .ifPresent(receiptFile -> {
                 fileRepository.delete(receiptFile);
                 fileStorage.deleteLater(receiptFile.getStoragePath());
-                // P62: an invoice page removed with the receipt's files.
+                // An invoice page removed with the receipt's files.
                 if (receiptFile.isInvoicePage()) {
                     pageRemoved(orderId, receiptFile.getInvoicePage());
                 }
@@ -379,7 +379,7 @@ public class OrderReceiptService {
     }
 
     /**
-     * The Master confirms receipt of a CONFIRMED order of their ship (P51): each line not removed by the office gets
+     * The Master confirms receipt of a CONFIRMED order of their ship: each line not removed by the office gets
      * its received quantity and note, the order gets receivedAt, receivedBy and the number of lines received short,
      * and is CLOSED; the files uploaded are its receipt. Recorded as "Receipt confirmed"; every enabled office user is
      * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". P56: each PROVISIONS line received above zero
@@ -401,14 +401,14 @@ public class OrderReceiptService {
         if (receiptFiles.isEmpty()) {
             return Result.NO_FILE;
         }
-        // P64: an invoice read but never matched (no count): matched now, so the office can compare it.
+        // An invoice read but never matched (no count): matched now, so the office can compare it.
         matchService.ensureMatched(order);
         close(order, master, receipt, receiptFiles);
         return Result.DONE;
     }
 
     /**
-     * P63, Approve: the Master approves the Chief cook's count sent to them in one step, as confirmReceipt: what
+     * Approve: the Master approves the Chief cook's count sent to them in one step, as confirmReceipt: what
      * arrived of each row is the Master's change or the cook's count (a row not counted: nothing arrived), in the
      * item's unit, with the cook's note; receivedAt (P51's rules), by default when the cook sent the count. An
      * invoice line matched to a vessel item not on the order becomes a line added on receipt (ordered 0). Each line
@@ -459,7 +459,7 @@ public class OrderReceiptService {
             }
             lines.put(line.getId(), new LineReceipt(received, note == null || note.length() <= ShipOrderLine.NOTE_MAX_LENGTH
                     ? note : note.substring(0, ShipOrderLine.NOTE_MAX_LENGTH)));
-            // For the office (P64): the invoice's quantity in the item's unit, its line, the marks.
+            // For the office: the invoice's quantity in the item's unit, its line, the marks.
             BigDecimal invoiced = row.getSource() == CountSheet.Source.INVOICE ? row.toItem(row.getInvoiced()) : null;
             line.setInvoicedQuantity(before == null ? invoiced : add(line.getInvoicedQuantity(), invoiced));
             if (line.getInvoiceLine() == null && !row.getInvoiceLines().isEmpty()) {
@@ -513,9 +513,9 @@ public class OrderReceiptService {
         order.setReceiptConfirmedAt(Instant.now());
         order.setShortLines(shortLines);
         order.setStatus(ShipOrderStatus.CLOSED);
-        // P64: received with a read invoice: the office compares order, delivery and invoice (TO_MATCH).
+        // Received with a read invoice: the office compares order, delivery and invoice (TO_MATCH).
         comparisonService.refresh(order);
-        // P61: a count sent to the Master is approved by confirming; a draft the cook never sent is left as it was.
+        // A count sent to the Master is approved by confirming; a draft the cook never sent is left as it was.
         String countedBy = null;
         if (order.getDeliveryCountStatus() == DeliveryCountStatus.SENT_TO_MASTER) {
             order.setDeliveryCount(DeliveryCountStatus.APPROVED);
@@ -553,7 +553,7 @@ public class OrderReceiptService {
                 notificationService.notify(cook, NotificationType.ORDER, ship.getName(), stockText, "/ship/stores");
             }
         } else if (countedBy != null && order.getCountedBy().isEnabled()) {
-            // P63: the cook hears his count was approved even when nothing went into the store.
+            // The cook hears his count was approved even when nothing went into the store.
             notificationService.notify(order.getCountedBy(), NotificationType.ORDER, ship.getName(),
                     messageSource.getMessage("order.notification.countApproved", new Object[] {order.getId()},
                             Locale.ENGLISH), "/ship/orders/" + order.getId());
@@ -601,7 +601,7 @@ public class OrderReceiptService {
     }
 
     /**
-     * A receipt file, opened in the browser (a PDF or an image, P22) or downloaded. 404 when the order has no such
+     * A receipt file, opened in the browser (a PDF or an image) or downloaded. 404 when the order has no such
      * file, or when it is not received yet and staged is false (the office sees a receipt once it is confirmed).
      */
     @Transactional(readOnly = true)

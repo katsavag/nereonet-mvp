@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.number(${view.order.id})}, ~{::main})}">
 <body>
-<!-- One past order of the Master's ship (P35), read-only: its status, who sent it and when, the requested port, needed
+<!-- One past order of the Master's ship, read-only: its status, who sent it and when, the requested port, needed
      by date and note and, once the office has set them, the confirmed port and delivery date; then its lines by
-     category with who asked for each. P51: once the delivery is scheduled, "Confirm receipt" (the one primary action);
+     category with who asked for each. Once the delivery is scheduled, "Confirm receipt" (the one primary action);
      once received, when and by whom, the delivery receipt's files (each opens in a new tab) and per line what arrived.
-     P55: the Chief cook (canManage false) reads the same page with no Confirm receipt and without the receipt's files;
+     The Chief cook (canManage false) reads the same page with no Confirm receipt and without the receipt's files;
      one line says only the Master can change or send the order.
-     P61: the Chief cook (canCount) has Count delivery while the delivery is scheduled (View count once sent); a count
+     The Chief cook (canCount) has Count delivery while the delivery is scheduled (View count once sent); a count
      waiting for the Master says so; once received, who counted it.
-     P62: until a page of the invoice is photographed, Confirm receipt (without a count to approve) and Count
+     Until a page of the invoice is photographed, Confirm receipt (without a count to approve) and Count
      delivery (nothing counted yet) open "Photograph the invoice" first (invoiceFirstForMaster, invoiceFirstForCook).
      English only. Model: view (ShipOrderPageService.OrderView), canManage, canCount (boolean), receiptFiles (OrderReceiptFile,
      once received, the Master's only). -->
@@ -22,7 +22,7 @@
         </th:block>
         <th:block th:fragment="pageActions">
             <a th:if="${canManage}" class="btn btn-primary" th:href="${invoiceFirstForMaster} ? @{/ship/orders/{id}/invoice(id=${order.id})} : @{/ship/orders/{id}/receipt(id=${order.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
-            <!-- P61: the Chief cook counts the delivery (View count once sent to the Master). -->
+            <!-- The Chief cook counts the delivery (View count once sent to the Master). -->
             <a th:if="${canCount}" class="btn" th:classappend="${order.deliveryCountStatus.editable()} ? 'btn-primary' : 'btn-outline-secondary'"
                th:href="${invoiceFirstForCook} ? @{/ship/orders/{id}/invoice(id=${order.id})} : @{/ship/orders/{id}/count(id=${order.id})}"
                th:text="${order.deliveryCountStatus.editable()} ? #{order.count.action} : #{order.count.view}">Count delivery</a>
@@ -33,7 +33,7 @@
         items arrive, confirm receipt and attach the delivery receipt.</p>
     <p th:if="${canCount and order.status.name() == 'CONFIRMED' and order.deliveryCountStatus.editable()}" class="text-body-secondary"
        th:text="#{order.count.waiting}">When the delivery arrives, count it and send the count to the Master.</p>
-    <!-- P61: a count waiting for the Master. -->
+    <!-- A count waiting for the Master. -->
     <p th:if="${order.countToApprove}" class="order-count-state">
         <span th:replace="~{layout/parts :: statusIcon('info', #{order.count.toApprove}, 'clock')}"></span></p>
     <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block>
@@ -42,7 +42,7 @@
         <dl class="card-body row mb-0">
             <dt class="col-sm-4 col-lg-3" th:text="#{order.status}">Status</dt>
             <dd class="col-sm-8 col-lg-9"><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span>
-                <!-- P65: Pending says whom it waits for. -->
+                <!-- Pending says whom it waits for. -->
                 <span th:if="${order.status.name() == 'SENT'}" class="d-block small text-body-secondary mt-1"
                       th:text="#{order.status.SENT.waiting}">Waiting for the office to schedule the delivery</span></dd>
             <dt class="col-sm-4 col-lg-3" th:text="#{order.sentBy}">Sent</dt>
@@ -66,14 +66,14 @@
                 <dt class="col-sm-4 col-lg-3" th:text="#{order.deliveryDate}">Delivery date</dt>
                 <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${order.deliveryDate})}"></time></dd>
             </th:block>
-            <!-- P51: the receipt on board. -->
+            <!-- The receipt on board. -->
             <th:block th:if="${order.receivedAt != null}">
                 <dt class="col-sm-4 col-lg-3" th:text="#{order.receipt.receivedLine}">Received</dt>
                 <dd class="col-sm-8 col-lg-9">
                     <time th:replace="~{layout/parts :: localTime(${order.receivedAt})}"></time>
                     <span th:text="#{order.receipt.by(${order.receivedBy} ? ${order.receivedBy.fullName} : #{audit.deletedUser})}">by Ship Master</span>
                 </dd>
-                <!-- P61: the Chief cook's count the Master approved. -->
+                <!-- The Chief cook's count the Master approved. -->
                 <th:block th:if="${order.countApproved and order.countSentAt != null}">
                     <dt class="col-sm-4 col-lg-3" th:text="#{order.count.countedLine}">Counted</dt>
                     <dd class="col-sm-8 col-lg-9" th:text="#{order.count.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{sire.report.upload}, ~{::main})}">
 <body>
-<!-- "Upload report" (P41): the SIRE 2.0 report of one inspection, a PDF of at most 10 MB; it takes the place of the
+<!-- "Upload report": the SIRE 2.0 report of one inspection, a PDF of at most 10 MB; it takes the place of the
      inspection's earlier upload. js/forms.js shows the chosen file's name and size and warns before uploading one over
      the limit; ?fileTooLarge: one over the multipart limit (UploadTooLargeFilter). Model: ship, inspection, form
      (SireReportForm). -->

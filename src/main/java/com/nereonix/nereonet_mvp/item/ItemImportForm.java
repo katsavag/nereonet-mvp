@@ -2,7 +2,7 @@ package com.nereonix.nereonet_mvp.item;
 
 import com.nereonix.nereonet_mvp.core.importfile.ImportForm;
 
-// An item import in progress for one ship (P24): the uploaded file with its mapping, then every item from it on the
+// An item import in progress for one ship: the uploaded file with its mapping, then every item from it on the
 // review screen. Kept in the HTTP session until the import is done or cancelled (see ItemImportController).
 public class ItemImportForm extends ImportForm<ItemImportRow> {
 

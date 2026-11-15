@@ -4,7 +4,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;
 
 /**
- * A new password and its repetition, with the rules every new password follows (registration, password reset, P14).
+ * A new password and its repetition, with the rules every new password follows (registration, password reset).
  * On the page: layout/parts :: newPasswordFields, which shows the same rules as a checklist.
  */
 public abstract class NewPasswordForm {

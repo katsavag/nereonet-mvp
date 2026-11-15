@@ -13,7 +13,7 @@ import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 
 /**
- * The rows of a delivery count (P63): what the Chief cook counts and the Master approves, built from the order's lines
+ * The rows of a delivery count: what the Chief cook counts and the Master approves, built from the order's lines
  * and the invoice's lines as matched (InvoiceMatchService). One row per order line not removed by the office, and one
  * per invoice line matched to a vessel item not on the order. With a read invoice each row's reference is the
  * invoice's quantity, counted in the invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags"); an order line

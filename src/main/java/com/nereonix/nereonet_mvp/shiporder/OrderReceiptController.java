@@ -49,11 +49,11 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * "Confirm receipt" (P51): the Master of the ship says the items of a CONFIRMED order (delivery scheduled) arrived.
+ * "Confirm receipt": the Master of the ship says the items of a CONFIRMED order (delivery scheduled) arrived.
  * SecurityConfig limits /ship/orders/** to MASTER; an order of another ship is a 404. English only, as every crew page.
  * <pre>
  *   GET  /ship/orders/{id}/receipt                  the form: per line ordered and received, the receipt files, when
- *   POST /ship/orders/{id}/receipt                  Review: files uploaded and removed, then the review page (P10)
+ *   POST /ship/orders/{id}/receipt                  Review: files uploaded and removed, then the review page
  *   POST /ship/orders/{id}/receipt/edit             Back to edit on the review page: the form with the values
  *   POST /ship/orders/{id}/receipt/confirm          Confirm receipt on the review page: the order is CLOSED
  *   POST /ship/orders/{id}/receipt/files            one file of the receipt, sent by js/receipt.js with a progress bar
@@ -61,9 +61,9 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * </pre>
  * Works without JavaScript: the form's files go with Review (at most 10 MB in one request; more comes back to the
  * form with "too large", the files sent before kept). With JavaScript each file goes alone first, photos made smaller,
- * with a progress bar, so a dropped connection loses one file at most. The form keeps a draft (P15), and the files
+ * with a progress bar, so a dropped connection loses one file at most. The form keeps a draft, and the files
  * uploaded wait on the order, so nothing typed or sent is lost.
- * P63: when the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead (one short page,
+ * When the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead (one short page,
  * shiporder/receipt-approve.html) and the P51 form's posts lead back to it:
  * <pre>
  *   GET  /ship/orders/{id}/receipt?change=o12       that one row's input (?all: in the full list)
@@ -95,7 +95,7 @@ public class OrderReceiptController {
     }
 
     /**
-     * P61, Send back to cook: while the Chief cook's count waits for the Master, the Master returns it with a note
+     * Send back to cook: while the Chief cook's count waits for the Master, the Master returns it with a note
      * (required, at most ShipOrder.COUNT_NOTE_MAX_LENGTH). Back to the receipt page with what happened.
      */
     @PostMapping(BASE + "/return")
@@ -147,7 +147,7 @@ public class OrderReceiptController {
         return showForm(order, ReceiptForm.of(order), model);
     }
 
-    /** P63, Change on the approval: one row's number, in the row's unit; back to the approval at that row. */
+    /** Change on the approval: one row's number, in the row's unit; back to the approval at that row. */
     @PostMapping(BASE + "/change")
     public String change(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                          @RequestParam(required = false) String key, @RequestParam(required = false) String quantity,
@@ -179,7 +179,7 @@ public class OrderReceiptController {
     }
 
     /**
-     * P63, Approve: P51's confirm in one step. The time received is when the cook sent the count unless Change date
+     * Approve: P51's confirm in one step. The time received is when the cook sent the count unless Change date
      * gave another (P51's rules). Back to the order, or to the approval with what is wrong.
      */
     @PostMapping(BASE + "/approve")
@@ -239,7 +239,7 @@ public class OrderReceiptController {
             return notConfirmed(order, redirectAttributes);
         }
         if (order.isCountToApprove()) {
-            // P63: the cook's count is approved on its own page.
+            // The cook's count is approved on its own page.
             return "redirect:/ship/orders/" + id + "/receipt";
         }
         User master = pageService.master(email);
@@ -316,7 +316,7 @@ public class OrderReceiptController {
         return "redirect:/ship/orders/" + id;
     }
 
-    // The review and confirm URLs take only POST: a GET (signing in again after the session expired, P12) opens the
+    // The review and confirm URLs take only POST: a GET (signing in again after the session expired) opens the
     // form, where the draft brings the values back.
     @GetMapping({BASE + "/edit", BASE + "/confirm"})
     public String toForm(@PathVariable Long id) {
@@ -397,7 +397,7 @@ public class OrderReceiptController {
                 .collect(Collectors.toMap(ShipOrderLine::getId, Function.identity()));
         for (int i = 0; i < form.getLines().size(); i++) {
             ReceiptForm.Line line = form.getLines().get(i);
-            // P60: the rule of the item's unit; 0 is "Not delivered"; the quantity ordered is always accepted, even
+            // The rule of the item's unit; 0 is "Not delivered"; the quantity ordered is always accepted, even
             // above the maximum.
             if (!line.isNotDelivered()) {
                 ShipOrderLine orderLine = orderLines.get(line.getLineId());
@@ -436,7 +436,7 @@ public class OrderReceiptController {
         model.addAttribute("maxFiles", OrderReceiptService.MAX_FILES);
         model.addAttribute("maxFileSize", CertificateFileStorage.MAX_FILE_SIZE);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
-        // P60: the receipt time's min, when the order was sent.
+        // The receipt time's min, when the order was sent.
         model.addAttribute("receivedAtMin", ReceiptForm.minFor(order));
         return "shiporder/receipt";
     }
@@ -451,7 +451,7 @@ public class OrderReceiptController {
         return "shiporder/receipt-review";
     }
 
-    // P63, "Approve the delivery": the cook's count in short, the differences, one row open to change (change), every
+    // "Approve the delivery": the cook's count in short, the differences, one row open to change (change), every
     // row (all) or the invoice's photos (invoice); error: a message key for the date or the files.
     private String showApproval(ShipOrder order, String change, boolean all, boolean invoice,
                                 DeliveryCountController.RowError rowError, String error, Model model) {

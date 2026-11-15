@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${person.fullName}, ~{::main})}">
 <body>
-<!-- One crewmate (P31), as everyone on board sees them: name, rank and department (the office's), then their photo
+<!-- One crewmate, as everyone on board sees them: name, rank and department (the office's), then their photo
      (512px version), languages in their order, nationality and bio with its line breaks, each only when filled in;
      with none of the four, "<First name> hasn't added anything to their profile yet." Read only, English only, no
      script of its own. A person not on board the viewer's ship now is a 404 (MyCrewService). Model: person
@@ -25,7 +25,7 @@
                 </th:block>
                 <th:block th:if="${p.nationality != null}">
                     <dt th:text="#{profile.field.nationality}">Nationality</dt>
-                    <!-- P43: with its flag. -->
+                    <!-- With its flag. -->
                     <dd><span th:replace="~{layout/parts :: country(${p.nationality}, ${p.nationalityName()})}">Philippines</span></dd>
                 </th:block>
                 <th:block th:if="${p.bio != null}">

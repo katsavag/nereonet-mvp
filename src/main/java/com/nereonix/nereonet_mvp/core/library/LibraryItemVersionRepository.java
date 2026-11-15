@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LibraryItemVersionRepository extends JpaRepository<LibraryItemVersion, Long> {
 
-    /** Every version of the item, newest first: its version history (P22). */
+    /** Every version of the item, newest first: its version history. */
     List<LibraryItemVersion> findAllByItemOrderByPublishedAtDescIdDesc(LibraryItem item);
 }

@@ -55,7 +55,7 @@ public class OfficeLibraryController {
         return "officelibrary/list";
     }
 
-    // The read view of an item (P22): what the crew see, without "I have read this", plus the version history,
+    // The read view of an item: what the crew see, without "I have read this", plus the version history,
     // with New version and Retire as its actions.
     @GetMapping("/office/ships/{shipId}/library/{id}")
     public String item(@PathVariable Long shipId, @PathVariable Long id, Model model) {
@@ -65,7 +65,7 @@ public class OfficeLibraryController {
         return "officelibrary/item";
     }
 
-    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it (P22).
+    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it.
     @GetMapping("/office/ships/{shipId}/library/{id}/file")
     public ResponseEntity<Resource> file(@PathVariable Long shipId, @PathVariable Long id,
                                          @RequestParam(defaultValue = "false") boolean download) {
@@ -79,7 +79,7 @@ public class OfficeLibraryController {
         return "officelibrary/acknowledgements";
     }
 
-    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load (P10). 404 when the item
+    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load. 404 when the item
     // is not Required, as the overview.
     @GetMapping("/office/ships/{shipId}/library/{id}/acknowledgements/remind")
     public String confirmRemind(@PathVariable Long shipId, @PathVariable Long id, Model model) {
@@ -156,7 +156,7 @@ public class OfficeLibraryController {
         return "redirect:/office/ships/" + id + "/library";
     }
 
-    // "New version" (P22; was "Edit this item"): publish a new version. Cancel and Publish go back to the read view.
+    // "New version" (was "Edit this item"): publish a new version. Cancel and Publish go back to the read view.
     @GetMapping("/office/ships/{shipId}/library/{id}/edit")
     public String editForm(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         LibraryItem item = libraryService.shipItem(shipId, id);
@@ -186,7 +186,7 @@ public class OfficeLibraryController {
         return "redirect:" + itemUrl(shipId, id);
     }
 
-    // The confirmation page: where Retire leads when js/confirm.js did not load (P10). Cancel goes back to the item.
+    // The confirmation page: where Retire leads when js/confirm.js did not load. Cancel goes back to the item.
     @GetMapping("/office/ships/{shipId}/library/{id}/retire")
     public String confirmRetire(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         Ship ship = libraryService.ship(shipId);

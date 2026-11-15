@@ -4,31 +4,29 @@
     <html th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
   title: the page name as text. The browser tab shows "Page name · Nereonet"; on phones the top bar shows the page
   name. The page's <main> starts with layout/parts :: pageHeader (breadcrumbs, heading, actions).
-  Logged in: navy sidebar from md: grouped navigation with the active entry and counters (P07, see the comment on the
+  Logged in: navy sidebar from md: grouped navigation with the active entry and counters (see the comment on the
   aside), the user's name and a logout button. From md it is a 64px icon rail or the full sidebar, as this browser
-  chose (P29: body.sidebar-collapsed / sidebar-expanded, from the cookie read by navigation/SidebarPreference; the
+  chose (body.sidebar-collapsed / sidebar-expanded, from the cookie read by navigation/SidebarPreference; the
   toggle is layout/parts :: sidebarToggle, js/sidebar.js). Below md, office users open it as an offcanvas from the top
-  bar (closed with its X, a tap outside, Esc or choosing an entry); ship crew have the bottom tab bar instead (P26,
-  layout/parts :: tabBar) and no menu button. Office pages have "EN | ΕΛ" at the right of the top bar at every width
-  (P29); crew pages are English only.
+  bar (closed with its X, a tap outside, Esc or choosing an entry); ship crew have the bottom tab bar instead (layout/parts :: tabBar) and no menu button. Office pages have "EN | ΕΛ" at the right of the top bar at every width; crew pages are English only.
   Not logged in: the page's <main> fills the screen and brings its own container (signed-out error pages use
-  layout/parts :: authFrame, P13). The sign-in, registration and password reset pages use layout/auth instead, which
-  never shows the signed-in frame (P30): someone still signed in who opens an invitation or reset link sees that page
+  layout/parts :: authFrame). The sign-in, registration and password reset pages use layout/auth instead, which
+  never shows the signed-in frame: someone still signed in who opens an invitation or reset link sees that page
   alone, not inside the sidebar and top bar.
   Messages: add a flash attribute "successMessage" or "errorMessage"
   holding a message key, e.g. redirectAttributes.addFlashAttribute("successMessage", "ship.saved"); for a message
   with arguments add "successArgs", an Object[] (see layout/parts :: flash).
-  Confirmations (P10): an action that must be confirmed is a layout/parts :: confirmForm; the one dialog it opens,
+  Confirmations: an action that must be confirmed is a layout/parts :: confirmForm; the one dialog it opens,
   layout/parts :: confirmDialog, is at the end of the signed-in frame.
-  Times (P11): shown in UTC with layout/parts :: localTime; data-local-time on the body is the wording js/local-time.js
+  Times: shown in UTC with layout/parts :: localTime; data-local-time on the body is the wording js/local-time.js
   uses for the viewer's own time ("Your time: {time}").
-  Saving on a bad connection (P15, js/save.js): every POST form shows "Saving…" once sent and cannot be sent twice; a
+  Saving on a bad connection (js/save.js): every POST form shows "Saving…" once sent and cannot be sent twice; a
   form with data-draft keeps its text in the browser while the user types. data-user on the body (signed in only) is
   the user's id, so drafts are per user; layout/parts :: offlineBanner and draftNotice hold the texts.
 -->
 <html th:fragment="layout(title, content)" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:lang="${#locale.language}">
-<!-- head(title) and scripts are shared with layout/auth (P30). -->
+<!-- head(title) and scripts are shared with layout/auth. -->
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,8 +37,8 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<!-- has-tab-bar: a signed-in ship user, who gets the bottom tab bar below md (P26); app.css leaves room for it.
-     sidebar-collapsed / sidebar-expanded (signed in): the sidebar's state from md (P29), from the cookie, so the page is
+<!-- has-tab-bar: a signed-in ship user, who gets the bottom tab bar below md; app.css leaves room for it.
+     sidebar-collapsed / sidebar-expanded (signed in): the sidebar's state from md, from the cookie, so the page is
      rendered in the chosen state and never flashes the other one first. -->
 <body th:data-local-time="#{time.local('{time}')}"
       th:with="signedIn=${#authorization.expression('isAuthenticated()')}, sidebarExpanded=${@sidebarPreference.expanded()}"
@@ -49,21 +47,21 @@
       th:data-user="${#authorization.expression('isAuthenticated()')} ? ${#authentication.principal.id} : null">
 
 <div sec:authorize="isAuthenticated()" class="d-md-flex">
-    <!-- Sidebar (P07): brand, the navigation groups (scroll on their own when the window is short), and the user
+    <!-- Sidebar: brand, the navigation groups (scroll on their own when the window is short), and the user
          block pinned at the bottom. The active entry and the counters come from navigation/NavigationAdvice
          (navSection, navCounts) and notification/NotificationBellAdvice (unreadNotifications). -->
     <aside class="sidebar flex-shrink-0 bg-navy">
         <div class="offcanvas-md offcanvas-start bg-navy text-white h-100" tabindex="-1" id="sidebar"
              th:attr="aria-label=#{app.name}">
             <div class="offcanvas-body sidebar-body">
-                <!-- The brand goes to the user's home page: /office or /ship. On phones the X closes the menu (P29). -->
+                <!-- The brand goes to the user's home page: /office or /ship. On phones the X closes the menu. -->
                 <div class="sidebar-head">
                     <a class="sidebar-brand" th:href="@{${#authentication.principal.homeUrl}}"
                        th:with="office=${#authentication.principal.role.name() == 'OFFICE_USER'}">
                         <div th:replace="~{layout/parts :: brand(${office} ? #{portal.office} : #{portal.ship})}"></div>
                     </a>
                     <!-- From md: "Collapse menu" / "Expand menu", an icon right of the brand, under the mark in the
-                         rail (P29, at the top since P39). -->
+                         rail (at the top). -->
                     <form th:replace="~{layout/parts :: sidebarToggle(${sidebarExpanded})}"></form>
                     <button type="button" class="sidebar-close" data-bs-dismiss="offcanvas"
                             data-bs-target="#sidebar" th:attr="aria-label=#{nav.close}">
@@ -79,11 +77,11 @@
                             <li th:replace="~{layout/parts :: navItem('overview', '/office', #{nav.overview}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('ships', '/office/ships', #{nav.ships}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li>
-                            <!-- Certificates opens exactly what its counter counts (P20): expired or within 30 days. -->
+                            <!-- Certificates opens exactly what its counter counts: expired or within 30 days. -->
                             <li th:replace="~{layout/parts :: navItem('certificates',
                                     ${navCounts.certificates > 0} ? '/office/certificates?status=expired,30' : '/office/certificates', #{nav.certificates},
                                     ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
-                            <!-- Vetting (P40): RightShip, SIRE 2.0 from P41; the number of vessels whose RightShip
+                            <!-- Vetting: RightShip, SIRE 2.0; the number of vessels whose RightShip
                                  inspection is expired or expires within 60 days. -->
                             <li th:replace="~{layout/parts :: navItem('vetting', '/office/vetting', #{nav.vetting},
                                     ${navCounts.vetting}, #{nav.count.vetting(${navCounts.vetting})})}"></li>
@@ -95,18 +93,18 @@
                         <p class="nav-group-label" id="navGroupAdministration" th:text="#{nav.group.administration}">Administration</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupAdministration">
                             <li th:replace="~{layout/parts :: navItem('users', '/office/users', #{nav.officeUsers}, null, null)}"></li>
-                            <!-- Required documents per rank and vessel type (P42). -->
+                            <!-- Required documents per rank and vessel type. -->
                             <li th:replace="~{layout/parts :: navItem('requirements', '/office/requirements', #{nav.requirements}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
                         </ul>
                     </th:block>
-                    <!-- Ship (P65): two groups from shipNav (navigation/ShipNav, the one place that decides them per
-                         role, with the phone tab bar and the More page). On board: Home, News (P27, P39, with the
-                         number not opened yet), Library and My crew (P31). Supplies, in the order of the work: Requests
-                         (the Chief cook and crew members, P54, with their requests still waiting for the Master),
-                         Approvals (the Master, P33, with the requests waiting for them), Vessel order (P35, the
-                         Master with the orders that need them, P59; the Chief cook reads it without a counter, P55)
-                         and Stores (the Chief cook, P52, with the provisions Low or Out of stock). -->
+                    <!-- Ship: two groups from shipNav (navigation/ShipNav, the one place that decides them per
+                         role, with the phone tab bar and the More page). On board: Home, News (with the
+                         number not opened yet), Library and My crew. Supplies, in the order of the work: Requests
+                         (the Chief cook and crew members, with their requests still waiting for the Master),
+                         Approvals (the Master, with the requests waiting for them), Vessel order (the
+                         Master with the orders that need them; the Chief cook reads it without a counter)
+                         and Stores (the Chief cook, with the provisions Low or Out of stock). -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
@@ -133,7 +131,7 @@
                     </ul>
                 </nav>
 
-                <!-- The person's picture (P43): their profile photo when a ship user has one (currentPhoto from
+                <!-- The person's picture: their profile photo when a ship user has one (currentPhoto from
                      navigation/NavigationAdvice, the 96px version), else their initials: the one shared fragment. -->
                 <div class="sidebar-user">
                     <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${currentPhoto}, 'sm')}"></span>
@@ -150,9 +148,8 @@
 
     <!-- min-width: 0, so a wide table scrolls inside its card instead of widening the page. -->
     <div class="app-main flex-grow-1">
-        <!-- Office: menu button, page name, "EN | ΕΛ", bell; from md only "EN | ΕΛ", on the right (P29). Ship crew:
-             the page name only, on phones; the tab bar at the bottom has the navigation, and its More page Notifications
-             (P26, P47). -->
+        <!-- Office: menu button, page name, "EN | ΕΛ", bell; from md only "EN | ΕΛ", on the right. Ship crew:
+             the page name only, on phones; the tab bar at the bottom has the navigation, and its More page Notifications. -->
         <header class="topbar" th:with="office=${#authorization.expression('hasRole(''OFFICE_USER'')')}"
                 th:classappend="${office} ? 'topbar-office' : 'd-md-none'">
             <button sec:authorize="hasRole('OFFICE_USER')" type="button" class="btn topbar-button d-md-none"
@@ -164,12 +161,12 @@
             </button>
             <!-- The current page's name; the brand is in the sidebar. -->
             <span class="topbar-title fw-bold" th:text="${title}">Ships</span>
-            <!-- Office screens are English and Greek (P16), the switch top right at every width (P29). -->
+            <!-- Office screens are English and Greek, the switch top right at every width. -->
             <div sec:authorize="hasRole('OFFICE_USER')" class="topbar-lang">
                 <div th:replace="~{layout/parts :: langSwitch(null)}"></div>
             </div>
             <!-- Notification bell with the unread count, always visible on phones. js/notifications.js updates the
-                 count and the label in place after Mark as read (P23). -->
+                 count and the label in place after Mark as read. -->
             <a sec:authorize="hasRole('OFFICE_USER')" class="btn topbar-button d-md-none position-relative"
                id="notificationBell" th:href="@{/notifications}"
                th:attr="aria-label=#{notification.bell(${unreadNotifications ?: 0})}">
@@ -179,21 +176,21 @@
                       th:text="${unreadNotifications > 99} ? '99+' : ${unreadNotifications}">3</span>
             </a>
         </header>
-        <!-- The full width of the window next to the sidebar, with 32px side gutters (16px on phones) (P29). Form
+        <!-- The full width of the window next to the sidebar, with 32px side gutters (16px on phones). Form
              pages keep their 720px column inside it (main.form-page, app.css). -->
         <div class="app-content">
             <th:block th:replace="~{layout/parts :: flash}"></th:block>
             <main th:replace="${content}"></main>
         </div>
     </div>
-    <!-- Ship crew on phones (P26): four tabs per role (P65, navigation/ShipNav), More (P31) last, at the bottom of
-         the screen; Notifications is the first row of the More page (P47). -->
+    <!-- Ship crew on phones: four tabs per role (navigation/ShipNav), More last, at the bottom of
+         the screen; Notifications is the first row of the More page. -->
     <th:block sec:authorize="!hasRole('OFFICE_USER')">
         <nav th:replace="~{layout/parts :: tabBar}"></nav>
     </th:block>
-    <!-- The confirmation dialog of every confirmForm on the page (P10, js/confirm.js). -->
+    <!-- The confirmation dialog of every confirmForm on the page (js/confirm.js). -->
     <dialog th:replace="~{layout/parts :: confirmDialog}"></dialog>
-    <!-- "Draft restored from 12:40 UTC · Discard" (P15), copied into a form with a draft by js/save.js. -->
+    <!-- "Draft restored from 12:40 UTC · Discard", copied into a form with a draft by js/save.js. -->
     <template th:replace="~{layout/parts :: draftNotice}"></template>
 </div>
 
@@ -204,29 +201,23 @@
     <main th:replace="${content}"></main>
 </div>
 
-<!-- "No connection." (P15): empty and invisible until js/save.js sees the browser go offline. -->
+<!-- "No connection.": empty and invisible until js/save.js sees the browser go offline. -->
 <div th:replace="~{layout/parts :: offlineBanner}"></div>
 
 <th:block th:fragment="scripts">
-<script th:src="@{/vendor/bootstrap/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/js/local-time.js}"></script>
-<script th:src="@{/js/row-menu.js}"></script>
-<script th:src="@{/js/forms.js}"></script>
-<script th:src="@{/js/quantity.js}"></script>
-<script th:src="@{/js/password.js}"></script>
-<script th:src="@{/js/ship-tabs.js}"></script>
-<script th:src="@{/js/confirm.js}"></script>
-<script th:src="@{/js/list-filter.js}"></script>
-<script th:src="@{/js/list-rows.js}"></script>
-<script th:src="@{/js/save.js}"></script>
-<script th:src="@{/js/download.js}"></script>
-<script th:src="@{/js/notifications.js}"></script>
-<script th:src="@{/js/import-map.js}"></script>
-<script th:src="@{/js/import-check.js}"></script>
-<script th:src="@{/js/ship-picker.js}"></script>
-<script th:src="@{/js/item-search.js}"></script>
-<script th:src="@{/js/requirements.js}"></script>
-<script th:src="@{/js/sidebar.js}"></script>
+<script th:src="@{/vendor/bootstrap/bootstrap.bundle.min.js}" defer></script>
+<script th:src="@{/js/local-time.js}" defer></script>
+<script th:src="@{/js/row-menu.js}" defer></script>
+<script th:src="@{/js/forms.js}" defer></script>
+<script th:src="@{/js/quantity.js}" defer></script>
+<script th:src="@{/js/ship-tabs.js}" defer></script>
+<script th:src="@{/js/confirm.js}" defer></script>
+<script th:src="@{/js/list-filter.js}" defer></script>
+<script th:src="@{/js/list-rows.js}" defer></script>
+<script th:src="@{/js/save.js}" defer></script>
+<script th:src="@{/js/download.js}" defer></script>
+<script th:src="@{/js/notifications.js}" defer></script>
+<script th:src="@{/js/sidebar.js}" defer></script>
 </th:block>
 </body>
 </html>

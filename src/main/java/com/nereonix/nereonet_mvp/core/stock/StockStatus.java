@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.stock;
 import java.util.Arrays;
 import java.util.Locale;
 
-// How much of a provisions item is on board (P52), from its quantity and app.stock.low-threshold (StockService.status).
+// How much of a provisions item is on board, from its quantity and app.stock.low-threshold (StockService.status).
 // Labels: stores.status.<NAME> in messages.properties. key() is the value of the Stores page's ?status= filter.
 public enum StockStatus {
 

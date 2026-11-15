@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- Step 3 of the crew import (P24): every crew member from the file, editable. The row filters, the plan and
+<!-- Step 3 of the crew import: every crew member from the file, editable. The row filters, the plan and
      "Exclude all rows with errors" are layout/parts :: importSummary; the first two columns (row, full name) stay in
      place when the table scrolls sideways. Every row is a new crew member (an invitation). The cells check themselves
-     as they are corrected (P39, js/import-check.js); the server checks everything again. -->
+     as they are corrected (js/import-check.js); the server checks everything again. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{crewImport.review.title}, ~{::main})}">
 <body>
 <main>
@@ -14,7 +14,7 @@
     </header>
     <nav th:replace="~{layout/parts :: importSteps(3)}"></nav>
 
-    <!-- P18: a file with a Role column (e.g. the template from before): imported, the column ignored. -->
+    <!-- A file with a Role column (e.g. the template from before): imported, the column ignored. -->
     <th:block th:if="${crewImport.roleColumnIgnored}"><p th:replace="~{layout/parts :: infoNote('roleColumnIgnored',
             #{crewImport.review.roleIgnored})}"></p></th:block>
 
@@ -51,7 +51,7 @@
                         <td th:replace="~{layout/parts :: importTextCell(${row}, ${stat.index}, 'email', #{user.email},
                                 'email', 'invitation.error.emailRequired', 'crewImport.error.tooLong', null)}"></td>
                         <td>
-                            <!-- The rank sets the role (P18): its access in short under it, "Access: Master". -->
+                            <!-- The rank sets the role: its access in short under it, "Access: Master". -->
                             <select class="form-select form-select-sm" th:field="*{rows[__${stat.index}__].rank}"
                                     th:classappend="${row.errors['rank']} ? 'is-invalid'"
                                     th:attr="aria-label=#{importFile.review.cell(#{user.rank}, ${row.rowNumber})},
@@ -95,6 +95,7 @@
         <th:block th:replace="~{layout/parts :: importReviewActions(${crewImport}, ${show},
                 #{crewImport.review.submit}, #{crewImport.review.submitHint})}"></th:block>
     </form>
+    <script th:src="@{/js/import-check.js}" defer></script>
 </main>
 </body>
 </html>

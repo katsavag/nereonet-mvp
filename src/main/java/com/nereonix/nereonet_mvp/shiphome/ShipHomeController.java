@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.masterhome.MasterHomeService;
 import com.nereonix.nereonet_mvp.requirement.ComplianceService;
 import com.nereonix.nereonet_mvp.stores.StoresService;
 
-// The crew home page (P26): every ship role lands here after sign-in (SecurityConfig: /ship/** is for ship roles).
+// The crew home page: every ship role lands here after sign-in (SecurityConfig: /ship/** is for ship roles).
 // The Master gets their own home page (masterhome) at the same address; the Chief cook and Crew members this one.
 // The office home page is in the dashboard package.
 @Controller
@@ -36,7 +36,7 @@ public class ShipHomeController {
 
     @GetMapping("/ship")
     public String home(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
-        // P42: "2 required documents missing" (expired included), linking to My profile; nothing when none is.
+        // "2 required documents missing" (expired included), linking to My profile; nothing when none is.
         model.addAttribute("documentsMissing", userRepository.findByEmail(currentUser.getUsername())
                 .map(user -> complianceService.of(user).missing()).orElse(0L));
         if (currentUser.getRole() == Role.MASTER) {
@@ -44,7 +44,7 @@ public class ShipHomeController {
             return "masterhome/home";
         }
         model.addAttribute("home", shipHomeService.load(currentUser.getUsername()));
-        // P52: the Chief cook's Stores card, Low and Out of stock; null for crew members.
+        // The Chief cook's Stores card, Low and Out of stock; null for crew members.
         model.addAttribute("stores", currentUser.getRole() == Role.CHIEF_COOK
                 ? storesService.counts(currentUser.getUsername()) : null);
         return "shiphome/home";

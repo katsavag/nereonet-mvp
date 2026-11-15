@@ -20,14 +20,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * One line of a delivery invoice as read (P62). quantity, unitPrice and amount are the values after the checks
+ * One line of a delivery invoice as read. quantity, unitPrice and amount are the values after the checks
  * (InvoiceChecks: a recovered one is flagged corrected); readQuantity, readUnitPrice and readAmount what the page
  * gave (null: unreadable), rawText the row as the OCR wrote it. A line whose quantity was not read (quantityNotRead)
- * has no quantity: the count shows "Invoice: not read" (P63).
- * P63: the line's match to the order (InvoiceMatchService): the order line or, for an item of the vessel not on the
+ * has no quantity: the count shows "Invoice: not read".
+ * The line's match to the order (InvoiceMatchService): the order line or, for an item of the vessel not on the
  * order, the item; how the invoice's unit converts to the item's (packFactor: one invoice unit is this many of the
  * item's unit; null when it cannot be worked out); and, for a line matched to an item not on the order, the cook's
- * count and the Master's change, in the item's unit. CHECK is the office's "match to review" (P64),
+ * count and the Master's change, in the item's unit. CHECK is the office's "match to review",
  * conversionToReview its "conversion to review".
  */
 @Entity
@@ -121,7 +121,7 @@ public class DeliveryInvoiceLine {
     @Column(length = 30)
     private String packUnitMany;
 
-    // The factor was worked out from the description for the first time: the office reviews it (P64).
+    // The factor was worked out from the description for the first time: the office reviews it.
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean conversionToReview;

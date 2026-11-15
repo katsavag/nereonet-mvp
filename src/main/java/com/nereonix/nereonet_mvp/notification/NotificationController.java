@@ -21,7 +21,7 @@ import com.nereonix.nereonet_mvp.core.notification.Notification;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 /**
- * /notifications (P23), for every logged-in user (SecurityConfig: any other URL requires login). Showing the list
+ * /notifications, for every logged-in user (SecurityConfig: any other URL requires login). Showing the list
  * marks nothing as read; a notification is read once the user opens it (POST .../open, which then goes to its
  * link) or presses its Mark as read, or Mark all as read. Mark as read and Mark all as read come back to the same
  * page of the list with a message; js/notifications.js sends them with Accept: application/json instead and gets the

@@ -10,7 +10,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 /**
- * The small flag images next to a country (P43): the 4x3 SVG flags of the flag-icons project (MIT licence,
+ * The small flag images next to a country: the 4x3 SVG flags of the flag-icons project (MIT licence,
  * static/vendor/flags/LICENSE), one file per ISO 3166 code of ship/Countries, served by the app itself. Used as
  * {@code @flags} by layout/parts :: flag and country. The files that exist are read once at startup, so a country
  * whose file is missing simply gets no image, never a broken one.

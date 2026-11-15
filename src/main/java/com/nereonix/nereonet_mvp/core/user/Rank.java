@@ -6,7 +6,7 @@ import java.util.List;
 // Ranks for ship roles, in the order shown in the forms. Labels: rank.<NAME> in messages.properties.
 // Each rank belongs to one department (labels: department.<NAME>), for the crew on board on the ship page; the rank
 // pickers group the ranks by it (groups(), labels rank.group.<NAME>).
-// The rank sets the user's role (role(), P18): the office picks a rank, never a role.
+// The rank sets the user's role (role()): the office picks a rank, never a role.
 public enum Rank {
     MASTER(Department.DECK),
     CHIEF_OFFICER(Department.DECK),

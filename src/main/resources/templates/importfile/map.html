@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Step 2 of an import (P24): which column of the file holds which field. Each field has a select of the file's
+<!-- Step 2 of an import: which column of the file holds which field. Each field has a select of the file's
      columns, filled in with the best guess, or with the mapping saved for a file with the same column names. A field
      that can come from two columns (Full name: first and last name) has a second, optional select. The preview shows
      the first five rows with the field each column goes to; columns no field uses are ignored and listed.
@@ -13,7 +13,7 @@
             crumbs=~{layout/parts :: importCrumbs(true)}, eyebrowShip=${flow.ship()})}"></header>
     <nav th:replace="~{layout/parts :: importSteps(2)}"></nav>
 
-    <!-- As the error summary of every form (P05): one link per field; js/forms.js moves focus here. -->
+    <!-- As the error summary of every form: one link per field; js/forms.js moves focus here. -->
     <div th:if="${!map.errors().isEmpty()}" class="alert alert-danger error-summary" tabindex="-1"
          aria-labelledby="mapErrorsTitle">
         <h2 class="error-summary-title" id="mapErrorsTitle"
@@ -134,6 +134,7 @@
                     th:data-busy-label="#{importFile.cancelling}" th:text="#{form.cancel}">Cancel</button>
         </div>
     </form>
+    <script th:src="@{/js/import-map.js}" defer></script>
 </main>
 </body>
 </html>

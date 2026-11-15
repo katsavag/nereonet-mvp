@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A vessel's stored VesselAPI data for the pages (P45): the Vessel data tab and the Overview's summary line. Built from
+ * A vessel's stored VesselAPI data for the pages: the Vessel data tab and the Overview's summary line. Built from
  * the VesselDataSnapshot rows only: opening a page never calls VesselAPI. Each value is parsed from rawJson on read.
  */
 public class VesselDataView {

@@ -22,7 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A negative observation of a SIRE 2.0 inspection (P41): where in the VIQ (chapter 1 to 12 and the question number),
+ * A negative observation of a SIRE 2.0 inspection: where in the VIQ (chapter 1 to 12 and the question number),
  * its type and text as the report gives them, and how the office follows it up: the operator's comment, the
  * corrective action, the office user who owns it, the target date and, once done, the closed date.
  */

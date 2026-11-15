@@ -16,7 +16,7 @@ import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.Setter;
 
-// One item an RFQ asks prices for (P44): a copy of a line of the vessel order as it was when the RFQ was sent (item
+// One item an RFQ asks prices for: a copy of a line of the vessel order as it was when the RFQ was sent (item
 // name, unit, category, quantity), so later changes to the galley item never change what the suppliers were asked.
 @Entity
 @Getter

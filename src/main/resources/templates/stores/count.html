@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.count.title}, ~{::main})}">
 <body>
-<!-- Counting the store by hand (P53), the Chief cook only: every active provisions item, by storage place as on Stores
+<!-- Counting the store by hand, the Chief cook only: every active provisions item, by storage place as on Stores
      ("Other" last), each row with the quantity the store expects in its own small form. Each row is saved on its own
      the moment it changes: there is no Save for the page, no draft and nothing to resume.
      - js/stores-count.js sends a row as soon as its input changes (Accept: application/json) and updates it in place:
@@ -10,9 +10,9 @@
        with the error and the value sent (flash countSaved / countError, StoresController).
      - Offline or the connection dropped: the row says it was not saved (data-not-sent) and keeps the value typed.
      data-autosave: js/save.js does not ask "leave this page?" for these forms, everything changed is already stored.
-     P57: Count by voice above the items (js/stores-voice.js), and a link to a voice count waiting for review.
+     Count by voice above the items (js/stores-voice.js), and a link to a voice count waiting for review.
      English only. Model: stores (StoresService.Stores), countSaved (an item id) or countError (CountError),
-     voiceEnabled, voicePending. P60: each count follows the rule of the item's unit,
+     voiceEnabled, voicePending. Each count follows the rule of the item's unit,
      0 allowed, up to the store maximum (README 35). -->
 <main class="stores-count" th:with="s=${stores}" data-count-page
       th:attr="data-not-sent=#{stores.count.notSent}">
@@ -23,13 +23,13 @@
         </th:block>
     </header>
 
-    <!-- P57: a voice count waiting in the session for its review (VoiceCountController). -->
+    <!-- A voice count waiting in the session for its review (VoiceCountController). -->
     <p th:if="${voicePending}" class="alert alert-info voice-pending" role="status">
         <span th:text="#{stores.voice.pending}">A voice count is waiting for your review.</span>
         <a class="alert-link" th:href="@{/ship/stores/count/voice}" th:text="#{stores.voice.pendingLink}">Review it</a>
     </p>
 
-    <!-- P57, Count by voice: only when both providers are configured (or faked) and there is something to count
+    <!-- Count by voice: only when both providers are configured (or faked) and there is something to count
          (stores/parts :: voiceCard). -->
     <th:block th:if="${voiceEnabled and s.total > 0}">
         <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint})}"></section>

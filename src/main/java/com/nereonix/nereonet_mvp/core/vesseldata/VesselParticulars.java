@@ -8,7 +8,7 @@ import java.util.Set;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The display fields of GET /vessel/{imo} (P45), read from the body ({"vessel": {...}}). Null where VesselAPI gave no
+ * The display fields of GET /vessel/{imo}, read from the body ({"vessel": {...}}). Null where VesselAPI gave no
  * value. The speeds and draughts are VesselAPI's statistics over about 31 days, not the latest AIS values.
  */
 public record VesselParticulars(Long imo, Long mmsi, String name, String nameAis, String callSign,

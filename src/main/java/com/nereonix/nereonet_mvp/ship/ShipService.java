@@ -23,7 +23,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
-import com.nereonix.nereonet_mvp.dashboard.DashboardService;
+import com.nereonix.nereonet_mvp.dashboard.ShipOverviewService;
 import com.nereonix.nereonet_mvp.requirement.RequirementService;
 
 @Service
@@ -31,7 +31,7 @@ public class ShipService {
 
     private final ShipRepository shipRepository;
     private final AuditService auditService;
-    private final DashboardService dashboardService;
+    private final ShipOverviewService shipOverviewService;
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
     private final CertificateRepository certificateRepository;
@@ -40,7 +40,7 @@ public class ShipService {
     private final AnnouncementRepository announcementRepository;
     private final RequirementService requirementService;
 
-    public ShipService(ShipRepository shipRepository, AuditService auditService, DashboardService dashboardService,
+    public ShipService(ShipRepository shipRepository, AuditService auditService, ShipOverviewService shipOverviewService,
                        UserRepository userRepository, InvitationRepository invitationRepository,
                        CertificateRepository certificateRepository, LibraryItemRepository libraryItemRepository,
                        ItemRepository itemRepository, AnnouncementRepository announcementRepository,
@@ -48,7 +48,7 @@ public class ShipService {
         this.requirementService = requirementService;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
-        this.dashboardService = dashboardService;
+        this.shipOverviewService = shipOverviewService;
         this.userRepository = userRepository;
         this.invitationRepository = invitationRepository;
         this.certificateRepository = certificateRepository;
@@ -62,7 +62,7 @@ public class ShipService {
         return shipRepository.findAllByOrderByNameAsc();
     }
 
-    // The vessel with this IMO number (7 digits), if the fleet has it (P45: "Already in the fleet").
+    // The vessel with this IMO number (7 digits), if the fleet has it ("Already in the fleet").
     @Transactional(readOnly = true)
     public java.util.Optional<Ship> findByImoNumber(String digits) {
         return shipRepository.findByImoNumber(digits);
@@ -84,7 +84,7 @@ public class ShipService {
         Long id = ship.getId();
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         return new ShipTabCounts(
-                dashboardService.openItemCount(ship),
+                shipOverviewService.openItemCount(ship),
                 userRepository.countByShip(ship)
                         + invitationRepository.countByStatusAndShip(Invitation.Status.PENDING, ship),
                 certificateRepository.countExpiringUntil(today.plusDays(Certificate.REMINDER_DAYS.getLast()), id),
@@ -95,7 +95,7 @@ public class ShipService {
 
     /**
      * Saves a new, active ship. imoNumber may be "IMO 9074729" or "9074729"; only the digits are stored.
-     * Throws ImoNumberAlreadyExistsException if a ship with that IMO number exists. P58: the vessel starts with the
+     * Throws ImoNumberAlreadyExistsException if a ship with that IMO number exists. The vessel starts with the
      * required documents of its type's defaults (StarterRequirements), as suggestions to review.
      */
     @Transactional
@@ -118,7 +118,7 @@ public class ShipService {
         return ship;
     }
 
-    // Everything except the IMO number, which never changes. P58: when the type changes and resetRequirements is
+    // Everything except the IMO number, which never changes. When the type changes and resetRequirements is
     // set, the vessel's required documents become the new type's defaults (REQUIREMENTS_RESET); otherwise they stay.
     @Transactional
     public void update(Long id, String name, ShipType type, String flag, boolean resetRequirements) {

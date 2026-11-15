@@ -5,43 +5,43 @@ import java.util.List;
 /**
  * The sidebar entry a URL belongs to. A page below an entry keeps it active: /office/crew/12/edit is CREW,
  * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew'); the ship user's phone
- * tab of a section depends on their role (ShipNav.tabOf, P65).
+ * tab of a section depends on their role (ShipNav.tabOf).
  */
 public enum NavSection {
 
     // Office, Operations
     OVERVIEW("overview", List.of()),           // /office itself only, see of()
     SHIPS("ships", List.of("/office/ships")),
-    // The office's Crew and, for the crew, My crew (P31): the same entry key and icon.
+    // The office's Crew and, for the crew, My crew: the same entry key and icon.
     CREW("crew", List.of("/office/crew", "/ship/crew")),
     CERTIFICATES("certificates", List.of("/office/certificates")),
-    // How charterers vet a vessel: RightShip (P40), SIRE 2.0 (P41).
+    // How charterers vet a vessel: RightShip, SIRE 2.0.
     VETTING("vetting", List.of("/office/vetting")),
-    // The office list and, for the crew, their own announcements (P27), called News since P39 (/ship/news; the old
+    // The office list and, for the crew, their own announcements, called News since P39 (/ship/news; the old
     // /ship/announcements URLs redirect there): the same entry key and icon.
     ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/news", "/ship/announcements")),
-    // The orders the ships have sent (P36).
+    // The orders the ships have sent.
     ORDERS("orders", List.of("/office/orders")),
-    // The suppliers the office asks for quotes (P44). An RFQ's pages are below its order, so under Orders.
+    // The suppliers the office asks for quotes. An RFQ's pages are below its order, so under Orders.
     SUPPLIERS("suppliers", List.of("/office/suppliers")),
     // Office, Administration. Office invitations are part of the Office users page.
     USERS("users", List.of("/office/users", "/office/invitations")),
-    // Which documents each rank needs, per vessel type (P42).
+    // Which documents each rank needs, per vessel type.
     REQUIREMENTS("requirements", List.of("/office/requirements")),
     AUDIT("audit", List.of("/office/audit")),
-    // Ship. Home is /ship itself only (P26), see of().
+    // Ship. Home is /ship itself only, see of().
     HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
-    // The Master's approvals (P33). On phones a tab of the Master's since P65 (ShipNav).
+    // The Master's approvals. On phones a tab of the Master's since P65 (ShipNav).
     APPROVALS("approvals", List.of("/ship/approvals")),
-    // The Master's ship order and past orders (P35). On phones a tab of the Master's since P65.
+    // The Master's ship order and past orders. On phones a tab of the Master's since P65.
     ORDER("order", List.of("/ship/order", "/ship/orders")),
-    // The Chief cook's store (P52). On phones a tab of the Chief cook's since P65.
+    // The Chief cook's store. On phones a tab of the Chief cook's since P65.
     STORES("stores", List.of("/ship/stores")),
-    // The Chief cook's and crew's own requests to the Master (P54). On phones a tab of the Chief cook's since P65,
+    // The Chief cook's and crew's own requests to the Master. On phones a tab of the Chief cook's since P65,
     // under More for crew members.
     REQUESTS("requests", List.of("/ship/requests")),
-    // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of what is not a tab (P65) and
+    // Ship, Account: My profile. More (/ship/more) is the phone tab bar's list of what is not a tab and
     // Sign out; it has no sidebar entry.
     PROFILE("profile", List.of("/ship/profile")),
     MORE("more", List.of("/ship/more")),

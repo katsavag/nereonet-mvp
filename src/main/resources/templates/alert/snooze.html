@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{snooze.title}, ~{::main})}">
 <body>
-<!-- Snooze (P43): the items being snoozed, reviewed (P10: each with a checkbox when there are several, so one can be
+<!-- Snooze: the items being snoozed, reviewed (each with a checkbox when there are several, so one can be
      left out), then the reason (Other needs the note) and how long (7 days, 30 days, until a date, until it expires
      when every item has a date ahead). An expired item can be snoozed for 30 days at most. Snooze and Cancel go back
      to returnTo (the list or the Overview). Model: form (SnoozeForm), items (AlertView), reasons, durations,

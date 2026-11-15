@@ -56,7 +56,7 @@ public class User {
     private Instant createdAt;
 
     /**
-     * P18: a crew member whose role is not the one their rank sets (Rank.role()), or who has no rank. They keep their
+     * A crew member whose role is not the one their rank sets (Rank.role()), or who has no rank. They keep their
      * role until the office saves them with a rank. Always false for an office user.
      */
     public boolean rankNeedsReview() {

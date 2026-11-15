@@ -18,7 +18,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import com.nereonix.nereonet_mvp.core.request.RequestService.Decision;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
-// The Master's approvals (P33): the item requests of their own ship, and approving or declining one (P34).
+// The Master's approvals: the item requests of their own ship, and approving or declining one.
 // SecurityConfig limits /ship/approvals/** to MASTER (the Chief cook and crew members get 403). English only, as
 // every crew screen.
 @Controller

@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.importfile;
 import java.text.Normalizer;
 import java.util.Locale;
 
-// How column names and values are compared when importing a file (P24).
+// How column names and values are compared when importing a file.
 public final class ImportNames {
 
     private ImportNames() {

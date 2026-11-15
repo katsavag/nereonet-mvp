@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * "Add inspection" and "Edit inspection" (P41): a SIRE 2.0 inspection as the report gives it. The inspection date,
+ * "Add inspection" and "Edit inspection": a SIRE 2.0 inspection as the report gives it. The inspection date,
  * port, submitting company and status are required; the dates follow the P39 plausible-date rule (an inspection or
  * publication within the last 20 years, not in the future), and the report is not published before the inspection.
  */

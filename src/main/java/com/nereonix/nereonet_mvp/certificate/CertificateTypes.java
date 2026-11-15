@@ -10,7 +10,7 @@ import java.util.Optional;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository.TypeCount;
 
 /**
- * Certificate types (P20). The type stays free text; the form suggests (datalist) the types already used in this
+ * Certificate types. The type stays free text; the form suggests (datalist) the types already used in this
  * installation, most used first, then the starter list below. On save a type that differs from a known one only in
  * case or surrounding spaces is stored as that one, so "stcw basic safety training " never starts a second type.
  * Two types are the same when they are equal after strip() and toLowerCase(Locale.ROOT).

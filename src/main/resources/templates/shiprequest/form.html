@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${picker.request != null} ? #{request.edit.title(${picker.request.id})} : #{request.new.title}, ~{::main})}">
 <body>
-<!-- New request and Edit request (P54), one form. The vessel's items the person can pick, in groups: for the Chief cook
+<!-- New request and Edit request, one form. The vessel's items the person can pick, in groups: for the Chief cook
      first "Running low" (provisions Out of stock or Low, with what is on board and the status), then Provisions and
      Personal items, each by name. Crew members never see stock. Each item is a row: its name (the label), a quantity
      field and the unit; a blank quantity means not picked. No item names are typed, except by the Chief cook under
@@ -12,7 +12,7 @@
      first. Errors stay under their row; errors of the whole request (nothing picked, an item gone from the list) on top.
      js/request-form.js adds the search by name (hidden until it runs) and keeps Enter from sending the form; without
      it the whole list shows and every button works. English only. Model: form (RequestForm), picker
-     (ShipRequestService.Picker). P60: every quantity follows the rule of its item's unit (whole numbers or 3 decimals, a maximum), with the
+     (ShipRequestService.Picker). Every quantity follows the rule of its item's unit (whole numbers or 3 decimals, a maximum), with the
      limit under the field (README 35). -->
 <main class="form-page" th:with="p=${picker}, editing=${picker.request != null}">
     <header th:replace="~{layout/parts :: pageHeader(
@@ -37,7 +37,7 @@
         <p th:if="${p.isEmpty() and not p.cook}" class="card card-body" th:text="#{request.form.noItems}">The vessel's
             list has no items yet. The office adds them.</p>
 
-        <!-- The search (P50's pattern): only with JavaScript, which filters the rows by name as you type. -->
+        <!-- The search (the office order's pattern): only with JavaScript, which filters the rows by name as you type. -->
         <div th:unless="${p.isEmpty()}" class="request-search" data-request-search-part hidden>
             <label for="requestSearch" class="form-label" th:text="#{request.form.search}">Search items</label>
             <input type="search" id="requestSearch" class="form-control" data-request-search autocomplete="off"
@@ -107,7 +107,7 @@
                             <div th:replace="~{layout/parts :: counter(${form}, 'newUnit', 'newUnit')}"></div>
                         </div>
                     </div>
-                    <!-- P60: the rule of the unit typed beside it (js/quantity.js follows the unit as it is typed). -->
+                    <!-- The rule of the unit typed beside it (js/quantity.js follows the unit as it is typed). -->
                     <div class="field-half" th:with="newRule=${@shipRequestService.newItemRule(form.newUnit)},
                                                      err=${#fields.hasErrors('newQuantity')}">
                         <label for="newQuantity" class="form-label" th:text="#{request.quantity}">Quantity</label>

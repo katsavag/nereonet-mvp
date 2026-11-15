@@ -32,7 +32,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The real speech-to-text client (P57), AssemblyAI's pre-recorded API (v2), as its documentation describes it:
+ * The real speech-to-text client, AssemblyAI's pre-recorded API (v2), as its documentation describes it:
  *   1. POST /v2/upload, the raw bytes (application/octet-stream): answers {"upload_url": ...}.
  *   2. POST /v2/transcript {"audio_url", "language_code": "en", "keyterms_prompt": [the item names]}: answers the
  *      transcript with its "id" and "status". The speech model is AssemblyAI's default (speech_models not sent).

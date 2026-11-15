@@ -8,7 +8,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.notification.Notification;
 
 /**
- * The notifications of one UTC day on a page of /notifications (P23), under the heading Today, Yesterday or the date.
+ * The notifications of one UTC day on a page of /notifications, under the heading Today, Yesterday or the date.
  * A day split over two pages starts the next page with its heading again.
  */
 public record NotificationDay(LocalDate date, List<Notification> notifications) {

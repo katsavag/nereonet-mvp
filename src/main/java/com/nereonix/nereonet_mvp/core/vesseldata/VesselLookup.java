@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import com.nereonix.nereonet_mvp.core.vesseldata.VesselApiClient.Fetch;
 
 /**
- * What the three VesselAPI calls returned for one IMO number at fetchedAt (P45): "Look up by IMO" on the Add vessel
+ * What the three VesselAPI calls returned for one IMO number at fetchedAt: "Look up by IMO" on the Add vessel
  * form and "Refresh from VesselAPI" on Edit vessel. Kept by the server for the form (ship/VesselLookupStore) until
  * Save; never sent to the browser as such.
  */

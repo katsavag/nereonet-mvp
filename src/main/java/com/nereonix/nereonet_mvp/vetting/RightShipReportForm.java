@@ -13,9 +13,9 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * "Upload report" (P40): an official RightShip document of the vessel, a PDF, PNG or JPEG of at most 10 MB (the
+ * "Upload report": an official RightShip document of the vessel, a PDF, PNG or JPEG of at most 10 MB (the
  * library's limit; the multipart limits in application.yml match it), and the date on it. The type is checked by the
- * extension and the file's first bytes (the certificate scans' check, P39), so a renamed file of another kind is refused.
+ * extension and the file's first bytes (the certificate scans' check), so a renamed file of another kind is refused.
  */
 public class RightShipReportForm {
 

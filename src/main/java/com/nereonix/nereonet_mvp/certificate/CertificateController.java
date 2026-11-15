@@ -32,10 +32,10 @@ import com.nereonix.nereonet_mvp.ship.ShipTab;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// Certificates (P20): every certificate, filtered by status (?status=), ship and "active ships only", with an Excel
+// Certificates: every certificate, filtered by status (?status=), ship and "active ships only", with an Excel
 // export of the list as filtered (.xls since P40; .xlsx in P39, CSV before). The ship page's Certificates tab is a matrix of the crew on board and the types
 // they hold (/office/ships/{id}/certificates), or the list for that ship (/certificates/list), each with its export.
-// A crew member's certificates are listed on the crew edit page. A certificate can have a file, its scan (P39):
+// A crew member's certificates are listed on the crew edit page. A certificate can have a file, its scan:
 // added, replaced or removed on its form, opened from the lists. Add and edit return to the page they were opened
 // from (returnTo, CertificateReturn), else to the crew member's page or the ship's tab; delete returns to the crew
 // member's page.
@@ -55,7 +55,7 @@ public class CertificateController {
         this.messageSource = messageSource;
     }
 
-    // The columns that sort (P19), the default first; the ship's list has no Ship column.
+    // The columns that sort, the default first; the ship's list has no Ship column.
     private static final ListSort[] FLEET_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
             ListSort.asc("crewMember"), ListSort.asc("ship"), ListSort.asc("number")};
     private static final ListSort[] TAB_SORTS = {ListSort.asc("expiresOn"), ListSort.asc("type"),
@@ -66,7 +66,7 @@ public class CertificateController {
     // ---------------------------------------------------------------------------------------------------------------
 
     // status: the Status filter (CertificateStatus); activeShips: crew of active ships only; listRequest: search,
-    // sort and page (P19).
+    // sort and page.
     @GetMapping("/office/certificates")
     public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
                        @RequestParam(defaultValue = "false") boolean activeShips,
@@ -126,7 +126,7 @@ public class CertificateController {
                            @ModelAttribute ListRequest listRequest, Model model) {
         Ship ship = shipFrame.ship(id);
         shipFrame.show(model, ship, ShipTab.CERTIFICATES);
-        // Whom a certificate can be added for: without crew on board the empty list leads to the Crew tab (P25).
+        // Whom a certificate can be added for: without crew on board the empty list leads to the Crew tab.
         model.addAttribute("crewOnBoard", !certificateService.findShipCrew(ship).isEmpty());
         CertificateStatus filter = CertificateStatus.of(status);
         ListQuery list = withStatus(ListQuery.of(shipListPath(id), listRequest, TAB_SORTS), filter);
@@ -145,7 +145,7 @@ public class CertificateController {
                 redirectAttributes);
     }
 
-    // The workbook as a download or, when it has more rows than one .xls sheet holds (P40), back to the list it was
+    // The workbook as a download or, when it has more rows than one .xls sheet holds, back to the list it was
     // exported from with "Too many rows for one file: narrow the filters".
     private static Object download(Supplier<XlsExport.File> file, String back, RedirectAttributes redirectAttributes) {
         try {
@@ -165,9 +165,9 @@ public class CertificateController {
         model.addAttribute("list", list);
         Page<Certificate> certificates = certificateService.findCertificates(filter, list);
         model.addAttribute("certificates", certificates);
-        // P43: the snoozed rows of the page (muted, with Undo); the others get Snooze.
+        // The snoozed rows of the page (muted, with Undo); the others get Snooze.
         model.addAttribute("snoozes", certificateService.snoozesOf(certificates.getContent()));
-        // Empty without a filter (P25): no certificate yet at all, or none expiring within 90 days.
+        // Empty without a filter: no certificate yet at all, or none expiring within 90 days.
         model.addAttribute("anyCertificates", certificateService.anyCertificates(filter.shipId()));
         model.addAttribute("status", status.key());
         model.addAttribute("statusOption", status.isOption());
@@ -197,7 +197,7 @@ public class CertificateController {
     // Add and edit
     // ---------------------------------------------------------------------------------------------------------------
 
-    // userId and type: prefilled from a matrix cell (P20); a userId not of this ship's crew is ignored.
+    // userId and type: prefilled from a matrix cell; a userId not of this ship's crew is ignored.
     @GetMapping("/office/ships/{id}/certificates/new")
     public String newShipForm(@PathVariable Long id, @RequestParam(required = false) Long userId,
                               @RequestParam(required = false) String type,
@@ -276,7 +276,7 @@ public class CertificateController {
         return "redirect:" + CertificateReturn.or(returnTo, crewUrl(userId));
     }
 
-    // The certificate's file (P39), opened in the browser; 404 without one. The crew member opens their own from My
+    // The certificate's file, opened in the browser; 404 without one. The crew member opens their own from My
     // profile (ProfileController).
     @GetMapping("/office/crew/{userId}/certificates/{id}/file")
     public ResponseEntity<Resource> file(@PathVariable Long userId, @PathVariable Long id) {
@@ -287,7 +287,7 @@ public class CertificateController {
         return "/office/crew/" + userId + "/edit";
     }
 
-    // The confirmation page: where Delete leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Delete leads when js/confirm.js did not load.
     @GetMapping("/office/crew/{userId}/certificates/{id}/delete")
     public String confirmDelete(@PathVariable Long userId, @PathVariable Long id, Model model) {
         Certificate certificate = certificateService.getCertificate(userId, id);

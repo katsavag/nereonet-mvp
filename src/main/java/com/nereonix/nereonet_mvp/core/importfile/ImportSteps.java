@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * The steps of an import from a file, shared by the crew and the item import (P24): Upload (with the sheet choice for
+ * The steps of an import from a file, shared by the crew and the item import: Upload (with the sheet choice for
  * a workbook), Map columns (with the value mapping), Review, Done. The controllers keep the ImportForm in the HTTP
  * session and call these; the review screen itself is each import's own page. Nothing is saved before
  * ImportTarget.importRows. Never log file contents.

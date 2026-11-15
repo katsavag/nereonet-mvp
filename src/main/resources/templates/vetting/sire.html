@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{sire.title}, ~{::main})}">
 <body>
-<!-- A vessel's SIRE 2.0 page (P41), in the frame of the RightShip page: from 992px two columns, the inspection and its
+<!-- A vessel's SIRE 2.0 page, in the frame of the RightShip page: from 992px two columns, the inspection and its
      observations (7/12) and the official document (5/12); below that one column, the document after them. Works
      without JavaScript.
        c. "Operator comments due 26 Jun 2026" while the report is a draft (Draft received): info, warning within 3
@@ -11,10 +11,10 @@
        b. Observations: Hardware, Process and Human as three figures, then the observations by VIQ chapter (question
           number, type, description, status, owner and target date), Open (the default) or All. Each row opens its
           edit form (a stretched link on the description).
-       d. Official document: the report PDF opens in the browser in a new tab (P22), with Open and Download; the
+       d. Official document: the report PDF opens in the browser in a new tab, with Open and Download; the
           vessel's other inspections below it, newest first, each opening here (?inspection=).
      Header actions: Open vessel, Add observation, Upload report, Add inspection (the primary). Without an inspection
-     the empty state holds Add inspection and the header only Open vessel (P25: one primary).
+     the empty state holds Add inspection and the header only Open vessel (one primary).
      Model: ship, sire (SireView of the inspection shown; inspection null without one), latest (it is the latest),
      latestInspection, otherInspections (newest first), showAll, settings (SireSettings), types. -->
 <main th:with="s=${sire}, i=${sire.inspection()}, hasData=${sire.hasData()},
@@ -107,7 +107,7 @@
                         </div>
                     </dl>
                     <p class="sire-head-footer">
-                        <span class="rs-updated" th:text="${i.createdBy != null} ? #{vetting.updated.by(${i.createdBy.fullName})} : #{vetting.updated.manual}">Entered by hand</span>
+                        <span class="rs-updated text-meta" th:text="${i.createdBy != null} ? #{vetting.updated.by(${i.createdBy.fullName})} : #{vetting.updated.manual}">Entered by hand</span>
                         <a class="btn btn-ghost btn-sm" th:href="@{${inspectionBase + '/edit'}}"
                            th:text="#{sire.inspection.edit}">Edit inspection</a>
                     </p>
@@ -172,7 +172,7 @@
                             <h3 class="sire-chapter" th:id="${'sireChapter' + g.chapter()}"
                                 th:with="chapterName=#{${g.messageKey()}}"
                                 th:text="#{sire.chapter.heading(${g.chapter()}, ${chapterName})}">Chapter 9 · Mooring and Anchoring</h3>
-                            <ul class="sire-observation-list" th:attr="aria-labelledby=${'sireChapter' + g.chapter()}">
+                            <ul class="sire-observation-list list-plain" th:attr="aria-labelledby=${'sireChapter' + g.chapter()}">
                                 <li th:each="r : ${g.rows()}" class="sire-observation" th:id="${'observation-' + r.observation().id}"
                                     th:with="o=${r.observation()}" th:classappend="${r.status().name() == 'OVERDUE'} ? 'is-overdue'">
                                     <span class="sire-question num" th:text="${o.questionNumber}">9.1.2</span>
@@ -224,7 +224,7 @@
                     The report is uploaded to its inspection.</p>
                 <div th:if="${hasData and i.hasReport()}" class="card-body"
                      th:with="fileUrl=${inspectionBase + '/report/file'}">
-                    <!-- The PDF opens in the browser in a new tab (P22). -->
+                    <!-- The PDF opens in the browser in a new tab. -->
                     <a class="rs-preview rs-preview-pdf" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
                         <span class="file-type file-type-pdf" aria-hidden="true">
                             <svg viewBox="0 0 32 40" focusable="false">
@@ -269,7 +269,7 @@
                 <div th:unless="${otherInspections.isEmpty()}" class="card-body sire-others">
                     <h3 class="rs-earlier-title" id="sireOthersTitle"
                         th:text="${latest} ? #{sire.earlier.title} : #{sire.others.title}">Earlier inspections</h3>
-                    <ul class="rs-earlier" aria-labelledby="sireOthersTitle">
+                    <ul class="rs-earlier list-plain" aria-labelledby="sireOthersTitle">
                         <li th:each="e : ${otherInspections}" class="rs-earlier-item"
                             th:with="isLatest=${e.id == latestInspection.id}">
                             <span class="rs-earlier-text">

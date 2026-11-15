@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- Fragments of Vetting (P40): the Vetting list, a vessel's Vetting page, its RightShip page, and the badge row of
+<!-- Fragments of Vetting: the Vetting list, a vessel's Vetting page, its RightShip page, and the badge row of
      the vessel page's header. view: a core/vetting/RightShipView (a vessel's standing; status null without data).
-     The pattern: app.css, section "Vetting (P40)". -->
+     The pattern: app.css, section "Vetting". -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -62,9 +62,9 @@
     <span th:text="#{vetting.openVessel}">Open vessel</span>
 </a>
 
-<!-- The vessel page header's badge row (P40, ship/parts :: header): Safety Score, GHG Rating and inspection in brief.
-     Active vessels only (an inactive vessel has no Vetting page). P41: for a tanker (sire not null) the SIRE 2.0
-     report as well. P43: each badge is its own link with its own hover and focus: Safety Score, GHG and the
+<!-- The vessel page header's badge row (ship/parts :: header): Safety Score, GHG Rating and inspection in brief.
+     Active vessels only (an inactive vessel has no Vetting page). For a tanker (sire not null) the SIRE 2.0
+     report as well. Each badge is its own link with its own hover and focus: Safety Score, GHG and the
      inspection open the vessel's RightShip page, the SIRE badge its SIRE 2.0 page (a visually hidden suffix names
      the page for screen readers). -->
 <div th:fragment="vesselBadges(ship, view, sire)" th:if="${ship.active}" class="vetting-badges"
@@ -93,10 +93,10 @@
     </a>
 </div>
 
-<!-- SIRE 2.0 (P41). sire: a core/vetting/SireView (a vessel's latest inspection, or the one the SIRE page shows;
-     inspection null when it has none). The pattern: app.css, section "SIRE 2.0 (P41)". -->
+<!-- SIRE 2.0. sire: a core/vetting/SireView (a vessel's latest inspection, or the one the SIRE page shows;
+     inspection null when it has none). The pattern: app.css, section "SIRE 2.0". -->
 
-<!-- Whether the report is current, an icon and words (P02 tones): "Report current until 12 Jun 2027" (ok; warning
+<!-- Whether the report is current, an icon and words (status tones): "Report current until 12 Jun 2027" (ok; warning
      with a clock in its last 60 days), "Report no longer current since 12 Jun 2027" (danger), "No inspection". -->
 <th:block th:fragment="sireReport(sire)" th:with="state=${sire.reportState()},
         until=${sire.currentUntil() != null} ? ${@dates.date(sire.currentUntil())} : '',
@@ -188,7 +188,7 @@
     </section>
 </th:block>
 
-<!-- The RightShip card of a vessel's Vetting page (P40): Safety Score, GHG Rating and inspection; the whole card
+<!-- The RightShip card of a vessel's Vetting page: Safety Score, GHG Rating and inspection; the whole card
      opens the RightShip page. -->
 <section th:fragment="rightShipCard(ship, rs)" class="card regime-card" aria-labelledby="regimeRightShip">
     <div class="card-body">

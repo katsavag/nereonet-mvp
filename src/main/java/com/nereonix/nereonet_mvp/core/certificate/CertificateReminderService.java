@@ -64,7 +64,7 @@ public class CertificateReminderService {
      * For every not yet expired certificate of an enabled user, finds the smallest threshold reached
      * (days left <= 90, 60 or 30). If it has no reminder row, sends the reminder and saves rows for it
      * and every larger threshold, so a certificate entered late gets one reminder, not three.
-     * A certificate whose snooze holds (P43) is skipped: no reminder rows, so once the snooze ends the reminder of
+     * A certificate whose snooze holds is skipped: no reminder rows, so once the snooze ends the reminder of
      * the threshold reached by then is sent.
      * Each certificate has its own transaction: a failed email does not undo the reminders already sent,
      * and the failed one is tried again on the next run.
@@ -105,7 +105,7 @@ public class CertificateReminderService {
         long daysLeft = certificate.daysLeft(today);
         String expiresOn = DATE.format(certificate.getExpiresOn());
         String crewText = message("certificate.reminder.crew.text", certificate.getType(), daysLeft, expiresOn);
-        // Names the person and the ship it concerns (P23); opens nothing: the crew have no certificate page yet.
+        // Names the person and the ship it concerns; opens nothing: the crew have no certificate page yet.
         String subject = member.getShip() == null ? member.getFullName()
                 : member.getFullName() + " · " + member.getShip().getName();
         notificationService.notify(member, NotificationType.CERTIFICATE, subject, crewText, null);

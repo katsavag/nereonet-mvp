@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.alert;
 
 /**
- * Where the snooze page and Undo go back to (P43): an office page of this app, as the link or form gave it
+ * Where the snooze page and Undo go back to: an office page of this app, as the link or form gave it
  * (/office/certificates?status=expired, /office/vetting, /office?type=vetting); anything else, or nothing, is the
  * Overview. Never a URL from the request that leaves the app.
  */

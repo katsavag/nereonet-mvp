@@ -8,8 +8,8 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItemForm;
 import jakarta.validation.constraints.AssertTrue;
 
 /**
- * "Upload report" (P41): the SIRE 2.0 report of an inspection, a PDF of at most 10 MB (the library's limit). The type
- * is checked by the extension and the file's first bytes (P39), so a renamed file of another kind is refused.
+ * "Upload report": the SIRE 2.0 report of an inspection, a PDF of at most 10 MB (the library's limit). The type
+ * is checked by the extension and the file's first bytes, so a renamed file of another kind is refused.
  */
 public class SireReportForm {
 

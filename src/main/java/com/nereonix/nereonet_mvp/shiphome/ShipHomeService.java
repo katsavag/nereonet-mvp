@@ -18,7 +18,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// What the crew home page (/ship, P26) shows to the Chief cook and Crew members (the Master has masterhome). Read only:
+// What the crew home page (/ship) shows to the Chief cook and Crew members (the Master has masterhome). Read only:
 // nothing here changes anything.
 @Service
 public class ShipHomeService {
@@ -27,7 +27,7 @@ public class ShipHomeService {
      * user: the signed-in ship user (name, rank, ship).
      * photoUrl: their profile photo's 96px URL (P31, CrewProfile.photoUrl), for the header; null without one.
      * toRead: their Required library items not acknowledged in the current version and the announcements they have
-     * not acknowledged (P27), together, oldest first.
+     * not acknowledged, together, oldest first.
      * certificates: their own certificates, soonest expiry first (so expired, then expiring soon).
      */
     public record Home(User user, Ship ship, String photoUrl, List<ToRead> toRead, List<Certificate> certificates) {

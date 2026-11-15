@@ -26,7 +26,7 @@ import jakarta.persistence.OrderBy;
 import lombok.Getter;
 import lombok.Setter;
 
-// A message from the office to the crew of the whole fleet or of a chosen set of ships (P28).
+// A message from the office to the crew of the whole fleet or of a chosen set of ships.
 // Never edited or deleted after it is sent: it is the proof of what the crew confirmed.
 // Before P28 it had one nullable ship_id; AnnouncementTargetMigration moves those rows to fleetWide / targetShips.
 @Entity

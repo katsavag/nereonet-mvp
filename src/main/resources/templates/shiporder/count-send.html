@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.send.title}, ~{::main})}">
 <body>
-<!-- The cook sends the count (P63), one short page: "All 40 counted" (or "34 of 40 counted"), two tiles (same as the
+<!-- The cook sends the count, one short page: "All 40 counted" (or "34 of 40 counted"), two tiles (same as the
      invoice, different), then the ones that are different, one line each ("23 of 25 kg arrived", "Not counted") with
      Change (back to that row). Send to Master (large), what happens next, and Add a note for the Master (optional;
      a details element, so it opens without JavaScript). Nothing else.

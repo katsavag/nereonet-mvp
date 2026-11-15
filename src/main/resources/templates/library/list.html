@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout/layout :: layout(#{library.title}, ~{::main})}">
 <body>
-<!-- An empty library (P25): the Master's Add an item is in the empty state instead of the page header. -->
+<!-- An empty library: the Master's Add an item is in the empty state instead of the page header. -->
 <main th:with="master=${#authorization.expression('hasRole(''MASTER'')')}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{library.heading}, eyebrowShip=${ship}, actions=${master and !itemsByCategory.isEmpty()} ? ~{::pageActions} : null)}">
         <!-- Only the Master adds items. -->

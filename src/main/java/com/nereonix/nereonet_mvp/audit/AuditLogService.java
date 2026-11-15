@@ -35,7 +35,7 @@ public class AuditLogService {
     }
 
     /**
-     * One page of the audit log (P19), paginated in the database. shipId, from and to may be null; from and to are
+     * One page of the audit log, paginated in the database. shipId, from and to may be null; from and to are
      * UTC days, both inclusive. The search is who did it (name or email) or the details. Sort keys: when (default,
      * newest first), who, action, ship.
      */

@@ -10,7 +10,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * Amounts of money on screen and in emails (P44): the currency code, then the amount, "EUR 1,240.50" ("EUR
+ * Amounts of money on screen and in emails: the currency code, then the amount, "EUR 1,240.50" ("EUR
  * 1.240,50" on a Greek page). Never converted between currencies. Totals have two decimals; a unit price keeps up to
  * four ("EUR 0.4125") so a cheap item per gram still compares. Templates use the "money" bean (@money.total(...));
  * emails, always English, use the static methods.
@@ -28,13 +28,13 @@ public class Money {
         return price(currency, amount, LocaleContextHolder.getLocale());
     }
 
-    /** P64: "EUR 1,240.50", or "1,240.50" when the currency is not known (an invoice without a quote). */
+    /** "EUR 1,240.50", or "1,240.50" when the currency is not known (an invoice without a quote). */
     public String amount(String currency, BigDecimal amount) {
         String text = total(currency == null ? "" : currency, amount);
         return currency == null ? text.strip() : text;
     }
 
-    /** P64: "EUR 2.40", or "2.40" when the currency is not known. */
+    /** "EUR 2.40", or "2.40" when the currency is not known. */
     public String unitPrice(String currency, BigDecimal amount) {
         String text = price(currency == null ? "" : currency, amount);
         return currency == null ? text.strip() : text;

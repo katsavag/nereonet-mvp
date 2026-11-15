@@ -16,7 +16,7 @@ import com.nereonix.nereonet_mvp.core.notification.NotificationRepository;
 
 /**
  * The logged-in user's notifications. Not named NotificationService: that is the core service that creates them.
- * A notification stays unread until the user opens it or marks it as read (P23); showing the list changes nothing.
+ * A notification stays unread until the user opens it or marks it as read; showing the list changes nothing.
  * Reading a notification is the user's own bookkeeping, like a read receipt, and is not recorded in the audit log.
  */
 @Service

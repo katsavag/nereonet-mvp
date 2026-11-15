@@ -16,7 +16,7 @@ import java.util.function.Function;
 import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 
 /**
- * The checks of an invoice as read (P62), plain Java. Nothing is ever invented: a value is recovered only when the
+ * The checks of an invoice as read, plain Java. Nothing is ever invented: a value is recovered only when the
  * other two of its line are sure and agree, and the line says so ("corrected").
  *
  * Per line (quantity x unit price = amount, within 0.01, or 0.5% of the amount for weighed goods: kg, g, lt, ml):

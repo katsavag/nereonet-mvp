@@ -16,22 +16,22 @@ import jakarta.servlet.http.HttpServletRequest;
  *   navSection  the key of the active entry (NavSection.key()), from the URL; null when no entry matches.
  *   navTab      the ship user's active phone tab (ShipNav.tabOf, P65: the section's own tab, else More); null for
  *               office users, signed out and on a page with no section.
- *   shipNav     the ship user's navigation per role (ShipNav, P65): the sidebar's On board and Supplies groups, the
+ *   shipNav     the ship user's navigation per role (ShipNav): the sidebar's On board and Supplies groups, the
  *               phone tab bar and the More page; null for office users and when signed out.
  *   navCounts   the office counters (NavCounts); null for crew and when signed out.
- *   approvalsWaiting  the Master's counter of Approvals (P33): requests of their ship waiting for them; null for
+ *   approvalsWaiting  the Master's counter of Approvals: requests of their ship waiting for them; null for
  *               everyone else.
- *   ordersToAct  the Master's counter of Vessel order (P35; orders, not lines, since P59): their ship's OPEN order
+ *   ordersToAct  the Master's counter of Vessel order (orders, not lines, since P59): their ship's OPEN order
  *               when it has a line (to send) plus its CONFIRMED orders (to receive); null for everyone else (the Chief
- *               cook reads Vessel order without it, P55).
- *   storesBelowThreshold  the Chief cook's counter of Stores (P52): provisions of their ship that are Low or Out of
+ *               cook reads Vessel order without it).
+ *   storesBelowThreshold  the Chief cook's counter of Stores: provisions of their ship that are Low or Out of
  *               stock; null for everyone else.
- *   requestsWaiting  the Chief cook's and crew members' counter of Requests (P54): their own requests still waiting
+ *   requestsWaiting  the Chief cook's and crew members' counter of Requests: their own requests still waiting
  *               for the Master (also on the cook's Stores summary and the crew home's Requests card); null for the
  *               Master, office users and when signed out.
  *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
  *               acknowledged yet; null for office users and when signed out.
- *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl, P43) for the user block's
+ *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl) for the user block's
  *               picture; null without a photo, for office users and when signed out.
  * The one place that decides both, so no controller sets them.
  */
@@ -90,7 +90,7 @@ public class NavigationAdvice {
 
     /**
      * The ship user's counters, their navigation (shipNav, ShipNav: sidebar groups, phone tabs, More page) and the
-     * active tab (navTab), in one place so each counter is one query (P65). Office users and signed-out pages get
+     * active tab (navTab), in one place so each counter is one query. Office users and signed-out pages get
      * nulls.
      */
     @ModelAttribute

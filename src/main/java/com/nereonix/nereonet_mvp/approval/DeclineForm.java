@@ -5,7 +5,7 @@ import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-// The "Decline" form of a request (P34), in a modal on /ship/approvals/{id}. The reason is required.
+// The "Decline" form of a request, in a modal on /ship/approvals/{id}. The reason is required.
 public class DeclineForm {
 
     @NotBlank(message = "{approval.decline.error.reasonRequired}")

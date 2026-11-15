@@ -50,7 +50,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * Requests for quotes (P44): from a vessel order the ship has sent, the office asks several suppliers for a price,
+ * Requests for quotes: from a vessel order the ship has sent, the office asks several suppliers for a price,
  * enters their answers, compares them (RfqComparison) and awards one quote for the whole RFQ. A sealed comparison:
  * every supplier gets its own request, and nothing a supplier receives names another supplier or a price.
  * How a request reaches a supplier is its SupplierChannel's business (only email today). Every change locks the
@@ -243,7 +243,7 @@ public class RfqService {
         rfq.setSentAt(Instant.now());
         rfqRepository.save(rfq);
         for (ShipOrderLine orderLine : order.getLines()) {
-            // P50: a line the office removed is not ordered.
+            // A line the office removed is not ordered.
             if (orderLine.isRemoved()) {
                 continue;
             }

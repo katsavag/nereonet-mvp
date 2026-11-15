@@ -13,8 +13,8 @@ import com.nereonix.nereonet_mvp.core.form.PlausibleDate;
 import jakarta.validation.constraints.Size;
 
 /**
- * The snooze page's form (P43): the items (AlertKey params, one or more), the reason (required; Other needs the note),
- * and how long: 7 days, 30 days, until a date (then untilDate, within a year ahead, P39) or until the item expires.
+ * The snooze page's form: the items (AlertKey params, one or more), the reason (required; Other needs the note),
+ * and how long: 7 days, 30 days, until a date (then untilDate, within a year ahead) or until the item expires.
  * returnTo: the office page to go back to.
  */
 public class SnoozeForm {

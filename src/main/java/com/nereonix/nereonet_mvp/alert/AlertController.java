@@ -25,7 +25,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import jakarta.validation.Valid;
 
 /**
- * Snoozing alerts (P43), office users only (/office/** in SecurityConfig):
+ * Snoozing alerts, office users only (/office/** in SecurityConfig):
  *   GET  /office/alerts/snooze?items=KIND:ID&amp;...&amp;returnTo=...   the snooze page: the items reviewed, the form
  *   POST /office/alerts/snooze                                      snoozes them, back to returnTo
  *   POST /office/alerts/snooze/{id}/undo                            undoes one snooze, back to returnTo

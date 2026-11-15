@@ -9,7 +9,7 @@ import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.ship.Countries;
 
 /**
- * One person on board as their crewmates see them (P31): the read model of My crew and the crewmate page, and the
+ * One person on board as their crewmates see them: the read model of My crew and the crewmate page, and the
  * only thing those templates get. It holds what the office set that everyone on board may see (name, rank) and what
  * the person chose to share (languages, nationality, bio, photo), and nothing else: no email, no dates, no
  * certificates, so none of it can end up in the HTML.

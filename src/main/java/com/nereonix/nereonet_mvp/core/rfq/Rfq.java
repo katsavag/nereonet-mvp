@@ -24,7 +24,7 @@ import jakarta.persistence.OrderBy;
 import lombok.Getter;
 import lombok.Setter;
 
-// A request for quotes (P44): the office asks several suppliers for prices for the lines of a vessel order the ship
+// A request for quotes: the office asks several suppliers for prices for the lines of a vessel order the ship
 // has sent. Its number is its id ("RFQ #12"). The lines are copied from the order when it is sent; each supplier
 // asked has an RfqQuote (sent, quoted, declined, failed). The office picks one quote for the whole RFQ (AWARDED) or
 // withdraws it (CANCELLED). An order has at most one OPEN RFQ (RfqService locks the order to keep it so).

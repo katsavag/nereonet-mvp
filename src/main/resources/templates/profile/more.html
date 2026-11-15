@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/layout :: layout(#{more.title}, ~{::main})}">
 <body>
-<!-- More (P31): the last tab of the crew's phone tab bar, an ordinary page (works without JavaScript). Who is signed
+<!-- More: the last tab of the crew's phone tab bar, an ordinary page (works without JavaScript). Who is signed
      in (picture, name, "rank · ship", so the next person on a shared PC sees whose session it is), then Notifications
-     with its unread count (P47: no longer a tab of its own) and My profile, then (P65) what is not in this role's tab
+     with its unread count and My profile, then what is not in this role's tab
      bar under the sidebar's headings, each with its counter: On board (News and Library for the Master and the Chief
      cook, My crew for everyone), Supplies (Vessel order for the Chief cook, Requests for crew members), and Sign out.
      From 768px the sidebar has the same entries; the page still works there.
@@ -23,7 +23,7 @@
 
     <nav class="more-links" th:attr="aria-label=#{more.title}">
         <ul class="profile-rows">
-            <!-- Notifications (P47), with the number not read yet. -->
+            <!-- Notifications, with the number not read yet. -->
             <li class="profile-row-item">
                 <a class="profile-row" th:href="@{/notifications}">
                     <svg th:replace="~{layout/parts :: navIcon('notifications')}"></svg>
@@ -46,7 +46,7 @@
             </li>
         </ul>
 
-        <!-- P65: what is not in the tab bar, under the sidebar's headings (navigation/ShipNav); a group with nothing
+        <!-- What is not in the tab bar, under the sidebar's headings (navigation/ShipNav); a group with nothing
              left is not shown (the Master's Supplies are both tabs). -->
         <th:block th:replace="~{profile/more :: moreGroup('moreOnBoard', #{nav.group.ship}, ${shipNav.moreOnBoard()})}"></th:block>
         <th:block th:replace="~{profile/more :: moreGroup('moreSupplies', #{nav.group.supplies}, ${shipNav.moreSupplies()})}"></th:block>
@@ -55,7 +55,7 @@
     <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary more-sign-out')}"></form>
 </main>
 
-<!-- P65: one group of the More page, outside main so it is shown only where it is used: its heading (id, the
+<!-- One group of the More page, outside main so it is shown only where it is used: its heading (id, the
      sidebar's group name) and a row per entry (navigation/ShipNav.Entry) with its counter; nothing when entries is
      empty (the Master's Supplies are both tabs). -->
 <th:block th:fragment="moreGroup(id, heading, entries)">

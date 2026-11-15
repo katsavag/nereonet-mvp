@@ -12,7 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Answers instead of VesselAPI when app.vesselapi.fake is true (P45): dev screens without a key, and the tests. Two
+ * Answers instead of VesselAPI when app.vesselapi.fake is true: dev screens without a key, and the tests. Two
  * vessels are known out of the box: IMO 9328716 (every call answers) and the demo vessel's 9074729 (its flag's
  * country and country code disagree, its position is flagged as a possible error, and it has no ETA report). Any
  * other IMO number is a 404. Tests set their own answers with answer() and read calls().

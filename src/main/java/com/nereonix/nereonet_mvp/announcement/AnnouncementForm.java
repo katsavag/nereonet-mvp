@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// The new announcement form (P28). target is "fleet" (all active ships) or "ships" (the ticked shipIds). Nothing is
+// The new announcement form. target is "fleet" (all active ships) or "ships" (the ticked shipIds). Nothing is
 // preselected, so a fleet-wide announcement is never sent by accident. With "ships" and no box ticked the controller
 // rejects the target field; the ticked boxes are ignored for "fleet".
 public class AnnouncementForm {

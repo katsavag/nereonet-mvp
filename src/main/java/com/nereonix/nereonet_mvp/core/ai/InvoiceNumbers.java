@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Numbers as invoices write them (P62): 1,234.56 and 1.234,56, 12,500 kg, 46.25 €.
+ * Numbers as invoices write them: 1,234.56 and 1.234,56, 12,500 kg, 46.25 €.
  *   - Both '.' and ',': the last one is the decimal separator, the other groups thousands (groups of 3 digits).
  *   - One kind, more than once: thousands (1.234.567).
  *   - One kind, once, not followed by exactly 3 digits: the decimal separator (1,85 and 0.5).

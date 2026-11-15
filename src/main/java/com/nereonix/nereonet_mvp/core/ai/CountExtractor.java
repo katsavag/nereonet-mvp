@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Turns what the Chief cook said while counting the store into count lines (P57), called by the server only
+ * Turns what the Chief cook said while counting the store into count lines, called by the server only
  * (VoiceCountService). MistralCountExtractor is the real one; FakeCountExtractor answers in dev (app.mistral.fake) and
  * in the tests. Only the text and the item list are sent anywhere: never a name of the crew or anything else.
  */

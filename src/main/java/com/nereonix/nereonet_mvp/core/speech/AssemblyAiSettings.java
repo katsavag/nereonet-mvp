@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The AssemblyAI settings (P57), app.assemblyai.*:
+ * The AssemblyAI settings, app.assemblyai.*:
  *   base-url       default https://api.assemblyai.com (no trailing slash; https://api.eu.assemblyai.com keeps the
  *                  audio and text in the EU)
  *   api-key        ASSEMBLYAI_API_KEY, from the environment or the local .env (gitignored). Never logged, never in a

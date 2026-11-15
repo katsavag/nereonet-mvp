@@ -11,26 +11,23 @@
    Radius: 6px badges, 8px buttons and fields, 12px cards, 16px modals.
    Type: h1 28px/700, card title 18px/600, body 16px, table text and form labels 14px, help text 13px, eyebrow 12px. */
 
-/* Brand font: Inter (variable, weights 100-900), served from /fonts, Latin and Greek subsets only.
-   The browser downloads a subset only when the page has characters in its unicode-range.
-   Licence: fonts/LICENSE-Inter.txt (SIL OFL 1.1). */
-@font-face {
-    font-family: "Inter";
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: swap;
-    src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-    font-family: "Inter";
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: swap;
-    src: url("../fonts/inter-greek-wght-normal.woff2") format("woff2");
-    unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
-}
+/* Contents, in this order (each part starts with a banner, each section with a dashed header):
+   Tokens: Tokens.
+   Base: Fonts; Type; Focus; Fields; Forms; Buttons; Surfaces; Tables; Status.
+   Layout and navigation: Page parts; Sidebar; Layout frame and page header; Brand, icon rail and language
+     switch; Crew tab bar.
+   Shared components: Confirmations; Dates and times; Error pages; Saving on a bad connection; Required notices;
+     List filters, sort and pages; View switch; Row selection; Import from a file; Empty states; Snoozing alerts;
+     Date range.
+   Features: Vessel page; Overview; Sign-in and registration; Forgot password; Rank and access; Certificates;
+     Library; Notifications; Crew Home; Home cards; Crew News; My profile and My crew; Approvals; Vessel order;
+     Vetting; SIRE 2.0; Required documents; Suppliers and quotes; Vessel data; Receipt on board; Stores;
+     Requests; Delivery count; Delivery invoice; Order, delivery and invoice. */
+
+
+/* ===============================================================================================================
+   TOKENS
+   =============================================================================================================== */
 
 /* ---------------------------------------------------------------------------------------------------------------
    Tokens
@@ -88,6 +85,43 @@
     --nn-neutral-bg: #ebe8e2;
     --nn-neutral-text: #474c55;
     --nn-neutral-border: #d3cec4;
+
+    /* On the navy and on solid fills */
+    --nn-white: #fff;                /* text and icons on the navy, the blue and the solid status colours */
+    --nn-accent-light: #e98bd0;      /* the tagline pink, 6.9:1 on the navy */
+    --nn-on-navy-grid: rgba(255, 255, 255, .05);   /* the sign-in panel's faint grid */
+    --nn-on-navy-line: rgba(255, 255, 255, .1);    /* the line above the sidebar's user block */
+    --nn-on-navy-tint: rgba(255, 255, 255, .12);   /* the initials' disc in the sidebar */
+    --nn-on-blue-tint: rgba(255, 255, 255, .2);    /* a count on the current filter chip */
+    --nn-sidebar-text: rgba(255, 255, 255, .85);
+    --nn-sidebar-muted: rgba(255, 255, 255, .62);
+    --nn-sidebar-hover: rgba(255, 255, 255, .08);
+    --nn-sidebar-active: rgba(255, 255, 255, .14);
+    --nn-sidebar-rule: rgba(255, 255, 255, .14);   /* the line between groups in the icon rail */
+    --nn-sidebar-accent: var(--nn-accent-light);
+    --nn-sidebar-count-bg: rgba(255, 255, 255, .16);
+
+    /* Shadows, overlays and small tints */
+    --nn-shadow-menu: 0 4px 16px rgba(var(--nn-navy-rgb), .12);
+    --nn-shadow-dialog: 0 8px 32px rgba(var(--nn-navy-rgb), .2);
+    --nn-shadow-bar: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);   /* bars fixed to the bottom of the screen */
+    --nn-shadow-tooltip: 0 2px 8px rgba(var(--nn-navy-rgb), .25);
+    --nn-shadow-dropdown: 0 .5rem 1rem rgba(0, 0, 0, .15);        /* Bootstrap's dropdown shadow */
+    --nn-backdrop: rgba(0, 0, 0, .5);   /* as Bootstrap's modal backdrop */
+    --nn-chip-count-bg: rgba(var(--nn-navy-rgb), .08);
+    --nn-flag-border: rgba(var(--nn-navy-rgb), .18);
+
+    /* RightShip: the GHG grades (A and E as RightShip gives them, B to D from its published scale), an unknown
+       grade, the GHG icon's outline and vein, and the empty part of a score bar */
+    --nn-ghg-a: #00763b;
+    --nn-ghg-b: #6cb33f;
+    --nn-ghg-c: #ffcb05;
+    --nn-ghg-d: #f58220;
+    --nn-ghg-e: #d71920;
+    --nn-ghg-u: var(--nn-neutral-border);
+    --nn-ghg-icon-stroke: rgba(var(--nn-navy-rgb), .35);
+    --nn-ghg-icon-vein: rgba(255, 255, 255, .85);
+    --nn-score-off: #e3dfd7;
 
     /* Radius */
     --nn-radius-badge: 6px;
@@ -165,6 +199,34 @@
     --bs-border-radius-xl: var(--nn-radius-modal);
 }
 
+
+
+/* ===============================================================================================================
+   BASE
+   =============================================================================================================== */
+
+/* Brand font: Inter (variable, weights 100-900), served from /fonts, Latin and Greek subsets only.
+   The browser downloads a subset only when the page has characters in its unicode-range.
+   Licence: fonts/LICENSE-Inter.txt (SIL OFL 1.1). */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-greek-wght-normal.woff2") format("woff2");
+    unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+
+
 /* ---------------------------------------------------------------------------------------------------------------
    Type
    --------------------------------------------------------------------------------------------------------------- */
@@ -173,7 +235,6 @@ h1, .h1 {
     font-weight: 700;
 }
 /* Card and modal titles are h2.h5 / h3.h6 with fw-bold in the templates. */
-.card-title,
 .card-header .h5,
 .card-header .h6,
 .modal-title {
@@ -183,6 +244,10 @@ h1, .h1 {
 
 /* Tabular figures for IMO numbers, dates, counts and quantities, so columns of numbers line up. */
 .num { font-variant-numeric: tabular-nums; }
+
+/* Shared text and list styles: a list without bullets or room, and a quiet secondary line. */
+.list-plain { list-style: none; margin: 0; padding: 0; }
+.text-meta { margin: 0; font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
 
 /* Small spaced-out uppercase label above headings */
 .eyebrow {
@@ -198,8 +263,9 @@ h1, .h1 {
     font-size: var(--nn-font-xs);
     letter-spacing: .2em;
     text-transform: uppercase;
-    color: #e98bd0;
+    color: var(--nn-accent-light);
 }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Focus: a 2px navy ring with a 2px gap on everything focusable. Bootstrap's blue glow is switched off.
@@ -216,7 +282,8 @@ h1, .h1 {
     box-shadow: none;
 }
 .btn-close:focus { box-shadow: none; }
-.bg-navy { --nn-focus-color: #fff; }
+.bg-navy { --nn-focus-color: var(--nn-white); }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Fields: white, a 3:1 border, navy border and ring on focus.
@@ -264,8 +331,9 @@ h1, .h1 {
     border-color: var(--nn-blue);
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Forms (P05): one pattern for every form.
+   Forms: one pattern for every form.
      - .form-box: the form card, at most 720px wide. P59: .form-box-full, as wide as the page's other cards, for a
        form that sits under full-width cards (the office's order page); then .form-row-wide uses the room.
      - .form-row-wide (P59, on the form): from 992px its .form-grid's fields sit side by side in one row with the
@@ -459,6 +527,7 @@ h1, .h1 {
     margin-top: var(--nn-space-5);
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
    Buttons
    Sizes, three only:
@@ -545,10 +614,10 @@ fieldset:disabled button.btn {
 .btn-outline-primary {
     --bs-btn-color: var(--nn-blue);
     --bs-btn-border-color: var(--nn-blue);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--nn-white);
     --bs-btn-hover-bg: var(--nn-blue);
     --bs-btn-hover-border-color: var(--nn-blue);
-    --bs-btn-active-color: #fff;
+    --bs-btn-active-color: var(--nn-white);
     --bs-btn-active-bg: var(--nn-blue-dark);
     --bs-btn-active-border-color: var(--nn-blue-dark);
     --bs-btn-disabled-color: var(--nn-blue);
@@ -590,10 +659,10 @@ fieldset:disabled button.btn {
     --bs-btn-color: var(--nn-danger);
     --bs-btn-bg: var(--nn-surface);
     --bs-btn-border-color: var(--nn-danger);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--nn-white);
     --bs-btn-hover-bg: var(--nn-danger);
     --bs-btn-hover-border-color: var(--nn-danger);
-    --bs-btn-active-color: #fff;
+    --bs-btn-active-color: var(--nn-white);
     --bs-btn-active-bg: var(--nn-danger-text);
     --bs-btn-active-border-color: var(--nn-danger-text);
     --bs-btn-disabled-color: var(--nn-danger);
@@ -641,7 +710,7 @@ fieldset:disabled button.btn {
     --bs-dropdown-link-color: var(--nn-text);
     --bs-dropdown-link-hover-color: var(--nn-text);
     text-align: left;
-    box-shadow: 0 4px 16px rgba(var(--nn-navy-rgb), .12);
+    box-shadow: var(--nn-shadow-menu);
 }
 .row-menu .dropdown-item {
     display: flex;
@@ -653,9 +722,10 @@ fieldset:disabled button.btn {
 .row-menu .dropdown-item-danger { color: var(--nn-danger); }
 .row-menu .dropdown-item-danger:hover,
 .row-menu .dropdown-item-danger:focus { color: var(--nn-danger-text); background-color: var(--nn-danger-bg); }
-.row-menu .dropdown-item-danger:active { color: #fff; background-color: var(--nn-danger); }
+.row-menu .dropdown-item-danger:active { color: var(--nn-white); background-color: var(--nn-danger); }
 /* A divider with no entry above it (e.g. only "Deactivate" in the menu) is not shown. */
 .row-menu .dropdown-divider:first-child { display: none; }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Surfaces: cards, tables, list groups, modals, dropdown menus
@@ -717,6 +787,7 @@ fieldset:disabled button.btn {
 .import-table > thead .import-col-row,
 .import-table > thead .import-col-name,
 .rfq-compare > thead .rfq-compare-item { background-color: var(--nn-head-bg); }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Lists: one table style for every office list (.data-table on the table).
@@ -888,9 +959,10 @@ fieldset:disabled button.btn {
     --bs-dropdown-border-color: var(--nn-border);
     --bs-dropdown-border-radius: var(--nn-radius-control);
     --bs-dropdown-link-hover-bg: var(--nn-hover);
-    --bs-dropdown-link-active-color: #fff;
+    --bs-dropdown-link-active-color: var(--nn-white);
     --bs-dropdown-link-active-bg: var(--nn-blue);
 }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Status: badges and alerts use the status pairs through the Bootstrap variables above.
@@ -934,31 +1006,31 @@ fieldset:disabled button.btn {
     color: var(--nn-text-secondary);
 }
 
-/* Bootstrap's solid yellow badge with black text; use the warning pair with a border instead. */
-.text-bg-warning {
-    color: var(--nn-warning-text) !important;
-    background-color: var(--nn-warning-bg) !important;
-    box-shadow: inset 0 0 0 1px var(--nn-warning-border);
-}
+
+
+/* ===============================================================================================================
+   LAYOUT AND NAVIGATION
+   =============================================================================================================== */
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Layout and page parts
+   Page parts: the navy background and its grid, the signed-out box.
    --------------------------------------------------------------------------------------------------------------- */
 .bg-navy { background-color: var(--nn-navy); }
 
 /* Faint grid on the login side panel */
 .bg-grid {
     background-image:
-        linear-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, .05) 1px, transparent 1px);
+        linear-gradient(var(--nn-on-navy-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--nn-on-navy-grid) 1px, transparent 1px);
     background-size: 37px 37px;
 }
 
 /* The signed-out frame and the password fields: section "Sign-in and registration (P13)" at the end. */
 .login-box { max-width: var(--nn-auth-card-width); }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Sidebar (P07): layout/layout.html, entries from layout/parts :: navItem.
+   Sidebar: layout/layout.html, entries from layout/parts :: navItem.
      - .sidebar-body: a column; the brand on top, .sidebar-nav in the middle scrolls on its own when the window is
        shorter than the navigation, .sidebar-user stays pinned at the bottom.
      - .nav-group-label: small uppercase group name (Operations, Administration, Account; On board for the crew).
@@ -969,12 +1041,6 @@ fieldset:disabled button.btn {
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-sidebar-width: 16rem;
-    --nn-sidebar-text: rgba(255, 255, 255, .85);
-    --nn-sidebar-muted: rgba(255, 255, 255, .62);
-    --nn-sidebar-hover: rgba(255, 255, 255, .08);
-    --nn-sidebar-active: rgba(255, 255, 255, .14);
-    --nn-sidebar-accent: #e98bd0;    /* the tagline pink, 6.9:1 on the navy */
-    --nn-sidebar-count-bg: rgba(255, 255, 255, .16);
 }
 
 /* .sidebar in front: Bootstrap's .offcanvas-md .offcanvas-body (no padding, the whole body scrolls) is overridden
@@ -993,10 +1059,10 @@ fieldset:disabled button.btn {
     flex: 0 1 auto;
     min-width: 0;
     border-radius: var(--nn-radius-control);
-    color: #fff;
+    color: var(--nn-white);
     text-decoration: none;
 }
-.sidebar-brand:hover { color: #fff; }
+.sidebar-brand:hover { color: var(--nn-white); }
 
 .sidebar-nav {
     flex: 1 1 auto;
@@ -1030,9 +1096,9 @@ fieldset:disabled button.btn {
     color: var(--nn-sidebar-text);
 }
 .sidebar-link:hover,
-.sidebar-link:focus { color: #fff; background-color: var(--nn-sidebar-hover); }
+.sidebar-link:focus { color: var(--nn-white); background-color: var(--nn-sidebar-hover); }
 .sidebar-link.active {
-    color: #fff;
+    color: var(--nn-white);
     font-weight: 600;
     background-color: var(--nn-sidebar-active);
 }
@@ -1058,7 +1124,7 @@ fieldset:disabled button.btn {
     padding: 0 var(--nn-space-2);
     border-radius: 999px;
     background-color: var(--nn-sidebar-count-bg);
-    color: #fff;
+    color: var(--nn-white);
     font-size: var(--nn-font-xs);
     font-weight: 600;
     line-height: 1.25rem;
@@ -1072,15 +1138,15 @@ fieldset:disabled button.btn {
     gap: var(--nn-space-2);
     margin-top: var(--nn-space-3);
     padding-top: var(--nn-space-4);
-    border-top: 1px solid rgba(255, 255, 255, .1);
+    border-top: 1px solid var(--nn-on-navy-line);
 }
 .sidebar-user-role { color: var(--nn-sidebar-muted); }
 
 /* The person's picture in the user block (P43): the shared .person-avatar (photo or initials), the initials white on a
    translucent tint on the navy (the photo keeps its own colours). */
 .sidebar-user > .person-avatar {
-    background-color: rgba(255, 255, 255, .12);
-    color: #fff;
+    background-color: var(--nn-on-navy-tint);
+    color: var(--nn-white);
 }
 
 /* Fixed column from md up, as tall as the window (the 64px rail or the full width, P29: section "Brand, sidebar rail,
@@ -1097,8 +1163,9 @@ fieldset:disabled button.btn {
     }
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Layout frame and page header (P06)
+   Layout frame and page header
      - .app-main: the column next to the sidebar. min-width: 0, so a wide table (import review, audit log) scrolls
        inside its card instead of making the whole page wider than the window.
      - .app-content: the content, the full width next to the sidebar (P29: no cap), with 32px side gutters from 768px
@@ -1194,8 +1261,1894 @@ fieldset:disabled button.btn {
 /* Plain text with its line breaks, e.g. an announcement body */
 .text-pre-line { white-space: pre-line; }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Ship page (P08): /office/ships/{id} and its tabs, ship/parts.html.
+   Brand, sidebar rail, language switch and page width: layout/layout.html, layout/parts :: brand, langSwitch,
+   sidebarToggle, sidebarSignOut; js/sidebar.js; navigation/SidebarPreference.
+     - .brand: the Nereonix mark (32px), "Nereonix" and the tagline, on navy. The full logo (white wordmark) is only
+       ever on navy: the sign-in panel and the email header.
+     - Sidebar from 768px: body.sidebar-collapsed (the default) is a 64px icon rail: the mark, one icon per entry, a
+       counter as a dot (the number stays in the visually hidden text), and the label as a tooltip on hover and
+       focus. The label is position: fixed, so the scrolling navigation never cuts it off; with no top set it stays
+       level with its entry. body.sidebar-expanded is the full sidebar with labels.
+     - The toggle (P39): at the top, a 44px icon button right of the brand (under the mark, centred, in the rail): a
+       "panel left" icon whose chevron points the way the sidebar will move. Its words ("Collapse menu" / "Expand
+       menu") are its accessible name and a tooltip on hover and keyboard focus, beside the sidebar in both states.
+     - Phones: the office menu (offcanvas) has an X at the top right, next to the brand.
+     - .topbar: on phones the navy bar (menu, page name, "EN | ΕΛ", bell); from 768px, for office users, a slim row
+       above the content with only "EN | ΕΛ" on the right. Crew have no switch.
+     - .lang-switch: "EN | ΕΛ", 40px (44px on phones) targets, the current language bold; colour from where it sits.
+     - main.form-page: a form keeps its 720px column, centred in the content area; .form-page-aside adds a second
+       column from 1200px for related context (.form-aside: the ship, or help beside the form).
+     - .card-grid: cards of a detail page: 1 column, 2 from 992px, 3 from 1600px with .card-grid-3 (small cards);
+       .card-grid-wide spans the row until there are 3 columns.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-rail-width: 4rem;           /* 64px */
+    --nn-aside-width: 20rem;         /* 320px, the context column next to a form */
+    --nn-tooltip-bg: var(--nn-text); /* white text on it 15:1 */
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-width: 0;
+}
+.brand-mark {
+    flex: none;
+    width: 32px;
+    height: 32px;
+}
+.brand-text {
+    min-width: 0;
+    line-height: 1;
+}
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--nn-white);
+}
+.brand-tagline { margin-top: var(--nn-space-1); }
+
+/* Sidebar head: the brand, and on phones the X that closes the menu. */
+.sidebar-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-2);
+    margin-bottom: var(--nn-space-5);
+}
+.sidebar-close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) 0;
+    padding: 0;
+    color: var(--nn-white);
+    background: transparent;
+    border: 0;
+    border-radius: var(--nn-radius-control);
+}
+.sidebar-close:hover { background-color: var(--nn-sidebar-hover); }
+/* Narrower than the screen, so part of the dimmed page stays visible and a tap there closes the menu. */
+.sidebar .offcanvas-md { --bs-offcanvas-width: min(20rem, 85vw); }
+
+/* Sign out in the user block: words in the full sidebar, an icon in the rail. */
+.sidebar-sign-out-icon { display: none; }
+
+/* The toggle, from 768px only: an icon on a 44px target (the icon 12:1 on the navy, white on hover). The chevron
+   points right in the rail ("Expand menu") and left in the full sidebar ("Collapse menu"). */
+.sidebar-toggle-form {
+    display: none;
+    flex: none;
+}
+.sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: var(--nn-sidebar-text);
+    background: transparent;
+    border: 0;
+    border-radius: var(--nn-radius-control);
+}
+.sidebar-toggle:hover { color: var(--nn-white); background-color: var(--nn-sidebar-hover); }
+.sidebar-toggle-icon { flex: none; }
+.sidebar-toggle-chevron {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+.sidebar-expanded .sidebar-toggle-chevron { transform: rotate(180deg); }
+
+@media (min-width: 768px) {
+    .sidebar-close { display: none; }
+    .sidebar-toggle-form { display: block; }
+
+    /* The rail. */
+    .sidebar-collapsed .sidebar { width: var(--nn-rail-width); }
+    .sidebar-collapsed .sidebar .sidebar-body { padding: var(--nn-space-3) var(--nn-space-2); }
+    .sidebar-collapsed .sidebar-head {
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--nn-space-1);
+        margin-bottom: var(--nn-space-4);
+    }
+    .sidebar-collapsed .sidebar-brand {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: var(--nn-space-1) 0;
+    }
+    .sidebar-collapsed .brand-text,
+    .sidebar-collapsed .sidebar-user-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    /* Group names become thin dividers; they still name their lists for screen readers. */
+    .sidebar-collapsed .nav-group-label {
+        height: 1px;
+        margin: var(--nn-space-3) var(--nn-space-2);
+        padding: 0;
+        overflow: hidden;
+        font-size: 0;
+        line-height: 0;
+        background-color: var(--nn-sidebar-rule);
+    }
+    .sidebar-collapsed .nav-group-label:first-child {
+        height: 0;
+        margin: 0;
+    }
+    .sidebar-collapsed .sidebar-link {
+        justify-content: center;
+        gap: 0;
+        padding: 0;
+    }
+    /* A counter in the rail: a dot on the icon, ringed in navy so it stands off the icon. The number is in the
+       visually hidden text after it. */
+    .sidebar-collapsed .nav-count {
+        position: absolute;
+        top: 6px;
+        right: 9px;
+        width: 10px;
+        min-width: 0;
+        height: 10px;
+        padding: 0;
+        overflow: hidden;
+        font-size: 0;
+        line-height: 0;
+        background-color: var(--nn-sidebar-accent);
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px var(--nn-navy);
+    }
+    .sidebar-collapsed .sidebar-user {
+        flex-direction: column;
+        gap: var(--nn-space-2);
+        padding-top: var(--nn-space-3);
+    }
+    .sidebar-collapsed .sidebar-sign-out {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--nn-touch-target);
+        height: var(--nn-touch-target);
+        padding: 0;
+        overflow: hidden;
+    }
+    .sidebar-collapsed .sidebar-sign-out-icon { display: block; }
+
+    /* Labels in the rail, and the toggle's in both states: read by screen readers, shown as a tooltip beside the
+       sidebar on hover and keyboard focus. */
+    .sidebar-collapsed .sidebar-link-label,
+    .sidebar-collapsed .sidebar .sidebar-label,
+    .sidebar-toggle .sidebar-label {
+        position: fixed;
+        left: calc(var(--nn-rail-width) + var(--nn-space-2));
+        z-index: 1060;               /* over the page, under Bootstrap's modals */
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+    .sidebar-collapsed .sidebar-link:hover .sidebar-link-label,
+    .sidebar-collapsed .sidebar-link:focus-visible .sidebar-link-label,
+    .sidebar-toggle:hover .sidebar-label,
+    .sidebar-toggle:focus-visible .sidebar-label,
+    .sidebar-collapsed .sidebar-sign-out:hover .sidebar-label,
+    .sidebar-collapsed .sidebar-sign-out:focus-visible .sidebar-label {
+        width: auto;
+        height: auto;
+        padding: var(--nn-space-1) var(--nn-space-3);
+        overflow: visible;
+        clip-path: none;
+        color: var(--nn-white);
+        font-size: var(--nn-font-sm);
+        font-weight: 600;
+        line-height: 1.5;
+        background-color: var(--nn-tooltip-bg);
+        border-radius: var(--nn-radius-badge);
+        box-shadow: var(--nn-shadow-tooltip);
+    }
+
+    .sidebar-expanded .sidebar-toggle .sidebar-label { left: calc(var(--nn-sidebar-width) + var(--nn-space-2)); }
+
+    body.sidebar-collapsed[data-user] .offline-banner { left: var(--nn-rail-width); }
+}
+
+/* Top bar. Phones: navy, 44px buttons. From 768px (office only; the crew's is hidden there): a slim row on the page
+   with "EN | ΕΛ" on the right. */
+.topbar {
+    display: flex;
+    align-items: center;
+    min-height: var(--nn-topbar-height);
+    gap: var(--nn-space-1);
+    padding: 6px var(--nn-space-2);
+    color: var(--nn-white);
+    background-color: var(--nn-navy);
+    --nn-focus-color: var(--nn-white);
+}
+.topbar-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    padding: 0;
+    color: inherit;
+    border: 0;
+}
+.topbar-button:hover,
+.topbar-button:focus-visible { color: inherit; background-color: var(--nn-sidebar-hover); }
+.topbar-lang {
+    flex: none;
+    margin-left: auto;
+}
+@media (min-width: 768px) {
+    .topbar-office {
+        min-height: 0;
+        padding: var(--nn-space-2) var(--nn-gutter) 0;
+        color: var(--nn-text);
+        background-color: transparent;
+        --nn-focus-color: var(--nn-blue);
+    }
+    .topbar-office .topbar-title { display: none; }
+    .topbar-office + .app-content { padding-top: var(--nn-space-2); }
+}
+
+/* "EN | ΕΛ". On navy: white, the other language at .85 (both 9:1 or more); on the page: navy, the other language in
+   the secondary text colour (6.6:1). */
+.lang-switch {
+    display: inline-flex;
+    align-items: center;
+    font-size: var(--nn-font-sm);
+    letter-spacing: .04em;
+}
+.lang-switch-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    padding: 0 var(--nn-space-2);
+    color: inherit;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--nn-radius-control);
+    opacity: .85;
+}
+.lang-switch-link:hover { color: inherit; text-decoration: underline; opacity: 1; }
+.lang-switch-link.is-current {
+    font-weight: 700;
+    opacity: 1;
+}
+.lang-switch-divider {
+    width: 1px;
+    height: 1rem;
+    background-color: currentColor;
+    opacity: .45;
+}
+.auth-lang .lang-switch { color: var(--nn-blue); }
+.auth-lang .lang-switch-link { opacity: 1; }
+.auth-lang .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
+/* The office top bar is on the page from 768px only; on phones it is the navy bar and keeps the colours above. */
+@media (min-width: 768px) {
+    .topbar-office .lang-switch { color: var(--nn-blue); }
+    .topbar-office .lang-switch-link { opacity: 1; }
+    .topbar-office .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
+}
+
+/* Form pages: the 720px column, centred; with an aside, two columns from 1200px. */
+.form-page {
+    max-width: var(--nn-form-width);
+    margin-inline: auto;
+}
+.form-aside { margin-top: var(--nn-section-gap); }
+@media (min-width: 1200px) {
+    .form-page-aside {
+        display: grid;
+        grid-template-columns: minmax(0, var(--nn-form-width)) minmax(16rem, var(--nn-aside-width));
+        column-gap: var(--nn-section-gap);
+        align-items: start;
+        max-width: calc(var(--nn-form-width) + var(--nn-section-gap) + var(--nn-aside-width));
+    }
+    .form-page-aside > * { grid-column: 1 / -1; }
+    .form-page-aside > .form-box { grid-column: 1; }
+    .form-page-aside > .form-aside {
+        grid-column: 2;
+        margin-top: 0;
+    }
+}
+.form-aside-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 600;
+}
+/* The particulars in the narrow aside: the label column as wide as its longest label, so values keep their room. */
+.form-aside .static-fields { margin-bottom: var(--nn-space-3); }
+@media (min-width: 576px) {
+    .form-aside .static-fields { grid-template-columns: max-content minmax(0, 1fr); }
+}
+
+/* Cards of a detail page. */
+.card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-section-gap);
+}
+@media (min-width: 992px) {
+    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card-grid > .card-grid-wide { grid-column: 1 / -1; }
+}
+@media (min-width: 1600px) {
+    .card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card-grid-3 > .card-grid-wide { grid-column: auto; }
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Crew navigation on phones: layout/parts :: tabBar and tabItem, for ship users (body.has-tab-bar).
+     - .tab-bar: fixed at the bottom below 768px (from 768px the sidebar has the same entries), on the surface with a
+       line above, padded over the safe area of phones with a home indicator. Four equal columns (P47).
+     - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
+       aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
+     - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the counters
+       of what is under it, P47, P65), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
+   The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
+   this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-topbar-height: 3.5rem;      /* 56px: a 40px button and 8px above and below */
+    --nn-tab-bar-height: 3.5rem;     /* 56px */
+    --nn-tab-bar-room: calc(var(--nn-tab-bar-height) + env(safe-area-inset-bottom, 0px));
+    --nn-tab-bar-icon: 1.5rem;       /* 24px */
+}
+
+/* No menu button before it: the page name starts on the content's 16px gutter. */
+.has-tab-bar .topbar-title { padding-left: var(--nn-space-2); }
+
+.tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;                   /* over the page, under the offline banner, offcanvas and dialogs */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--nn-surface);
+    border-top: 1px solid var(--nn-divider);
+    box-shadow: var(--nn-shadow-bar);
+}
+.tab-bar-list {
+    display: grid;
+    grid-auto-flow: column;
+    /* Four equal tabs (P47; per role since P65, navigation/ShipNav); a long label ("Vessel order") wraps. */
+    grid-auto-columns: minmax(0, 1fr);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.tab-bar-link {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--nn-tab-bar-height);
+    padding: var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-size: var(--nn-font-xs);
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+}
+.tab-bar-link:hover { color: var(--nn-blue); background-color: var(--nn-hover); }
+/* Inside the tab, where the screen edge cannot cut the ring off. */
+.tab-bar-link:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width) - var(--nn-focus-offset)); }
+.tab-bar-link.active {
+    color: var(--nn-blue);
+    font-weight: 600;
+}
+.tab-bar-link.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background-color: var(--nn-blue);
+}
+.tab-bar-icon {
+    position: relative;
+    display: inline-flex;
+}
+.tab-bar-icon > svg {
+    width: var(--nn-tab-bar-icon);
+    height: var(--nn-tab-bar-icon);
+}
+.tab-bar-label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.tab-bar-count {
+    position: absolute;
+    top: -6px;
+    left: calc(100% - 10px);
+    min-width: 1.125rem;
+    padding: 0 4px;
+    border-radius: 999px;
+    background-color: var(--nn-danger);
+    color: var(--nn-white);
+    font-size: .6875rem;             /* 11px */
+    font-weight: 700;
+    line-height: 1.125rem;
+    text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    .has-tab-bar .app-content { padding-bottom: calc(var(--nn-section-gap) + var(--nn-tab-bar-room)); }
+    .has-tab-bar .offline-banner { bottom: var(--nn-tab-bar-room); }
+}
+@media (max-width: 575.98px) {
+    .has-tab-bar .ack-bar.is-pinned {
+        bottom: var(--nn-tab-bar-room);
+        padding-bottom: var(--nn-space-3);
+    }
+}
+
+
+
+/* ===============================================================================================================
+   SHARED COMPONENTS
+   =============================================================================================================== */
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Confirmations: layout/parts :: confirmForm, confirmDialog, js/confirm.js and confirm/confirm.html.
+     - .confirm-dialog: the one confirmation dialog, a native <dialog> shown as a modal (the browser keeps focus inside
+       it and makes the page behind it inert). The same surface, radius, header and footer as the Bootstrap modals
+       (the .modal variables above), at most 500px wide with a 16px gutter on phones. Heading, one sentence, then
+       Cancel (.btn-ghost, focused first) and the confirm button on the right: .btn-outline-danger for what cannot be
+       undone, .btn-primary for what Activate undoes.
+     - .confirm-form: the form around a confirmForm trigger; display: contents, so the trigger lays out as if it
+       were the menu entry or page action itself (full width in the stacked page actions on phones).
+     - .confirm-page: the same question as a page, where the trigger leads without JavaScript.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-dialog-width: 500px;
+}
+
+.confirm-dialog {
+    --bs-modal-border-width: var(--bs-border-width);
+    --bs-modal-header-border-width: var(--bs-border-width);
+    --bs-modal-footer-border-width: var(--bs-border-width);
+    --bs-modal-footer-gap: var(--nn-space-2);
+    --bs-modal-title-line-height: 1.5;
+    width: min(var(--nn-dialog-width), calc(100% - 2 * var(--nn-space-4)));
+    max-width: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--nn-text);
+    overflow: visible;
+}
+.confirm-dialog::backdrop { background-color: var(--nn-backdrop); }
+.confirm-dialog .modal-content { box-shadow: var(--nn-shadow-dialog); }
+.confirm-dialog .modal-title { overflow-wrap: anywhere; }
+.confirm-dialog .modal-body p { overflow-wrap: anywhere; }
+/* P50: the optional note of a dialog that asks for one (removing an order line). */
+.confirm-dialog-note { margin-top: var(--nn-space-3); }
+/* P58: what will change, listed under the body (resetting a vessel's required documents); the page scrolls it when
+   long. */
+.confirm-dialog-items,
+.confirm-page-items {
+    margin: var(--nn-space-3) 0 0;
+    padding-left: 1.25rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+.confirm-dialog-items > li + li,
+.confirm-page-items > li + li { margin-top: var(--nn-space-1); }
+.confirm-page-items { margin-bottom: var(--nn-space-5); }
+.confirm-page .confirm-page-body:has(+ .confirm-page-items) { margin-bottom: 0; }
+
+.confirm-form { display: contents; }
+
+.confirm-page .confirm-page-body {
+    margin-bottom: var(--nn-space-5);
+    overflow-wrap: anywhere;
+}
+
+/* Announcement review (P10): announcement/review.html, the step between the form and sending.
+     - .review-stack: recipients, the preview and the actions, 24px apart, in the 720px form column.
+     - .review-recipients: the people per ship; a muted IMO number after each name, so ships with similar names are
+       told apart; a Total row when there is more than one ship. Also the acknowledgements per ship on the
+       announcement's detail page (P28).
+     - .review-label: the small heading above the preview, like a table header.
+     - .announcement-preview: the title and message as the crew will see them (plain text, line breaks kept). */
+.review-stack {
+    display: grid;
+    gap: var(--nn-section-gap);
+}
+.review-imo {
+    margin-left: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    white-space: nowrap; /* "IMO 9074729" wraps as a whole on phones */
+}
+.review-recipients > tfoot > tr > * {
+    padding: var(--nn-cell-padding-y) var(--nn-cell-padding-x);
+    border-bottom: 0;
+    font-weight: 600;
+}
+.review-label {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nn-text-secondary);
+}
+.announcement-preview-title {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
+.review-left-out > ul {
+    margin: var(--nn-space-2) 0 0;
+    padding-left: 1.25rem;
+}
+
+/* Announcement target (P28): announcement/form.html, js/ship-picker.js.
+     - .target-option: a radio with its label and a one-line hint, the whole row a touch target; the chosen one has
+       the blue border and the checked radio (never the colour alone).
+     - .ship-picker: the Selected ships list under the second option: quick filters, the "2 of 5 selected" count with
+       Select all / Clear (.ship-picker-tools, shown by the script), then one row per ship (.ship-pick: checkbox, name,
+       then the IMO number, type and flag muted), two columns from 576px. From 768px the list scrolls inside its box
+       after about eight rows, so the title and message stay near; on phones the page scrolls.
+     - .target-names: the names of the ships of an announcement to several ships, in the Target column of the list:
+       on the phone card under "3 ships", on wider screens for screen readers only ("3 ships" has them as title). */
+:root { --nn-ship-picker-height: 26rem; }
+.target-choice {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.target-options {
+    display: grid;
+    gap: var(--nn-space-2);
+}
+.target-option,
+.ship-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    margin: 0;
+    padding: var(--nn-space-3);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-field);
+    cursor: pointer;
+}
+.target-option:hover,
+.ship-pick:hover { background: var(--nn-hover); }
+.target-option:has(:checked),
+.ship-pick:has(:checked) {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+}
+.target-option > .form-check-input,
+.ship-pick > .form-check-input {
+    flex-shrink: 0;
+    margin: 1px 0 0;
+}
+.target-option-text,
+.ship-pick-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+.target-option-label,
+.ship-pick-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.target-option-hint,
+.ship-pick-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.ship-picker {
+    margin: var(--nn-space-2) 0 0 var(--nn-space-5);
+    padding-left: var(--nn-space-3);
+    border-left: 2px solid var(--nn-divider);
+}
+.ship-picker[hidden] { display: none; }
+.ship-picker > fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.ship-picker-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--nn-space-3);
+    margin-bottom: var(--nn-space-3);
+}
+.ship-picker-tools[hidden] { display: none; }
+.ship-picker-tools > .filter-field { flex: 1 1 10rem; }
+.ship-picker-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    flex: 1 1 100%;
+}
+.ship-picker-count {
+    margin: 0 auto 0 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.ship-picker-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.ship-picker-list > li[hidden] { display: none; }
+.ship-picker-empty {
+    margin: var(--nn-space-2) 0 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.target-names {
+    display: block;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+@media (min-width: 576px) {
+    .ship-picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+    .ship-picker-list {
+        max-height: var(--nn-ship-picker-height);
+        overflow-y: auto;
+        /* Room for the focus ring of the rows at the edges. */
+        padding: var(--nn-focus-offset) calc(var(--nn-focus-width) + var(--nn-focus-offset));
+        padding-bottom: calc(var(--nn-focus-width) + var(--nn-focus-offset));
+    }
+    /* "3 ships" carries the names as its title; screen readers get them here. */
+    .target-names {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+}
+@media (max-width: 575.98px) {
+    .ship-picker { margin-left: var(--nn-space-3); }
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Dates and times: layout/parts :: localTime, localDate, dateHint, expiryDate; js/local-time.js.
+   Every time is shown in UTC and says so ("21 Oct 2026 · 12:40 UTC"); the viewer's own time is a tooltip and
+   screen reader text. The hint after a date that drives action ("in 23 days", "expired 5 days ago") is secondary
+   text (6.6:1 on the surface) and never breaks inside.
+   --------------------------------------------------------------------------------------------------------------- */
+.date-hint {
+    color: var(--nn-text-secondary);
+    white-space: nowrap;
+}
+.local-time[title] { cursor: help; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Error pages: layout/parts :: errorPage, errorNext. One reading column; on a 5xx the reference to quote to
+   the office sits in a quiet surface box above the way home, the code in tabular figures and spaced out so it is
+   easy to read out.
+   --------------------------------------------------------------------------------------------------------------- */
+.error-page { max-width: 40rem; }
+/* The same quiet box holds the office contact on the "link is invalid or has expired" page (P13). */
+.error-reference,
+.support-contact {
+    margin-bottom: var(--nn-space-5);
+    padding: var(--nn-space-4);
+    background: var(--nn-surface);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-card);
+}
+.error-reference-label,
+.support-contact-label {
+    margin-bottom: var(--nn-space-1);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.error-reference-value,
+.support-contact-value {
+    margin-bottom: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.error-reference-value .num { letter-spacing: .08em; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Saving on a bad connection: js/save.js, layout/parts :: offlineBanner, draftNotice.
+     - .is-busy: the button of a form on its way: a spinner and "Saving…". Disabled, but at full opacity with a
+       progress cursor: it is working, not unavailable. The other buttons of the form are disabled as usual.
+     - .offline-banner: "No connection. Your text is kept on this device." Fixed at the bottom of the window, right of
+       the sidebar from 768px, in the warning pair with a dot before the text (the words say it, not the colour).
+       Empty, and so not shown, while online; the page gets room at the bottom so it never covers a Save button.
+     - .save-blocked: the message under the actions of a form sent while offline ("Not sent: ..."), same look.
+     - .draft-notice: "Draft restored from 12:40 UTC · Discard" at the top of a form, in the info pair.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-status-dot: 10px;
+    --nn-offline-room: 6rem;         /* room under the page while the banner shows (two lines on a phone) */
+}
+
+.btn.is-busy:disabled {
+    opacity: 1;
+    cursor: progress;
+}
+.btn.is-busy .spinner-border-sm {
+    --bs-spinner-width: .875rem;
+    --bs-spinner-height: .875rem;
+    --bs-spinner-border-width: .15em;
+    flex-shrink: 0;
+}
+
+.offline-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1035;                   /* over the page, under Bootstrap's offcanvas and modals */
+    padding: var(--nn-space-3) var(--nn-space-4) var(--nn-space-3) calc(var(--nn-space-4) + var(--nn-status-dot) + var(--nn-space-2));
+    background: var(--nn-warning-bg);
+    color: var(--nn-warning-text);   /* 6.7:1 */
+    border-top: 1px solid var(--nn-warning-border);
+    box-shadow: var(--nn-shadow-bar);
+    font-weight: 600;
+    line-height: 1.5;
+}
+.offline-banner:empty { display: none; }
+.offline-banner::before,
+.save-blocked::before {
+    content: "";
+    position: absolute;
+    width: var(--nn-status-dot);
+    height: var(--nn-status-dot);
+    border-radius: 50%;
+    background: var(--nn-warning);
+}
+.offline-banner::before {
+    left: var(--nn-space-4);
+    top: calc(var(--nn-space-3) + .75em - var(--nn-status-dot) / 2);
+}
+@media (min-width: 768px) {
+    body[data-user] .offline-banner { left: var(--nn-sidebar-width); }
+}
+html.is-offline body { padding-bottom: var(--nn-offline-room); }
+
+.save-blocked {
+    position: relative;
+    margin: var(--nn-space-3) 0 0;
+    padding-left: calc(var(--nn-status-dot) + var(--nn-space-2));
+    color: var(--nn-warning-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.save-blocked::before { left: 0; top: calc(.75em - var(--nn-status-dot) / 2); }
+/* Said in the banner when the button is not in the form (form="..."): a second line there. */
+.offline-banner .save-blocked {
+    display: block;
+    margin-top: var(--nn-space-1);
+    padding-left: 0;
+}
+.offline-banner .save-blocked::before { content: none; }
+
+.draft-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--nn-space-2);
+    margin-bottom: var(--nn-space-4);
+    padding: var(--nn-space-1) var(--nn-space-1) var(--nn-space-1) var(--nn-space-3);
+    background: var(--nn-info-bg);
+    color: var(--nn-info-text);      /* 7.5:1; the navy Discard 7.7:1 */
+    border: 1px solid var(--nn-info-border);
+    border-radius: var(--nn-radius-control);
+    font-size: var(--nn-font-sm);
+}
+.draft-notice time {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Required notices: layout/parts :: infoNote, e.g. "Nereonix is not an emergency or safety channel..." above
+   the announcement's Review and Send buttons, "Do not upload security-sensitive material..." under a library file
+   input. Quiet: help-text size in the info pair (7.5:1), no border, a 16px "i" icon before the text. The words carry
+   the meaning; the colour and the icon only repeat it.
+   --------------------------------------------------------------------------------------------------------------- */
+.info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-2);
+    margin: var(--nn-space-3) 0 0;
+    padding: var(--nn-space-2) var(--nn-space-3);
+    background: var(--nn-info-bg);
+    color: var(--nn-info-text);
+    border-radius: var(--nn-radius-control);
+    font-size: var(--nn-font-help);
+    line-height: 1.45;
+}
+.info-note > svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+}
+/* In a stack with its own gap (the announcement review page). */
+.review-stack > .info-note { margin-top: 0; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Lists: search, filters, sort and pages: layout/parts :: filterBar, shipFilter, sortHeader, pager,
+   listEmpty; js/list-filter.js.
+     - .list-controls: the filter bar and its chips, 24px above the list card (--nn-section-gap).
+     - .filter-bar: the search (the widest field) then the list's filters (.filter-field), one row from 768px, each
+       field stacked full width on phones; Apply only without JavaScript.
+     - .filter-chips: "Active filters:" and one chip per active search or filter, in the primary pair (8:1), with a
+       cross; the whole chip is the link that removes it (32px look, 40px / 44px touch target), then Clear all.
+     - .sort-link: a column header that sorts. The sorted column (aria-sort) is in body text with an arrow up or
+       down; the others keep the header colour (6.6:1) and a quiet up-and-down mark. Shape, not colour, tells the
+       direction.
+     - .table-sticky: from 1200px the header row stays at the top of the window while the page scrolls (the list
+       then has room for every column, so its card no longer scrolls sideways). Below 1200px the table may scroll
+       sideways inside its card, which a sticky header cannot follow; phones stack the rows and have no header.
+     - .pager: "1 to 25 of 412", the page size and Previous / Next, under the table, on the card padding.
+     - .list-empty: "No results for these filters" and Clear all, distinct from a list's first-use text.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-filter-width: 14rem;        /* a filter select */
+    --nn-search-width: 22rem;        /* the search field */
+}
+
+.list-controls { margin-bottom: var(--nn-section-gap); }
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--nn-space-3) var(--nn-space-4);
+}
+.filter-field {
+    flex: 0 1 var(--nn-filter-width);
+    min-width: 0;
+}
+.filter-field-search { flex: 0 1 var(--nn-search-width); }
+.filter-field-date { flex-basis: 11rem; }
+.filter-field-apply { flex: 0 0 auto; }
+.filter-field-apply[hidden] { display: none; }
+/* A checkbox filter sits on the line of the fields next to it. */
+.filter-field-check {
+    display: flex;
+    align-items: center;
+    flex-basis: auto;
+    min-height: var(--nn-btn-height);
+}
+.filter-field-check .form-check { margin-bottom: 0; }
+/* A filter with its error under it (P39: the audit log's dates) is taller than the others: the fields then line up
+   by their labels, so the inputs stay on one line; a check or Apply moves down to that line (the label's height). */
+.filter-bar:has(.is-invalid) { align-items: flex-start; }
+.filter-bar:has(.is-invalid) > :is(.filter-field-check, .filter-field-apply) {
+    margin-top: calc(var(--bs-body-line-height) * 1em + .5rem);
+}
+@media (max-width: 767.98px) {
+    .filter-field,
+    .filter-field-search { flex: 1 1 100%; }
+    .filter-field-apply .btn { width: 100%; }
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-3);
+}
+.filter-chips-label {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.filter-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.filter-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: var(--nn-btn-height-sm);
+    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
+    border: 1px solid var(--nn-primary-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+}
+.filter-chip:hover { border-color: var(--nn-blue); }
+.filter-chip:hover .filter-chip-text { text-decoration: underline; }
+.filter-chip-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.filter-chip svg {
+    flex-shrink: 0;
+    width: var(--nn-icon-size);
+    height: var(--nn-icon-size);
+}
+/* Tap area, as for the buttons. */
+.filter-chip::before {
+    content: "";
+    position: absolute;
+    top: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    bottom: min(0px, calc((100% - var(--nn-touch-target)) / 2));
+    left: 0;
+    right: 0;
+}
+
+.data-table > thead > tr > th.sortable { padding-block: 0; }
+.sort-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nn-space-1);
+    min-height: var(--nn-touch-target);
+    color: inherit;
+    text-decoration: none;
+}
+.sort-link:hover { text-decoration: underline; }
+.data-table > thead > tr > th[aria-sort] { color: var(--nn-text); }
+.sort-icon {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+}
+.data-table > thead > tr > th.num .sort-link { flex-direction: row-reverse; }
+
+@media (min-width: 1200px) {
+    .card > .table-sticky { overflow: visible; }
+    .table-sticky > .data-table > thead > tr > th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom-width: 0;
+        box-shadow: inset 0 -1px 0 var(--nn-divider);
+    }
+    /* The card's rounded corners, now that the table is no longer clipped by its scroll box. */
+    .card > .table-sticky:first-child > .data-table > thead > tr > th:first-child {
+        border-top-left-radius: var(--bs-card-inner-border-radius);
+    }
+    .card > .table-sticky:first-child > .data-table > thead > tr > th:last-child {
+        border-top-right-radius: var(--bs-card-inner-border-radius);
+    }
+}
+
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3) var(--nn-space-5);
+    padding: var(--nn-space-3) var(--nn-card-padding);
+    border-top: 1px solid var(--nn-divider);
+    font-size: var(--nn-font-sm);
+}
+.pager-range {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.pager-size {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    margin-left: auto;
+    color: var(--nn-text-secondary);
+}
+.pager-size-list {
+    display: flex;
+    gap: var(--nn-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.pager-size-current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-btn-height-sm);
+    min-height: var(--nn-btn-height-sm);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    color: var(--nn-text);
+    font-weight: 600;
+}
+.pager-nav {
+    display: flex;
+    gap: var(--nn-space-2);
+}
+@media (max-width: 575.98px) {
+    .pager-size { margin-left: 0; }
+    .pager-nav { flex: 1 1 100%; }
+    .pager-nav .btn { flex: 1 1 0; }
+}
+
+.list-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-3);
+}
+.list-empty-title {
+    margin: 0;
+    font-weight: 600;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   View switch: layout/parts :: viewSwitch. Two or more views of the same records as one group of links or buttons
+   (Matrix / List on the certificates, Most urgent / By date on the Overview, the import review's row filters, the date
+   range's presets). The current one (aria-current, or aria-pressed="true" on a button) is in the primary pair,
+   semibold, with a tick: not shown by colour alone. Each link is 40px high (44px on phones).
+   --------------------------------------------------------------------------------------------------------------- */
+.view-switch {
+    display: inline-flex;
+    margin-bottom: var(--nn-space-4);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-surface);
+}
+.view-switch-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--nn-touch-target);
+    padding: 0 var(--nn-space-4);
+    color: var(--nn-text);
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    text-decoration: none;
+}
+.view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
+.view-switch-link:first-child { border-radius: calc(var(--nn-radius-control) - 1px) 0 0 calc(var(--nn-radius-control) - 1px); }
+.view-switch-link:last-child { border-radius: 0 calc(var(--nn-radius-control) - 1px) calc(var(--nn-radius-control) - 1px) 0; }
+.view-switch-link:hover { background: var(--nn-hover); text-decoration: underline; }
+.view-switch-link > svg { flex-shrink: 0; }
+.view-switch-link:not([aria-current]):not([aria-pressed="true"]) > svg { display: none; }
+.view-switch-link[aria-current],
+.view-switch-link[aria-pressed="true"] {
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+    font-weight: 600;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Row selection: a row's checkbox, "3 selected" and rows that open their record; js/list-rows.js.
+     - .select-target: a row checkbox, or the header's select-all, with a click area the size of a touch target that
+       overlaps the cell's padding, so the cell keeps its size;
+     - .list-selection: the line above the table, "3 selected" (and, on phones, where the table header is hidden,
+       "Select all on this page");
+     - tr.is-row-link: a row that opens its record when clicked (set by the script: no pointer without it); the
+       checkbox cell keeps the normal pointer, a click there never opens the row;
+     - .exported-by: when (UTC) and by whom, on two lines.
+   --------------------------------------------------------------------------------------------------------------- */
+.select-target {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--nn-touch-target);
+    min-height: var(--nn-touch-target);
+    margin: calc((var(--nn-check-size) - var(--nn-touch-target)) / 2);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.list-selection {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-2) var(--nn-card-padding);
+    border-bottom: 1px solid var(--nn-divider);
+}
+.list-selection-all { display: none; }
+@media (max-width: 767.98px) {
+    .list-selection-all {
+        display: flex;
+        align-items: center;
+        gap: var(--nn-space-3);
+        min-height: var(--nn-touch-target);
+        margin: 0;
+        padding-left: 0;
+    }
+    .list-selection-all .form-check-input { margin: 0; }
+    .list-selection-all .form-check-label { padding-block: var(--nn-space-2); }
+}
+
+.data-table > tbody > tr.is-row-link { cursor: pointer; }
+.data-table > tbody > tr.is-row-link > .cell-select { cursor: default; }
+
+.exported-by {
+    display: inline-flex;
+    flex-direction: column;
+}
+@media (max-width: 767.98px) {
+    .exported-by { align-items: flex-end; }
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Import from a file: layout/parts :: importSteps, importRowHead, importSummary, importReviewActions;
+   importfile/*.html (upload, sheet, map, values, done); crewimport/review.html, item/import-review.html;
+   js/import-map.js.
+     - .import-steps: Upload, Map columns, Review, Done under the page header. A done step has a tick in a filled navy
+       circle, the current one its number in a primary-pair circle and a semibold label (aria-current="step"), the
+       next ones an outlined number in secondary text (6.6:1). A line joins the circles, navy once passed. The words
+       and the tick carry the state; the colour only repeats it.
+     - .import-template: the template, the easy path, in a card beside the upload card from 1200px (P29, .form-aside).
+     - .import-sheets: the sheet choice, one bordered option per sheet; the whole option is the radio's label.
+     - .import-map: from 768px the field's label on the left and its select on the right; stacked below. The second
+       select of a two-column field (Full name: last name) follows the first.
+     - .import-preview: the first five rows, scrolling sideways inside their card. Each column header says where the
+       column goes ("To: Email", primary text) or "Not imported" (italic, secondary): words, not colour.
+     - .import-values: one line per value to match: the value as in the file (monospace), its field and row count,
+       then the select.
+     - .import-summary: the review's row filters (.view-switch buttons; the pressed one has the tick, aria-pressed),
+       the plan ("3 new, 1 update") and "Exclude all rows with errors". The error count is in the danger pair when
+       not zero; the label says "With errors" anyway.
+     - .import-table: the review table. The first two columns (.import-col-row: row number, action, Exclude;
+       .import-col-name) stay in place when the table scrolls sideways: sticky, on the surface colour, with a divider
+       on the name column's right edge. Each error message wraps under its field, inside its cell. An excluded row
+       (.is-excluded) is on the hover tint and says "Excluded" in its first cell; no opacity, so the sticky cells
+       stay opaque over the cells scrolling under them.
+     - .import-counts: the Done step's three counts.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-import-step-mark: 1.75rem;  /* the circles of the steps */
+    --nn-import-steps-width: 40rem;
+    --nn-import-row-width: 7.5rem;   /* the review's first column */
+    --nn-import-name-width: 14rem;   /* the review's name column */
+    --nn-import-field-width: 12rem;  /* every other review field */
+    --nn-import-label-width: 14rem;  /* the mapping step's field labels, from 768px */
+}
+@media (max-width: 575.98px) {
+    :root {
+        --nn-import-row-width: 6.5rem;
+        --nn-import-name-width: 9.5rem;
+    }
+}
+
+.import-steps {
+    max-width: var(--nn-import-steps-width);
+    margin-bottom: var(--nn-section-gap);
+}
+.import-steps-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.import-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nn-space-1);
+    padding: 0 var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-size: var(--nn-font-sm);
+    text-align: center;
+}
+/* The line from the previous circle to this one. */
+.import-step + .import-step::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--nn-import-step-mark) / 2 - 1px);
+    right: calc(50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
+    left: calc(-50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
+    height: 2px;
+    background: var(--nn-divider);
+}
+.import-step.is-done + .import-step::before { background: var(--nn-blue); }
+/* The circles are shared with the Overview's setup checklist (P25, .setup-step-mark). */
+.import-step-mark,
+.setup-step-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-import-step-mark);
+    height: var(--nn-import-step-mark);
+    border: 2px solid var(--nn-field-border);
+    border-radius: 50%;
+    background: var(--nn-surface);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.import-step-mark > svg,
+.setup-step-mark > svg { width: 14px; height: 14px; }
+.import-step-label { line-height: 1.3; }
+.import-step.is-done { color: var(--nn-text); }
+.import-step.is-done .import-step-mark,
+.setup-step.is-done .setup-step-mark {
+    border-color: var(--nn-blue);
+    background: var(--nn-blue);
+    color: var(--nn-white);
+}
+.import-step.is-current {
+    color: var(--nn-text);
+    font-weight: 600;
+}
+.import-step.is-current .import-step-mark,
+.setup-step.is-next .setup-step-mark {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+}
+
+/* Upload: the template as the easy path. */
+.import-template { padding: var(--nn-card-padding); }
+.import-template-title {
+    margin: 0 0 var(--nn-space-1);
+    font-size: var(--nn-font-body);
+    font-weight: 600;
+}
+.import-template-text {
+    margin-bottom: var(--nn-space-3);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+/* Upload: the sheet of a workbook. */
+.import-sheets {
+    display: grid;
+    gap: var(--nn-space-2);
+}
+.import-sheet {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    padding: var(--nn-space-3);
+    border: 1px solid var(--nn-field-border);
+    border-radius: var(--nn-radius-control);
+    background: var(--nn-field);
+    cursor: pointer;
+}
+.import-sheet:hover { background: var(--nn-hover); }
+.import-sheet:has(:checked) {
+    border-color: var(--nn-blue);
+    background: var(--nn-primary-bg);
+}
+.import-sheet > .form-check-input {
+    flex-shrink: 0;
+    margin: 1px 0 0;
+}
+.import-sheet-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+.import-sheet-name { font-weight: 600; overflow-wrap: anywhere; }
+.import-sheet-meta,
+.import-sheet-columns {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* Map columns. */
+.import-file-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--nn-space-2);
+    margin-bottom: var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.import-file-line > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+.import-file-line + .info-note { margin: calc(-1 * var(--nn-space-2)) 0 var(--nn-space-4); }
+.import-map-row {
+    padding: var(--nn-space-3) 0;
+    border-top: 1px solid var(--nn-divider);
+}
+.import-map-row:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+.import-map-row:last-child { padding-bottom: 0; }
+.import-map-select + .import-map-select { margin-top: var(--nn-space-3); }
+@media (min-width: 768px) {
+    .import-map-select {
+        display: grid;
+        grid-template-columns: var(--nn-import-label-width) minmax(0, 28rem);
+        column-gap: var(--nn-space-4);
+        align-items: center;
+    }
+    .import-map-select > .form-label {
+        grid-column: 1;
+        margin: 0;
+    }
+    .import-map-select > :not(.form-label) { grid-column: 2; }
+}
+.import-header-row { margin: var(--nn-space-3) 0; }
+.import-header-row-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+.import-header-row-control > .form-select {
+    flex: 1 1 16rem;
+    max-width: 32rem;
+}
+.import-ignored {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+}
+.import-preview { border-top: 1px solid var(--nn-divider); }
+.import-preview > .table { font-size: var(--nn-font-sm); }
+.import-preview > .table > :not(caption) > * > * { padding: var(--nn-space-2) var(--nn-space-3); }
+.import-preview > .table > :not(caption) > * > :first-child { padding-left: var(--nn-card-padding); }
+.import-preview > .table > :not(caption) > * > :last-child { padding-right: var(--nn-card-padding); }
+.import-preview th {
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+.import-preview td {
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.import-preview-row {
+    width: 1%;
+    color: var(--nn-text-secondary);
+}
+.import-preview-name { display: block; }
+.import-preview-letter {
+    margin-right: var(--nn-space-1);
+    color: var(--nn-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+.import-preview-target {
+    display: block;
+    font-size: var(--nn-font-help);
+    font-weight: 500;
+    color: var(--nn-primary-text);
+}
+.import-preview-target.is-ignored {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+
+/* Map values. */
+.import-value {
+    display: grid;
+    gap: var(--nn-space-2);
+    padding: var(--nn-space-3) 0;
+    border-top: 1px solid var(--nn-divider);
+}
+.import-value:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+.import-value:last-child { padding-bottom: 0; }
+@media (min-width: 576px) {
+    .import-value {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+        column-gap: var(--nn-space-4);
+        align-items: start;
+    }
+}
+.import-value-file {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+}
+.import-value-text {
+    font-family: var(--bs-font-monospace);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.import-value-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+
+/* Review: filters, plan, Exclude all rows with errors. */
+.import-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    margin-bottom: var(--nn-space-4);
+}
+.import-filter {
+    max-width: 100%;
+    margin-bottom: 0;
+}
+.import-filter > .view-switch-link {
+    padding: 0 var(--nn-space-3);
+    border: 0;
+    background: transparent;
+    white-space: nowrap;
+}
+.import-filter > .view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
+.import-filter > .view-switch-link[aria-pressed="true"] { background: var(--nn-primary-bg); }
+.import-filter-count {
+    min-width: 1.5rem;
+    padding: 0 6px;
+    border-radius: var(--nn-radius-badge);
+    background: var(--nn-neutral-bg);
+    color: var(--nn-neutral-text);
+    font-size: var(--nn-font-xs);
+    font-weight: 600;
+    text-align: center;
+}
+.import-filter-count.has-errors {
+    background: var(--nn-danger-bg);
+    color: var(--nn-danger-text);
+}
+
+/* Review: the table, its first two columns in place. */
+.import-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.import-table > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
+.import-table > tbody > tr:last-child > * { border-bottom: 0; }
+.import-table .import-col-row,
+.import-table .import-col-name {
+    position: sticky;
+    z-index: 1;
+    background-color: var(--nn-surface);
+    box-shadow: none;
+}
+.import-table > thead .import-col-row,
+.import-table > thead .import-col-name { z-index: 2; }
+.import-table .import-col-row {
+    left: 0;
+    min-width: var(--nn-import-row-width);
+    max-width: var(--nn-import-row-width);
+}
+.import-table .import-col-name {
+    left: var(--nn-import-row-width);
+    min-width: var(--nn-import-name-width);
+    max-width: var(--nn-import-name-width);
+}
+/* The divider on the name column's right edge; a pseudo-element, so it moves with the sticky cell. */
+.import-table .import-col-name::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--nn-divider);
+}
+.import-table .import-col-name .form-control { min-width: 0; }
+.import-table .invalid-feedback { white-space: normal; }
+.import-row-number {
+    display: block;
+    margin: var(--nn-space-1) 0;
+    font-weight: 600;
+}
+.import-exclude {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2);
+    min-height: var(--nn-touch-target);
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    cursor: pointer;
+}
+.import-exclude > .form-check-input {
+    flex-shrink: 0;
+    margin: 0;
+}
+.import-table > tbody > tr.is-excluded > td { background-color: var(--nn-hover); }
+.import-table > tbody > tr.is-excluded :is(.form-control, .form-select) { color: var(--nn-text-secondary); }
+.import-no-rows {
+    padding: var(--nn-space-5) var(--nn-card-padding);
+    color: var(--nn-text-secondary);
+}
+
+/* Done. */
+.import-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--nn-space-3);
+    margin: 0 0 var(--nn-space-3);
+}
+.import-count {
+    padding: var(--nn-space-3) var(--nn-space-4);
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.import-count > dt {
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+    color: var(--nn-text-secondary);
+}
+.import-count > dd {
+    margin: 0;
+    font-size: var(--nn-font-h1);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Empty states and first-run guidance: layout/parts :: emptyState, emptyLink, listEmpty;
+   dashboard/dashboard.html (the setup checklist).
+     - .empty-state: a list with nothing in it yet, centred in its card: the list's icon (the sidebar's, larger) in a
+       circle in the primary pair, a one-line title (18px, 600), one sentence of help (14px, secondary text, 6.6:1,
+       at most 32rem wide) and the list's first action(s), which the page header then leaves out. Distinct from
+       .list-empty ("No results for these filters": one left-aligned line, no icon, Clear all). On phones the actions
+       stack full width, as in the page header. Inside a card body (the ship's Overview tab) it keeps no side padding.
+     - .setup: the Overview's setup checklist (Add a ship, Add or import its crew, Add the ship's first library
+       document, Send a first announcement). Header: title and "1 of 4 done". One row per step: the circle (the import
+       steps' marks: a number, a tick in navy once done, the primary pair for the next step), the title linking to
+       its page and one line of help, then "Done" (a status badge with a tick) or, for the next step, the primary
+       button. Below 576px the button goes under the text, full width.
+   --------------------------------------------------------------------------------------------------------------- */
+:root {
+    --nn-empty-icon: 3.5rem;         /* the circle behind an empty state's icon */
+    --nn-empty-icon-glyph: 1.75rem;
+    --nn-empty-text-width: 32rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--nn-space-6) var(--nn-card-padding);
+    text-align: center;
+}
+.card-body .empty-state { padding: var(--nn-space-5) 0 var(--nn-space-2); }
+.empty-state-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-empty-icon);
+    height: var(--nn-empty-icon);
+    margin-bottom: var(--nn-space-4);
+    border-radius: 50%;
+    background: var(--nn-primary-bg);
+    color: var(--nn-primary-text);
+}
+.empty-state-icon > svg {
+    width: var(--nn-empty-icon-glyph);
+    height: var(--nn-empty-icon-glyph);
+}
+.empty-state-title {
+    margin: 0 0 var(--nn-space-1);
+    font-size: var(--nn-font-title);
+    font-weight: 600;
+}
+.empty-state-text {
+    max-width: var(--nn-empty-text-width);
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.empty-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--nn-space-2);
+    margin-top: var(--nn-space-4);
+}
+@media (max-width: 575.98px) {
+    .empty-state-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-self: stretch;
+    }
+}
+
+.setup-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nn-space-1) var(--nn-space-4);
+    padding-block: var(--nn-space-4);
+}
+.setup-progress {
+    margin: 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+    color: var(--nn-text-secondary);
+}
+.setup-intro {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.setup-steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+/* Three columns: the circle (centred on the title's line), the text, then "Done" or the button. */
+.setup-step {
+    display: grid;
+    grid-template-columns: var(--nn-import-step-mark) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    padding-block: var(--nn-space-3);
+}
+.setup-step + .setup-step { border-top: 1px solid var(--nn-divider); }
+.setup-step-mark {
+    margin-top: calc((var(--nn-touch-target) - var(--nn-import-step-mark)) / 2);
+    color: var(--nn-text-secondary);
+}
+.setup-step > .status-badge,
+.setup-step-action { align-self: center; }
+.setup-step-text { min-width: 0; }
+.setup-step-title {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.setup-step-title > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+.setup-step.is-next .setup-step-title {
+    display: flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
+@media (max-width: 575.98px) {
+    /* Two columns: "Done" and the button go under the text, the button full width. */
+    .setup-step { grid-template-columns: var(--nn-import-step-mark) minmax(0, 1fr); }
+    .setup-step > .status-badge,
+    .setup-step-action { grid-column: 2; }
+    .setup-step > .status-badge { justify-self: start; }
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Snoozing alerts: alert/snooze.html, alert/parts.html, the Certificates and Vetting lists and the Overview.
+     - tr.is-snoozed: a muted row (the texts keep at least 4.5:1: only the surface changes, the words say "Snoozed").
+     - .snoozed-note: "Snoozed by Jane Doe until 13 Dec 2026 · Renewal in progress" with the snooze icon and Undo
+       (a small form), on the row; .snoozed-list: a vessel's snoozed items on the Vetting list, one per line.
+     - .snooze-items: the snooze page's review of the selection: one .snooze-item per alert (its checkbox when there
+       are several), the badge, the title and the vessel and date (.snooze-item-meta).
+     - .snooze-durations: the duration choices, the date input under "Until a date" (.snooze-date).
+     - .snooze-list-form: the lists' empty GET form; the rows' checkboxes belong to it by their form attribute.
+   --------------------------------------------------------------------------------------------------------------- */
+.data-table > tbody > tr.is-snoozed > * { --bs-table-bg: var(--nn-page); }
+.data-table > tbody > tr.is-snoozed .cell-primary a,
+.data-table > tbody > tr.is-snoozed .status-badge { opacity: .75; }
+
+.snoozed-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+    margin-top: var(--nn-space-1);
+    font-size: var(--nn-font-xs);
+    color: var(--nn-text-secondary);
+    white-space: normal;
+}
+.snoozed-note > svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+}
+.snoozed-note-text { overflow-wrap: anywhere; }
+.snoozed-note-undo { margin: 0; }
+.snoozed-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    white-space: normal;
+}
+.snoozed-list > li + li { margin-top: var(--nn-space-2); }
+.snoozed-kind {
+    display: block;
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.data-table .vetting-snooze { white-space: normal; }
+/* Room for the snoozed note on the table; as a stacked card (phones) the cell is as wide as its Snooze link. */
+@media (min-width: 768px) {
+    .data-table .vetting-snooze { min-width: 14rem; }
+}
+.data-table .vetting-snooze .row-actions { justify-content: flex-start; }
+
+.snooze-items { margin-bottom: var(--nn-space-4); }
+.snooze-items > legend {
+    margin-bottom: var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    font-weight: 600;
+}
+.snooze-item-list {
+    border: 1px solid var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+.snooze-item { padding: var(--nn-space-2) var(--nn-space-3); }
+.snooze-item-pick {
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-3);
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+.snooze-item-pick > .form-check-input { flex: none; margin: 0; }
+.snooze-item-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-3);
+    min-width: 0;
+}
+.snooze-item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.snooze-item-title { font-weight: 600; overflow-wrap: anywhere; }
+.snooze-item-meta {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+    overflow-wrap: anywhere;
+}
+.snooze-durations .form-check { min-height: var(--nn-touch-target); }
+.snooze-date {
+    max-width: 14rem;
+    margin: var(--nn-space-1) 0 var(--nn-space-2);
+}
+.snooze-list-form { display: none; }
+
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Date range: layout/parts :: dateRange, in the GET filter form of a history or log page (the store history
+   first, stores/history.html).
+     - .date-range-presets: the quick choices, Last 30 / 60 / 90 days, a .view-switch of links (the current one in the
+       primary pair, semibold, with a tick from 768px), on one line at every width: below 768px the group is as wide
+       as the form, three equal links with less padding (the tick hidden, the primary pair still marks the current
+       one), so it fits 360px; each link a 44px target.
+     - .date-range-row: From and To in two equal columns at every width (360px too: the date fields may shrink);
+       the form's buttons (.date-range-actions) on the same row from 768px, under them on phones.
+   --------------------------------------------------------------------------------------------------------------- */
+.date-range { margin-top: var(--nn-space-3); }
+.date-range-presets {
+    display: flex;
+    max-width: 100%;
+    margin-bottom: var(--nn-space-3);
+}
+.date-range-presets > .view-switch-link {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 var(--nn-space-1);
+    white-space: nowrap;
+}
+.date-range-presets > .view-switch-link > svg { display: none; }
+@media (min-width: 768px) {
+    .date-range-presets { display: inline-flex; }
+    .date-range-presets > .view-switch-link { flex: 0 0 auto; padding: 0 var(--nn-space-4); }
+    .date-range-presets > .view-switch-link[aria-current] > svg { display: inline-block; }
+}
+.date-range-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--nn-space-3);
+    align-items: start;
+}
+.date-range-field { min-width: 0; }
+.date-range-field > .form-control { min-width: 0; width: 100%; }
+.date-range-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+@media (min-width: 768px) {
+    .date-range-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+    /* Level with the fields under their labels (one line of label and its margin), also when an error shows. */
+    .date-range-actions {
+        grid-column: auto;
+        flex-wrap: nowrap;
+        margin-top: calc(var(--nn-font-body) * 1.5 + .5rem);
+    }
+}
+
+
+
+/* ===============================================================================================================
+   FEATURES
+   =============================================================================================================== */
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Ship page: /office/ships/{id} and its tabs, ship/parts.html.
      - .ship-header: the page header of every tab. The ship's name is the h1; IMO number, type, flag and the status
        badge are the line under it (.ship-facts); Edit and the "more" menu stay side by side on phones too.
      - .ship-tabs: the tab bar, server-rendered links. The active tab (aria-current="page") has a 3px navy bar under
@@ -1366,8 +3319,15 @@ fieldset:disabled button.btn {
     .ship-map iframe { height: 300px !important; }
 }
 
+
+/* The vessel form's choice for the required documents when the type changes (ship/parts :: editFields). */
+.ship-requirements-choice { margin-bottom: 1rem; }
+.ship-requirements-choice[hidden] { display: none; }
+.ship-requirements-choice > legend { font-size: inherit; margin-bottom: .25rem; }
+
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Overview (P09, P43): dashboard/dashboard.html, the office home page: more at a glance, less scrolling.
+   Overview: dashboard/dashboard.html, the office home page: more at a glance, less scrolling.
      - .overview-tiles: four stat tiles (.overview-tile, one link each: icon, the number, its label, a detail line),
        four across from 1200px, two across from 768px, two across on phones too (the numbers stay short).
      - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
@@ -1607,18 +3567,18 @@ fieldset:disabled button.btn {
 }
 .chip:hover { color: var(--nn-text); border-color: var(--nn-field-border); background-color: var(--nn-hover); }
 .chip.is-current {
-    color: #fff;
+    color: var(--nn-white);
     background-color: var(--nn-blue);
     border-color: var(--nn-blue);
 }
 .chip-count {
     padding: 0 var(--nn-space-1);
     border-radius: var(--nn-radius-badge);
-    background-color: rgba(var(--nn-navy-rgb), .08);
+    background-color: var(--nn-chip-count-bg);
     font-size: var(--nn-font-xs);
     font-weight: 600;
 }
-.chip.is-current .chip-count { background-color: rgba(255, 255, 255, .2); }
+.chip.is-current .chip-count { background-color: var(--nn-on-blue-tint); }
 .attention-sort .view-switch { margin: 0; }
 .attention-header-tools {
     display: flex;
@@ -1661,8 +3621,7 @@ fieldset:disabled button.btn {
     background-color: var(--nn-primary-bg);
     font-size: var(--nn-font-sm);
 }
-.attention-filter-clear,
-.attention-lists a {
+.attention-filter-clear {
     display: inline-flex;
     align-items: center;
     gap: var(--nn-space-1);
@@ -1747,11 +3706,6 @@ fieldset:disabled button.btn {
     font-size: var(--nn-font-body);
     font-weight: 600;
 }
-.attention-empty-time {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
 
 .count-zero { color: var(--nn-text-secondary); }
 
@@ -1767,7 +3721,7 @@ fieldset:disabled button.btn {
     height: var(--nn-flag-height);
     flex: none;
     vertical-align: -2px;
-    border: 1px solid rgba(var(--nn-navy-rgb), .18);
+    border: 1px solid var(--nn-flag-border);
     border-radius: 2px;
     background-color: var(--nn-field);
     object-fit: cover;
@@ -1795,290 +3749,9 @@ fieldset:disabled button.btn {
     right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Confirmations (P10): layout/parts :: confirmForm, confirmDialog, js/confirm.js and confirm/confirm.html.
-     - .confirm-dialog: the one confirmation dialog, a native <dialog> shown as a modal (the browser keeps focus inside
-       it and makes the page behind it inert). The same surface, radius, header and footer as the Bootstrap modals
-       (the .modal variables above), at most 500px wide with a 16px gutter on phones. Heading, one sentence, then
-       Cancel (.btn-ghost, focused first) and the confirm button on the right: .btn-outline-danger for what cannot be
-       undone, .btn-primary for what Activate undoes.
-     - .confirm-form: the form around a confirmForm trigger; display: contents, so the trigger lays out as if it
-       were the menu entry or page action itself (full width in the stacked page actions on phones).
-     - .confirm-page: the same question as a page, where the trigger leads without JavaScript.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-backdrop: rgba(0, 0, 0, .5);   /* as Bootstrap's modal backdrop */
-    --nn-dialog-width: 500px;
-}
-
-.confirm-dialog {
-    --bs-modal-border-width: var(--bs-border-width);
-    --bs-modal-header-border-width: var(--bs-border-width);
-    --bs-modal-footer-border-width: var(--bs-border-width);
-    --bs-modal-footer-gap: var(--nn-space-2);
-    --bs-modal-title-line-height: 1.5;
-    width: min(var(--nn-dialog-width), calc(100% - 2 * var(--nn-space-4)));
-    max-width: none;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--nn-text);
-    overflow: visible;
-}
-.confirm-dialog::backdrop { background-color: var(--nn-backdrop); }
-.confirm-dialog .modal-content { box-shadow: 0 8px 32px rgba(var(--nn-navy-rgb), .2); }
-.confirm-dialog .modal-title { overflow-wrap: anywhere; }
-.confirm-dialog .modal-body p { overflow-wrap: anywhere; }
-/* P50: the optional note of a dialog that asks for one (removing an order line). */
-.confirm-dialog-note { margin-top: var(--nn-space-3); }
-/* P58: what will change, listed under the body (resetting a vessel's required documents); the page scrolls it when
-   long. */
-.confirm-dialog-items,
-.confirm-page-items {
-    margin: var(--nn-space-3) 0 0;
-    padding-left: 1.25rem;
-    max-height: 16rem;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
-}
-.confirm-dialog-items > li + li,
-.confirm-page-items > li + li { margin-top: var(--nn-space-1); }
-.confirm-page-items { margin-bottom: var(--nn-space-5); }
-.confirm-page .confirm-page-body:has(+ .confirm-page-items) { margin-bottom: 0; }
-
-.confirm-form { display: contents; }
-
-.confirm-page .confirm-page-body {
-    margin-bottom: var(--nn-space-5);
-    overflow-wrap: anywhere;
-}
-
-/* Announcement review (P10): announcement/review.html, the step between the form and sending.
-     - .review-stack: recipients, the preview and the actions, 24px apart, in the 720px form column.
-     - .review-recipients: the people per ship; a muted IMO number after each name, so ships with similar names are
-       told apart; a Total row when there is more than one ship. Also the acknowledgements per ship on the
-       announcement's detail page (P28).
-     - .review-label: the small heading above the preview, like a table header.
-     - .announcement-preview: the title and message as the crew will see them (plain text, line breaks kept). */
-.review-stack {
-    display: grid;
-    gap: var(--nn-section-gap);
-}
-.review-imo {
-    margin-left: var(--nn-space-2);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    white-space: nowrap; /* "IMO 9074729" wraps as a whole on phones */
-}
-.review-recipients > tfoot > tr > * {
-    padding: var(--nn-cell-padding-y) var(--nn-cell-padding-x);
-    border-bottom: 0;
-    font-weight: 600;
-}
-.review-label {
-    margin-bottom: var(--nn-space-2);
-    font-size: var(--nn-font-xs);
-    font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--nn-text-secondary);
-}
-.announcement-preview-title {
-    margin-bottom: var(--nn-space-3);
-    font-size: var(--nn-font-title);
-    font-weight: 700;
-}
-.review-left-out > ul {
-    margin: var(--nn-space-2) 0 0;
-    padding-left: 1.25rem;
-}
-
-/* Announcement target (P28): announcement/form.html, js/ship-picker.js.
-     - .target-option: a radio with its label and a one-line hint, the whole row a touch target; the chosen one has
-       the blue border and the checked radio (never the colour alone).
-     - .ship-picker: the Selected ships list under the second option: quick filters, the "2 of 5 selected" count with
-       Select all / Clear (.ship-picker-tools, shown by the script), then one row per ship (.ship-pick: checkbox, name,
-       then the IMO number, type and flag muted), two columns from 576px. From 768px the list scrolls inside its box
-       after about eight rows, so the title and message stay near; on phones the page scrolls.
-     - .target-names: the names of the ships of an announcement to several ships, in the Target column of the list:
-       on the phone card under "3 ships", on wider screens for screen readers only ("3 ships" has them as title). */
-:root { --nn-ship-picker-height: 26rem; }
-.target-choice {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-.target-options {
-    display: grid;
-    gap: var(--nn-space-2);
-}
-.target-option,
-.ship-pick {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--nn-space-3);
-    min-height: var(--nn-touch-target);
-    margin: 0;
-    padding: var(--nn-space-3);
-    border: 1px solid var(--nn-field-border);
-    border-radius: var(--nn-radius-control);
-    background: var(--nn-field);
-    cursor: pointer;
-}
-.target-option:hover,
-.ship-pick:hover { background: var(--nn-hover); }
-.target-option:has(:checked),
-.ship-pick:has(:checked) {
-    border-color: var(--nn-blue);
-    background: var(--nn-primary-bg);
-}
-.target-option > .form-check-input,
-.ship-pick > .form-check-input {
-    flex-shrink: 0;
-    margin: 1px 0 0;
-}
-.target-option-text,
-.ship-pick-text {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-}
-.target-option-label,
-.ship-pick-name {
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-.target-option-hint,
-.ship-pick-meta {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    overflow-wrap: anywhere;
-}
-.ship-picker {
-    margin: var(--nn-space-2) 0 0 var(--nn-space-5);
-    padding-left: var(--nn-space-3);
-    border-left: 2px solid var(--nn-divider);
-}
-.ship-picker[hidden] { display: none; }
-.ship-picker > fieldset {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-.ship-picker-tools {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: var(--nn-space-3);
-    margin-bottom: var(--nn-space-3);
-}
-.ship-picker-tools[hidden] { display: none; }
-.ship-picker-tools > .filter-field { flex: 1 1 10rem; }
-.ship-picker-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2);
-    flex: 1 1 100%;
-}
-.ship-picker-count {
-    margin: 0 auto 0 0;
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-}
-.ship-picker-list {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--nn-space-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.ship-picker-list > li[hidden] { display: none; }
-.ship-picker-empty {
-    margin: var(--nn-space-2) 0 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.target-names {
-    display: block;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    overflow-wrap: anywhere;
-}
-@media (min-width: 576px) {
-    .ship-picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (min-width: 768px) {
-    .ship-picker-list {
-        max-height: var(--nn-ship-picker-height);
-        overflow-y: auto;
-        /* Room for the focus ring of the rows at the edges. */
-        padding: var(--nn-focus-offset) calc(var(--nn-focus-width) + var(--nn-focus-offset));
-        padding-bottom: calc(var(--nn-focus-width) + var(--nn-focus-offset));
-    }
-    /* "3 ships" carries the names as its title; screen readers get them here. */
-    .target-names {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        margin: -1px;
-        padding: 0;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
-}
-@media (max-width: 575.98px) {
-    .ship-picker { margin-left: var(--nn-space-3); }
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Dates and times (P11): layout/parts :: localTime, localDate, dateHint, expiryDate; js/local-time.js.
-   Every time is shown in UTC and says so ("21 Oct 2026 · 12:40 UTC"); the viewer's own time is a tooltip and
-   screen reader text. The hint after a date that drives action ("in 23 days", "expired 5 days ago") is secondary
-   text (6.6:1 on the surface) and never breaks inside.
-   --------------------------------------------------------------------------------------------------------------- */
-.date-hint {
-    color: var(--nn-text-secondary);
-    white-space: nowrap;
-}
-.local-time[title] { cursor: help; }
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Error pages (P12): layout/parts :: errorPage, errorNext. One reading column; on a 5xx the reference to quote to
-   the office sits in a quiet surface box above the way home, the code in tabular figures and spaced out so it is
-   easy to read out.
-   --------------------------------------------------------------------------------------------------------------- */
-.error-page { max-width: 40rem; }
-/* The same quiet box holds the office contact on the "link is invalid or has expired" page (P13). */
-.error-reference,
-.support-contact {
-    margin-bottom: var(--nn-space-5);
-    padding: var(--nn-space-4);
-    background: var(--nn-surface);
-    border: 1px solid var(--nn-divider);
-    border-radius: var(--nn-radius-card);
-}
-.error-reference-label,
-.support-contact-label {
-    margin-bottom: var(--nn-space-1);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.error-reference-value,
-.support-contact-value {
-    margin-bottom: 0;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-.error-reference-value .num { letter-spacing: .08em; }
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Sign-in and registration (P13): layout/parts :: authFrame, passwordToggle, capsLockHint; js/password.js.
+   Sign-in and registration: layout/parts :: authFrame, passwordToggle, capsLockHint; js/password.js.
      - .auth-frame: the signed-out frame (sign-in, registration, invalid link, signed-out error pages). From 768px
        the navy brand panel (.auth-brand) is a column on the left; on phones it collapses to a 64px header bar, so
        the form starts above the fold (at 390 x 844 the sign-in button is in view without scrolling).
@@ -2180,7 +3853,7 @@ fieldset:disabled button.btn {
         font-size: 1.25rem;
         font-weight: 700;
         line-height: 1.3;
-        color: #fff;
+        color: var(--nn-white);
         overflow-wrap: anywhere;
     }
     .auth-organisation-code {
@@ -2290,7 +3963,7 @@ fieldset:disabled button.btn {
     width: 4px;
     height: 8px;
     margin-top: -5px;
-    border: solid #fff;
+    border: solid var(--nn-white);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
@@ -2303,8 +3976,9 @@ fieldset:disabled button.btn {
     padding-left: 1.25rem;
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Forgot password (P14): passwordreset/*.html, layout/parts :: authLink.
+   Forgot password: passwordreset/*.html, layout/parts :: authLink.
      - .auth-link: a text link between the signed-out pages ("Forgot your password?" under the sign-in password,
        "Back to sign in"): underlined, 14px semibold navy (9:1 on the page), and a 40px (44px on phones) touch target.
    --------------------------------------------------------------------------------------------------------------- */
@@ -2319,129 +3993,9 @@ fieldset:disabled button.btn {
     min-height: var(--nn-touch-target);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Saving on a bad connection (P15): js/save.js, layout/parts :: offlineBanner, draftNotice.
-     - .is-busy: the button of a form on its way: a spinner and "Saving…". Disabled, but at full opacity with a
-       progress cursor: it is working, not unavailable. The other buttons of the form are disabled as usual.
-     - .offline-banner: "No connection. Your text is kept on this device." Fixed at the bottom of the window, right of
-       the sidebar from 768px, in the warning pair with a dot before the text (the words say it, not the colour).
-       Empty, and so not shown, while online; the page gets room at the bottom so it never covers a Save button.
-     - .save-blocked: the message under the actions of a form sent while offline ("Not sent: ..."), same look.
-     - .draft-notice: "Draft restored from 12:40 UTC · Discard" at the top of a form, in the info pair.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-status-dot: 10px;
-    --nn-offline-room: 6rem;         /* room under the page while the banner shows (two lines on a phone) */
-}
-
-.btn.is-busy:disabled {
-    opacity: 1;
-    cursor: progress;
-}
-.btn.is-busy .spinner-border-sm {
-    --bs-spinner-width: .875rem;
-    --bs-spinner-height: .875rem;
-    --bs-spinner-border-width: .15em;
-    flex-shrink: 0;
-}
-
-.offline-banner {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1035;                   /* over the page, under Bootstrap's offcanvas and modals */
-    padding: var(--nn-space-3) var(--nn-space-4) var(--nn-space-3) calc(var(--nn-space-4) + var(--nn-status-dot) + var(--nn-space-2));
-    background: var(--nn-warning-bg);
-    color: var(--nn-warning-text);   /* 6.7:1 */
-    border-top: 1px solid var(--nn-warning-border);
-    box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
-    font-weight: 600;
-    line-height: 1.5;
-}
-.offline-banner:empty { display: none; }
-.offline-banner::before,
-.save-blocked::before {
-    content: "";
-    position: absolute;
-    width: var(--nn-status-dot);
-    height: var(--nn-status-dot);
-    border-radius: 50%;
-    background: var(--nn-warning);
-}
-.offline-banner::before {
-    left: var(--nn-space-4);
-    top: calc(var(--nn-space-3) + .75em - var(--nn-status-dot) / 2);
-}
-@media (min-width: 768px) {
-    body[data-user] .offline-banner { left: var(--nn-sidebar-width); }
-}
-html.is-offline body { padding-bottom: var(--nn-offline-room); }
-
-.save-blocked {
-    position: relative;
-    margin: var(--nn-space-3) 0 0;
-    padding-left: calc(var(--nn-status-dot) + var(--nn-space-2));
-    color: var(--nn-warning-text);
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-}
-.save-blocked::before { left: 0; top: calc(.75em - var(--nn-status-dot) / 2); }
-/* Said in the banner when the button is not in the form (form="..."): a second line there. */
-.offline-banner .save-blocked {
-    display: block;
-    margin-top: var(--nn-space-1);
-    padding-left: 0;
-}
-.offline-banner .save-blocked::before { content: none; }
-
-.draft-notice {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0 var(--nn-space-2);
-    margin-bottom: var(--nn-space-4);
-    padding: var(--nn-space-1) var(--nn-space-1) var(--nn-space-1) var(--nn-space-3);
-    background: var(--nn-info-bg);
-    color: var(--nn-info-text);      /* 7.5:1; the navy Discard 7.7:1 */
-    border: 1px solid var(--nn-info-border);
-    border-radius: var(--nn-radius-control);
-    font-size: var(--nn-font-sm);
-}
-.draft-notice time {
-    font-weight: 600;
-    white-space: nowrap;
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Required notices (P16): layout/parts :: infoNote, e.g. "Nereonix is not an emergency or safety channel..." above
-   the announcement's Review and Send buttons, "Do not upload security-sensitive material..." under a library file
-   input. Quiet: help-text size in the info pair (7.5:1), no border, a 16px "i" icon before the text. The words carry
-   the meaning; the colour and the icon only repeat it.
-   --------------------------------------------------------------------------------------------------------------- */
-.info-note {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--nn-space-2);
-    margin: var(--nn-space-3) 0 0;
-    padding: var(--nn-space-2) var(--nn-space-3);
-    background: var(--nn-info-bg);
-    color: var(--nn-info-text);
-    border-radius: var(--nn-radius-control);
-    font-size: var(--nn-font-help);
-    line-height: 1.45;
-}
-.info-note > svg {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    margin-top: 1px;
-}
-/* In a stack with its own gap (the announcement review page). */
-.review-stack > .info-note { margin-top: 0; }
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Rank and access (P18): crew/parts :: rankOptions, accessHint, accessBadge, rankReview; js/forms.js.
+   Rank and access: crew/parts :: rankOptions, accessHint, accessBadge, rankReview; js/forms.js.
      - .access-hint: "Access: Master · can publish library items and see acknowledgements" under a rank picker,
        read-only help text; in the import review table it is the short "Access: Master" and keeps to one line.
      - the access badge in the lists (layout/parts :: statusIcon with the 'key' icon, primary pair).
@@ -2462,11 +4016,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: 1rem;
     font-weight: 700;
 }
-.rank-review-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .rank-review-list li {
     display: flex;
     flex-wrap: wrap;
@@ -2485,227 +4034,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .rank-review-detail > [aria-hidden="true"]:first-child { display: none; }
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Lists: search, filters, sort and pages (P19): layout/parts :: filterBar, shipFilter, sortHeader, pager,
-   listEmpty; js/list-filter.js.
-     - .list-controls: the filter bar and its chips, 24px above the list card (--nn-section-gap).
-     - .filter-bar: the search (the widest field) then the list's filters (.filter-field), one row from 768px, each
-       field stacked full width on phones; Apply only without JavaScript.
-     - .filter-chips: "Active filters:" and one chip per active search or filter, in the primary pair (8:1), with a
-       cross; the whole chip is the link that removes it (32px look, 40px / 44px touch target), then Clear all.
-     - .sort-link: a column header that sorts. The sorted column (aria-sort) is in body text with an arrow up or
-       down; the others keep the header colour (6.6:1) and a quiet up-and-down mark. Shape, not colour, tells the
-       direction.
-     - .table-sticky: from 1200px the header row stays at the top of the window while the page scrolls (the list
-       then has room for every column, so its card no longer scrolls sideways). Below 1200px the table may scroll
-       sideways inside its card, which a sticky header cannot follow; phones stack the rows and have no header.
-     - .pager: "1 to 25 of 412", the page size and Previous / Next, under the table, on the card padding.
-     - .list-empty: "No results for these filters" and Clear all, distinct from a list's first-use text.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-filter-width: 14rem;        /* a filter select */
-    --nn-search-width: 22rem;        /* the search field */
-}
-
-.list-controls { margin-bottom: var(--nn-section-gap); }
-.filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: var(--nn-space-3) var(--nn-space-4);
-}
-.filter-field {
-    flex: 0 1 var(--nn-filter-width);
-    min-width: 0;
-}
-.filter-field-search { flex: 0 1 var(--nn-search-width); }
-.filter-field-date { flex-basis: 11rem; }
-.filter-field-apply { flex: 0 0 auto; }
-.filter-field-apply[hidden] { display: none; }
-/* A checkbox filter sits on the line of the fields next to it. */
-.filter-field-check {
-    display: flex;
-    align-items: center;
-    flex-basis: auto;
-    min-height: var(--nn-btn-height);
-}
-.filter-field-check .form-check { margin-bottom: 0; }
-/* A filter with its error under it (P39: the audit log's dates) is taller than the others: the fields then line up
-   by their labels, so the inputs stay on one line; a check or Apply moves down to that line (the label's height). */
-.filter-bar:has(.is-invalid) { align-items: flex-start; }
-.filter-bar:has(.is-invalid) > :is(.filter-field-check, .filter-field-apply) {
-    margin-top: calc(var(--bs-body-line-height) * 1em + .5rem);
-}
-@media (max-width: 767.98px) {
-    .filter-field,
-    .filter-field-search { flex: 1 1 100%; }
-    .filter-field-apply .btn { width: 100%; }
-}
-
-.filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2);
-    margin-top: var(--nn-space-3);
-}
-.filter-chips-label {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.filter-chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--nn-space-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.filter-chip {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    max-width: 100%;
-    min-height: var(--nn-btn-height-sm);
-    padding: var(--nn-space-1) var(--nn-space-2) var(--nn-space-1) var(--nn-space-3);
-    border: 1px solid var(--nn-primary-border);
-    border-radius: var(--nn-radius-control);
-    background: var(--nn-primary-bg);
-    color: var(--nn-primary-text);
-    font-size: var(--nn-font-sm);
-    font-weight: 500;
-    text-decoration: none;
-}
-.filter-chip:hover { border-color: var(--nn-blue); }
-.filter-chip:hover .filter-chip-text { text-decoration: underline; }
-.filter-chip-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.filter-chip svg {
-    flex-shrink: 0;
-    width: var(--nn-icon-size);
-    height: var(--nn-icon-size);
-}
-/* Tap area, as for the buttons. */
-.filter-chip::before {
-    content: "";
-    position: absolute;
-    top: min(0px, calc((100% - var(--nn-touch-target)) / 2));
-    bottom: min(0px, calc((100% - var(--nn-touch-target)) / 2));
-    left: 0;
-    right: 0;
-}
-
-.data-table > thead > tr > th.sortable { padding-block: 0; }
-.sort-link {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--nn-space-1);
-    min-height: var(--nn-touch-target);
-    color: inherit;
-    text-decoration: none;
-}
-.sort-link:hover { text-decoration: underline; }
-.data-table > thead > tr > th[aria-sort] { color: var(--nn-text); }
-.sort-icon {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-}
-.data-table > thead > tr > th.num .sort-link { flex-direction: row-reverse; }
-
-@media (min-width: 1200px) {
-    .card > .table-sticky { overflow: visible; }
-    .table-sticky > .data-table > thead > tr > th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        border-bottom-width: 0;
-        box-shadow: inset 0 -1px 0 var(--nn-divider);
-    }
-    /* The card's rounded corners, now that the table is no longer clipped by its scroll box. */
-    .card > .table-sticky:first-child > .data-table > thead > tr > th:first-child {
-        border-top-left-radius: var(--bs-card-inner-border-radius);
-    }
-    .card > .table-sticky:first-child > .data-table > thead > tr > th:last-child {
-        border-top-right-radius: var(--bs-card-inner-border-radius);
-    }
-}
-
-.pager {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-3) var(--nn-space-5);
-    padding: var(--nn-space-3) var(--nn-card-padding);
-    border-top: 1px solid var(--nn-divider);
-    font-size: var(--nn-font-sm);
-}
-.pager-range {
-    margin: 0;
-    font-variant-numeric: tabular-nums;
-}
-.pager-size {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-2);
-    margin-left: auto;
-    color: var(--nn-text-secondary);
-}
-.pager-size-list {
-    display: flex;
-    gap: var(--nn-space-1);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.pager-size-current {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--nn-btn-height-sm);
-    min-height: var(--nn-btn-height-sm);
-    border: 1px solid var(--nn-field-border);
-    border-radius: var(--nn-radius-control);
-    color: var(--nn-text);
-    font-weight: 600;
-}
-.pager-nav {
-    display: flex;
-    gap: var(--nn-space-2);
-}
-@media (max-width: 575.98px) {
-    .pager-size { margin-left: 0; }
-    .pager-nav { flex: 1 1 100%; }
-    .pager-nav .btn { flex: 1 1 0; }
-}
-
-.list-empty {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-3);
-}
-.list-empty-title {
-    margin: 0;
-    font-weight: 600;
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Certificates the office can plan with (P20): certificate/list.html, certificate/matrix.html,
-   layout/parts :: viewSwitch, certificateBadge.
+   Certificates the office can plan with: certificate/list.html, certificate/matrix.html,
+   layout/parts :: certificateBadge.
      - .filter-field-wide: a filter select with long options (Status: "Expired or within 90 days"), full width on
        phones like the others.
-     - .view-switch: two or more views of the same records as one group of links (Matrix / List). The current one
-       (aria-current="page") is in the primary pair, semibold, with a tick: not shown by colour alone. Each link is
-       40px high (44px on phones).
      - .cert-matrix: the ship's certificate matrix. Crew as rows, certificate types as columns; the crew column
        (.cert-matrix-person) stays put while the table scrolls sideways inside its card, with a divider on its right
        edge. Type headers wrap at --nn-matrix-type-width. Each cell is one link (.cert-matrix-link) filling the cell:
@@ -2722,37 +4056,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .filter-field-wide { flex-basis: var(--nn-filter-width-wide); }
 @media (max-width: 767.98px) {
     .filter-field-wide { flex-basis: 100%; }
-}
-
-.view-switch {
-    display: inline-flex;
-    margin-bottom: var(--nn-space-4);
-    border: 1px solid var(--nn-field-border);
-    border-radius: var(--nn-radius-control);
-    background: var(--nn-surface);
-}
-.view-switch-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: var(--nn-touch-target);
-    padding: 0 var(--nn-space-4);
-    color: var(--nn-text);
-    font-size: var(--nn-font-sm);
-    font-weight: 500;
-    text-decoration: none;
-}
-.view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
-.view-switch-link:first-child { border-radius: calc(var(--nn-radius-control) - 1px) 0 0 calc(var(--nn-radius-control) - 1px); }
-.view-switch-link:last-child { border-radius: 0 calc(var(--nn-radius-control) - 1px) calc(var(--nn-radius-control) - 1px) 0; }
-.view-switch-link:hover { background: var(--nn-hover); text-decoration: underline; }
-.view-switch-link > svg { flex-shrink: 0; }
-.view-switch-link:not([aria-current]):not([aria-pressed="true"]) > svg { display: none; }
-.view-switch-link[aria-current],
-.view-switch-link[aria-pressed="true"] {
-    background: var(--nn-primary-bg);
-    color: var(--nn-primary-text);
-    font-weight: 600;
 }
 
 .cert-matrix { border-collapse: separate; border-spacing: 0; }
@@ -2827,72 +4130,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     :root { --nn-matrix-person-width: 9.5rem; }
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Request export that shows its own result (P21): officerequest/list.html, js/list-rows.js.
-     - .select-target: a row checkbox, or the header's select-all, with a click area the size of a touch target that
-       overlaps the cell's padding, so the cell keeps its size;
-     - .list-selection: the line above the table, "3 selected" (and, on phones, where the table header is hidden,
-       "Select all on this page");
-     - tr.is-row-link: a row that opens its record when clicked (set by the script: no pointer without it); the
-       checkbox cell keeps the normal pointer, a click there never opens the row;
-     - .exported-by: when (UTC) and by whom, on two lines.
-   --------------------------------------------------------------------------------------------------------------- */
-.select-target {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--nn-touch-target);
-    min-height: var(--nn-touch-target);
-    margin: calc((var(--nn-check-size) - var(--nn-touch-target)) / 2);
-    cursor: pointer;
-    vertical-align: middle;
-}
-
-.list-selection {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2) var(--nn-space-4);
-    min-height: var(--nn-touch-target);
-    padding: var(--nn-space-2) var(--nn-card-padding);
-    border-bottom: 1px solid var(--nn-divider);
-}
-.list-selection-count {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.list-selection-all { display: none; }
-@media (max-width: 767.98px) {
-    .list-selection-all {
-        display: flex;
-        align-items: center;
-        gap: var(--nn-space-3);
-        min-height: var(--nn-touch-target);
-        margin: 0;
-        padding-left: 0;
-    }
-    .list-selection-all .form-check-input { margin: 0; }
-    .list-selection-all .form-check-label { padding-block: var(--nn-space-2); }
-}
-
-.data-table > tbody > tr.is-row-link { cursor: pointer; }
-.data-table > tbody > tr.is-row-link > .cell-select { cursor: default; }
-
-.exported-by {
-    display: inline-flex;
-    flex-direction: column;
-}
-.exported-by-name {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-@media (max-width: 767.98px) {
-    .exported-by { align-items: flex-end; }
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Library reading and oversight (P22): core/library/parts.html, library/item.html, officelibrary/item.html.
+   Library reading and oversight: core/library/parts.html, library/item.html, officelibrary/item.html.
      - .library-row: one item of a ship's library: the type icon, then the title (a .stretched-link, so the whole row
        opens the item), "Version 3 · 12 Oct 2026" and the Required badge; on the right (below on phones) the
        acknowledgement progress, a link of its own above the stretched one.
@@ -3052,7 +4292,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
         padding: var(--nn-space-3) var(--nn-gutter) calc(var(--nn-space-3) + env(safe-area-inset-bottom, 0px));
         background: var(--nn-page);
         border-top: 1px solid var(--nn-divider);
-        box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
+        box-shadow: var(--nn-shadow-bar);
     }
     .ack-bar.is-pinned .btn { width: 100%; }
     html.is-offline .ack-bar.is-pinned { position: static; }
@@ -3089,8 +4329,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     margin-bottom: var(--nn-space-2);
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Notifications that stay until handled (P23): notification/list.html, js/notifications.js.
+   Notifications that stay until handled: notification/list.html, js/notifications.js.
      - .notification-card: one card; each UTC day is a .notification-day under its heading (Today, Yesterday, the
        date), then the pager.
      - .notification: one row, in four columns: the unread dot, the type icon (a 36px circle with the sidebar icon of
@@ -3113,11 +4354,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: var(--nn-font-sm);
     font-weight: 600;
     color: var(--nn-text-secondary);
-}
-.notification-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
 }
 .notification {
     display: grid;
@@ -3230,675 +4466,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     }
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Import from a file (P24): layout/parts :: importSteps, importRowHead, importSummary, importReviewActions;
-   importfile/*.html (upload, sheet, map, values, done); crewimport/review.html, item/import-review.html;
-   js/import-map.js.
-     - .import-steps: Upload, Map columns, Review, Done under the page header. A done step has a tick in a filled navy
-       circle, the current one its number in a primary-pair circle and a semibold label (aria-current="step"), the
-       next ones an outlined number in secondary text (6.6:1). A line joins the circles, navy once passed. The words
-       and the tick carry the state; the colour only repeats it.
-     - .import-template: the template, the easy path, in a card beside the upload card from 1200px (P29, .form-aside).
-     - .import-sheets: the sheet choice, one bordered option per sheet; the whole option is the radio's label.
-     - .import-map: from 768px the field's label on the left and its select on the right; stacked below. The second
-       select of a two-column field (Full name: last name) follows the first.
-     - .import-preview: the first five rows, scrolling sideways inside their card. Each column header says where the
-       column goes ("To: Email", primary text) or "Not imported" (italic, secondary): words, not colour.
-     - .import-values: one line per value to match: the value as in the file (monospace), its field and row count,
-       then the select.
-     - .import-summary: the review's row filters (.view-switch buttons; the pressed one has the tick, aria-pressed),
-       the plan ("3 new, 1 update") and "Exclude all rows with errors". The error count is in the danger pair when
-       not zero; the label says "With errors" anyway.
-     - .import-table: the review table. The first two columns (.import-col-row: row number, action, Exclude;
-       .import-col-name) stay in place when the table scrolls sideways: sticky, on the surface colour, with a divider
-       on the name column's right edge. Each error message wraps under its field, inside its cell. An excluded row
-       (.is-excluded) is on the hover tint and says "Excluded" in its first cell; no opacity, so the sticky cells
-       stay opaque over the cells scrolling under them.
-     - .import-counts: the Done step's three counts.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-import-step-mark: 1.75rem;  /* the circles of the steps */
-    --nn-import-steps-width: 40rem;
-    --nn-import-row-width: 7.5rem;   /* the review's first column */
-    --nn-import-name-width: 14rem;   /* the review's name column */
-    --nn-import-field-width: 12rem;  /* every other review field */
-    --nn-import-label-width: 14rem;  /* the mapping step's field labels, from 768px */
-}
-@media (max-width: 575.98px) {
-    :root {
-        --nn-import-row-width: 6.5rem;
-        --nn-import-name-width: 9.5rem;
-    }
-}
-
-.import-steps {
-    max-width: var(--nn-import-steps-width);
-    margin-bottom: var(--nn-section-gap);
-}
-.import-steps-list {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.import-step {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--nn-space-1);
-    padding: 0 var(--nn-space-1);
-    color: var(--nn-text-secondary);
-    font-size: var(--nn-font-sm);
-    text-align: center;
-}
-/* The line from the previous circle to this one. */
-.import-step + .import-step::before {
-    content: "";
-    position: absolute;
-    top: calc(var(--nn-import-step-mark) / 2 - 1px);
-    right: calc(50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
-    left: calc(-50% + var(--nn-import-step-mark) / 2 + var(--nn-space-1));
-    height: 2px;
-    background: var(--nn-divider);
-}
-.import-step.is-done + .import-step::before { background: var(--nn-blue); }
-/* The circles are shared with the Overview's setup checklist (P25, .setup-step-mark). */
-.import-step-mark,
-.setup-step-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--nn-import-step-mark);
-    height: var(--nn-import-step-mark);
-    border: 2px solid var(--nn-field-border);
-    border-radius: 50%;
-    background: var(--nn-surface);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-.import-step-mark > svg,
-.setup-step-mark > svg { width: 14px; height: 14px; }
-.import-step-label { line-height: 1.3; }
-.import-step.is-done { color: var(--nn-text); }
-.import-step.is-done .import-step-mark,
-.setup-step.is-done .setup-step-mark {
-    border-color: var(--nn-blue);
-    background: var(--nn-blue);
-    color: #fff;
-}
-.import-step.is-current {
-    color: var(--nn-text);
-    font-weight: 600;
-}
-.import-step.is-current .import-step-mark,
-.setup-step.is-next .setup-step-mark {
-    border-color: var(--nn-blue);
-    background: var(--nn-primary-bg);
-    color: var(--nn-primary-text);
-}
-
-/* Upload: the template as the easy path. */
-.import-template { padding: var(--nn-card-padding); }
-.import-template-title {
-    margin: 0 0 var(--nn-space-1);
-    font-size: var(--nn-font-body);
-    font-weight: 600;
-}
-.import-template-text {
-    margin-bottom: var(--nn-space-3);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-
-/* Upload: the sheet of a workbook. */
-.import-sheets {
-    display: grid;
-    gap: var(--nn-space-2);
-}
-.import-sheet {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--nn-space-3);
-    min-height: var(--nn-touch-target);
-    padding: var(--nn-space-3);
-    border: 1px solid var(--nn-field-border);
-    border-radius: var(--nn-radius-control);
-    background: var(--nn-field);
-    cursor: pointer;
-}
-.import-sheet:hover { background: var(--nn-hover); }
-.import-sheet:has(:checked) {
-    border-color: var(--nn-blue);
-    background: var(--nn-primary-bg);
-}
-.import-sheet > .form-check-input {
-    flex-shrink: 0;
-    margin: 1px 0 0;
-}
-.import-sheet-text {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-}
-.import-sheet-name { font-weight: 600; overflow-wrap: anywhere; }
-.import-sheet-meta,
-.import-sheet-columns {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    overflow-wrap: anywhere;
-}
-
-/* Map columns. */
-.import-file-line {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0 var(--nn-space-2);
-    margin-bottom: var(--nn-space-4);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.import-file-line > a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-}
-.import-file-line + .info-note { margin: calc(-1 * var(--nn-space-2)) 0 var(--nn-space-4); }
-.import-map-row {
-    padding: var(--nn-space-3) 0;
-    border-top: 1px solid var(--nn-divider);
-}
-.import-map-row:first-child {
-    padding-top: 0;
-    border-top: 0;
-}
-.import-map-row:last-child { padding-bottom: 0; }
-.import-map-select + .import-map-select { margin-top: var(--nn-space-3); }
-@media (min-width: 768px) {
-    .import-map-select {
-        display: grid;
-        grid-template-columns: var(--nn-import-label-width) minmax(0, 28rem);
-        column-gap: var(--nn-space-4);
-        align-items: center;
-    }
-    .import-map-select > .form-label {
-        grid-column: 1;
-        margin: 0;
-    }
-    .import-map-select > :not(.form-label) { grid-column: 2; }
-}
-.import-header-row { margin: var(--nn-space-3) 0; }
-.import-header-row-control {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--nn-space-2);
-}
-.import-header-row-control > .form-select {
-    flex: 1 1 16rem;
-    max-width: 32rem;
-}
-.import-ignored {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-}
-.import-preview { border-top: 1px solid var(--nn-divider); }
-.import-preview > .table { font-size: var(--nn-font-sm); }
-.import-preview > .table > :not(caption) > * > * { padding: var(--nn-space-2) var(--nn-space-3); }
-.import-preview > .table > :not(caption) > * > :first-child { padding-left: var(--nn-card-padding); }
-.import-preview > .table > :not(caption) > * > :last-child { padding-right: var(--nn-card-padding); }
-.import-preview th {
-    font-weight: 600;
-    white-space: nowrap;
-    vertical-align: bottom;
-}
-.import-preview td {
-    max-width: 16rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.import-preview-row {
-    width: 1%;
-    color: var(--nn-text-secondary);
-}
-.import-preview-name { display: block; }
-.import-preview-letter {
-    margin-right: var(--nn-space-1);
-    color: var(--nn-text-secondary);
-    font-variant-numeric: tabular-nums;
-}
-.import-preview-target {
-    display: block;
-    font-size: var(--nn-font-help);
-    font-weight: 500;
-    color: var(--nn-primary-text);
-}
-.import-preview-target.is-ignored {
-    font-style: italic;
-    font-weight: 400;
-    color: var(--nn-text-secondary);
-}
-
-/* Map values. */
-.import-values {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.import-value {
-    display: grid;
-    gap: var(--nn-space-2);
-    padding: var(--nn-space-3) 0;
-    border-top: 1px solid var(--nn-divider);
-}
-.import-value:first-child {
-    padding-top: 0;
-    border-top: 0;
-}
-.import-value:last-child { padding-bottom: 0; }
-@media (min-width: 576px) {
-    .import-value {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
-        column-gap: var(--nn-space-4);
-        align-items: start;
-    }
-}
-.import-value-file {
-    display: grid;
-    gap: 2px;
-    margin: 0;
-}
-.import-value-text {
-    font-family: var(--bs-font-monospace);
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-.import-value-meta {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-
-/* Review: filters, plan, Exclude all rows with errors. */
-.import-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2) var(--nn-space-4);
-    margin-bottom: var(--nn-space-4);
-}
-.import-filter {
-    max-width: 100%;
-    margin-bottom: 0;
-}
-.import-filter > .view-switch-link {
-    padding: 0 var(--nn-space-3);
-    border: 0;
-    background: transparent;
-    white-space: nowrap;
-}
-.import-filter > .view-switch-link + .view-switch-link { border-left: 1px solid var(--nn-field-border); }
-.import-filter > .view-switch-link[aria-pressed="true"] { background: var(--nn-primary-bg); }
-.import-filter-count {
-    min-width: 1.5rem;
-    padding: 0 6px;
-    border-radius: var(--nn-radius-badge);
-    background: var(--nn-neutral-bg);
-    color: var(--nn-neutral-text);
-    font-size: var(--nn-font-xs);
-    font-weight: 600;
-    text-align: center;
-}
-.import-filter-count.has-errors {
-    background: var(--nn-danger-bg);
-    color: var(--nn-danger-text);
-}
-.import-plan {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-
-/* Review: the table, its first two columns in place. */
-.import-table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-.import-table > :not(caption) > * > * { border-bottom: 1px solid var(--nn-divider); }
-.import-table > tbody > tr:last-child > * { border-bottom: 0; }
-.import-table .import-col-row,
-.import-table .import-col-name {
-    position: sticky;
-    z-index: 1;
-    background-color: var(--nn-surface);
-    box-shadow: none;
-}
-.import-table > thead .import-col-row,
-.import-table > thead .import-col-name { z-index: 2; }
-.import-table .import-col-row {
-    left: 0;
-    min-width: var(--nn-import-row-width);
-    max-width: var(--nn-import-row-width);
-}
-.import-table .import-col-name {
-    left: var(--nn-import-row-width);
-    min-width: var(--nn-import-name-width);
-    max-width: var(--nn-import-name-width);
-}
-/* The divider on the name column's right edge; a pseudo-element, so it moves with the sticky cell. */
-.import-table .import-col-name::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 1px;
-    background: var(--nn-divider);
-}
-.import-table .import-col-name .form-control { min-width: 0; }
-.import-table .invalid-feedback { white-space: normal; }
-.import-row-number {
-    display: block;
-    margin: var(--nn-space-1) 0;
-    font-weight: 600;
-}
-.import-exclude {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-2);
-    min-height: var(--nn-touch-target);
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    cursor: pointer;
-}
-.import-exclude > .form-check-input {
-    flex-shrink: 0;
-    margin: 0;
-}
-.import-table > tbody > tr.is-excluded > td { background-color: var(--nn-hover); }
-.import-table > tbody > tr.is-excluded :is(.form-control, .form-select) { color: var(--nn-text-secondary); }
-.import-no-rows {
-    padding: var(--nn-space-5) var(--nn-card-padding);
-    color: var(--nn-text-secondary);
-}
-
-/* Done. */
-.import-counts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--nn-space-3);
-    margin: 0 0 var(--nn-space-3);
-}
-.import-count {
-    padding: var(--nn-space-3) var(--nn-space-4);
-    border: 1px solid var(--nn-divider);
-    border-radius: var(--nn-radius-control);
-}
-.import-count > dt {
-    font-size: var(--nn-font-sm);
-    font-weight: 500;
-    color: var(--nn-text-secondary);
-}
-.import-count > dd {
-    margin: 0;
-    font-size: var(--nn-font-h1);
-    font-weight: 700;
-    line-height: 1.2;
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Empty states and first-run guidance (P25): layout/parts :: emptyState, emptyLink, listEmpty;
-   dashboard/dashboard.html (the setup checklist).
-     - .empty-state: a list with nothing in it yet, centred in its card: the list's icon (the sidebar's, larger) in a
-       circle in the primary pair, a one-line title (18px, 600), one sentence of help (14px, secondary text, 6.6:1,
-       at most 32rem wide) and the list's first action(s), which the page header then leaves out. Distinct from
-       .list-empty ("No results for these filters": one left-aligned line, no icon, Clear all). On phones the actions
-       stack full width, as in the page header. Inside a card body (the ship's Overview tab) it keeps no side padding.
-     - .setup: the Overview's setup checklist (Add a ship, Add or import its crew, Add the ship's first library
-       document, Send a first announcement). Header: title and "1 of 4 done". One row per step: the circle (the import
-       steps' marks: a number, a tick in navy once done, the primary pair for the next step), the title linking to
-       its page and one line of help, then "Done" (a status badge with a tick) or, for the next step, the primary
-       button. Below 576px the button goes under the text, full width.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-empty-icon: 3.5rem;         /* the circle behind an empty state's icon */
-    --nn-empty-icon-glyph: 1.75rem;
-    --nn-empty-text-width: 32rem;
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--nn-space-6) var(--nn-card-padding);
-    text-align: center;
-}
-.card-body .empty-state { padding: var(--nn-space-5) 0 var(--nn-space-2); }
-.empty-state-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--nn-empty-icon);
-    height: var(--nn-empty-icon);
-    margin-bottom: var(--nn-space-4);
-    border-radius: 50%;
-    background: var(--nn-primary-bg);
-    color: var(--nn-primary-text);
-}
-.empty-state-icon > svg {
-    width: var(--nn-empty-icon-glyph);
-    height: var(--nn-empty-icon-glyph);
-}
-.empty-state-title {
-    margin: 0 0 var(--nn-space-1);
-    font-size: var(--nn-font-title);
-    font-weight: 600;
-}
-.empty-state-text {
-    max-width: var(--nn-empty-text-width);
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.empty-state-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--nn-space-2);
-    margin-top: var(--nn-space-4);
-}
-@media (max-width: 575.98px) {
-    .empty-state-actions {
-        display: grid;
-        grid-template-columns: 1fr;
-        align-self: stretch;
-    }
-}
-
-.setup-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-1) var(--nn-space-4);
-    padding-block: var(--nn-space-4);
-}
-.setup-progress {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-    color: var(--nn-text-secondary);
-}
-.setup-intro {
-    margin-bottom: var(--nn-space-2);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.setup-steps {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-/* Three columns: the circle (centred on the title's line), the text, then "Done" or the button. */
-.setup-step {
-    display: grid;
-    grid-template-columns: var(--nn-import-step-mark) minmax(0, 1fr) auto;
-    align-items: start;
-    gap: var(--nn-space-2) var(--nn-space-4);
-    padding-block: var(--nn-space-3);
-}
-.setup-step + .setup-step { border-top: 1px solid var(--nn-divider); }
-.setup-step-mark {
-    margin-top: calc((var(--nn-touch-target) - var(--nn-import-step-mark)) / 2);
-    color: var(--nn-text-secondary);
-}
-.setup-step > .status-badge,
-.setup-step-action { align-self: center; }
-.setup-step-text { min-width: 0; }
-.setup-step-title {
-    margin: 0;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-.setup-step-title > a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-}
-.setup-step.is-next .setup-step-title {
-    display: flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-}
-.setup-step-help {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-@media (max-width: 575.98px) {
-    /* Two columns: "Done" and the button go under the text, the button full width. */
-    .setup-step { grid-template-columns: var(--nn-import-step-mark) minmax(0, 1fr); }
-    .setup-step > .status-badge,
-    .setup-step-action { grid-column: 2; }
-    .setup-step > .status-badge { justify-self: start; }
-}
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Crew navigation on phones (P26): layout/parts :: tabBar and tabItem, for ship users (body.has-tab-bar).
-     - .tab-bar: fixed at the bottom below 768px (from 768px the sidebar has the same entries), on the surface with a
-       line above, padded over the safe area of phones with a home indicator. Four equal columns (P47).
-     - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
-       aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
-     - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the counters
-       of what is under it, P47, P65), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
-   The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
-   this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-topbar-height: 3.5rem;      /* 56px: a 40px button and 8px above and below */
-    --nn-tab-bar-height: 3.5rem;     /* 56px */
-    --nn-tab-bar-room: calc(var(--nn-tab-bar-height) + env(safe-area-inset-bottom, 0px));
-    --nn-tab-bar-icon: 1.5rem;       /* 24px */
-}
-
-.topbar { min-height: var(--nn-topbar-height); }
-/* No menu button before it: the page name starts on the content's 16px gutter. */
-.has-tab-bar .topbar-title { padding-left: var(--nn-space-2); }
-
-.tab-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1030;                   /* over the page, under the offline banner, offcanvas and dialogs */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--nn-surface);
-    border-top: 1px solid var(--nn-divider);
-    box-shadow: 0 -2px 8px rgba(var(--nn-navy-rgb), .08);
-}
-.tab-bar-list {
-    display: grid;
-    grid-auto-flow: column;
-    /* Four equal tabs (P47; per role since P65, navigation/ShipNav); a long label ("Vessel order") wraps. */
-    grid-auto-columns: minmax(0, 1fr);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.tab-bar-link {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    min-height: var(--nn-tab-bar-height);
-    padding: var(--nn-space-1);
-    color: var(--nn-text-secondary);
-    font-size: var(--nn-font-xs);
-    font-weight: 500;
-    line-height: 1.25;
-    text-align: center;
-    text-decoration: none;
-}
-.tab-bar-link:hover { color: var(--nn-blue); background-color: var(--nn-hover); }
-/* Inside the tab, where the screen edge cannot cut the ring off. */
-.tab-bar-link:focus-visible { outline-offset: calc(-1 * var(--nn-focus-width) - var(--nn-focus-offset)); }
-.tab-bar-link.active {
-    color: var(--nn-blue);
-    font-weight: 600;
-}
-.tab-bar-link.active::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 25%;
-    right: 25%;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    background-color: var(--nn-blue);
-}
-.tab-bar-icon {
-    position: relative;
-    display: inline-flex;
-}
-.tab-bar-icon > svg {
-    width: var(--nn-tab-bar-icon);
-    height: var(--nn-tab-bar-icon);
-}
-.tab-bar-label {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-}
-.tab-bar-count {
-    position: absolute;
-    top: -6px;
-    left: calc(100% - 10px);
-    min-width: 1.125rem;
-    padding: 0 4px;
-    border-radius: 999px;
-    background-color: var(--nn-danger);
-    color: #fff;
-    font-size: .6875rem;             /* 11px */
-    font-weight: 700;
-    line-height: 1.125rem;
-    text-align: center;
-}
-
-@media (max-width: 767.98px) {
-    .has-tab-bar .app-content { padding-bottom: calc(var(--nn-section-gap) + var(--nn-tab-bar-room)); }
-    .has-tab-bar .offline-banner { bottom: var(--nn-tab-bar-room); }
-}
-@media (max-width: 575.98px) {
-    .has-tab-bar .ack-bar.is-pinned {
-        bottom: var(--nn-tab-bar-room);
-        padding-bottom: var(--nn-space-3);
-    }
-}
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Crew home page (P26): shiphome/home.html.
+   Crew home page: shiphome/home.html.
      - P58: no Sign out on this page any more (the sidebar and More have it); .home-sign-out and .from-md went.
      - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
        home page), card-title size.
@@ -4022,23 +4592,19 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-weight: 600;
     overflow-wrap: anywhere;
 }
-.cert-row-meta {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
+
 
 /* ---------------------------------------------------------------------------------------------------------------
-   The Master's home page: masterhome/home.html. Its section titles and links are the crew home page's.
-     - .master-cards: one column on phones, two from 768px.
-     - .master-card: a whole card that is one link, at least 72px high: icon, label, the number on the right. Quiet by
+   Home cards: the Master's home (masterhome/home.html) and the crew Home's cards (shiphome/home.html).
+     - .home-cards: one column on phones, two from 768px.
+     - .home-card: a whole card that is one link, at least 72px high: icon, label, the number on the right. Quiet by
        default (muted number); .is-due (something to do) has the primary tint and a bold number.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
-    --nn-master-card-height: 4.5rem;   /* 72px */
+    --nn-home-card-height: 4.5rem;   /* 72px */
 }
 
-.master-cards {
+.home-cards {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--nn-space-3);
@@ -4047,14 +4613,14 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     list-style: none;
 }
 @media (min-width: 768px) {
-    .master-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .home-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.master-card {
+.home-card {
     display: flex;
     align-items: center;
     gap: var(--nn-space-3);
     height: 100%;
-    min-height: var(--nn-master-card-height);
+    min-height: var(--nn-home-card-height);
     padding: var(--nn-space-3) var(--nn-space-4);
     background-color: var(--nn-surface);
     border: 1px solid var(--nn-border);
@@ -4063,39 +4629,40 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
     text-decoration: none;
 }
-.master-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
-.master-card:hover .master-card-label { text-decoration: underline; }
-.master-card-icon {
+.home-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
+.home-card:hover .home-card-label { text-decoration: underline; }
+.home-card-icon {
     display: inline-flex;
     flex-shrink: 0;
     color: var(--nn-text-secondary);
 }
-.master-card-icon > svg {
+.home-card-icon > svg {
     width: 24px;
     height: 24px;
 }
-.master-card-label {
+.home-card-label {
     flex: 1 1 auto;
     min-width: 0;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
-.master-card-count {
+.home-card-count {
     flex-shrink: 0;
     font-size: var(--nn-font-title);
     color: var(--nn-text-secondary);
 }
-.master-card.is-due {
+.home-card.is-due {
     background-color: var(--nn-primary-bg);
     border-color: var(--nn-primary-border);
     color: var(--nn-text);
 }
-.master-card.is-due .master-card-icon,
-.master-card.is-due .master-card-count { color: var(--nn-primary-text); }
-.master-card.is-due .master-card-count { font-weight: 700; }
+.home-card.is-due .home-card-icon,
+.home-card.is-due .home-card-count { color: var(--nn-primary-text); }
+.home-card.is-due .home-card-count { font-weight: 700; }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Crew News (P27 announcements, "News" since P39, made for phones in P47): announcement/ship-list.html and
+   Crew News: announcement/ship-list.html and
    ship-detail.html; read receipts (P39, layout/parts :: readTicks, readReceipt) there and on the office's announcement
    page.
      - main.news-page: one centred column of at most 720px (--nn-news-width), on phones and desktops alike; 16px body
@@ -4257,362 +4824,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: var(--nn-font-sm);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Brand, sidebar rail, language switch and page width (P29): layout/layout.html, layout/parts :: brand, langSwitch,
-   sidebarToggle, sidebarSignOut; js/sidebar.js; navigation/SidebarPreference.
-     - .brand: the Nereonix mark (32px), "Nereonix" and the tagline, on navy. The full logo (white wordmark) is only
-       ever on navy: the sign-in panel and the email header.
-     - Sidebar from 768px: body.sidebar-collapsed (the default) is a 64px icon rail: the mark, one icon per entry, a
-       counter as a dot (the number stays in the visually hidden text), and the label as a tooltip on hover and
-       focus. The label is position: fixed, so the scrolling navigation never cuts it off; with no top set it stays
-       level with its entry. body.sidebar-expanded is the full sidebar with labels.
-     - The toggle (P39): at the top, a 44px icon button right of the brand (under the mark, centred, in the rail): a
-       "panel left" icon whose chevron points the way the sidebar will move. Its words ("Collapse menu" / "Expand
-       menu") are its accessible name and a tooltip on hover and keyboard focus, beside the sidebar in both states.
-     - Phones: the office menu (offcanvas) has an X at the top right, next to the brand.
-     - .topbar: on phones the navy bar (menu, page name, "EN | ΕΛ", bell); from 768px, for office users, a slim row
-       above the content with only "EN | ΕΛ" on the right. Crew have no switch.
-     - .lang-switch: "EN | ΕΛ", 40px (44px on phones) targets, the current language bold; colour from where it sits.
-     - main.form-page: a form keeps its 720px column, centred in the content area; .form-page-aside adds a second
-       column from 1200px for related context (.form-aside: the ship, or help beside the form).
-     - .card-grid: cards of a detail page: 1 column, 2 from 992px, 3 from 1600px with .card-grid-3 (small cards);
-       .card-grid-wide spans the row until there are 3 columns.
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-rail-width: 4rem;           /* 64px */
-    --nn-aside-width: 20rem;         /* 320px, the context column next to a form */
-    --nn-tooltip-bg: var(--nn-text); /* white text on it 15:1 */
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-3);
-    min-width: 0;
-}
-.brand-mark {
-    flex: none;
-    width: 32px;
-    height: 32px;
-}
-.brand-text {
-    min-width: 0;
-    line-height: 1;
-}
-.brand-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-}
-.brand-tagline { margin-top: var(--nn-space-1); }
-
-/* Sidebar head: the brand, and on phones the X that closes the menu. */
-.sidebar-head {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--nn-space-2);
-    margin-bottom: var(--nn-space-5);
-}
-.sidebar-close {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    margin: calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) calc(-1 * var(--nn-space-2)) 0;
-    padding: 0;
-    color: #fff;
-    background: transparent;
-    border: 0;
-    border-radius: var(--nn-radius-control);
-}
-.sidebar-close:hover { background-color: var(--nn-sidebar-hover); }
-/* Narrower than the screen, so part of the dimmed page stays visible and a tap there closes the menu. */
-.sidebar .offcanvas-md { --bs-offcanvas-width: min(20rem, 85vw); }
-
-/* Sign out in the user block: words in the full sidebar, an icon in the rail. */
-.sidebar-sign-out-icon { display: none; }
-
-/* The toggle, from 768px only: an icon on a 44px target (the icon 12:1 on the navy, white on hover). The chevron
-   points right in the rail ("Expand menu") and left in the full sidebar ("Collapse menu"). */
-.sidebar-toggle-form {
-    display: none;
-    flex: none;
-}
-.sidebar-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    color: var(--nn-sidebar-text);
-    background: transparent;
-    border: 0;
-    border-radius: var(--nn-radius-control);
-}
-.sidebar-toggle:hover { color: #fff; background-color: var(--nn-sidebar-hover); }
-.sidebar-toggle-icon { flex: none; }
-.sidebar-toggle-chevron {
-    transform-box: fill-box;
-    transform-origin: center;
-}
-.sidebar-expanded .sidebar-toggle-chevron { transform: rotate(180deg); }
-
-@media (min-width: 768px) {
-    .sidebar-close { display: none; }
-    .sidebar-toggle-form { display: block; }
-
-    /* The rail. */
-    .sidebar-collapsed .sidebar { width: var(--nn-rail-width); }
-    .sidebar-collapsed .sidebar .sidebar-body { padding: var(--nn-space-3) var(--nn-space-2); }
-    .sidebar-collapsed .sidebar-head {
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--nn-space-1);
-        margin-bottom: var(--nn-space-4);
-    }
-    .sidebar-collapsed .sidebar-brand {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        padding: var(--nn-space-1) 0;
-    }
-    .sidebar-collapsed .brand-text,
-    .sidebar-collapsed .sidebar-user-text {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-    /* Group names become thin dividers; they still name their lists for screen readers. */
-    .sidebar-collapsed .nav-group-label {
-        height: 1px;
-        margin: var(--nn-space-3) var(--nn-space-2);
-        padding: 0;
-        overflow: hidden;
-        font-size: 0;
-        line-height: 0;
-        background-color: rgba(255, 255, 255, .14);
-    }
-    .sidebar-collapsed .nav-group-label:first-child {
-        height: 0;
-        margin: 0;
-    }
-    .sidebar-collapsed .sidebar-link {
-        justify-content: center;
-        gap: 0;
-        padding: 0;
-    }
-    /* A counter in the rail: a dot on the icon, ringed in navy so it stands off the icon. The number is in the
-       visually hidden text after it. */
-    .sidebar-collapsed .nav-count {
-        position: absolute;
-        top: 6px;
-        right: 9px;
-        width: 10px;
-        min-width: 0;
-        height: 10px;
-        padding: 0;
-        overflow: hidden;
-        font-size: 0;
-        line-height: 0;
-        background-color: var(--nn-sidebar-accent);
-        border-radius: 50%;
-        box-shadow: 0 0 0 2px var(--nn-navy);
-    }
-    .sidebar-collapsed .sidebar-user {
-        flex-direction: column;
-        gap: var(--nn-space-2);
-        padding-top: var(--nn-space-3);
-    }
-    .sidebar-collapsed .sidebar-sign-out {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: var(--nn-touch-target);
-        height: var(--nn-touch-target);
-        padding: 0;
-        overflow: hidden;
-    }
-    .sidebar-collapsed .sidebar-sign-out-icon { display: block; }
-
-    /* Labels in the rail, and the toggle's in both states: read by screen readers, shown as a tooltip beside the
-       sidebar on hover and keyboard focus. */
-    .sidebar-collapsed .sidebar-link-label,
-    .sidebar-collapsed .sidebar .sidebar-label,
-    .sidebar-toggle .sidebar-label {
-        position: fixed;
-        left: calc(var(--nn-rail-width) + var(--nn-space-2));
-        z-index: 1060;               /* over the page, under Bootstrap's modals */
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-        pointer-events: none;
-    }
-    .sidebar-collapsed .sidebar-link:hover .sidebar-link-label,
-    .sidebar-collapsed .sidebar-link:focus-visible .sidebar-link-label,
-    .sidebar-toggle:hover .sidebar-label,
-    .sidebar-toggle:focus-visible .sidebar-label,
-    .sidebar-collapsed .sidebar-sign-out:hover .sidebar-label,
-    .sidebar-collapsed .sidebar-sign-out:focus-visible .sidebar-label {
-        width: auto;
-        height: auto;
-        padding: var(--nn-space-1) var(--nn-space-3);
-        overflow: visible;
-        clip-path: none;
-        color: #fff;
-        font-size: var(--nn-font-sm);
-        font-weight: 600;
-        line-height: 1.5;
-        background-color: var(--nn-tooltip-bg);
-        border-radius: var(--nn-radius-badge);
-        box-shadow: 0 2px 8px rgba(var(--nn-navy-rgb), .25);
-    }
-
-    .sidebar-expanded .sidebar-toggle .sidebar-label { left: calc(var(--nn-sidebar-width) + var(--nn-space-2)); }
-
-    body.sidebar-collapsed[data-user] .offline-banner { left: var(--nn-rail-width); }
-}
-
-/* Top bar. Phones: navy, 44px buttons. From 768px (office only; the crew's is hidden there): a slim row on the page
-   with "EN | ΕΛ" on the right. */
-.topbar {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-1);
-    padding: 6px var(--nn-space-2);
-    color: #fff;
-    background-color: var(--nn-navy);
-    --nn-focus-color: #fff;
-}
-.topbar-button {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--nn-touch-target);
-    min-height: var(--nn-touch-target);
-    padding: 0;
-    color: inherit;
-    border: 0;
-}
-.topbar-button:hover,
-.topbar-button:focus-visible { color: inherit; background-color: rgba(255, 255, 255, .08); }
-.topbar-lang {
-    flex: none;
-    margin-left: auto;
-}
-@media (min-width: 768px) {
-    .topbar-office {
-        min-height: 0;
-        padding: var(--nn-space-2) var(--nn-gutter) 0;
-        color: var(--nn-text);
-        background-color: transparent;
-        --nn-focus-color: var(--nn-blue);
-    }
-    .topbar-office .topbar-title { display: none; }
-    .topbar-office + .app-content { padding-top: var(--nn-space-2); }
-}
-
-/* "EN | ΕΛ". On navy: white, the other language at .85 (both 9:1 or more); on the page: navy, the other language in
-   the secondary text colour (6.6:1). */
-.lang-switch {
-    display: inline-flex;
-    align-items: center;
-    font-size: var(--nn-font-sm);
-    letter-spacing: .04em;
-}
-.lang-switch-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--nn-touch-target);
-    min-height: var(--nn-touch-target);
-    padding: 0 var(--nn-space-2);
-    color: inherit;
-    font-weight: 500;
-    text-decoration: none;
-    border-radius: var(--nn-radius-control);
-    opacity: .85;
-}
-.lang-switch-link:hover { color: inherit; text-decoration: underline; opacity: 1; }
-.lang-switch-link.is-current {
-    font-weight: 700;
-    opacity: 1;
-}
-.lang-switch-divider {
-    width: 1px;
-    height: 1rem;
-    background-color: currentColor;
-    opacity: .45;
-}
-.auth-lang .lang-switch { color: var(--nn-blue); }
-.auth-lang .lang-switch-link { opacity: 1; }
-.auth-lang .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
-/* The office top bar is on the page from 768px only; on phones it is the navy bar and keeps the colours above. */
-@media (min-width: 768px) {
-    .topbar-office .lang-switch { color: var(--nn-blue); }
-    .topbar-office .lang-switch-link { opacity: 1; }
-    .topbar-office .lang-switch-link:not(.is-current) { color: var(--nn-text-secondary); }
-}
-
-/* Form pages: the 720px column, centred; with an aside, two columns from 1200px. */
-.form-page {
-    max-width: var(--nn-form-width);
-    margin-inline: auto;
-}
-.form-aside { margin-top: var(--nn-section-gap); }
-@media (min-width: 1200px) {
-    .form-page-aside {
-        display: grid;
-        grid-template-columns: minmax(0, var(--nn-form-width)) minmax(16rem, var(--nn-aside-width));
-        column-gap: var(--nn-section-gap);
-        align-items: start;
-        max-width: calc(var(--nn-form-width) + var(--nn-section-gap) + var(--nn-aside-width));
-    }
-    .form-page-aside > * { grid-column: 1 / -1; }
-    .form-page-aside > .form-box { grid-column: 1; }
-    .form-page-aside > .form-aside {
-        grid-column: 2;
-        margin-top: 0;
-    }
-}
-.form-aside-title {
-    margin-bottom: var(--nn-space-3);
-    font-size: var(--nn-font-title);
-    font-weight: 600;
-}
-/* The particulars in the narrow aside: the label column as wide as its longest label, so values keep their room. */
-.form-aside .static-fields { margin-bottom: var(--nn-space-3); }
-@media (min-width: 576px) {
-    .form-aside .static-fields { grid-template-columns: max-content minmax(0, 1fr); }
-}
-
-/* Cards of a detail page. */
-.card-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--nn-section-gap);
-}
-@media (min-width: 992px) {
-    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .card-grid > .card-grid-wide { grid-column: 1 / -1; }
-}
-@media (min-width: 1600px) {
-    .card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .card-grid-3 > .card-grid-wide { grid-column: auto; }
-}
 
 /* ---------------------------------------------------------------------------------------------------------------
-   My profile and My crew (P31): profile/*.html, mycrew/*.html, crew/parts :: profileRow, crewmateRow,
+   My profile and My crew: profile/*.html, mycrew/*.html, crew/parts :: profileRow, crewmateRow,
    layout/parts :: personAvatar and pageHeader's media; js/profile.js (Languages and Photo pages only). The office's
    Profile card on the crew member's page (crew/edit.html, .profile-fields).
      - .person-avatar: a round picture, the profile photo (the 96px square, cover) or the initials in the primary pair
@@ -4968,8 +5182,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* Its label at the top of the picture, not at its bottom edge (the rows align on the text baseline). */
 .profile-fields > dt:first-child { align-self: start; }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   The Master's approvals (P33): approval/list.html and detail.html; Approvals on the More page.
+   The Master's approvals: approval/list.html and detail.html; Approvals on the More page.
      - .approval-row: one request, who asked (a .stretched-link, so the whole row opens it) over its number, when it
        was sent and the number of items; on the Approved and Declined tabs the decision badge and its date on the right (below on
        phones).
@@ -5021,8 +5236,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     text-align: center;
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   The Master's ship order (P35): shiporder/order.html, detail.html and list.html (its rows are .approval-row).
+   The Master's ship order: shiporder/order.html, detail.html and list.html (its rows are .approval-row).
      - .order-asked-by: who asked for a line, under the item's name.
      - .order-qty-form: a line's quantity and its Save button on one row; each saves at once.
      - .order-progress (P59): "Orders in progress" above the collecting order, one .order-progress-card per order:
@@ -5203,11 +5419,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
 }
 .item-picker-category:first-child { margin-top: 0; }
-.item-picker-items {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .item-picker-option {
     display: flex;
     align-items: center;
@@ -5281,8 +5492,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .order-edit-table .order-edit-note { flex: 1 1 100%; width: auto; order: 3; }
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Vetting (P40): vetting/list.html, vessel.html, rightship.html, edit.html, upload.html and vetting/parts.html.
+   Vetting: vetting/list.html, vessel.html, rightship.html, edit.html, upload.html and vetting/parts.html.
      - .score-bar: a score as five segments (.score-seg; .is-on filled), in the tone of the score: .score-bar-ok,
        -warning, -danger, -neutral (nothing filled). Decorative (aria-hidden): the text next to it ("3/5") carries
        the value. .score-bar-lg: the RightShip page's score header.
@@ -5304,18 +5516,11 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
    RightShip's published scale.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
-    --nn-ghg-a: #00763b;
-    --nn-ghg-b: #6cb33f;
-    --nn-ghg-c: #ffcb05;
-    --nn-ghg-d: #f58220;
-    --nn-ghg-e: #d71920;
-    --nn-ghg-u: var(--nn-neutral-border);
     --nn-score-gap: 3px;
     --nn-score-seg-width: 10px;
     --nn-score-seg-height: 8px;
     --nn-score-seg-width-lg: 2.25rem;  /* 36px */
     --nn-score-seg-height-lg: 12px;
-    --nn-score-off: #e3dfd7;
     --nn-score-value-lg: 2.5rem;       /* 40px, "3/5" in the score header */
 }
 
@@ -5364,12 +5569,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     width: 1.125rem;
     height: 1.125rem;
     fill: var(--nn-ghg-color, var(--nn-ghg-u));
-    stroke: rgba(var(--nn-navy-rgb), .35);
+    stroke: var(--nn-ghg-icon-stroke);
     stroke-width: 1;
 }
 .ghg-icon .ghg-icon-vein {
     fill: none;
-    stroke: rgba(255, 255, 255, .85);
+    stroke: var(--nn-ghg-icon-vein);
     stroke-width: 1.5;
     stroke-linecap: round;
 }
@@ -5530,11 +5735,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .rs-score-note { margin: var(--nn-space-2) 0 0; }
 .rs-score-facts { grid-template-columns: repeat(auto-fit, minmax(9rem, max-content)); }
 .rs-score-facts > div { display: grid; gap: 2px; }
-.rs-updated {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
 .rs-score > .empty-state { padding: 0 var(--nn-card-padding) var(--nn-space-5); }
 
 .rs-subscores-hint {
@@ -5551,11 +5751,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
 }
 .rs-subscores-hint + .rs-impact { margin-top: 0; }
-.rs-subscore-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .rs-subscore {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 2.5rem 4.75rem;
@@ -5600,11 +5795,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .rs-ghg { margin: 0 0 var(--nn-space-2); font-size: var(--nn-font-title); }
 .rs-ghg .ghg-icon { width: 1.5rem; height: 1.5rem; }
 .rs-inspection { margin: 0 0 var(--nn-space-3); }
-.rs-small-meta {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
 .rs-small-facts > div { grid-template-columns: 7.5rem minmax(0, 1fr); font-size: var(--nn-font-sm); }
 .rs-small .rs-source { margin-top: var(--nn-space-3); }
 
@@ -5645,11 +5835,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-size: var(--nn-font-body);
     font-weight: 700;
 }
-.rs-earlier {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .rs-earlier-item {
     display: flex;
     flex-wrap: wrap;
@@ -5674,8 +5859,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .form-section > legend + .form-subhead { margin-top: 0; }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   SIRE 2.0 (P41): vetting/sire.html, sire-inspection.html, sire-report.html, sire-observation.html, and the SIRE
+   SIRE 2.0: vetting/sire.html, sire-inspection.html, sire-report.html, sire-observation.html, and the SIRE
    parts of vetting/parts.html (the Vetting list's column, the vessel's card, the vessel page's badge).
      - The SIRE page uses the RightShip page's frame (.rightship-layout, 7/12 and 5/12 from 992px; .rs-* facts,
        document card and earlier list), so both regimes read the same.
@@ -5820,11 +6006,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
 }
 .sire-figures + .sire-chapter { margin-top: 0; }
-.sire-observation-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .sire-observation {
     position: relative;
     display: grid;
@@ -5887,8 +6068,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .sire-type-options .form-check-inline { margin-right: 0; }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Required documents (P42): requirement/grid.html, crew/parts :: documentsSummary, requiredDocumentsCard,
+   Required documents: requirement/grid.html, crew/parts :: documentsSummary, requiredDocumentsCard,
    documentsMissingLink, myMissingDocuments; the Missing cell of certificate/matrix.html.
      - .requirement-notice: the starter template notice, in the warning pair, above the disclaimer (.info-note).
      - .req-grid: certificate types as rows, ranks as columns. Like .cert-matrix, the first column (.req-grid-type)
@@ -6030,11 +6212,6 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     padding-block: var(--nn-space-3);
     background-color: transparent;
 }
-.requirement-actions-hint {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
 
 /* P43: the row toggle before the type's name, and the Delete row icon button at the row's end. */
 .req-row-all {
@@ -6084,7 +6261,7 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     background-color: var(--nn-surface);
     border: 1px solid var(--nn-field-border);
     border-radius: var(--nn-radius-control);
-    box-shadow: var(--bs-dropdown-box-shadow, 0 .5rem 1rem rgba(0, 0, 0, .15));
+    box-shadow: var(--bs-dropdown-box-shadow, var(--nn-shadow-dropdown));
 }
 .combobox-option,
 .combobox-none {
@@ -6143,12 +6320,6 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     overflow-wrap: anywhere;
 }
 .requirement-row-type > .form-label-optional { margin-inline-start: var(--nn-space-1); }
-.requirement-row-note,
-.requirement-row-meta {
-    margin: 0;
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
 .requirement-row-actions {
     display: flex;
     flex-wrap: wrap;
@@ -6215,103 +6386,9 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     :root { --nn-req-type-width: 10rem; }
 }
 
-/* ---------------------------------------------------------------------------------------------------------------
-   Snoozing alerts (P43): alert/snooze.html, alert/parts.html, the Certificates and Vetting lists and the Overview.
-     - tr.is-snoozed: a muted row (the texts keep at least 4.5:1: only the surface changes, the words say "Snoozed").
-     - .snoozed-note: "Snoozed by Jane Doe until 13 Dec 2026 · Renewal in progress" with the snooze icon and Undo
-       (a small form), on the row; .snoozed-list: a vessel's snoozed items on the Vetting list, one per line.
-     - .snooze-items: the snooze page's review of the selection: one .snooze-item per alert (its checkbox when there
-       are several), the badge, the title and the vessel and date (.snooze-item-meta).
-     - .snooze-durations: the duration choices, the date input under "Until a date" (.snooze-date).
-     - .snooze-list-form: the lists' empty GET form; the rows' checkboxes belong to it by their form attribute.
-   --------------------------------------------------------------------------------------------------------------- */
-.data-table > tbody > tr.is-snoozed > * { --bs-table-bg: var(--nn-page); }
-.data-table > tbody > tr.is-snoozed .cell-primary a,
-.data-table > tbody > tr.is-snoozed .status-badge { opacity: .75; }
-
-.snoozed-note {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-1) var(--nn-space-2);
-    margin-top: var(--nn-space-1);
-    font-size: var(--nn-font-xs);
-    color: var(--nn-text-secondary);
-    white-space: normal;
-}
-.snoozed-note > svg {
-    flex: none;
-    width: 14px;
-    height: 14px;
-}
-.snoozed-note-text { overflow-wrap: anywhere; }
-.snoozed-note-undo { margin: 0; }
-.snoozed-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    white-space: normal;
-}
-.snoozed-list > li + li { margin-top: var(--nn-space-2); }
-.snoozed-kind {
-    display: block;
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-}
-.data-table .vetting-snooze { white-space: normal; }
-/* Room for the snoozed note on the table; as a stacked card (phones) the cell is as wide as its Snooze link. */
-@media (min-width: 768px) {
-    .data-table .vetting-snooze { min-width: 14rem; }
-}
-.data-table .vetting-snooze .row-actions { justify-content: flex-start; }
-
-.snooze-items { margin-bottom: var(--nn-space-4); }
-.snooze-items > legend {
-    margin-bottom: var(--nn-space-2);
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-}
-.snooze-item-list {
-    border: 1px solid var(--nn-divider);
-    border-radius: var(--nn-radius-control);
-}
-.snooze-item { padding: var(--nn-space-2) var(--nn-space-3); }
-.snooze-item-pick {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-3);
-    width: 100%;
-    margin: 0;
-    cursor: pointer;
-}
-.snooze-item-pick > .form-check-input { flex: none; margin: 0; }
-.snooze-item-main {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-1) var(--nn-space-3);
-    min-width: 0;
-}
-.snooze-item-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-.snooze-item-title { font-weight: 600; overflow-wrap: anywhere; }
-.snooze-item-meta {
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-    overflow-wrap: anywhere;
-}
-.snooze-durations .form-check { min-height: var(--nn-touch-target); }
-.snooze-date {
-    max-width: 14rem;
-    margin: var(--nn-space-1) 0 var(--nn-space-2);
-}
-.snooze-list-form { display: none; }
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Suppliers and quotes (P44): supplier/list.html and form.html; rfq/form.html, review.html, detail.html, quote.html.
+   Suppliers and quotes: supplier/list.html and form.html; rfq/form.html, review.html, detail.html, quote.html.
      - .supplier-currency: the three-letter code, tabular and upper case, the input only as wide as it needs.
        .supplier-ports and .supplier-website are truncated in the list (the full text in the title).
      - .rfq-suppliers: the suppliers to ask, as ship-pick rows; .rfq-serves names the port in the ok text colour.
@@ -6348,11 +6425,6 @@ input.supplier-currency { max-width: 7rem; }
 .rfq-supplier-list { margin-bottom: 0; }
 .rfq-serves { color: var(--nn-ok-text); font-weight: 600; }
 
-.rfq-review-suppliers {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 .rfq-review-suppliers > li {
     display: flex;
     flex-wrap: wrap;
@@ -6498,7 +6570,7 @@ input.supplier-currency { max-width: 7rem; }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Vessel data (P45): VesselAPI on ship/new.html, ship/edit.html, ship/vessel.html and the Overview.
+   Vessel data: VesselAPI on ship/new.html, ship/edit.html, ship/vessel.html and the Overview.
      - .vessel-imo-row: the IMO number field and Look up by IMO side by side (under each other on narrow phones).
      - .vessel-lookup: the results of a lookup or refresh, a card inside the form, under the fields.
      - .vessel-compare: VesselAPI next to the form or the saved values; the first column is the field.
@@ -6536,7 +6608,7 @@ input.supplier-currency { max-width: 7rem; }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Receipt on board (P51): shiporder/receipt.html, receipt-review.html, the Master's and the office's order pages.
+   Receipt on board: shiporder/receipt.html, receipt-review.html, the Master's and the office's order pages.
      - .receipt-received: a line's received quantity (with its unit) and "Not delivered" side by side, wrapping.
      - .receipt-files / .receipt-file: the receipt's files, one per row: name and size, then the actions.
      - .receipt-chosen: the files chosen and not sent yet (js/receipt.js); .is-over larger than 10 MB, .is-sent sent.
@@ -6573,7 +6645,7 @@ input.supplier-currency { max-width: 7rem; }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Stores (P52): the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
+   Stores: the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
      - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count, Requests waiting
        since P54, Next delivery since P55), five per row from 1200px, else two with Next delivery (.stores-fact-wide)
        across the row; a tile is a link when it leads to a list or an order. .is-low and .is-out tint a tile
@@ -6645,7 +6717,7 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     gap: var(--nn-space-1);
     white-space: nowrap;
 }
-.master-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }
+.home-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }
 
 /* Counting the store (P53), stores/count.html: one row per item, the name, its quantity in a small form (the input,
    the unit and, without JavaScript, Save), the status badge and a short "Saved"; a refused value's error on its own
@@ -6700,7 +6772,7 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .voice-hold.is-recording:focus {
     background-color: var(--nn-danger);
     border-color: var(--nn-danger);
-    color: #fff;
+    color: var(--nn-white);
 }
 .voice-dot { width: .75rem; height: .75rem; border-radius: 50%; background: currentColor; opacity: .6; }
 .is-recording .voice-dot { opacity: 1; animation: voice-pulse 1s ease-in-out infinite; }
@@ -6739,8 +6811,15 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .voice-actions { display: flex; flex-wrap: wrap; gap: var(--nn-space-3); }
 
 
+/* The store history's Type above the range: as wide as one date column from 768px. */
+.stores-log-type { max-width: 100%; }
+@media (min-width: 768px) {
+    .stores-log-type { max-width: 20rem; }
+}
+
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Requests (P54): the Chief cook's and crew's requests to the Master, shiprequest/list.html (its rows are
+   Requests: the Chief cook's and crew's requests to the Master, shiprequest/list.html (its rows are
    .approval-row), detail.html and form.html.
      - .request-pick-row: one item of the form, its name (the label of the quantity), on the cook's Running low rows
        its stock and status, then the quantity field and the unit; an error on its own line under the row. 56px high,
@@ -6790,71 +6869,10 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .request-new-lines { margin-top: var(--nn-space-4); border-top: 1px solid var(--nn-border); }
 .request-new-lines > .request-pick-row { padding-inline: 0; }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Date range (P58): layout/parts :: dateRange, in the GET filter form of a history or log page (the store history
-   first, stores/history.html).
-     - .date-range-presets: the quick choices, Last 30 / 60 / 90 days, a .view-switch of links (the current one in the
-       primary pair, semibold, with a tick from 768px), on one line at every width: below 768px the group is as wide
-       as the form, three equal links with less padding (the tick hidden, the primary pair still marks the current
-       one), so it fits 360px; each link a 44px target.
-     - .date-range-row: From and To in two equal columns at every width (360px too: the date fields may shrink);
-       the form's buttons (.date-range-actions) on the same row from 768px, under them on phones.
-   --------------------------------------------------------------------------------------------------------------- */
-.date-range { margin-top: var(--nn-space-3); }
-.date-range-presets {
-    display: flex;
-    max-width: 100%;
-    margin-bottom: var(--nn-space-3);
-}
-.date-range-presets > .view-switch-link {
-    flex: 1 1 0;
-    min-width: 0;
-    justify-content: center;
-    padding: 0 var(--nn-space-1);
-    white-space: nowrap;
-}
-.date-range-presets > .view-switch-link > svg { display: none; }
-@media (min-width: 768px) {
-    .date-range-presets { display: inline-flex; }
-    .date-range-presets > .view-switch-link { flex: 0 0 auto; padding: 0 var(--nn-space-4); }
-    .date-range-presets > .view-switch-link[aria-current] > svg { display: inline-block; }
-}
-.date-range-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--nn-space-3);
-    align-items: start;
-}
-.date-range-field { min-width: 0; }
-.date-range-field > .form-control { min-width: 0; width: 100%; }
-.date-range-actions {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--nn-space-2);
-}
-@media (min-width: 768px) {
-    .date-range-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
-    /* Level with the fields under their labels (one line of label and its margin), also when an error shows. */
-    .date-range-actions {
-        grid-column: auto;
-        flex-wrap: nowrap;
-        margin-top: calc(var(--nn-font-body) * 1.5 + .5rem);
-    }
-}
-
-/* The store history's Type above the range: as wide as one date column from 768px. */
-.stores-log-type { max-width: 100%; }
-@media (min-width: 768px) {
-    .stores-log-type { max-width: 20rem; }
-}
-
-/* P58: the vessel form's choice for the required documents when the type changes (ship/parts :: editFields). */
-.ship-requirements-choice { margin-bottom: 1rem; }
-.ship-requirements-choice[hidden] { display: none; }
-.ship-requirements-choice > legend { font-size: inherit; margin-bottom: .25rem; }
-
-/* ---- The delivery count (P61, P63) ----------------------------------------------------------------------------
+   The delivery count and the Master's approval: shiporder/count.html, count-choose.html, count-left.html,
+   count-send.html and receipt-approve.html.
      - .count-tabs: To do and Done (the ship tabs' look, as plain links).
      - .count-row: one row, phone first: the name and its reference on one line (wrapping), then the input with its
        unit and the one button side by side, both at least 48px high (P60), the difference in words (.count-diff,
@@ -6864,7 +6882,8 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
        number (the words say it).
      - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
      - .receipt-changed-line: the Master's "Changed from 23", in words and bold.
-     - .master-card-note: the line under the Master's Deliveries card label. */
+     - .home-card-note: the line under the Master's Deliveries card label.
+   --------------------------------------------------------------------------------------------------------------- */
 .count-tabs { margin-bottom: var(--nn-space-4); }
 .count-empty { color: var(--nn-text-secondary); }
 .count-row { padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); scroll-margin-top: 5rem; }
@@ -6915,14 +6934,16 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .count-return > summary::-webkit-details-marker { display: none; }
 .receipt-changed-line { color: var(--nn-warning-text); font-size: var(--nn-font-sm); }
 .order-progress-count { margin-top: var(--nn-space-1); }
-.master-card-note { display: block; margin-top: var(--nn-space-1); font-size: var(--nn-font-sm); font-weight: 400;
+.home-card-note { display: block; margin-top: var(--nn-space-1); font-size: var(--nn-font-sm); font-weight: 400;
     color: var(--nn-text-secondary); }
 @media (min-width: 576px) {
     .count-finish-button, .count-send-button, .approve-button { width: auto; min-width: 14rem; }
     .count-confirm { flex: 0 0 auto; min-width: 10rem; }
 }
 
-/* ---- Photograph the invoice (P62) -----------------------------------------------------------------------------
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The delivery invoice: shiporder/invoice.html and invoice-reading.html; js/invoice.js.
      - .invoice-pages: the pages so far, one card each, phone first (one column; two from 576px, three from 992px):
        the thumbnail on the left (.invoice-thumb: the photo, or "PDF"), "Page 1", a note when the page needs the
        ship (.invoice-page-note.is-warning: hard to read, could not be read) and Retake / Remove.
@@ -6930,7 +6951,8 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
        only visually hidden; once a file is chosen without the script, the label says so with a tick and Upload sends
        it). .invoice-pick-main: Take a photo and Choose a file, full width on phones, at least the touch target.
      - .invoice-progress: "Sending page 2: 60%" with its bar; .is-failed in the danger text colour with Try again.
-     - .invoice-reading-bar: the indeterminate bar under "Reading page 1 of 2". */
+     - .invoice-reading-bar: the indeterminate bar under "Reading page 1 of 2".
+   --------------------------------------------------------------------------------------------------------------- */
 .invoice-pages { display: grid; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
 .invoice-page-card { display: flex; flex-direction: row; gap: var(--nn-space-3); padding: var(--nn-space-3); }
 .invoice-thumb { flex: 0 0 5.5rem; display: flex; align-items: center; justify-content: center; aspect-ratio: 3 / 4;
@@ -6969,8 +6991,9 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     .invoice-add-controls { max-width: 36rem; }
 }
 
+
 /* ---------------------------------------------------------------------------------------------------------------
-   Order, delivery and invoice (P64, office only): officeorder/compare.html, invoice.html, invoice-match.html.
+   Order, delivery and invoice (office only): officeorder/compare.html, invoice.html, invoice-match.html.
      - .compare-summary: the invoice's facts and By category, stacked on phones, side by side from 768px;
        .compare-totals the three amounts in a row of tiles.
      - .compare-review-item: one point to review, its text then Correct / Change; .is-resolved muted.

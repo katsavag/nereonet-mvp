@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.ai;
 
 /**
- * Reading an invoice page failed (P62). The message names only what went wrong (the reason, a status code), never
+ * Reading an invoice page failed. The message names only what went wrong (the reason, a status code), never
  * the key, the image or the text.
  */
 public class InvoiceReadingException extends RuntimeException {

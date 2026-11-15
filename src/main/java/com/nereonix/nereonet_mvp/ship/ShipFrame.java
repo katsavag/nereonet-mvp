@@ -18,8 +18,8 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
  *   shipTab        the key of the active tab (ShipTab.key())
  *   shipTabs       every ShipTab, in order
  *   shipTabCounts  ShipTabCounts, the number shown on each tab
- *   vetting        the vessel's RightShip standing (RightShipView) for the header's badge row (P40)
- *   sire           a tanker's latest SIRE 2.0 inspection (SireView) for the same row (P41); null for other types
+ *   vetting        the vessel's RightShip standing (RightShipView) for the header's badge row
+ *   sire           a tanker's latest SIRE 2.0 inspection (SireView) for the same row; null for other types
  *   editForm, types, countries   for the Edit ship pop-up of the header (ship/parts :: editModal)
  */
 @Component

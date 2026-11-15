@@ -12,7 +12,7 @@ import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
 
-// A ship chandler or other supplier the office asks for prices (P44). Never deleted: an inactive supplier stays in
+// A ship chandler or other supplier the office asks for prices. Never deleted: an inactive supplier stays in
 // the list and in past RFQs but is not offered for a new one. channel says how an RFQ reaches it (SupplierChannel);
 // today always EMAIL.
 @Entity

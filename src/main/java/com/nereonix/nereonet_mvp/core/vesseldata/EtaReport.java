@@ -5,7 +5,7 @@ import java.time.Instant;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The display fields of GET /vessel/{imo}/eta (P45): {"vesselEta": {...}}. Destination, ETA and draught are what the
+ * The display fields of GET /vessel/{imo}/eta: {"vesselEta": {...}}. Destination, ETA and draught are what the
  * crew entered in the AIS set, as received. eta: parsed as UTC when it is a date and time, else etaText holds it as
  * given. reportedAt: when VesselAPI received the report (UTC).
  */

@@ -40,11 +40,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByShipActiveTrueAndRoleNotAndEnabledTrue(Role role);
 
-    // The crew of a chosen set of ships (an announcement to selected ships, P28).
+    // The crew of a chosen set of ships (an announcement to selected ships).
     List<User> findAllByShipInAndRoleNotAndEnabledTrue(Collection<Ship> ships, Role role);
 
     // Enabled crew with a rank on the active ships, each with their ship, in one query: whose required documents
-    // the Overview checks (P42).
+    // the Overview checks.
     @Query("""
             select u from User u join fetch u.ship s
             where s.active = true and u.enabled = true and u.role <> :office and u.rank is not null

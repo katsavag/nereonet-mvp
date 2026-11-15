@@ -18,7 +18,7 @@ import com.nereonix.nereonet_mvp.core.time.Dates;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * The emails to suppliers (P44), always in English (a supplier is outside the company and has no language setting):
+ * The emails to suppliers, always in English (a supplier is outside the company and has no language setting):
  * the request for quotation, "not selected" and "withdrawn". Each has a plain-text part and an HTML part from
  * templates/email/supplier.html (the layout of the P29/P36 emails: navy band with the logo, white card, footer;
  * inline styles only), with the RFQ's lines as a table in the request. The texts are here rather than in

@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * One password reset link sent by email (P14). It works once (usedAt) and until expiresAt (60 minutes). The rows are
+ * One password reset link sent by email. It works once (usedAt) and until expiresAt (60 minutes). The rows are
  * kept after use: they count towards the limit of 5 links per address per hour.
  * userId is a plain column, not a foreign key, so deleting a user is not blocked; a link whose user is gone, or is
  * another user now, does not work (PasswordResetService.findValid).

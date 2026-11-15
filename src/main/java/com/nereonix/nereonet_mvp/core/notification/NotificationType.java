@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.notification;
 
 /**
- * What a notification is about (P23), shown as its icon on /notifications. Notifications saved before P23 have none
+ * What a notification is about, shown as its icon on /notifications. Notifications saved before P23 have none
  * and show the bell.
  */
 public enum NotificationType {
@@ -9,11 +9,11 @@ public enum NotificationType {
     CERTIFICATE("certificates"),
     /** A library document to read. */
     LIBRARY("library"),
-    /** An announcement from the office, sent to each recipient when it is sent (P27). */
+    /** An announcement from the office, sent to each recipient when it is sent. */
     ANNOUNCEMENT("announcements"),
-    /** An item request waiting for the Master (P33), sent when it is submitted. */
+    /** An item request waiting for the Master, sent when it is submitted. */
     REQUEST("approvals"),
-    /** A ship order sent to the office (P35), to every enabled office user; its confirmation by the office (P36), to
+    /** A ship order sent to the office, to every enabled office user; its confirmation by the office, to
      *  the ship's Master and Chief cook. */
     ORDER("orders");
 

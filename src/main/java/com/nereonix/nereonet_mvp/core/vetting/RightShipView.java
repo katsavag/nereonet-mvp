@@ -13,7 +13,7 @@ import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
 import com.nereonix.nereonet_mvp.core.vetting.Subscore.Impact;
 
 /**
- * A vessel's RightShip standing as the pages show it (P40), worked out from its current row (null: no RightShip data)
+ * A vessel's RightShip standing as the pages show it, worked out from its current row (null: no RightShip data)
  * and today's UTC date. The rules, in one place:
  * <ul>
  *   <li>Safety Score: "3/5"; "0/5" sanctioned (no safety score); "N/A" not rated. Tone: 2 or below danger, else ok.</li>
@@ -172,7 +172,7 @@ public record RightShipView(ShipRightShipStatus status, LocalDate today) {
         };
     }
 
-    // Alerts (P43)
+    // Alerts
 
     /** The inspection's level (AlertLevels): 0 expired or unacceptable, 1 within 30 days, 2 within 60; NONE beyond. */
     public int inspectionLevel() {

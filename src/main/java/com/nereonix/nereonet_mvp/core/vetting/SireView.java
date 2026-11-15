@@ -13,7 +13,7 @@ import com.nereonix.nereonet_mvp.core.alert.AlertKind;
 import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
 
 /**
- * A SIRE 2.0 inspection as the pages show it (P41): a vessel's latest one (or, on the SIRE page, an earlier one the
+ * A SIRE 2.0 inspection as the pages show it: a vessel's latest one (or, on the SIRE page, an earlier one the
  * office opened), its observations, the company policy (SireSettings) and today's UTC date. inspection is null when
  * the vessel has none. The rules, in one place:
  * <ul>
@@ -178,7 +178,7 @@ public record SireView(SireInspection inspection, List<SireObservation> observat
         return reportState() == SireReportState.ENDING ? 1 : 2;
     }
 
-    // Alerts (P43)
+    // Alerts
 
     /** The report's level (AlertLevels): 0 no longer current, 1 ending within 30 days, 2 within 60; NONE beyond. */
     public int reportLevel() {

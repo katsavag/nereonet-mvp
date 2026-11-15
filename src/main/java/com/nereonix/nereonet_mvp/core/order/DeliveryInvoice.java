@@ -23,10 +23,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The supplier's invoice of an order as read from its photographed pages (P62): one per order. Its pages are the
+ * The supplier's invoice of an order as read from its photographed pages: one per order. Its pages are the
  * order's receipt files with an invoice page number (OrderReceiptFile.invoicePage); its lines are DeliveryInvoiceLine.
  * What was read and what the checks found (InvoiceChecks: checkNotes, referenceWarning, the lines' flags) is kept for
- * the office (P64); the ship sees only what it can act on. Re-reading replaces the lines while the order is CONFIRMED,
+ * the office; the ship sees only what it can act on. Re-reading replaces the lines while the order is CONFIRMED,
  * never after it is CLOSED. Every field but the order and the status is null until read.
  */
 @Entity
@@ -79,11 +79,11 @@ public class DeliveryInvoice {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User readBy;
 
-    // The checks that failed, one per line, in English (for the office, P64).
+    // The checks that failed, one per line, in English (for the office).
     @Column(length = CHECK_NOTES_MAX_LENGTH)
     private String checkNotes;
 
-    // The invoice's order reference does not match the order, or there is none (for the office, P64).
+    // The invoice's order reference does not match the order, or there is none (for the office).
     @Column(length = 300)
     private String referenceWarning;
 

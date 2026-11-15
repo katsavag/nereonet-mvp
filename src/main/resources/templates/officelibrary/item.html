@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${item.title}, ~{::main})}">
 <body>
-<!-- The office's read view of a library item (P22): what the crew see, without "I have read this", then the version
+<!-- The office's read view of a library item: what the crew see, without "I have read this", then the version
      history. New version and Retire are the page's actions; nothing here is a form to fill in. -->
 <main th:with="itemUrl=${'/office/ships/' + item.ship.id + '/library/' + item.id}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${item.title}, crumbs=~{::pageCrumbs}, subtitleParts=~{core/library/parts :: itemSubtitle}, eyebrowShip=${item.ship}, actions=~{::pageActions})}">

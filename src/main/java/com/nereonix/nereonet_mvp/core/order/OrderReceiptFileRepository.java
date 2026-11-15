@@ -13,7 +13,7 @@ public interface OrderReceiptFileRepository extends JpaRepository<OrderReceiptFi
 
     Optional<OrderReceiptFile> findByIdAndOrderId(Long id, Long orderId);
 
-    // P62: the invoice's pages, by page number.
+    // The invoice's pages, by page number.
     List<OrderReceiptFile> findAllByOrderIdAndInvoicePageNotNullOrderByInvoicePageAsc(Long orderId);
 
     long countByOrderIdAndInvoicePageNotNull(Long orderId);

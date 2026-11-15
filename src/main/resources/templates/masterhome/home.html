@@ -6,8 +6,8 @@
      Header: the ship's name and IMO number.
      Cards: one link each, at least 72px high, with its label and number. A zero is quiet (muted number, no tint); a card
      with something to do has the primary tint and "to do" in words for screen readers. Crew on board only informs, so it
-     is never tinted. P59: Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
-     the receipt itself when there is exactly one. P61: with deliveries the Chief cook counted, "Counted by the Chief
+     is never tinted. Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
+     the receipt itself when there is exactly one. With deliveries the Chief cook counted, "Counted by the Chief
      cook, to approve" under its label. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
      Recent orders: the three most recently sent, newest first, each with its status, confirmed port and delivery date
      (or "Not confirmed yet"), linking to the order; then All orders. -->
@@ -15,24 +15,24 @@
     <header th:replace="~{layout/parts :: pageHeader(heading=${h.ship.name},
             subtitle=#{ship.codeValue(${h.ship.imoNumber})})}"></header>
 
-    <!-- P42: the Master's own required documents missing, to My profile; only when something is. -->
+    <!-- The Master's own required documents missing, to My profile; only when something is. -->
     <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
 
     <section class="home-section" aria-labelledby="masterCardsTitle">
         <h2 class="visually-hidden" id="masterCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
-        <ul class="master-cards">
+        <ul class="home-cards">
             <li th:each="c : ${h.cards}">
-                <a class="master-card" th:href="@{${c.url}}" th:classappend="${c.highlighted()} ? 'is-due'"
+                <a class="home-card" th:href="@{${c.url}}" th:classappend="${c.highlighted()} ? 'is-due'"
                    th:attr="data-card=${c.key}">
-                    <span class="master-card-icon" aria-hidden="true"><svg
+                    <span class="home-card-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon(${c.icon})}"></svg></span>
-                    <span class="master-card-label">
+                    <span class="home-card-label">
                         <span th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
-                        <!-- P61: the deliveries the Chief cook counted, to approve. -->
-                        <span th:if="${c.hasNote()}" class="master-card-note"
+                        <!-- The deliveries the Chief cook counted, to approve. -->
+                        <span th:if="${c.hasNote()}" class="home-card-note"
                               th:text="#{${'masterhome.card.' + c.noteKey}(${c.noteCount})}">Counted by the Chief cook, to approve</span>
                     </span>
-                    <span class="master-card-count num" th:text="${c.count}">1</span>
+                    <span class="home-card-count num" th:text="${c.count}">1</span>
                     <span th:if="${c.highlighted()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
                 </a>
             </li>

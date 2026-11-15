@@ -18,7 +18,7 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, Long> {
     boolean existsByItemShipId(Long shipId);
 
     /** Active items of the category on the ship of the user with this email whose quantity is below the threshold, an
-     *  item without a row included (quantity 0): the Chief cook's Low plus Out of stock (P52). One query. */
+     *  item without a row included (quantity 0): the Chief cook's Low plus Out of stock. One query. */
     @Query("""
             select count(i) from Item i left join StockLevel l on l.item = i
             where i.category = :category and i.active = true

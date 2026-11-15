@@ -38,7 +38,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The ship order pages (P35): the OPEN order of the signed-in user's own ship, and its past orders. The Master changes
+ * The ship order pages: the OPEN order of the signed-in user's own ship, and its past orders. The Master changes
  * and sends the order, and confirms its receipt; since P55 the Chief cook reads the same pages (open, past, detail),
  * and nothing more: every change is ShipOrderService's or OrderReceiptService's, which refuse anyone but the ship's
  * enabled Master, and the receipt pages (order) and the services' user (master) refuse anyone but the Master here.
@@ -50,7 +50,7 @@ public class ShipOrderPageService {
     static final List<ShipOrderStatus> PAST = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED,
             ShipOrderStatus.CLOSED);
 
-    // P59: sent and not received yet.
+    // Sent and not received yet.
     static final List<ShipOrderStatus> IN_PROGRESS = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
 
     // Most urgent first: the scheduled deliveries by delivery date (earliest first), then the orders waiting for the
@@ -84,7 +84,7 @@ public class ShipOrderPageService {
     }
 
     /**
-     * An order in progress on Vessel order (P59): SENT or CONFIRMED, with its number of items (lines the office did not
+     * An order in progress on Vessel order: SENT or CONFIRMED, with its number of items (lines the office did not
      * remove). overdue: CONFIRMED and its delivery date (UTC) has passed without a receipt.
      */
     public record InProgress(ShipOrder order, int itemCount, boolean overdue, boolean invoicePhotographed) {
@@ -97,12 +97,12 @@ public class ShipOrderPageService {
             return toReceive() && order.getDeliveryCountStatus().editable();
         }
 
-        /** P62: Confirm receipt opens "Photograph the invoice" first (no page yet, no count of the cook to approve). */
+        /** Confirm receipt opens "Photograph the invoice" first (no page yet, no count of the cook to approve). */
         public boolean invoiceFirstForMaster() {
             return ShipOrderPageService.invoiceFirstForMaster(order, invoicePhotographed);
         }
 
-        /** P62: Count delivery opens "Photograph the invoice" first (no page yet, the count not started). */
+        /** Count delivery opens "Photograph the invoice" first (no page yet, the count not started). */
         public boolean invoiceFirstForCook() {
             return ShipOrderPageService.invoiceFirstForCook(order, invoicePhotographed);
         }
@@ -144,7 +144,7 @@ public class ShipOrderPageService {
     }
 
     /**
-     * P62: one order of the ship, for "Photograph the invoice": the vessel's enabled Master or Chief cook; 404 for
+     * One order of the ship, for "Photograph the invoice": the vessel's enabled Master or Chief cook; 404 for
      * another ship's or an OPEN one. AccessDeniedException for anyone else.
      */
     @Transactional(readOnly = true)
@@ -169,7 +169,7 @@ public class ShipOrderPageService {
     }
 
     /**
-     * The ship's orders in progress (P59): SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
+     * The ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
      * date, then the orders waiting for the office by sent date). The Master or the Chief cook.
      */
     @Transactional(readOnly = true)
@@ -202,7 +202,7 @@ public class ShipOrderPageService {
         return view(ship, order);
     }
 
-    /** One order of the ship, OPEN or not; 404 for another ship's (P51: the receipt pages, the Master's only). */
+    /** One order of the ship, OPEN or not; 404 for another ship's (the receipt pages, the Master's only). */
     @Transactional(readOnly = true)
     public ShipOrder order(String email, Long id) {
         Ship ship = ship(master(email));
@@ -211,7 +211,7 @@ public class ShipOrderPageService {
     }
 
     /**
-     * P61: one order of the Chief cook's ship with its lines, for the delivery count; 404 for another ship's or an OPEN
+     * One order of the Chief cook's ship with its lines, for the delivery count; 404 for another ship's or an OPEN
      * one. AccessDeniedException for anyone but the ship's enabled Chief cook.
      */
     @Transactional(readOnly = true)
@@ -223,12 +223,12 @@ public class ShipOrderPageService {
         return view(ship, order);
     }
 
-    /** True when the user with this email counts the ship's deliveries: its enabled Chief cook (P61). */
+    /** True when the user with this email counts the ship's deliveries: its enabled Chief cook. */
     public boolean canCount(String email) {
         return isEnabled(user(email), Role.CHIEF_COOK);
     }
 
-    // The ship's enabled Chief cook (P61: the delivery count). AccessDeniedException for anyone else.
+    // The ship's enabled Chief cook (the delivery count). AccessDeniedException for anyone else.
     User cook(String email) {
         User user = user(email);
         if (!isEnabled(user, Role.CHIEF_COOK)) {
@@ -242,7 +242,7 @@ public class ShipOrderPageService {
         return messageSource.getMessage(key, args, Locale.ENGLISH);
     }
 
-    /** A line of the Master's ship (P60: the rule of its item before a change); 404 for another ship's. */
+    /** A line of the Master's ship (the rule of its item before a change); 404 for another ship's. */
     @Transactional(readOnly = true)
     public ShipOrderLine line(String email, Long lineId) {
         Ship ship = ship(master(email));
@@ -320,7 +320,7 @@ public class ShipOrderPageService {
         return name.substring(0, name.offsetByCodePoints(0, 1)) + ". " + name.substring(space + 1).strip();
     }
 
-    /** True when the user with this email changes, sends and receives the ship's order: its enabled Master (P55). */
+    /** True when the user with this email changes, sends and receives the ship's order: its enabled Master. */
     public boolean canManage(String email) {
         return isEnabled(user(email), Role.MASTER);
     }
@@ -334,7 +334,7 @@ public class ShipOrderPageService {
         return user;
     }
 
-    // The ship's enabled Master or Chief cook (P55): the order read only. AccessDeniedException for anyone else.
+    // The ship's enabled Master or Chief cook: the order read only. AccessDeniedException for anyone else.
     private User reader(String email) {
         User user = user(email);
         if (!isEnabled(user, Role.MASTER) && !isEnabled(user, Role.CHIEF_COOK)) {

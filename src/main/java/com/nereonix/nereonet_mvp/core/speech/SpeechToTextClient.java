@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.speech;
 import java.util.List;
 
 /**
- * Speech to text (P57), called by the server only (VoiceCountService), never from the browser.
+ * Speech to text, called by the server only (VoiceCountService), never from the browser.
  * AssemblyAiSpeechClient is the real one; FakeSpeechClient answers in dev (app.assemblyai.fake) and in the tests.
  */
 public interface SpeechToTextClient {

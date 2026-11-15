@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.supplier;
 import com.nereonix.nereonet_mvp.core.rfq.Rfq;
 
 /**
- * How an RFQ reaches a supplier (P44): the seam between the RFQ screens and the outside world. RfqService picks the
+ * How an RFQ reaches a supplier: the seam between the RFQ screens and the outside world. RfqService picks the
  * bean whose type() is the supplier's Supplier.channel and never knows how it works. Only EmailChannel exists; a
  * marketplace or supplier API would be another implementation (and a ChannelType value) without changing the
  * screens. The office still enters the answers by hand (quote, decline): a channel that receives quotes by itself

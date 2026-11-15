@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{vetting.report.upload}, ~{::main})}">
 <body>
-<!-- "Upload report" (P40): an official RightShip document of the vessel (PDF, PNG or JPEG, at most 10 MB) and the date
+<!-- "Upload report": an official RightShip document of the vessel (PDF, PNG or JPEG, at most 10 MB) and the date
      on it. The newest by that date becomes the official document beside the RightShip dashboard. js/forms.js shows the
      chosen file's name and size and warns before uploading one over the limit; ?fileTooLarge: one over the multipart
      limit (UploadTooLargeFilter). Model: ship, form (RightShipReportForm). -->

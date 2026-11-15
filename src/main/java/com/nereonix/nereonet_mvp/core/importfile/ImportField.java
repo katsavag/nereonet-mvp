@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.importfile;
 import java.util.List;
 
 /**
- * A field the import fills, e.g. the crew member's email (P24). The column holding it is guessed from the file's
+ * A field the import fills, e.g. the crew member's email. The column holding it is guessed from the file's
  * column names (aliases, normalized as ImportNames.normalize, most likely first) and confirmed by the user.
  *
  * key          the field's key, also the property name on the review form ("fullName")

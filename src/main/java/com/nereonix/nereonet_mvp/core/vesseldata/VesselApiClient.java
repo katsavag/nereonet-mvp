@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.vesseldata;
 
 /**
- * VesselAPI (P45), read only, called by the server only (VesselDataService), never from the browser. One method per
+ * VesselAPI, read only, called by the server only (VesselDataService), never from the browser. One method per
  * call, so one failing call never stops the others. HttpVesselApiClient is the real one; FakeVesselApiClient answers
  * in dev (app.vesselapi.fake) and in the tests.
  */

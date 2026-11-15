@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import com.nereonix.nereonet_mvp.core.vesseldata.VesselLookup;
 
 /**
- * The VesselAPI lookups waiting for Save (P45), in memory: the form carries only a random token (lookupToken); the
+ * The VesselAPI lookups waiting for Save, in memory: the form carries only a random token (lookupToken); the
  * values taken on Save come from here, never from the browser. A token works only for the user who looked up, for an
  * hour; the controller also checks the lookup's IMO number against the form's. A restart forgets them all (the user
  * looks up again).

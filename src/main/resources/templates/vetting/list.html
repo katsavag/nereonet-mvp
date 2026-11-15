@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{vetting.list.title}, ~{::main})}">
 <body>
-<!-- Vetting (P40): every active vessel's RightShip standing, most urgent first (inspection expired, expiring within 60
-     days, then the lowest Safety Score, then name). P19: search (name or IMO number), filters (vessel type; Status:
+<!-- Vetting: every active vessel's RightShip standing, most urgent first (inspection expired, expiring within 60
+     days, then the lowest Safety Score, then name). Search (name or IMO number), filters (vessel type; Status:
      Needs attention, Valid, Not rated), sorting by column, pages. The whole row opens the vessel's Vetting page
      (data-row-href, js/list-rows.js); its name stays the link for the keyboard and without the script.
-     P41: the "SIRE 2.0" column (the latest inspection's status and date, its open observations, and one badge for
+     The "SIRE 2.0" column (the latest inspection's status and date, its open observations, and one badge for
      what needs attention first); the urgency order and Needs attention include SIRE; the Regime filter (All,
      RightShip, SIRE 2.0) narrows the Status filter to one regime, and SIRE 2.0 keeps the tankers and the vessels with
      an inspection.
-     P43: a vessel's items that need attention can be snoozed (Snooze on its row takes every open item of the vessel
+     A vessel's items that need attention can be snoozed (Snooze on its row takes every open item of the vessel
      to the snooze page, where each can be left out; or its checkbox and Snooze selected). A snoozed item shows
      "Snoozed by … until … · reason" with Undo in the last column; Status "Snoozed" lists the vessels with one, and
      Needs attention counts only the items not snoozed. The flag's country is under the name.
@@ -54,10 +54,10 @@
         </th:block>
     </div>
 
-    <!-- The snooze form (P43): the checked vessels' open items go to the snooze page (a GET). -->
+    <!-- The snooze form: the checked vessels' open items go to the snooze page (a GET). -->
     <form th:replace="~{alert/parts :: snoozeForm('snoozeForm', ${list.url})}"></form>
     <div class="card">
-        <!-- No active vessel yet (P25): the vessels are added on Vessels. -->
+        <!-- No active vessel yet: the vessels are added on Vessels. -->
         <th:block th:replace="~{layout/parts :: listEmpty(rows=${rows}, list=${list}, icon='vetting',
                 title=#{vetting.list.empty.title}, text=#{vetting.list.empty.text},
                 action=~{layout/parts :: emptyLink('/office/ships', #{empty.goToShips}, 'btn btn-primary')})}"></th:block>
@@ -92,7 +92,7 @@
                     </td>
                     <td class="cell-primary">
                         <a th:href="@{/office/vetting/{id}(id=${r.ship().id})}" th:text="${r.ship().name}">ALDER</a>
-                        <!-- P43: the IMO number and, when set, the flag with its country, each on its own line. -->
+                        <!-- The IMO number and, when set, the flag with its country, each on its own line. -->
                         <span class="d-block small fw-normal text-body-secondary vetting-vessel-facts"
                               th:text="#{ship.codeValue(${r.ship().imoNumber})}">IMO 9300001</span>
                         <span th:if="${r.ship().flag}" class="d-block small fw-normal text-body-secondary vetting-vessel-facts">
@@ -120,7 +120,7 @@
                         <th:block th:replace="~{vetting/parts :: sireLatest(${r.sire()})}"></th:block>
                         <th:block th:replace="~{vetting/parts :: sireAttention(${r.sire()})}"></th:block>
                     </td>
-                    <!-- P43: the vessel's snoozed items, each with Undo; Snooze for the open ones. -->
+                    <!-- The vessel's snoozed items, each with Undo; Snooze for the open ones. -->
                     <td class="cell-actions vetting-snooze">
                         <ul th:unless="${r.snoozed().isEmpty()}" class="snoozed-list">
                             <li th:each="a : ${r.snoozed()}">

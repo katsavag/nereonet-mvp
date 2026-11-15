@@ -56,7 +56,7 @@ public class UserService {
      * user is the crew member being edited, or null for a new crew member (an invitation).
      * A disabled user does not count, so editing one never breaks the rule.
      * The exception does not mark the caller's transaction rollback-only: the crew import catches it and reports it
-     * on the row (P18).
+     * on the row.
      */
     @Transactional(readOnly = true, noRollbackFor = ShipRoleTakenException.class)
     public void checkShipRoleFree(Ship ship, Role role, User user) {

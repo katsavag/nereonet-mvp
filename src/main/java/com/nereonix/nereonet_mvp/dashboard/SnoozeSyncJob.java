@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Ends the snoozes that no longer apply (P43) once a day, at the certificate reminders' time, so a snooze ends by
+ * Ends the snoozes that no longer apply once a day, at the certificate reminders' time, so a snooze ends by
  * itself when its date passes, when its item is resolved or when the item gets worse, even on a day nobody opens the
  * Overview (which syncs them too, DashboardService.load). The reminder job runs after, so a certificate whose snooze
  * just ended gets its reminder the same morning.

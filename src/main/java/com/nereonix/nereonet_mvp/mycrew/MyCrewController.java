@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.nereonix.nereonet_mvp.core.profile.PhotoResponse;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
-// My crew (P31): who is on board now and what each chose to share. Read only, English only, every ship role
+// My crew: who is on board now and what each chose to share. Read only, English only, every ship role
 // (SecurityConfig: /ship/** is for ship roles). The pages load no script of their own.
 @Controller
 public class MyCrewController {

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + (${inspection == null} ? #{sire.inspection.add} : #{sire.inspection.edit}), ~{::main})}">
 <body>
-<!-- "Add inspection" and "Edit inspection" (P41): a SIRE 2.0 inspection as the report gives it, entered by hand.
+<!-- "Add inspection" and "Edit inspection": a SIRE 2.0 inspection as the report gives it, entered by hand.
      Required: inspection date, port, submitting company and status. The published date sets the operator comment
      deadline while the status is Draft received (company policy, shown under the field). Saving goes back to the
      SIRE page. Model: ship, inspection (null when adding), form (SireInspectionForm), statuses, settings. -->

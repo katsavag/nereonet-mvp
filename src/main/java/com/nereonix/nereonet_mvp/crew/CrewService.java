@@ -60,7 +60,7 @@ public class CrewService {
     }
 
     /**
-     * One page of the Crew list (P19): users with a ship role and PENDING crew invitations (shown as "Invited" or
+     * One page of the Crew list: users with a ship role and PENDING crew invitations (shown as "Invited" or
      * "Invitation expired"), searched by name or email, filtered by ship and status (CrewStatus: enabled users for
      * ACTIVE, the others for INACTIVE, invitations before and after their expiry for INVITED and EXPIRED; shipId and
      * status may be null) and sorted, all in the database (PeopleQueries).
@@ -76,13 +76,13 @@ public class CrewService {
         return peopleQueries.rankNeedsReview(shipId, status, missingDocuments, list);
     }
 
-    /** Every user of the Crew list as filtered and sorted (all pages, no invitations): its export (P42). */
+    /** Every user of the Crew list as filtered and sorted (all pages, no invitations): its export. */
     @Transactional(readOnly = true)
     public List<User> findAllCrewUsers(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
         return peopleQueries.allUsers(shipId, status, missingDocuments, list);
     }
 
-    /** One page of Office users: office users and pending office invitations, the same way (P19). */
+    /** One page of Office users: office users and pending office invitations, the same way. */
     @Transactional(readOnly = true)
     public Page<PeopleQueries.Row> findOfficeUsers(CrewStatus status, ListQuery list) {
         return peopleQueries.page(true, null, status, false, list);
@@ -90,7 +90,7 @@ public class CrewService {
 
     /**
      * Adds a crew member by inviting them: they get an email and set their own password. The role is the rank's
-     * (Rank.role(), P18). Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).
+     * (Rank.role()). Throws EmailAlreadyRegisteredException or ShipRoleTakenException (see InvitationService.invite).
      */
     @Transactional
     public Invitation addCrewMember(String fullName, String email, Rank rank, Long shipId, String actorEmail) {
@@ -138,7 +138,7 @@ public class CrewService {
 
     /**
      * Saves a crew member. Changing the ship moves them to that ship (it must be active). The role becomes the rank's
-     * (Rank.role(), P18), also for a user whose rank and role disagreed until now.
+     * (Rank.role()), also for a user whose rank and role disagreed until now.
      * Throws ShipRoleTakenException if the ship already has an enabled MASTER or CHIEF_COOK and that is the role.
      */
     @Transactional
@@ -183,7 +183,7 @@ public class CrewService {
 
     /**
      * Deletes a deactivated user, crew or office, and every invitation for their email, so they can be
-     * invited again. Their certificates, notifications, announcement recipient rows and profile (P31) are deleted by the
+     * invited again. Their certificates, notifications, announcement recipient rows and profile are deleted by the
      * database (cascade), their profile photo files once this has committed;
      * announcements they sent stay, with no sender. Their audit entries stay (shown as "Deleted user"); invitations they sent stay, with
      * no sender. A user cannot delete themselves. Returns the deleted user.

@@ -30,12 +30,12 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 /**
- * The Crew and Office users lists (P19): users and pending invitations in one list, searched, filtered, sorted and
+ * The Crew and Office users lists: users and pending invitations in one list, searched, filtered, sorted and
  * paginated in the database. One SQL query (a UNION ALL of the users and the PENDING invitations) gives the kind and
  * id of the rows of the page, a second one counts them; the page's users and invitations are then loaded by id.
  * Native SQL because JPQL has no portable UNION with LIMIT; it runs on PostgreSQL and H2.
  * Sort keys: name, email, rank (in the Rank order), ship (by name), status (Active, Invited, Invitation expired,
- * Inactive: the order of CrewStatus), documents (P42: the number of required documents missing, expired included;
+ * Inactive: the order of CrewStatus), documents (the number of required documents missing, expired included;
  * people without required documents and invitations after everyone else).
  */
 @Repository
@@ -48,8 +48,8 @@ public class PeopleQueries {
     private static final String RANK_ORDER = rankCase(rank -> Integer.toString(rank.ordinal()), "999");
     private static final String RANK_ROLE = rankCase(rank -> "'" + rank.role().name() + "'", "null");
 
-    // Required documents (P42), the rules of requirement/RequirementRules in SQL, for user u on ship s: the required
-    // (not optional) types of u's vessel (P58; of all vessels or s's type before) whose ranks include u's rank; none
+    // Required documents, the rules of requirement/RequirementRules in SQL, for user u on ship s: the required
+    // (not optional) types of u's vessel (of all vessels or s's type before) whose ranks include u's rank; none
     // without a rank or a ship.
     // A type is held by a certificate of the same type (lower case, trimmed) expiring from today to the P39 limit.
     private static final String REQUIRED_TYPES = " from document_requirement r"
@@ -124,7 +124,7 @@ public class PeopleQueries {
 
     /**
      * Every user of the Crew list as filtered and sorted, without pages and without invitations: the export of their
-     * required documents (P42). Two queries, whatever the number.
+     * required documents. Two queries, whatever the number.
      */
     public List<User> allUsers(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
         if (status != null && !status.users()) {

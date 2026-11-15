@@ -22,7 +22,7 @@ import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The starter template of required documents (P42), a suggestion for the office to review, never a statement of what
+ * The starter template of required documents, a suggestion for the office to review, never a statement of what
  * any regulation requires. P58: it is the defaults of each vessel type (defaults(type)): every vessel starts with
  * the defaults of its type, copied when it is created (RequirementService.startWithDefaults) and marked as a
  * suggestion until the office saves that vessel's grid; "Reset to Bulk carrier defaults" copies them again. There is

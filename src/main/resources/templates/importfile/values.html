@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Step 2 of an import, continued (P24): each distinct value of a matched field (the rank) that is not written
+<!-- Step 2 of an import, continued: each distinct value of a matched field (the rank) that is not written
      exactly as one of its choices ("C/E", "Ch. Eng.", "2/O"), asked about once. The answer applies to every row with
      that value. The suggestion (or the choice saved for a file with the same column names) is selected; "Decide per
      row" leaves the value as it is, to correct on the review screen.
@@ -18,7 +18,7 @@
                     2 values to match</h2>
                 <p class="form-text mt-0 mb-3" th:text="#{importFile.values.hint}">These values are not written as in
                     Nereonet. Choose what each one means; the answer applies to every row with it.</p>
-                <ul class="import-values">
+                <ul class="import-values list-plain">
                     <li th:each="q : ${questions}" class="import-value"
                         th:with="label=#{${q.field().labelKey()}}">
                         <label class="import-value-file" th:for="${'value-' + q.index()}">

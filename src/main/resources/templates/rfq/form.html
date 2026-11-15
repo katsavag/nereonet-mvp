@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.new.title}, ~{::main})}">
 <body>
-<!-- Request quotes (P44), step 1 of 2: from a SENT vessel order, the port and delivery date (prefilled from the
+<!-- Request quotes, step 1 of 2: from a SENT vessel order, the port and delivery date (prefilled from the
      order's requested port and needed by date), the reply-by date and the suppliers to ask (at least one; those whose
-     ports served mention the port first, with "Serves Piraeus"). Review (P10) shows what will be sent before anything
+     ports served mention the port first, with "Serves Piraeus"). Review shows what will be sent before anything
      is. Beside the form from 1200px, under it below: the order's lines, which the request copies. Without an active
      supplier the list says so and links to Add supplier. Model: order, form (RfqForm), suppliers, serving (how many
      serve the port), groups (RfqController.LineGroup). -->

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
 <body>
-<!-- No ships yet (P25): the empty state holds Add ship, so the page header leaves it out. -->
+<!-- No ships yet: the empty state holds Add ship, so the page header leaves it out. -->
 <main th:with="noShips=${ships.isEmpty()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=${noShips} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
-            <!-- Opens the pop-up; without JavaScript the Add vessel page (P45). -->
+            <!-- Opens the pop-up; without JavaScript the Add vessel page. -->
             <a class="btn btn-primary" th:href="@{/office/ships/new}" data-bs-toggle="modal" data-bs-target="#newShipModal">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{ship.list.add}">Add ship</span>
@@ -41,12 +41,12 @@
                     <td class="text-nowrap" th:attr="data-label=#{ship.code}"
                         th:text="#{ship.codeValue(${s.imoNumber})}">IMO 9074729</td>
                     <td th:attr="data-label=#{ship.type}" th:text="${s.type} ? #{${'ship.type.' + s.type}} : '—'">Bulk carrier</td>
-                    <!-- P43: the flag's image before the country. -->
+                    <!-- The flag's image before the country. -->
                     <td th:attr="data-label=#{ship.flag}">
                         <th:block th:if="${s.flag}"><span th:replace="~{layout/parts :: country(${s.flag}, ${countries[s.flag]} ?: ${s.flag})}">Greece (GR)</span></th:block>
                         <th:block th:unless="${s.flag}">—</th:block>
                     </td>
-                    <!-- The RightShip Safety Score (P40); for an active vessel a link to its Vetting page. -->
+                    <!-- The RightShip Safety Score; for an active vessel a link to its Vetting page. -->
                     <td th:attr="data-label=#{vetting.score}" th:with="v=${rightShip[s.id] ?: noVetting}">
                         <a th:if="${s.active}" class="score-cell score-link" th:href="@{/office/vetting/{id}(id=${s.id})}">
                             <span th:replace="~{vetting/parts :: scoreBar(${v.score()}, ${v.scoreTone()}, null)}"></span>
@@ -138,7 +138,7 @@
             form.querySelector('#editImo').textContent = button.dataset.imo;
             form.querySelector('#editName').value = button.dataset.name;
             form.querySelector('#editType').value = button.dataset.type ?? '';
-            // P58: the required documents choice compares with this vessel's type, and starts on Keep.
+            // The required documents choice compares with this vessel's type, and starts on Keep.
             const requirements = form.querySelector('[data-changed-from]');
             if (requirements) {
                 requirements.dataset.initialValue = button.dataset.type ?? '';

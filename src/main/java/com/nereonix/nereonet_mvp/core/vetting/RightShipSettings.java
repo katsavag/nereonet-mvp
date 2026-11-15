@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The RightShip API settings (P40), app.rightship.*: off by default. The sync and "Refresh from RightShip" exist only
+ * The RightShip API settings, app.rightship.*: off by default. The sync and "Refresh from RightShip" exist only
  * when base-url, client-id and client-secret are all set; otherwise the app never calls RightShip.
  *   base-url       e.g. https://api.rightship.com (no trailing slash)
  *   client-id      the API client's id

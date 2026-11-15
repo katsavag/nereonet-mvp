@@ -21,7 +21,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A SIRE 2.0 inspection of a vessel (P41), entered by hand from the report: when and where, who commissioned it (the
+ * A SIRE 2.0 inspection of a vessel, entered by hand from the report: when and where, who commissioned it (the
  * submitting company, a charterer or oil company), the report's reference and status, and the report itself (a PDF,
  * stored like the library's files, LibraryFileStorage, under a generated name; the uploaded name is only shown and
  * used for the download). A vessel has many; the latest (by inspection date, then id) is "its" SIRE 2.0 standing.

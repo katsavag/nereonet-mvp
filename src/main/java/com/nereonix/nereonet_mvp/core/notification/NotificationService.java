@@ -18,7 +18,7 @@ public class NotificationService {
     }
 
     /**
-     * Saves an unread notification (P23). subject: the ship or person it concerns, shown above the text ("MV Demo",
+     * Saves an unread notification. subject: the ship or person it concerns, shown above the text ("MV Demo",
      * "Jane Doe · MV Demo"). link: an app path such as /ship/library/3, or null; opening the notification follows it.
      */
     @Transactional

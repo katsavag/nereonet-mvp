@@ -11,7 +11,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.UrlPathHelper;
 
 /**
- * The links of the English / Greek switch (layout/parts :: langSwitch, P16), used as {@code @languageLinks} in
+ * The links of the English / Greek switch (layout/parts :: langSwitch), used as {@code @languageLinks} in
  * Thymeleaf. A link changes only the language: it is the current page's query string with {@code lang} set, as a
  * relative URL ("?lang=el&amp;shipId=1&amp;status=expired"), so the browser keeps the path and the filtered list,
  * page number or invitation token stay as they are. {@code lang} comes first; the other parameters keep their order

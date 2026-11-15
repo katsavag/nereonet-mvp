@@ -9,7 +9,7 @@ public record AcknowledgementCounts(long crew, Map<Long, Long> byItem) {
         return byItem.getOrDefault(itemId, 0L);
     }
 
-    /** The share that acknowledged, 0 to 100 (whole percent, rounded down), for the progress bar (P22). */
+    /** The share that acknowledged, 0 to 100 (whole percent, rounded down), for the progress bar. */
     public long percentOf(Long itemId) {
         return crew == 0 ? 0 : Math.min(100, of(itemId) * 100 / crew);
     }

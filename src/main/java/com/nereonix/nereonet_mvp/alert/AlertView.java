@@ -8,7 +8,7 @@ import com.nereonix.nereonet_mvp.core.alert.AlertLevels;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
 /**
- * One alert as the snooze page reviews it (P43): what it is right now (its key and level), the vessel it concerns,
+ * One alert as the snooze page reviews it: what it is right now (its key and level), the vessel it concerns,
  * and what names it: the certificate type or the SIRE question (subject), the person for a certificate or missing
  * documents, the date that drives it (a certificate's expiry, an inspection's valid until, a report's current until,
  * the comments' due date, an observation's target), and a number (missing documents, the Safety Score).

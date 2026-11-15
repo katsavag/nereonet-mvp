@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Turns a pack's unit into an item's unit (P44), so a 5 L can and 1 L bottles compare per litre. Units of one kind
+ * Turns a pack's unit into an item's unit, so a 5 L can and 1 L bottles compare per litre. Units of one kind
  * convert (volume: l, lt, ml, cl; mass: kg, g, t, lb; count: pcs, ea, dozen); a unit not listed converts only to
  * itself (the same text, ignoring case and a final dot). Anything else cannot be compared, and the quote form
  * refuses such a pack unit.

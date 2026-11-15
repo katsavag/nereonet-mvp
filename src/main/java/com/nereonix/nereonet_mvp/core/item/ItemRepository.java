@@ -11,14 +11,14 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     long countByShipId(Long shipId);
 
-    // The store (P52): the ship's active provisions, by name.
+    // The store: the ship's active provisions, by name.
     List<Item> findAllByShipIdAndCategoryAndActiveTrueOrderByNameAsc(Long shipId, ItemCategory category);
 
     Optional<Item> findByIdAndShipId(Long id, Long shipId);
 
     boolean existsByShipIdAndNameIgnoreCase(Long shipId, String name);
 
-    // The name is unique per ship, ignoring case: approving a request links a new item name to it (P34).
+    // The name is unique per ship, ignoring case: approving a request links a new item name to it.
     Optional<Item> findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(Long shipId, String name);
 
     boolean existsByShipIdAndNameIgnoreCaseAndIdNot(Long shipId, String name, Long id);

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// The best guess of which column holds which field, and of which row holds the column names (P24).
+// The best guess of which column holds which field, and of which row holds the column names.
 // A column name scores when it is one of the field's aliases (exact, ignoring case, accents and punctuation), or less
 // when it contains all words of one ("Vessel IMO No." contains "imo"). Earlier aliases score higher. Each column goes
 // to one field at most, the best scores first.

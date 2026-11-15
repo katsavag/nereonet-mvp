@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.field.photo}, ~{::main})}">
 <body>
-<!-- My profile, Photo (P31). The current photo (the 512px version) or "No photo: your initials are shown.", then the
-     upload: JPEG or PNG, at most 5 MB, said before a file is chosen (P05); js/forms.js shows the chosen file's name and
+<!-- My profile, Photo. The current photo (the 512px version) or "No photo: your initials are shown.", then the
+     upload: JPEG or PNG, at most 5 MB, said before a file is chosen; js/forms.js shows the chosen file's name and
      size. With js/profile.js (this page and Languages only) the browser makes the photo smaller first (at most 800px
      on its longest side, JPEG) and shows a preview; without it the original is sent. Either way the server makes its
-     own JPEGs without any metadata (core/profile/PhotoImages). "Delete my profile photo" asks first (P10, neutral).
+     own JPEGs without any metadata (core/profile/PhotoImages). "Delete my profile photo" asks first (neutral).
      ?fileTooLarge comes from UploadTooLargeFilter. Model: me, ship, profile, maxPhotoSize; photoError: a message key. -->
 <main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{profile.field.photo}, crumbs=~{::pageCrumbs})}">

@@ -5,15 +5,15 @@
 
 <!-- Ship particulars and the items by category. office: false on the crew's page, where items open
      /ship/library/{id}; true on the office's Library tab, where they open /office/ships/{shipId}/library/{id} (the
-     read view, P22).
-     Each item is one row (P22): the type icon, the title (the link; the whole row is its click area), version and
+     read view).
+     Each item is one row: the type icon, the title (the link; the whole row is its click area), version and
      date published (UTC), and for a Required item a badge and, when acknowledgementCounts is given, the progress.
      acknowledgedItemIds: for the crew, the ids of the items whose current version they acknowledged (the badge
      says "Required · to acknowledge" or "Required · acknowledged"); null for the office (the badge says "Required").
      acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" with a thin bar on each Required
      item, linking to its acknowledgement overview; null for the other crew.
      particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them.
-     addAction: Add an item, shown in the empty library's empty state (P25; the page header then leaves it out), or
+     addAction: Add an item, shown in the empty library's empty state (the page header then leaves it out), or
      null for the crew who cannot add (the empty state then says who does). -->
 <th:block th:fragment="content(ship, itemsByCategory, office, acknowledgedItemIds, acknowledgementCounts, particularsUrl, addAction)">
     <div class="card mb-4">
@@ -28,7 +28,7 @@
             <p th:if="${office}" class="fw-semibold mb-0 text-break"><a th:replace="~{layout/parts :: shipLink(${ship})}">MV Demo</a></p>
             <p class="text-body-secondary small mb-0">
                 <span th:text="#{ship.codeValue(${ship.imoNumber})}">IMO 9074729</span>
-                <!-- P43: the flag's image, then "Flag GR" as before. -->
+                <!-- The flag's image, then "Flag GR" as before. -->
                 <th:block th:if="${ship.flag}">
                     · <span class="country"><img th:replace="~{layout/parts :: flag(${ship.flag})}"><span
                         th:text="#{library.flag(${ship.flag})}">Flag GR</span></span>
@@ -87,7 +87,7 @@
     </section>
 </th:block>
 
-<!-- "12 of 20 acknowledged" over a thin bar (P22), linking to the item's acknowledgement overview. The words carry the
+<!-- "12 of 20 acknowledged" over a thin bar, linking to the item's acknowledgement overview. The words carry the
      numbers; the bar only repeats them (hidden from screen readers) and turns green when everyone has acknowledged. -->
 <a th:fragment="progress(counts, itemId, url)" class="ack-progress"
    th:classappend="${counts.completeFor(itemId)} ? 'is-complete'" th:href="@{${url}}">
@@ -96,7 +96,7 @@
     <progress class="ack-progress-bar" max="100" th:value="${counts.percentOf(itemId)}" aria-hidden="true">60</progress>
 </a>
 
-<!-- The type of a version (P22): a page with "PDF", "DOCX" or "XLSX" on it, or lines for a text version. The label
+<!-- The type of a version: a page with "PDF", "DOCX" or "XLSX" on it, or lines for a text version. The label
      says the type; the colour only repeats it. Its accessible name is "PDF file" or "Text". -->
 <span th:fragment="typeIcon(version)" class="file-type"
       th:classappend="${version.file} ? 'file-type-' + ${#strings.toLowerCase(version.fileType)} : 'file-type-text'"
@@ -124,7 +124,7 @@
     <time th:replace="~{layout/parts :: localTime(${version.publishedAt})}"></time>
 </th:block>
 
-<!-- What an item says, the same for the crew and the office (P22). Needs ${item}.
+<!-- What an item says, the same for the crew and the office. Needs ${item}.
      A text version: the text. A file version: one file row, the type icon, file name and size, and its actions:
      a PDF has "Open PDF" (in a new tab, so this page stays in the tab's history and Back still works there) and
      Download second; DOCX and XLSX have Download only.
@@ -159,7 +159,7 @@
     </div>
 </th:block>
 
-<!-- Version history (P22, Master and office), read only, newest first: label, when published (UTC) and by whom. The
+<!-- Version history (Master and office), read only, newest first: label, when published (UTC) and by whom. The
      current version has a "Current" badge. Needs ${item}. -->
 <section th:fragment="versionHistory(versions)" class="version-history" aria-labelledby="versionHistoryTitle">
     <h2 class="h6 fw-bold mb-2" id="versionHistoryTitle" th:text="#{library.history.heading}">Version history</h2>
@@ -189,7 +189,7 @@
 </header>
 
 <!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not. Needs ${overview}.
-     reminderUrl: where "Send reminder" posts (P22). It notifies everyone not yet acknowledged, asks first (a neutral
+     reminderUrl: where "Send reminder" posts. It notifies everyone not yet acknowledged, asks first (a neutral
      confirmForm: a notification cannot be taken back) and can be used once per 24 hours per item; until then the
      page says when the next one can be sent. Not shown when everyone has acknowledged. -->
 <th:block th:fragment="acknowledgements(reminderUrl)" th:with="item=${overview.item}">
@@ -243,7 +243,7 @@
               title=#{library.retire.confirm.title(${item.title})}, body=#{library.retire.confirm.body(${item.title})},
               confirm=#{library.retire.submit}, tone='danger')}"></form>
 
-<!-- Drafts (P15): the item, version and particulars forms below post to the URL of their own page, which is also the
+<!-- Drafts: the item, version and particulars forms below post to the URL of their own page, which is also the
      key js/save.js keeps their draft under (data-draft) while the user types; the file is never kept.
 
      The "Add an item" form. Needs ${form} and ${categories}. ?fileTooLarge comes from UploadTooLargeFilter.
@@ -351,7 +351,7 @@
 <!-- Text or file, not both: the content of an item (itemForm) or of a new version (versionForm). Inside the form
      (th:object set). The file input shows the accepted types and the size limit before a file is chosen, and the
      chosen file's name and size after (js/forms.js). Under it, as an info note it also names in aria-describedby:
-     "Do not upload security-sensitive material such as the Ship Security Plan." (FR-SIN-002, P16). -->
+     "Do not upload security-sensitive material such as the Ship Security Plan." (FR-SIN-002). -->
 <th:block th:fragment="contentFields(textLabel, fileLabel)">
     <p class="form-text mt-0 mb-3" id="contentHint" th:text="#{library.form.contentHint}">Write text or attach a file, not both.</p>
     <div th:if="${#fields.hasErrors('contentValid')}" class="invalid-feedback d-block mb-3"

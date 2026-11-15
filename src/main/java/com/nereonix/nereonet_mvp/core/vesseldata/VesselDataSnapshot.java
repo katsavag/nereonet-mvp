@@ -18,7 +18,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * What VesselAPI last returned for one vessel and one call (P45): one row per vessel and VesselEndpoint, written by
+ * What VesselAPI last returned for one vessel and one call: one row per vessel and VesselEndpoint, written by
  * VesselDataService on a lookup that was saved or a refresh, never on opening a page. rawJson is the body exactly as
  * received, unknown fields included; the pages parse their fields from it on read (VesselJson). A call that fails
  * (any result but OK) changes only lastAttemptAt and lastAttemptResult: the previous body and dates stay.

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + (${observation == null} ? #{sire.observation.add} : #{sire.observation.edit}), ~{::main})}">
 <body>
-<!-- "Add observation" and an observation's edit form (P41): a negative observation of one SIRE 2.0 inspection. First
+<!-- "Add observation" and an observation's edit form: a negative observation of one SIRE 2.0 inspection. First
      where it is in the VIQ (chapter and question number), its type and the report's text; then the follow-up: the
      operator's comment, the corrective action, the office user who owns it, the target date and the closed date (a
      closed date closes it). Model: ship, inspection, observation (null when adding), form (SireObservationForm),

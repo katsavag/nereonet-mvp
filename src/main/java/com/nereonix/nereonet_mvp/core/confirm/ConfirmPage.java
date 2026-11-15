@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * What a confirmation asks (P10), for the plain confirmation page (confirm/confirm.html). The same texts are on the
+ * What a confirmation asks, for the plain confirmation page (confirm/confirm.html). The same texts are on the
  * action's form as data attributes (layout/parts :: confirmForm), where js/confirm.js shows them in the dialog; this
  * page is where the action leads when that script did not load. Every text is already in the user's language.
  *
@@ -16,10 +16,10 @@ import java.util.Map;
  * @param tone         DANGER for what cannot be undone, NEUTRAL for what Activate undoes
  * @param action       the POST URL of the action
  * @param fields       hidden fields the form posts with the action, in order: the ship page tab it returns to
- *                     ("tab"), or the list and filters it returns to (e.g. an invitation's Resend and Cancel, P17)
+ *                     ("tab"), or the list and filters it returns to (e.g. an invitation's Resend and Cancel)
  * @param cancelUrl    where the dismiss button goes: the page the action was started from
  * @param crumbs       the breadcrumbs above the heading (the heading itself is added by the page header)
- * @param note         an optional text field the action is posted with (P50: the office's note on removing an order
+ * @param note         an optional text field the action is posted with (the office's note on removing an order
  *                     line), or null for none
  * @param items        P58: what will change, one line each, listed under the body (empty for none): resetting a
  *                     vessel's required documents to its type's defaults

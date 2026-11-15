@@ -27,8 +27,8 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 /**
- * "Count what arrived" (P61, P63): the vessel's Chief cook counts a CONFIRMED order (delivery scheduled) row by row
- * against the invoice read from its photos (P62), then sends the count to the Master, who approves it
+ * "Count what arrived": the vessel's Chief cook counts a CONFIRMED order (delivery scheduled) row by row
+ * against the invoice read from its photos, then sends the count to the Master, who approves it
  * (OrderReceiptController). Nothing here touches the store. SecurityConfig gives /ship/orders/{id}/count/** to
  * CHIEF_COOK only; DeliveryCountService refuses anyone but the ship's enabled Chief cook as well; another ship's order
  * is a 404. English only, as every crew page. Everything works without JavaScript (js/count.js only names the button

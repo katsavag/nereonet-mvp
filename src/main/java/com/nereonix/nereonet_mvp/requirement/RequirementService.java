@@ -28,7 +28,7 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The office's Required documents page (P42): the grid of one vessel (P58; of one vessel type before), and saving it.
+ * The office's Required documents page: the grid of one vessel (of one vessel type before), and saving it.
  * Rows: every type with a requirement on any vessel, the starter types (CertificateTypes.STARTER) and the types of the
  * certificates on record, one row per type (P20 matching), the starter types first in their order, then the others by
  * name. A type the office asks to add (?add=) is shown first until saved.
@@ -58,7 +58,7 @@ public class RequirementService {
     }
 
     /**
-     * What the vessel filter chose (P58: active vessels only): the vessel with this id, else the first by name (none
+     * What the vessel filter chose (active vessels only): the vessel with this id, else the first by name (none
      * without active vessels). One query: the active vessels, which are also the filter's options, each named with
      * its type in the given language ("ALDER · Bulk carrier").
      */
@@ -104,7 +104,7 @@ public class RequirementService {
     }
 
     /**
-     * Removes the certificate type's requirement from one vessel only (P43; P58: the shown vessel). Recorded as
+     * Removes the certificate type's requirement from one vessel only (P58: the shown vessel). Recorded as
      * "Required documents changed" ("ALDER: Tanker Endorsement removed"). Returns false when there was none.
      */
     @Transactional
@@ -248,7 +248,7 @@ public class RequirementService {
         for (Map.Entry<String, RequirementGridForm.RowForm> entry : sent.entrySet()) {
             RequirementGridForm.RowForm row = entry.getValue();
             DocumentRequirement saved = own.get(entry.getKey());
-            // The row toggle (P43) sent without JavaScript: every rank, on this vessel.
+            // The row toggle sent without JavaScript: every rank, on this vessel.
             Set<Rank> ranks = row.isAll() ? EnumSet.allOf(Rank.class)
                     : row.getRanks().isEmpty() ? EnumSet.noneOf(Rank.class) : EnumSet.copyOf(row.getRanks());
             boolean keep = !ranks.isEmpty() || row.getNote() != null || row.isOptional();
@@ -302,7 +302,7 @@ public class RequirementService {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // The defaults of the vessel's type (P58)
+    // The defaults of the vessel's type
 
     /** One difference "Reset to Bulk carrier defaults" undoes: the type and what happens to it. */
     record Change(String type, Kind kind, String label) {
@@ -374,7 +374,7 @@ public class RequirementService {
     }
 
     /**
-     * "Reset to Bulk carrier defaults" (P58): the vessel's requirements become the defaults of its type again (its
+     * "Reset to Bulk carrier defaults": the vessel's requirements become the defaults of its type again (its
      * other rows, notes and Optional go). Recorded as REQUIREMENTS_RESET on the vessel ("ALDER: reset to the
      * BULK_CARRIER defaults: Passport restored; Yellow Fever Certificate removed"). Returns false, recording nothing,
      * when the vessel already had them.

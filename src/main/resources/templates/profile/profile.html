@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.title}, ~{::main})}">
 <body>
-<!-- My profile (P31): what the signed-in seafarer says about themselves. The header is the office's: their picture,
+<!-- My profile: what the signed-in seafarer says about themselves. The header is the office's: their picture,
      name and "rank · ship", read only. Then one line on who sees it, and the four optional fields as full-width rows,
      each opening its own page (Save comes back here with "Saved."). English only, no script of its own.
-     Model: me (User), ship, profile (CrewProfile, empty before the first Save), certificates (theirs, P39), today. -->
+     Model: me (User), ship, profile (CrewProfile, empty before the first Save), certificates (theirs), today. -->
 <main class="profile-page"
       th:with="languageNames=${profile.languages.isEmpty()} ? null : ${@profileNames.languages(profile.languages, null)},
                nationalityName=${@profileNames.country(profile.nationality, null)}">
@@ -23,7 +23,7 @@
         <ul class="profile-rows">
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/languages', #{profile.field.languages},
                     ${languageNames}, null)}"></li>
-            <!-- P43: the nationality with its flag. -->
+            <!-- The nationality with its flag. -->
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/nationality', #{profile.field.nationality},
                     ${nationalityName}, ${nationalityName != null} ? ${profile.nationality} : null)}"></li>
             <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio}, null)}"></li>
@@ -32,7 +32,7 @@
         </ul>
     </section>
 
-    <!-- P39: the person's own certificates, read only, soonest expiry first (so expired ones lead). Only they and the
+    <!-- The person's own certificates, read only, soonest expiry first (so expired ones lead). Only they and the
          office see them; crewmates never do (My crew is unchanged). -->
     <section class="profile-section" aria-labelledby="myCertificatesTitle">
         <h2 class="profile-section-title" id="myCertificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>

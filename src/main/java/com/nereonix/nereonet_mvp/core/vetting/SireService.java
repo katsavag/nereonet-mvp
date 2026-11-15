@@ -34,7 +34,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * SIRE 2.0 in Vetting (P41): a vessel's SIRE 2.0 inspections (SireInspection), their negative observations
+ * SIRE 2.0 in Vetting: a vessel's SIRE 2.0 inspections (SireInspection), their negative observations
  * (SireObservation) and reports. The office enters everything by hand from the report; there is no connection to
  * OCIMF. Every add, edit and upload is in the audit log. The pages check the vessel first (VettingService.activeShip);
  * an inspection or observation of another vessel or inspection is a 404 here.
@@ -124,7 +124,7 @@ public class SireService {
     @Transactional(readOnly = true)
     public Set<Long> shipIdsNeedingAttention() {
         LocalDate today = VettingService.today();
-        // P43: the items whose snooze holds are left out (the cut-offs give the items' levels, AlertLevels).
+        // The items whose snooze holds are left out (the cut-offs give the items' levels, AlertLevels).
         Set<Long> ids = new HashSet<>(inspectionRepository.findShipIdsNeedingAttention(
                 settings.currentCutoff(today), settings.commentsCutoff(today), today,
                 settings.latestInspectionCurrentUntil(today.minusDays(1)),
@@ -135,7 +135,7 @@ public class SireService {
         return ids;
     }
 
-    /** What the Overview lists (P09): the latest inspections that need attention, and the overdue observations. */
+    /** What the Overview lists: the latest inspections that need attention, and the overdue observations. */
     public record Attention(List<SireView> inspections, List<SireObservation> overdueObservations) {
     }
 

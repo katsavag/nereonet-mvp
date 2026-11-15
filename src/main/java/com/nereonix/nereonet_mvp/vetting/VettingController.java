@@ -38,7 +38,7 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.ship.Countries;
 
 /**
- * Vetting (P40), office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip (P40) and SIRE
+ * Vetting, office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip and SIRE
  * 2.0 (P41, SireController).
  *   /office/vetting                              every active vessel's RightShip and SIRE 2.0 standing (P19 list)
  *   /office/vetting/{shipId}                     one vessel: a card per vetting regime (RightShip, SIRE 2.0)
@@ -54,7 +54,7 @@ public class VettingController {
 
     static final String LIST = "/office/vetting";
 
-    // The list's sorts (P19), the default first: most urgent of both regimes (expired, expiring, lowest score), then
+    // The list's sorts, the default first: most urgent of both regimes (expired, expiring, lowest score), then
     // name; P41 adds the latest SIRE 2.0 inspection.
     private static final ListSort[] SORTS = {ListSort.asc(VettingService.SORT_URGENCY), ListSort.asc("name"),
             ListSort.asc("type"), ListSort.asc("score"), ListSort.asc("ghg"), ListSort.asc("inspection"),
@@ -73,7 +73,7 @@ public class VettingController {
         this.userRepository = userRepository;
     }
 
-    // type: a ShipType (?type=BULK_CARRIER); regime: rightship or sire (P41); status: attention, valid or notrated.
+    // type: a ShipType (?type=BULK_CARRIER); regime: rightship or sire; status: attention, valid or notrated.
     // Anything else filters nothing.
     @GetMapping(LIST)
     public String list(@RequestParam(required = false) String type, @RequestParam(required = false) String regime,
@@ -102,7 +102,7 @@ public class VettingController {
         model.addAttribute("regimes", VettingService.REGIMES);
         model.addAttribute("regime", chosenRegime);
         model.addAttribute("syncFailedAt", vettingService.syncFailedAt());
-        // P43: the vessels' flags with their country names.
+        // The vessels' flags with their country names.
         model.addAttribute("countries", Countries.labels(LocaleContextHolder.getLocale()));
         return "vetting/list";
     }
@@ -112,7 +112,7 @@ public class VettingController {
         Ship ship = vettingService.activeShip(shipId);
         model.addAttribute("ship", ship);
         model.addAttribute("rightShip", vettingService.view(ship));
-        // P41: tankers show SIRE 2.0 first; elsewhere it collapses to one line until the vessel has an inspection.
+        // Tankers show SIRE 2.0 first; elsewhere it collapses to one line until the vessel has an inspection.
         model.addAttribute("sire", sireService.latest(ship));
         model.addAttribute("sireApplies", VettingService.sireApplies(ship));
         return "vetting/vessel";

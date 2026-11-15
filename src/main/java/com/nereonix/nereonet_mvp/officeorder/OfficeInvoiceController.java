@@ -31,7 +31,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * P64, the office compares order, delivery and invoice (InvoiceComparisonService). The comparison itself is a card of
+ * The office compares order, delivery and invoice (InvoiceComparisonService). The comparison itself is a card of
  * the order page (OfficeOrderController); here are its actions, each a plain POST form that comes back to the card
  * (#compare) with a message, and two pages: View invoice (the photographed pages beside what was read, one page at a
  * time, a line read wrong corrected there) and Change the product of an invoice line. Office users only (/office/**);

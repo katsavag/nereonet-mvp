@@ -20,9 +20,9 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 /**
- * Sends emails from the system address (app.mail.from): plain text, or plain text with an HTML version (P29).
+ * Sends emails from the system address (app.mail.from): plain text, or plain text with an HTML version.
  * <p>
- * P30: the sender has a display name (app.mail.from-name, "Nereonix" by default), so the inbox shows a name rather
+ * The sender has a display name (app.mail.from-name, "Nereonix" by default), so the inbox shows a name rather
  * than a bare address, which mail filters also count against a message. The Message-ID uses the sender's domain
  * (spring.mail.properties.mail.from in application.yml) rather than this computer's name.
  */
@@ -78,12 +78,12 @@ public class MailService {
         log.info("Email sent to {}: {}", to, subject);
     }
 
-    /** A file sent with an email (P44: the RFQ's workbook). */
+    /** A file sent with an email (the RFQ's workbook). */
     public record Attachment(String filename, String contentType, byte[] content) {
     }
 
     /**
-     * As send(to, subject, text, html), with a Reply-To (the office user a supplier answers, P44) and attachments.
+     * As send(to, subject, text, html), with a Reply-To (the office user a supplier answers) and attachments.
      * MIME structure: multipart/mixed holding the multipart/related of send(...) and the attachments.
      */
     public void send(String to, String replyTo, String subject, String text, String html,

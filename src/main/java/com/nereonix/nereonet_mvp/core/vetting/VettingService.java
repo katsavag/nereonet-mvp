@@ -50,19 +50,19 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.vetting.RightShipClient.VesselInfo;
 
 /**
- * Vetting (P40): every active vessel's RightShip standing (ShipRightShipStatus, one current row per vessel and the
+ * Vetting: every active vessel's RightShip standing (ShipRightShipStatus, one current row per vessel and the
  * earlier ones as history) and its official RightShip documents (RightShipReport). The office edits the data by hand
  * (saveManual) and uploads the documents; the RightShip API sync (RightShipSyncService) adds rows through applyApi.
  * Every change is in the audit log. Only active vessels have Vetting pages: an inactive or unknown vessel is a 404.
- * SIRE 2.0 (P41) lives in SireService; the Vetting list and the sidebar counter put both regimes together here.
+ * SIRE 2.0 lives in SireService; the Vetting list and the sidebar counter put both regimes together here.
  */
 @Service
 public class VettingService {
 
-    /** The Vetting list's sorts (P19), the default first: most urgent. */
+    /** The Vetting list's sorts, the default first: most urgent. */
     public static final String SORT_URGENCY = "urgency";
 
-    /** The Vetting list's Regime filter (P41): only RightShip, or only SIRE 2.0 (null: both). */
+    /** The Vetting list's Regime filter: only RightShip, or only SIRE 2.0 (null: both). */
     public static final String REGIME_RIGHTSHIP = "rightship";
     public static final String REGIME_SIRE = "sire";
     public static final List<String> REGIMES = List.of(REGIME_RIGHTSHIP, REGIME_SIRE);
@@ -101,7 +101,7 @@ public class VettingService {
     // ---------------------------------------------------------------------------------------------------------------
 
     /**
-     * One alert of a vessel on the Vetting list (P43): the item and, when a snooze holds for it, that snooze.
+     * One alert of a vessel on the Vetting list: the item and, when a snooze holds for it, that snooze.
      */
     public record AlertRow(Alert alert, AlertSnooze snooze) {
 
@@ -117,7 +117,7 @@ public class VettingService {
 
     /**
      * One row of the Vetting list: an active vessel, its RightShip standing, its latest SIRE 2.0 inspection and
-     * (P43) its alerts, each with its snooze when one holds.
+     * its alerts, each with its snooze when one holds.
      */
     public record VettingRow(Ship ship, RightShipView view, SireView sire, List<AlertRow> alerts) {
 
@@ -159,7 +159,7 @@ public class VettingService {
         /**
          * The Status filter this row falls under, for the regime (null: both). Needs attention: an alert not snoozed
          * of either regime (RightShip: inspection or low score; SIRE: report, comments or observations). Else
-         * Snoozed: an alert put aside (P43). Else Not rated: no RightShip score, or for the SIRE regime no SIRE
+         * Snoozed: an alert put aside. Else Not rated: no RightShip score, or for the SIRE regime no SIRE
          * inspection. Else Valid.
          */
         public String filterStatus(String regime) {
@@ -209,7 +209,7 @@ public class VettingService {
                 .collect(Collectors.toMap(s -> s.getShip().getId(), Function.identity()));
         Map<Long, SireView> sire = sireService.latestByShip();
         SireView noSire = new SireView(null, List.of(), sireService.settings(), today);
-        // P43: the snoozes that hold (one query), matched to each vessel's alerts.
+        // The snoozes that hold (one query), matched to each vessel's alerts.
         Map<AlertKey, AlertSnooze> snoozes = snoozeService.active();
         String q = list.getQ() == null ? null : list.getQ().toLowerCase(Locale.ROOT);
         List<VettingRow> rows = new ArrayList<>(shipRepository.findAllByActiveTrueOrderByNameAsc().stream()
@@ -227,7 +227,7 @@ public class VettingService {
         return new PageImpl<>(List.copyOf(rows.subList(from, to)), PageRequest.of(page, list.getSize()), total);
     }
 
-    /** A vessel's row with its alerts (RightShip and SIRE 2.0) and the snoozes that hold for them (P43). */
+    /** A vessel's row with its alerts (RightShip and SIRE 2.0) and the snoozes that hold for them. */
     public static VettingRow row(Ship ship, RightShipView view, SireView sire, Map<AlertKey, AlertSnooze> snoozes) {
         List<AlertRow> alerts = new ArrayList<>();
         for (Alert alert : view.alerts(ship.getId())) {
@@ -252,7 +252,7 @@ public class VettingService {
             case "ghg" -> nullsLast(r -> r.view().ghgRated() ? ghgRank(r.view()) : null, descending);
             case "inspection" -> nullsLast(r -> r.view().inspectionValidUntil(), descending);
             case "sire" -> nullsLast(r -> r.sire().inspectionDate(), descending);
-            // Most urgent of both regimes (P41): expired or not current (or comments or observations due), expiring
+            // Most urgent of both regimes: expired or not current (or comments or observations due), expiring
             // or ending, then the lowest score (not rated last).
             default -> Comparator.comparingInt(VettingRow::urgency)
                     .thenComparing(r -> r.view().score(), Comparator.nullsLast(Comparator.naturalOrder()));
@@ -274,20 +274,20 @@ public class VettingService {
         return Comparator.comparing(key, Comparator.nullsLast(descending ? natural.reversed() : natural));
     }
 
-    /** SIRE 2.0 applies to tankers (P41): their Vetting page shows it first, the others a collapsed line. */
+    /** SIRE 2.0 applies to tankers: their Vetting page shows it first, the others a collapsed line. */
     public static boolean sireApplies(Ship ship) {
         return ship.getType() == ShipType.TANKER;
     }
 
     /**
      * The sidebar counter of Vetting: active vessels whose RightShip inspection is expired or expires within 60 days,
-     * or (P41) whose SIRE 2.0 report is no longer current or ends within 60 days, whose operator comments are due
+     * or whose SIRE 2.0 report is no longer current or ends within 60 days, whose operator comments are due
      * within 3 days, or with an observation past its target date. Each vessel once. Three queries of ids.
      */
     @Transactional(readOnly = true)
     public long vesselsNeedingAttention() {
         LocalDate today = today();
-        // P43: not the vessels whose inspection snooze holds.
+        // Not the vessels whose inspection snooze holds.
         Set<Long> ids = new HashSet<>(statusRepository.findShipIdsInspectionDueUntil(
                 today.plusDays(InspectionState.EXPIRING_DAYS), today, today.plusDays(30), AlertKind.VETTING_INSPECTION));
         ids.addAll(sireService.shipIdsNeedingAttention());

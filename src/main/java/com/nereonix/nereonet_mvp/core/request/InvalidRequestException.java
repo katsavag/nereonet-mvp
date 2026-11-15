@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.request;
 
 /**
- * What RequestService.submit and update refuse (P54), with the reason, so a page can show it as a form error without
+ * What RequestService.submit and update refuse, with the reason, so a page can show it as a form error without
  * repeating the checks. Still an IllegalArgumentException, as before.
  */
 public class InvalidRequestException extends IllegalArgumentException {

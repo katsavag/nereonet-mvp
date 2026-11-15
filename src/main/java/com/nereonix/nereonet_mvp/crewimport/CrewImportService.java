@@ -34,7 +34,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 import jakarta.validation.Validator;
 
-// Crew list import (P24): map the columns of any crew file (the template, or a crewing system's export), validate
+// Crew list import: map the columns of any crew file (the template, or a crewing system's export), validate
 // every row, then invite the included rows. Every row is a new crew member (an invitation); an email that already has
 // a user is an error. Nothing is saved and no email is sent before importRows. Never log file contents.
 @Service
@@ -130,7 +130,7 @@ public class CrewImportService implements ImportTarget<CrewImportForm> {
             row.setShipImo(shipImo(upload.value(fileRow, field(SHIP)), ships));
             rows.add(row);
         }
-        // P18: a Role column (the template from before) is ignored; the review page says so.
+        // A Role column (the template from before) is ignored; the review page says so.
         List<String> header = upload.header();
         boolean roleIgnored = false;
         for (int i = 0; i < header.size(); i++) {
@@ -181,7 +181,7 @@ public class CrewImportService implements ImportTarget<CrewImportForm> {
                 errors.put("email", "crewImport.error.emailRepeated");
             }
 
-            // The rank sets the role (P18), so it is required.
+            // The rank sets the role, so it is required.
             Role role = row.getRole();
             if (row.getRank().isEmpty()) {
                 errors.put("rank", "user.error.rankRequired");
@@ -228,7 +228,7 @@ public class CrewImportService implements ImportTarget<CrewImportForm> {
         List<CrewImportRow> included = form.getIncludedRows();
         for (CrewImportRow row : included) {
             Rank rank = Rank.valueOf(row.getRank());
-            // Records INVITATION_SENT for each row. The role is the rank's (P18).
+            // Records INVITATION_SENT for each row. The role is the rank's.
             invitationService.invite(row.getEmail(), row.getFullName(), rank.role(),
                     ships.get(row.getShipImo()).getId(), rank, actorEmail);
         }

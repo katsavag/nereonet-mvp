@@ -11,11 +11,11 @@ import jakarta.validation.constraints.Size;
 
 // One crew member on the review screen. Values stay strings so a wrong value from the file can be shown.
 // rank and shipImo hold the canonical value (e.g. "SECOND_OFFICER", "9074729") when the file value was recognised or
-// mapped, otherwise the value as it was in the file. There is no role: it follows from the rank (getRole, P18).
+// mapped, otherwise the value as it was in the file. There is no role: it follows from the rank (getRole).
 public class CrewImportRow extends ImportRow {
 
     // The annotations are only used by CrewImportService.validate for the length and email format checks, and by the
-    // review page's live check for the length (P39).
+    // review page's live check for the length.
     @Size(max = 255)
     private String fullName = "";
 

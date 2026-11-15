@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * The languages a seafarer can list on their profile (P31): the ISO 639-1 codes the JDK knows (java.util.Locale), with
+ * The languages a seafarer can list on their profile: the ISO 639-1 codes the JDK knows (java.util.Locale), with
  * their English names, sorted by name. Codes the JDK has no name for are left out.
  */
 public final class Languages {

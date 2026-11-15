@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
 // The category is the file's text ("Provisions", "Personal items"); ItemImportService checks it.
 public class ItemImportRow extends ImportRow {
 
-    // The limits ItemImportService checks; the annotations give them to the review page's live check (P39).
+    // The limits ItemImportService checks; the annotations give them to the review page's live check.
     @Size(max = Item.NAME_MAX_LENGTH)
     private String name = "";
     @Size(max = Item.UNIT_MAX_LENGTH)

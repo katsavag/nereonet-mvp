@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 /**
- * "Edit RightShip data" (P40): every field of a vessel's RightShip standing, as the office reads it off the RightShip
+ * "Edit RightShip data": every field of a vessel's RightShip standing, as the office reads it off the RightShip
  * report or platform. Each field may stay empty (not known). Saving adds a row (VettingService.saveManual).
  * The fields are in the order of the page: Safety Score, the six subscores in their impact groups, GHG Rating,
  * inspection, restrictions, the platform link.

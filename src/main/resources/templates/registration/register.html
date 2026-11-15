@@ -5,13 +5,13 @@
 <!-- Same frame as the sign-in page. The language switch keeps the token, so switching stays on this invitation. -->
 <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true, token=${form.token})}">
     <th:block th:fragment="authContent">
-        <!-- What the person is joining (P13): the ship and their rank (or role, without a rank), or the office. -->
+        <!-- What the person is joining: the ship and their rank (or role, without a rank), or the office. -->
         <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.heading},
                 subtitle=${invitation.ship == null} ? #{registration.joining.office}
                     : #{registration.joining.ship(${invitation.ship.name},
                         ${invitation.rank != null} ? #{${'rank.' + invitation.rank}} : #{${'registration.joining.role.' + invitation.role}})})}"></header>
 
-        <!-- P30: someone still signed in (often the office user who sent the invitation and opened the link to check
+        <!-- Someone still signed in (often the office user who sent the invitation and opened the link to check
              it) is told who, since creating the account switches the browser to the new account. -->
         <div sec:authorize="isAuthenticated()" class="alert alert-warning" role="status"
              th:text="#{registration.signedInAs(${#authentication.principal.fullName})}">You are signed in as Maria
@@ -37,6 +37,7 @@
                 <button type="submit" class="btn btn-primary btn-lg w-100" th:text="#{registration.submit}">Create account</button>
             </div>
         </form>
+        <script th:src="@{/js/password.js}" defer></script>
     </th:block>
 </main>
 </body>

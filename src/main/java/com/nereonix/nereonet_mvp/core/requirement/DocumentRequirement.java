@@ -24,10 +24,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A required document (P42): one row of the office's grid. A certificate type (the same type list and spelling rules
+ * A required document: one row of the office's grid. A certificate type (the same type list and spelling rules
  * as certificates, P20: two types are one when equal after strip() and toLowerCase), the ranks it applies to, whether
  * it is only optional (shown, never counted) and an optional note ("needed before joining").
- * P58: each row belongs to one vessel (ship). A vessel starts with the defaults of its type (StarterRequirements),
+ * Each row belongs to one vessel (ship). A vessel starts with the defaults of its type (StarterRequirements),
  * copied when it is created; changes on its grid apply to it alone. At most one row per type and vessel
  * (RequirementService keeps it so).
  * shipType: only on rows from before P58, when requirements were per vessel type (null: all vessels) and ship was
@@ -49,7 +49,7 @@ public class DocumentRequirement {
     @Column(nullable = false, length = Certificate.TYPE_MAX_LENGTH)
     private String certificateType;
 
-    // P58: the vessel this requirement is for. Null only on a row from before P58 (see shipType), until migrated.
+    // The vessel this requirement is for. Null only on a row from before P58 (see shipType), until migrated.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ship_id")
     private Ship ship;

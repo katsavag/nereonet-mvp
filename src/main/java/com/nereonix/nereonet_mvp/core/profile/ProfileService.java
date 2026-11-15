@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * A seafarer's own profile (P31): languages, nationality, bio and photo. Every change is made by the signed-in person
+ * A seafarer's own profile: languages, nationality, bio and photo. Every change is made by the signed-in person
  * to their own profile (the email of the session, never an id from the request), and is recorded in the audit log
  * when it changes something: the field and its new value, the size of a photo, never image data or the bio's text.
  * Saving the same value again changes nothing and records nothing.

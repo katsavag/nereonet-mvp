@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.review.title}, ~{::main})}">
 <body>
-<!-- Step 2 of 2 of a new announcement (P10). Announcements cannot be edited or deleted, so this page shows what will
+<!-- Step 2 of 2 of a new announcement. Announcements cannot be edited or deleted, so this page shows what will
      be sent before anything is: the target (All ships, the one ship, or "3 ships"), the chosen ships that are no
-     longer active and are left out (P28), the recipients per ship (counted again when it is sent, with a Total for
+     longer active and are left out, the recipients per ship (counted again when it is sent, with a Total for
      more than one ship) and the title and message as the crew will see them. The form carries the text and the active
      target ships in hidden fields: "Send to N people on N ships" posts it to /office/announcements/send, "Back to edit"
      to /office/announcements/new, which shows the form with the text and the ticks.
      Ship names are not links here: leaving this page would lose the text. data-draft-for: once sent, js/save.js removes
-     the draft of the form (P15). -->
+     the draft of the form. -->
 <main class="form-page" th:with="ships=${targets.ships()},
                targetLabel=${targets.fleet()} ? #{announcement.target.fleet}
                    : (${onlyShip != null} ? ${onlyShip.name} + ' · ' + #{ship.codeValue(${onlyShip.imoNumber})}
@@ -26,7 +26,7 @@
     </header>
 
     <div class="review-stack form-box">
-        <!-- Chosen ships deactivated since they were ticked (P28): named, and not sent to. -->
+        <!-- Chosen ships deactivated since they were ticked: named, and not sent to. -->
         <div th:unless="${targets.leftOut().isEmpty()}" class="alert alert-warning review-left-out mb-0" role="status">
             <h2 class="h6 fw-bold mb-1" th:text="#{announcement.review.leftOut.heading(${targets.leftOut().size()})}">1 ship left out</h2>
             <p class="mb-0" th:text="#{announcement.review.leftOut.text}">Deactivated after you chose them, so they will not get it:</p>
@@ -88,7 +88,7 @@
             </article>
         </section>
 
-        <!-- FR-GEN-008 (P16): said right above Send, as on the form. -->
+        <!-- FR-GEN-008: said right above Send, as on the form. -->
         <p th:replace="~{layout/parts :: infoNote(null, #{announcement.notEmergency})}"></p>
 
         <form method="post" th:action="@{/office/announcements/send}" th:data-draft-for="@{/office/announcements/new}">

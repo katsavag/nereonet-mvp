@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 
 /**
- * The Chief cook's delivery count (P61): per line what arrived ("Received", empty until counted; 0 when nothing
+ * The Chief cook's delivery count: per line what arrived ("Received", empty until counted; 0 when nothing
  * arrived) and an optional note; one optional note to the Master; photos of the delivery note to add, and his own
  * uploaded ones to remove. Checked by DeliveryCountController (the lines must be the order's).
  */

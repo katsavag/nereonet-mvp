@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.invoice.reading.title}, ~{::main})}">
 <body>
-<!-- Reading the invoice (P62): "Reading page 1 of 2", never a spinner without text. The page reloads itself (meta
+<!-- Reading the invoice: "Reading page 1 of 2", never a spinner without text. The page reloads itself (meta
      refresh; the server sends it on once the reading is done: to the count, or back to the photo page when a page
      needs the ship's attention); js/invoice.js asks the status every 2 seconds meanwhile and updates the text, so the
      page changes as soon as it can. English only. Model: order, text, statusUrl. -->

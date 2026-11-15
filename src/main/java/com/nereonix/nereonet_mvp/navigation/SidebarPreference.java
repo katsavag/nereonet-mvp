@@ -12,7 +12,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * The sidebar's state from 768px (P29), used as {@code @sidebarPreference} in layout/layout.html: a 64px icon rail
+ * The sidebar's state from 768px, used as {@code @sidebarPreference} in layout/layout.html: a 64px icon rail
  * (collapsed, the default on a first visit) or the full sidebar with labels (expanded). The choice is remembered per
  * browser in the cookie {@code sidebar=expanded|collapsed}: js/sidebar.js writes it when the toggle is pressed, and
  * SidebarPreferenceController when the toggle is sent as a form (no JavaScript). The server reads it here, so the

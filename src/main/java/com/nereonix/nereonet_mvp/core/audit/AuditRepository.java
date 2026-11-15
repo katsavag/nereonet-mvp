@@ -9,7 +9,7 @@ import org.springframework.data.repository.Repository;
 
 // Not a JpaRepository on purpose: audit entries can be added and read, never updated or deleted.
 // The one exception is detachActor, needed to delete a user.
-// The audit log page reads its entries page by page with core/list/ListQueries (audit/AuditLogService, P19).
+// The audit log page reads its entries page by page with core/list/ListQueries (audit/AuditLogService).
 public interface AuditRepository extends Repository<AuditEntry, Long> {
 
     AuditEntry save(AuditEntry entry);
@@ -24,10 +24,10 @@ public interface AuditRepository extends Repository<AuditEntry, Long> {
 
     List<AuditEntry> findAll();
 
-    // Whether this was ever done: the starter template of required documents is added once (P42).
+    // Whether this was ever done: the starter template of required documents is added once.
     boolean existsByAction(String action);
 
-    // The newest entries with who did them and the ship, in one query: the Overview's Recent activity (P43).
+    // The newest entries with who did them and the ship, in one query: the Overview's Recent activity.
     @Query("select e from AuditEntry e left join fetch e.actor left join fetch e.ship order by e.occurredAt desc, e.id desc")
     List<AuditEntry> findNewest(Pageable page);
 }

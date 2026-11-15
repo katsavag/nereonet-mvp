@@ -22,7 +22,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The Master's approvals (P33): the item requests of the signed-in Master's own ship. A request of another ship is a
+ * The Master's approvals: the item requests of the signed-in Master's own ship. A request of another ship is a
  * 404, never a 403, so nobody can probe which requests exist.
  */
 @Service

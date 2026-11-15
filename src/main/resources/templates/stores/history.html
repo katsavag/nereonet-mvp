@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.log.title}, ~{::main})}">
 <body>
-<!-- The store's history (P53), the Chief cook only: every movement of the vessel's provisions, newest first, 50 a page
+<!-- The store's history, the Chief cook only: every movement of the vessel's provisions, newest first, 50 a page
      (StockService.HISTORY_PAGE_SIZE): date and time, item (a link to it), type, before, after, difference, who. Filter
      by type and by UTC days (a GET form). Kept plain on purpose: it will be redesigned. English only.
      Model: history (StoresService.History), filter (StoresHistoryFilter), types (StockMovementType values), newerUrl
@@ -14,7 +14,7 @@
         </th:block>
     </header>
 
-    <!-- P58: the Type, then the shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and
+    <!-- The Type, then the shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and
          To, which sit side by side at every width; Filter and Clear on their row from 768px, under them on phones. -->
     <form method="get" th:action="@{/ship/stores/history}" class="card card-body mb-4 stores-log-filter" novalidate>
         <div class="stores-log-type">

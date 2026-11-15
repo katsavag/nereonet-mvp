@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.vetting;
 
 /**
- * Whether a vessel's latest SIRE 2.0 report is still current today (P41): it is treated as current for
+ * Whether a vessel's latest SIRE 2.0 report is still current today: it is treated as current for
  * SireSettings.reportCurrentMonths after the inspection (company policy, not an OCIMF rule).
  * <ul>
  *   <li>CURRENT: current until a date more than ENDING_DAYS away (ok);</li>

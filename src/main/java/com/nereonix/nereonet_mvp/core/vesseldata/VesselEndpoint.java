@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.vesseldata;
 
 /**
- * The three VesselAPI calls (P45), each a GET of its own, kept as one VesselDataSnapshot row per vessel.
+ * The three VesselAPI calls, each a GET of its own, kept as one VesselDataSnapshot row per vessel.
  *   PARTICULARS  /vessel/{imo}?filter.idType=imo           name, type, flag, dimensions, tonnage, engine, statistics
  *   POSITION     /vessel/{imo}/position?filter.idType=imo  the last AIS position (looks back at most 80 hours)
  *   ETA          /vessel/{imo}/eta?filter.idType=imo       destination, ETA and draught declared by the vessel

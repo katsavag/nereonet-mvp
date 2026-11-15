@@ -23,9 +23,9 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// Required documents (P42), Administration in the sidebar: which certificate types each rank needs. P58: per vessel
+// Required documents, Administration in the sidebar: which certificate types each rank needs. P58: per vessel
 // (?vessel=12; the first active vessel by name without one), each starting with its type's defaults. The row toggle
-// per type (P43), Delete row and "Reset to Bulk carrier defaults" act on the shown vessel only and ask first (P10).
+// per type, Delete row and "Reset to Bulk carrier defaults" act on the shown vessel only and ask first.
 // A plain form of checkboxes, so it saves without JavaScript; Save comes back to the same vessel with "Required
 // documents saved". ?add= shows a new type as the first row. A post for an unknown or inactive vessel changes nothing.
 @Controller
@@ -77,7 +77,7 @@ public class RequirementController {
         return redirect(ship);
     }
 
-    // The confirmation page: where Delete row leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Delete row leads when js/confirm.js did not load.
     @GetMapping(PATH + "/delete")
     public String confirmDelete(@RequestParam String type, @RequestParam(required = false) String vessel, Model model) {
         Ship ship = requirementService.select(vessel, LocaleContextHolder.getLocale()).ship();
@@ -108,7 +108,7 @@ public class RequirementController {
         return ship == null ? "redirect:" + PATH : redirect(ship);
     }
 
-    // P58: the confirmation page of "Reset to Bulk carrier defaults" without js/confirm.js, listing what will change.
+    // The confirmation page of "Reset to Bulk carrier defaults" without js/confirm.js, listing what will change.
     @GetMapping(PATH + "/reset")
     public String confirmReset(@RequestParam(required = false) String vessel, Model model) {
         Ship ship = requirementService.select(vessel, LocaleContextHolder.getLocale()).ship();

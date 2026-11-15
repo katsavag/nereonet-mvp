@@ -15,16 +15,16 @@ import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 
 /**
- * Order, delivery and invoice side by side (P64), for the office, once the Master confirmed receipt of an order with a
- * read invoice. Pure: built from the order's lines (ordered, received), the invoice's lines as matched (P63; the
+ * Order, delivery and invoice side by side, for the office, once the Master confirmed receipt of an order with a
+ * read invoice. Pure: built from the order's lines (ordered, received), the invoice's lines as matched (the
  * invoiced quantity in the item's unit, the invoice's unit price and amount), the awarded quote's prices per item unit
- * (P44; empty without an award) and the office's decisions (InvoiceDecision).
+ * (empty without an award) and the office's decisions (InvoiceDecision).
  * <ul>
  *   <li>One row per order line not removed by the office, and one per invoice line linked to no order line (Not
  *       ordered: chosen so by the cook, or never chosen). A row differs when anything of {@link DiffKind} applies; a
  *       difference needs a decision (Accept with a note) before the order can be marked matched, and a decision holds
  *       only while the difference stays what it was (detail).</li>
- *   <li>The points to review (the things the ship was deliberately not asked about, P62 and P63): the invoice's checks
+ *   <li>The points to review (the things the ship was deliberately not asked about): the invoice's checks
  *       that failed, a different order reference, lines read with a flag, matches and pack conversions to review.
  *       Each needs Correct or Change.</li>
  * </ul>
@@ -284,7 +284,7 @@ public final class InvoiceComparison {
         /** The invoice's price per item unit. */
         public BigDecimal getPricePerUnit() { return pricePerUnit; }
 
-        /** The awarded quote's price per item unit (P44), or null. */
+        /** The awarded quote's price per item unit, or null. */
         public BigDecimal getQuoted() { return quoted; }
 
         /** The invoice's price per item unit minus the quote's, when more than 1% apart; null otherwise. */
@@ -324,7 +324,7 @@ public final class InvoiceComparison {
             return quantity.toPlainString() + " " + unit + (first.getPack() == null ? "" : " × " + first.getPack());
         }
 
-        /** The Chief cook's note on the line (P61). */
+        /** The Chief cook's note on the line. */
         public String getCookNote() {
             return orderLine == null ? invoiceLines.getFirst().getCountNote() : orderLine.getCountNote();
         }

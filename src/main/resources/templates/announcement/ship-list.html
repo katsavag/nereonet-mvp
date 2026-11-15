@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{announcement.ship.title}, ~{::main})}">
 <body>
-<!-- The crew's News (P27 announcements, "News" on the crew side since P39, /ship/news; made for phones in P47): the
+<!-- The crew's News (announcements, called "News" on the crew side, /ship/news; made for phones): the
      items the signed-in person is a recipient of, in two groups with small headings: "New" (not opened yet) and
      "Earlier" (read), each newest first. The heading carries the unread count ("News · 2 new"). English only, as every
      crew screen.
      Each item is a card-like row, the whole row one link (the title, stretched over the row), at least 72px high:
      unread, a dot ("New" for screen readers) and a bold title; the title on at most two lines, a one-line preview of the
-     text (plain text, cut with an ellipsis), then "Office · 13 Nov" and, read, the two ticks (P39) with "Read" for
+     text (plain text, cut with an ellipsis), then "Office · 13 Nov" and, read, the two ticks with "Read" for
      screen readers. Nothing about anyone else.
      Only what is shown is loaded (10 a page, ShipAnnouncementController): "Show older" at the end adds the next 10.
      Model: ship, unreadRows and readRows (NewsRow), unread (count of all unread), nextPage (or null). -->

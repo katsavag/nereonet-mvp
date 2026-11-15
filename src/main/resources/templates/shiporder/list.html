@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.past.title}, ~{::main})}">
 <body>
-<!-- The ship's orders (P35; "Past orders" until P59, now "All orders"): sent, confirmed and received, newest sent first. Each row is one link (the order
+<!-- The ship's orders ("All orders"): sent, confirmed and received, newest sent first. Each row is one link (the order
      number, stretched over the row) with its status, the requested port and date and, once the office has set them,
-     the confirmed port and delivery date; a Pending order "Waiting for the office to schedule the delivery" (P65).
-     English only. P55: the Chief cook reads it too (canManage false: the hints say
+     the confirmed port and delivery date; a Pending order "Waiting for the office to schedule the delivery".
+     English only. The Chief cook reads it too (canManage false: the hints say
      the Master sends the orders). Model: past (ShipOrderPageService.PastOrders), canManage (boolean). -->
 <main th:with="p=${past}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.past.title}, crumbs=~{::pageCrumbs},
@@ -34,7 +34,7 @@
                         <span th:if="${o.confirmedPort != null and o.deliveryDate != null}" aria-hidden="true">·</span>
                         <span th:if="${o.deliveryDate != null}">[[#{order.deliveryDate}]] <time th:replace="~{layout/parts :: localDate(${o.deliveryDate})}"></time></span>
                     </p>
-                    <!-- P65: a Pending order says whom it waits for. -->
+                    <!-- A Pending order says whom it waits for. -->
                     <p th:if="${o.status.name() == 'SENT'}" class="approval-row-meta" th:text="#{order.status.SENT.waiting}">Waiting
                         for the office to schedule the delivery</p>
                 </div>

@@ -20,11 +20,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A file of the delivery receipt of an order (P51): a PDF, JPEG or PNG of at most 10 MB, stored like the library's
+ * A file of the delivery receipt of an order: a PDF, JPEG or PNG of at most 10 MB, stored like the library's
  * files (LibraryFileStorage) under a generated name; the uploaded name is only shown and used for the download.
  * The Master uploads them while the order is CONFIRMED (they wait there, only the Master sees them, and can be removed
  * again); confirming receipt closes the order and from then on they are its receipt, never changed.
- * P62: the pages of the supplier's invoice are receipt files too (invoicePage), and may also be JPEG, PNG, WebP or
+ * The pages of the supplier's invoice are receipt files too (invoicePage), and may also be JPEG, PNG, WebP or
  * HEIC images.
  */
 @Entity
@@ -42,7 +42,7 @@ public class OrderReceiptFile {
     @Column(nullable = false, length = 255)
     private String fileName;
 
-    // application/pdf, image/png or image/jpeg, checked against the extension and the first bytes on upload (P62: an
+    // application/pdf, image/png or image/jpeg, checked against the extension and the first bytes on upload (an
     // invoice page also image/webp or image/heic, checked by its first bytes).
     @Column(nullable = false, length = 50)
     private String fileContentType;
@@ -61,7 +61,7 @@ public class OrderReceiptFile {
     @Column(nullable = false)
     private Instant uploadedAt;
 
-    // P62: a page of the supplier's invoice, photographed on "Photograph the invoice": its page number (1, 2, ...,
+    // A page of the supplier's invoice, photographed on "Photograph the invoice": its page number (1, 2, ...,
     // without gaps), where its reading stands, the page total it shows and whether its checks failed ("check the
     // lines"). All null for any other receipt file. Nullable columns: Hibernate adds them.
     private Integer invoicePage;

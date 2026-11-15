@@ -8,7 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-// The file of a library item's current version, for the crew (library) and the office (officelibrary) (P22).
+// The file of a library item's current version, for the crew (library) and the office (officelibrary).
 // A PDF opens in the browser (inline) unless download is asked for; DOCX and XLSX are always downloads (attachment).
 // The content type is the stored one, checked against the extension on upload (LibraryItemForm); Spring Security
 // sends X-Content-Type-Options: nosniff, so the browser does not guess another.

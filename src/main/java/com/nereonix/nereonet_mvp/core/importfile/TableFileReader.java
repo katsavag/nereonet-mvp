@@ -22,7 +22,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-// Reads an uploaded .xlsx, .xls or .csv file of any structure (P24): every visible sheet of a workbook, or the one
+// Reads an uploaded .xlsx, .xls or .csv file of any structure: every visible sheet of a workbook, or the one
 // table of a CSV file. Empty rows and sheets are left out; trailing empty cells of a row are dropped.
 public final class TableFileReader {
 

@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
 <body>
-<!-- The crew home page (P26), for the Chief cook and Crew members (the Master has masterhome/home): what this person is asked to read and whether their certificates are in order, in one
+<!-- The crew home page, for the Chief cook and Crew members (the Master has masterhome/home): what this person is asked to read and whether their certificates are in order, in one
      phone screen. English only, as every crew screen. Read only. No images (but the person's own
-     profile photo, P31), no script of its own.
+     profile photo), no script of its own.
      Phones: one column (To read, My certificates); from 992px To read on the left, the certificates on the right.
-     The header says who is signed in, their rank and ship. P58: no Sign out on this page at any width; it is in the
-     sidebar (from 768px) and under More (phones). P31: the person's profile photo (96px version, with its version so
-     a new photo shows at once, P43) or initials before the name. -->
+     The header says who is signed in, their rank and ship. No Sign out on this page at any width; it is in the
+     sidebar (from 768px) and under More (phones). The person's profile photo (96px version, with its version so
+     a new photo shows at once) or initials before the name. -->
 <main class="crew-home" th:with="u=${home.user}, today=${@dates.today()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
             subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}},
@@ -17,21 +17,21 @@
         </th:block>
     </header>
 
-    <!-- P52, the Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
+    <!-- The Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
          number of provisions Low and Out of stock. Styled as the cards of the Master's home: tinted, with "to do"
          for screen readers, while anything is Low or Out of stock.
-         P54, crew members (the Chief cook too until P65, when Requests became the cook's tab with the same number): the
+         Crew members (not the Chief cook, whose Requests tab carries the same number): the
          Requests card, one link to /ship/requests with the number of their requests still waiting for the Master
          (requestsWaiting, from NavigationAdvice). Not tinted: the waiting is the Master's, not theirs. -->
     <section class="home-section" aria-labelledby="homeCardsTitle">
         <h2 class="visually-hidden" id="homeCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
-        <ul class="master-cards">
+        <ul class="home-cards">
             <li th:if="${stores != null}">
-                <a class="master-card stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
+                <a class="home-card stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
                    data-card="stores">
-                    <span class="master-card-icon" aria-hidden="true"><svg
+                    <span class="home-card-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon('stores')}"></svg></span>
-                    <span class="master-card-label" th:text="#{nav.stores}">Stores</span>
+                    <span class="home-card-label" th:text="#{nav.stores}">Stores</span>
                     <span class="stores-card-counts">
                         <span><span class="num" th:text="${stores.low}">2</span> <th:block th:text="#{stores.card.low}">low</th:block></span>
                         <span aria-hidden="true">·</span>
@@ -41,11 +41,11 @@
                 </a>
             </li>
             <li sec:authorize="hasRole('CREW_MEMBER')">
-                <a class="master-card" th:href="@{/ship/requests}" data-card="requests">
-                    <span class="master-card-icon" aria-hidden="true"><svg
+                <a class="home-card" th:href="@{/ship/requests}" data-card="requests">
+                    <span class="home-card-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon('requests')}"></svg></span>
-                    <span class="master-card-label" th:text="#{home.card.requests}">My requests</span>
-                    <span class="master-card-count"><span class="num" th:text="${requestsWaiting ?: 0}">1</span>
+                    <span class="home-card-label" th:text="#{home.card.requests}">My requests</span>
+                    <span class="home-card-count"><span class="num" th:text="${requestsWaiting ?: 0}">1</span>
                         <th:block th:text="#{home.card.requests.waiting}">waiting</th:block></span>
                 </a>
             </li>
@@ -54,7 +54,7 @@
 
     <div class="row g-4">
         <div class="col-lg-7">
-            <!-- To read: Required library items not yet acknowledged and news items (P27) not opened yet (P39), oldest
+            <!-- To read: Required library items not yet acknowledged and news items not opened yet, oldest
                  first. Each card opens the item: a library item has "I have read this"; a news item is read by opening
                  it. -->
             <section class="home-section" aria-labelledby="toReadTitle">
@@ -98,7 +98,7 @@
             <!-- The person's own certificates, soonest expiry first (expired, then expiring soon). Read only. -->
             <section class="home-section" aria-labelledby="certificatesTitle">
                 <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
-                <!-- P42: "2 required documents missing", to My profile; only when something is. -->
+                <!-- "2 required documents missing", to My profile; only when something is. -->
                 <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
                 <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false, null)}"></div>
                 <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>

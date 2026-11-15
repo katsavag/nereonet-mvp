@@ -23,7 +23,7 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * Dev profile only (P29): the HTML emails with sample data, as a browser shows them, to check the template without
+ * Dev profile only: the HTML emails with sample data, as a browser shows them, to check the template without
  * sending anything. The logo comes from the app instead of the email's inline attachment.
  *   /dev/email/invitation              a crew invitation (English)
  *   /dev/email/invitation?office       an office invitation, in the page language (add lang=el for Greek)

@@ -48,9 +48,9 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * Requests for quotes from a vessel order (P44), under the order's URL so Orders stays the active sidebar entry:
+ * Requests for quotes from a vessel order, under the order's URL so Orders stays the active sidebar entry:
  *   GET  /office/orders/{o}/rfq/new          Request quotes: port, delivery date, reply by, suppliers
- *   POST /office/orders/{o}/rfq/review       step 2 of 2 (P10): what will be sent and to whom; nothing saved
+ *   POST /office/orders/{o}/rfq/review       step 2 of 2: what will be sent and to whom; nothing saved
  *   POST /office/orders/{o}/rfq/edit         Back to edit, with the values
  *   POST /office/orders/{o}/rfq              Send
  *   GET  /office/orders/{o}/rfqs/{r}         the RFQ: status per supplier and the comparison
@@ -58,7 +58,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
  *   POST .../rfqs/{r}/quotes/{q}/decline     Declined (optional reason), one click
  *   POST .../rfqs/{r}/quotes/{q}/resend      Send again (a failed or unanswered supplier)
  *   GET  .../rfqs/{r}/quotes/{q}/file        the supplier's PDF (?download=true)
- *   GET/POST .../rfqs/{r}/quotes/{q}/award   Award (asks first, P10)
+ *   GET/POST .../rfqs/{r}/quotes/{q}/award   Award (asks first)
  *   GET/POST .../rfqs/{r}/cancel             Cancel the RFQ (asks first)
  * /office/** is OFFICE_USER only. An order the ships have not sent, an RFQ of another order or a quote of another
  * RFQ is a 404.
@@ -93,7 +93,7 @@ public class RfqController {
         this.confirmPages = confirmPages;
     }
 
-    // P60: the numbers of the quote form (prices, quantities, pack sizes, delivery cost) take a comma as the decimal
+    // The numbers of the quote form (prices, quantities, pack sizes, delivery cost) take a comma as the decimal
     // separator ("2,5", Greek keyboards). Anything that is not a number: "Enter a number." (typeMismatch).
     @InitBinder("form")
     void initBinder(WebDataBinder binder) {
@@ -132,7 +132,7 @@ public class RfqController {
         return showForm(order, RfqForm.of(order, RfqService.today()), model);
     }
 
-    // A GET on the POST-only URLs (after signing in again, P12) goes back to the form.
+    // A GET on the POST-only URLs (after signing in again) goes back to the form.
     @GetMapping({"/office/orders/{orderId}/rfq/review", "/office/orders/{orderId}/rfq/edit"})
     public String reviewGet(@PathVariable Long orderId) {
         return "redirect:/office/orders/" + orderId + "/rfq/new";
@@ -236,7 +236,7 @@ public class RfqController {
     private static List<LineGroup> groups(ShipOrder order) {
         Map<ItemCategory, List<ShipOrderLine>> byCategory = new EnumMap<>(ItemCategory.class);
         for (ShipOrderLine line : ShipOrderService.byCategoryAndName(order.getLines())) {
-            // P50: a line the office removed is not asked for.
+            // A line the office removed is not asked for.
             if (line.isRemoved()) {
                 continue;
             }
@@ -343,7 +343,7 @@ public class RfqController {
         model.addAttribute("rfq", rfq);
         model.addAttribute("quote", quote);
         model.addAttribute("form", form);
-        // P60: the most a unit price or the delivery cost may be (the inputs' max).
+        // The most a unit price or the delivery cost may be (the inputs' max).
         model.addAttribute("maxAmount", QuoteForm.MAX_AMOUNT);
         model.addAttribute("groups", rows.entrySet().stream()
                 .map(e -> new QuoteGroup(e.getKey(), List.copyOf(e.getValue()))).toList());
@@ -376,7 +376,7 @@ public class RfqController {
                     && !result.hasFieldErrors(prefix + "packUnit")) {
                 result.rejectValue(prefix + "packUnit", "quote.error.packUnit", new Object[] {line.getUnit()}, null);
             }
-            // P60: the quantity rules (core/form/QuantityRules). With a pack size the quantity offered counts packs
+            // The quantity rules (core/form/QuantityRules). With a pack size the quantity offered counts packs
             // (whole numbers); without one it is in the item's unit, and the quantity asked is always accepted. The
             // pack size follows the rule of its unit (the item's when none is given).
             if (l.getQuantityOffered() != null && !result.hasFieldErrors(prefix + "quantityOffered")) {
@@ -397,7 +397,7 @@ public class RfqController {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // Award and cancel (both ask first, P10)
+    // Award and cancel (both ask first)
     // ---------------------------------------------------------------------------------------------------------------
 
     @GetMapping("/office/orders/{orderId}/rfqs/{rfqId}/quotes/{quoteId}/award")

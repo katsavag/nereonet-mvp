@@ -4,7 +4,7 @@ import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 
 import jakarta.validation.constraints.Size;
 
-// My profile, Bio (P31): plain text, at most 280 characters, line breaks kept. Line breaks are counted as one
+// My profile, Bio: plain text, at most 280 characters, line breaks kept. Line breaks are counted as one
 // character each, as the counter under the field does (browsers send them as \r\n). Empty is stored as null.
 public class BioForm {
 

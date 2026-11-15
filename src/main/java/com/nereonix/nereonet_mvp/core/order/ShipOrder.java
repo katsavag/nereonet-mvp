@@ -25,12 +25,12 @@ import jakarta.persistence.OrderBy;
 import lombok.Getter;
 import lombok.Setter;
 
-// The consolidated order of a ship (P34): the approved requests added up, one line per item. A ship has at most one
+// The consolidated order of a ship: the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
 // office schedules the delivery, port and date (CONFIRMED, P51: "Delivery scheduled"), and the Master confirms receipt
 // on board with the delivery receipt (CLOSED, "Received"); only the vessel closes an order.
-// While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship (P35),
-// and the office can change its lines until it confirms the delivery (P50).
+// While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship,
+// and the office can change its lines until it confirms the delivery.
 @Entity
 @Getter
 @Setter
@@ -58,7 +58,7 @@ public class ShipOrder {
 
     private LocalDate neededBy;
 
-    // The Master's note to the office (P35), optional. Set when sending.
+    // The Master's note to the office, optional. Set when sending.
     @Column(length = NOTE_MAX_LENGTH)
     private String officeNote;
 
@@ -69,7 +69,7 @@ public class ShipOrder {
 
     private Instant sentAt;
 
-    // Set by the office when scheduling the delivery (P51; "confirming" before).
+    // Set by the office when scheduling the delivery ("confirming" before).
     @Column(length = PORT_MAX_LENGTH)
     private String confirmedPort;
 
@@ -80,11 +80,11 @@ public class ShipOrder {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User confirmedBy;
 
-    // The office's last change of the lines (P50) that the ship has not been told about yet; null when there is none.
+    // The office's last change of the lines that the ship has not been told about yet; null when there is none.
     // "Done editing", 10 minutes without changes, or confirming the delivery tells the Master and the Chief cook.
     private Instant officeEditedAt;
 
-    // P51: the receipt on board. When the items arrived, as the Master entered it (UTC); who confirmed it, and when.
+    // The receipt on board. When the items arrived, as the Master entered it (UTC); who confirmed it, and when.
     // Null until CLOSED (receivedBy also once that user is deleted).
     private Instant receivedAt;
 
@@ -110,7 +110,7 @@ public class ShipOrder {
     @Column(length = NOTE_MAX_LENGTH)
     private String shortageNote;
 
-    // P61: the Chief cook's count of the delivery, while CONFIRMED (DeliveryCountService). Null is NONE (orders from
+    // The Chief cook's count of the delivery, while CONFIRMED (DeliveryCountService). Null is NONE (orders from
     // before P61, or nobody counted). All nullable: Hibernate adds the columns to an existing table.
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -134,7 +134,7 @@ public class ShipOrder {
 
     private Instant countReturnedAt;
 
-    // P64: the office's comparison of order, delivery and invoice, for an order received with a read invoice (null:
+    // The office's comparison of order, delivery and invoice, for an order received with a read invoice (null:
     // none, the P51 shortage flow applies). invoiceDiffLines: the lines that differ (InvoiceComparison), kept up to
     // date by InvoiceComparisonService for the Overview and the list; who marked it matched, and when.
     @Enumerated(EnumType.STRING)
@@ -161,23 +161,23 @@ public class ShipOrder {
     @OrderBy("id")
     private List<ShipOrderLine> lines = new ArrayList<>();
 
-    /** The delivery count's state (P61): NONE when nothing was counted. */
+    /** The delivery count's state: NONE when nothing was counted. */
     public DeliveryCountStatus getDeliveryCountStatus() {
         return deliveryCount == null ? DeliveryCountStatus.NONE : deliveryCount;
     }
 
-    /** The cook sent the count and the Master has not decided yet (P61): "Counted by the Chief cook, to approve". */
+    /** The cook sent the count and the Master has not decided yet: "Counted by the Chief cook, to approve". */
     public boolean isCountToApprove() {
         return status == ShipOrderStatus.CONFIRMED && deliveryCount == DeliveryCountStatus.SENT_TO_MASTER;
     }
 
-    /** Received after the Master approved the cook's count (P61): the receipt says "Counted by". */
+    /** Received after the Master approved the cook's count: the receipt says "Counted by". */
     public boolean isCountApproved() {
         return deliveryCount == DeliveryCountStatus.APPROVED;
     }
 
     /**
-     * Received with lines short, and no office user has marked them handled yet (P51). P64: an order with a read
+     * Received with lines short, and no office user has marked them handled yet. P64: an order with a read
      * invoice is handled by matching the invoice instead.
      */
     public boolean isShortageOpen() {

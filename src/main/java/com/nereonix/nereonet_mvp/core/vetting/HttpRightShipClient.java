@@ -22,7 +22,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 /**
- * The real RightShip API client (P40): JSON over HTTPS with an OAuth 2 access token (client credentials, from
+ * The real RightShip API client: JSON over HTTPS with an OAuth 2 access token (client credentials, from
  * RightShipSettings.tokenUrl, kept until shortly before it expires). Short timeouts, as the sync runs at night and a
  * failure is simply reported. Field names are read leniently (camelCase as documented, a few spellings each), so a
  * renamed field shows as "not known" rather than failing the sync; the mapping is all in this class.

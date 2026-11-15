@@ -28,7 +28,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// One supplier asked in an RFQ (P44), and its answer once the office enters it: the quote's currency, delivery cost,
+// One supplier asked in an RFQ, and its answer once the office enters it: the quote's currency, delivery cost,
 // delivery date, validity, its lines (RfqQuoteLine, one per line offered) and optionally the supplier's own PDF. A
 // sealed bid: suppliers never see each other's prices; only the office compares them.
 @Entity
@@ -138,7 +138,7 @@ public class RfqQuote {
         };
     }
 
-    /** The status per supplier on the RFQ page (P44). tone: the status badge's (layout/parts :: status). */
+    /** The status per supplier on the RFQ page. tone: the status badge's (layout/parts :: status). */
     public enum SupplierState {
         SENT("info"), QUOTED("ok"), DECLINED("neutral"), NO_REPLY("warning"), FAILED("danger");
 

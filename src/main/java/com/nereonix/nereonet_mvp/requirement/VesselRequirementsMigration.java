@@ -24,7 +24,7 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * P58: required documents move from vessel types to vessels. Before, a row had a vessel type (null: all vessels) and
+ * Required documents move from vessel types to vessels. Before, a row had a vessel type (null: all vessels) and
  * no vessel; Hibernate adds document_requirement.ship_id (null on those rows). On startup, in one transaction, every
  * vessel (active or not) gets its own copy of the rules that applied to it: its type's rows and the all-vessels rows
  * (a vessel without a type: the all-vessels rows), merged per certificate type (P20 matching) as RequirementRules

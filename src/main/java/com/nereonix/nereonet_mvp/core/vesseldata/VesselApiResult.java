@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.vesseldata;
 
 /**
- * How one VesselAPI call ended (P45). Messages: vessel.result.<name>.
+ * How one VesselAPI call ended. Messages: vessel.result.<name>.
  *   OK              2xx with a JSON body
  *   NOT_FOUND       404: the vessel, or a recent position / ETA report, is not known
  *   UNAUTHORIZED    401 or 403: the key is wrong, or the plan does not include the call

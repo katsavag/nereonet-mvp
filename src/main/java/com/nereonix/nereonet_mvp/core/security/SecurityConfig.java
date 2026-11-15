@@ -37,23 +37,23 @@ public class SecurityConfig {
                                 "/ship/library/*/edit", "/ship/library/*/retire",
                                 "/ship/library/*/acknowledgements",
                                 "/ship/library/*/acknowledgements/remind").hasRole("MASTER")
-                        // The Master's approvals (P33).
+                        // The Master's approvals.
                         .requestMatchers("/ship/approvals", "/ship/approvals/**").hasRole("MASTER")
-                        // The ship order and past orders (P35): the Chief cook reads them (P55), only the Master
+                        // The ship order and past orders: the Chief cook reads them, only the Master
                         // changes, sends or receives an order. GET of the three pages only: "/ship/orders/*" is one
                         // segment, so the receipt pages and files under /ship/orders/{id}/ stay the Master's.
                         .requestMatchers(HttpMethod.GET, "/ship/order", "/ship/orders", "/ship/orders/*")
                                 .hasAnyRole("MASTER", "CHIEF_COOK")
-                        // P61: the Chief cook counts a delivery (GET and POST, with its photos and voice).
+                        // The Chief cook counts a delivery (GET and POST, with its photos and voice).
                         .requestMatchers("/ship/orders/*/count", "/ship/orders/*/count/**").hasRole("CHIEF_COOK")
-                        // P62: the Chief cook or the Master photographs the delivery's invoice.
+                        // The Chief cook or the Master photographs the delivery's invoice.
                         .requestMatchers("/ship/orders/*/invoice", "/ship/orders/*/invoice/**")
                                 .hasAnyRole("MASTER", "CHIEF_COOK")
                         .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
                                 .hasRole("MASTER")
-                        // The Chief cook's store (P52).
+                        // The Chief cook's store.
                         .requestMatchers("/ship/stores", "/ship/stores/**").hasRole("CHIEF_COOK")
-                        // The Chief cook's and crew's own requests (P54): the Master does not ask, they decide.
+                        // The Chief cook's and crew's own requests: the Master does not ask, they decide.
                         .requestMatchers("/ship/requests", "/ship/requests/**").hasAnyRole("CHIEF_COOK", "CREW_MEMBER")
                         .requestMatchers("/ship/**").hasAnyRole("MASTER", "CHIEF_COOK", "CREW_MEMBER")
                         .anyRequest().authenticated())
@@ -63,7 +63,7 @@ public class SecurityConfig {
                         .successHandler(returnAfterSignIn())
                         .failureHandler(logFailure()))
                 .logout(logout -> logout.logoutSuccessUrl("/login"))
-                // A form sent after the session expired: sign in again, then back to the page (P12).
+                // A form sent after the session expired: sign in again, then back to the page.
                 .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(new SignedOutHandler()))
                 .addFilterBefore(new UploadTooLargeFilter(), CsrfFilter.class);
         return http.build();
@@ -79,7 +79,7 @@ public class SecurityConfig {
     }
 
     // Logs the email only, never the password. A deactivated account with the right password gets its own message
-    // (/login?deactivated, P13); every other failure the generic one (/login?error).
+    // (/login?deactivated); every other failure the generic one (/login?error).
     private static AuthenticationFailureHandler logFailure() {
         AuthenticationFailureHandler wrong = new SimpleUrlAuthenticationFailureHandler("/login?error");
         AuthenticationFailureHandler deactivated = new SimpleUrlAuthenticationFailureHandler("/login?deactivated");
@@ -90,7 +90,7 @@ public class SecurityConfig {
         };
     }
 
-    // Form login (P13). By default Spring Security checks "enabled" before the password, so anyone who knows an
+    // Form login. By default Spring Security checks "enabled" before the password, so anyone who knows an
     // email would learn that its account is deactivated. Here it is checked only after the password matched: a wrong
     // password always gets "Wrong email or password.", whatever the account's state. The filter chain's only
     // provider (no fallback to Spring Boot's default one, which checks in the default order).

@@ -177,7 +177,7 @@ class ConfirmFlowTest {
         // The dialog is on every signed-in page, once, with the script; the bespoke retire modal is gone.
         String page = html(get("/office/ships"));
         assertThat(page).containsOnlyOnce("<dialog id=\"confirmDialog\"")
-                .containsPattern("<script src=\"/js/confirm(-[0-9a-f]+)?\\.js\"></script>");
+                .containsPattern("<script src=\"/js/confirm(-[0-9a-f]+)?\\.js\" defer></script>");
         assertThat(html(get("/office/ships/" + ship.getId() + "/library/" + libraryItem.getId() + "/edit")))
                 .doesNotContain("retireModal");
 

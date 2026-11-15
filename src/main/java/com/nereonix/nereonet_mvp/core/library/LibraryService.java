@@ -42,7 +42,7 @@ public class LibraryService {
     /** A ship can have at most this many items that are not retired. */
     public static final int MAX_ITEMS = 50;
 
-    /** "Send reminder" can be used at most once in this time per item (P22). */
+    /** "Send reminder" can be used at most once in this time per item. */
     public static final Duration REMINDER_INTERVAL = Duration.ofHours(24);
 
     private final LibraryItemRepository itemRepository;
@@ -88,7 +88,7 @@ public class LibraryService {
 
     /**
      * The ship's Required items that are not retired, oldest current version first (then by id): the crew home page's
-     * "To read" and the Master's "Crew acknowledgements" (P26).
+     * "To read" and the Master's "Crew acknowledgements".
      */
     @Transactional(readOnly = true)
     public List<LibraryItem> requiredItems(Ship ship) {
@@ -320,7 +320,7 @@ public class LibraryService {
     }
 
     /**
-     * "Send reminder" on the acknowledgement overview (P22): notifies everyone of the crew (as in acknowledgementOverview)
+     * "Send reminder" on the acknowledgement overview: notifies everyone of the crew (as in acknowledgementOverview)
      * who has not acknowledged the current version of this Required item, except the actor, and records it in the
      * audit log. At most once per REMINDER_INTERVAL per item. Returns how many were notified; 0 (and nothing recorded)
      * when there is nobody to remind.
@@ -363,7 +363,7 @@ public class LibraryService {
         return next.isAfter(now) ? next : null;
     }
 
-    /** Every version of the item, newest first, for its version history (Master and office, P22). */
+    /** Every version of the item, newest first, for its version history (Master and office). */
     @Transactional(readOnly = true)
     public List<LibraryItemVersion> versions(LibraryItem item) {
         return versionRepository.findAllByItemOrderByPublishedAtDescIdDesc(item);

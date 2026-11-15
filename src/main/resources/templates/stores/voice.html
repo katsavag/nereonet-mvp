@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.voice.review.title}, ~{::main})}">
 <body>
-<!-- What we heard (P57), the review of a voice count, the Chief cook only. Nothing here has touched the stock yet.
+<!-- What we heard, the review of a voice count, the Chief cook only. Nothing here has touched the stock yet.
      - What you said: the text as transcribed.
      - Counted items: one row per item heard, its counted quantity (editable), what the store expects, the words it came
        from and the confidence (High, Medium, Low; Low rows highlighted). Remove leaves a row out.
@@ -107,7 +107,7 @@
                         </select>
                         <label class="voice-field-label" th:for="${'extra-' + j + '-quantity'}"
                                th:text="#{stores.voice.extra.quantity}">Quantity</label>
-                        <!-- P60: the item is picked beside it, so the server checks the rule of its unit. -->
+                        <!-- The item is picked beside it, so the server checks the rule of its unit. -->
                         <input th:replace="~{layout/parts :: quantityInput(id=${'extra-' + j + '-quantity'},
                                 name=${'extras[' + j + '].quantity'}, value=${form.extras[j].quantity},
                                 rule=null, cls='form-control-sm voice-qty',

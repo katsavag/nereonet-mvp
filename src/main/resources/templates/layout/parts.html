@@ -3,10 +3,10 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
-<!-- The brand on navy (P29): the Nereonix mark (32px), "Nereonix" as text and a tagline (or null for none). The mark's
+<!-- The brand on navy: the Nereonix mark (32px), "Nereonix" as text and a tagline (or null for none). The mark's
      alt is empty: the word next to it names the app. The sidebar (its rail shows the mark only, the words stay for
-     screen readers) and the sign-in panel (larger from 768px, P30). On light surfaces never use the full logo (its wordmark is white).
-     Lazy: where the sidebar is hidden (a crew member's phone, P26) the mark is never fetched. -->
+     screen readers) and the sign-in panel (larger from 768px). On light surfaces never use the full logo (its wordmark is white).
+     Lazy: where the sidebar is hidden (a crew member's phone) the mark is never fetched. -->
 <div th:fragment="brand(tagline)" class="brand">
     <img class="brand-mark" th:src="@{/img/brand/nereonix-mark-192.png}" width="32" height="32" alt="" loading="lazy">
     <div class="brand-text">
@@ -15,13 +15,13 @@
     </div>
 </div>
 
-<!-- English / Greek switch, "EN | ΕΛ" (P29), top right: the office top bar on every page, the form side of the
+<!-- English / Greek switch, "EN | ΕΛ", top right: the office top bar on every page, the form side of the
      signed-out pages. Crew pages have none. The current language is bold with aria-current="true"; each link has its
      lang and its full name as accessible name ("English", "Ελληνικά"); a 40px (44px on phones) target. Its colour comes
-     from where it sits (app.css). Each link changes only the language (P16): it is the current page with its query
+     from where it sits (app.css). Each link changes only the language: it is the current page with its query
      string kept (ship and status filters, page number, token) and lang set, from @languageLinks
      (core/config/LanguageLinks). token: the invitation or reset token of the page, added when the URL does not carry
-     it (the form shown again after a POST with errors, P13); null everywhere else. -->
+     it (the form shown again after a POST with errors); null everywhere else. -->
 <!-- th:with: Thymeleaf evaluates th:href in restricted mode, which does not call beans. -->
 <div th:fragment="langSwitch(token)" class="lang-switch" role="group" th:attr="aria-label=#{nav.lang.label}"
      th:with="englishUrl=${@languageLinks.to('en', token)}, greekUrl=${@languageLinks.to('el', token)},
@@ -35,7 +35,7 @@
        th:text="#{nav.lang.el.short}">ΕΛ</a>
 </div>
 
-<!-- A quiet info note (P16): a notice the user must see where it applies, but that asks nothing of them ("Nereonix is
+<!-- A quiet info note: a notice the user must see where it applies, but that asks nothing of them ("Nereonix is
      not an emergency or safety channel...", "Do not upload security-sensitive material..."). Small text in the info
      pair with an "i" icon; the words carry the meaning, the colour and icon only repeat it. id: so a field can name it
      in its aria-describedby, or null. text: the notice.
@@ -50,11 +50,11 @@
 
 <!-- The signed-out frame (sign-in, registration, invalid link, signed-out error pages): the navy brand panel and the
      form column. From 768px the panel is a column on the left; on phones it collapses to a 64px header bar, so the
-     form starts above the fold (P13). P30: from 768px the panel is narrow (320px, up to 416px on wide screens, see
+     form starts above the fold. From 768px the panel is narrow (320px, up to 416px on wide screens, see
      app.css), with the brand (the mark and "Nereonix") at its top left and the organisation (app.organisation.name
      and .code, core/config/Organisation) at its bottom left, when set; the phone bar has the brand only. The form is
      a card (at most 420px) centred on the other side, with "EN | ΕΛ" at its top right. The sign-in, registration and
-     reset pages put this frame in layout/auth (P30), so it never sits inside the signed-in frame. Named parameters:
+     reset pages put this frame in layout/auth, so it never sits inside the signed-in frame. Named parameters:
        content  the column's content, ~{::authContent}, defined inside the host element
        lang     true: the English / Greek switch above the content
        token    the invitation token the switch keeps (registration), or leave it out
@@ -82,12 +82,12 @@
     </div>
 </main>
 
-<!-- A text link between the signed-out pages (P14): "Forgot your password?" under the password on the sign-in page,
+<!-- A text link between the signed-out pages: "Forgot your password?" under the password on the sign-in page,
      "Back to sign in" on the forgot password pages. A 40px (44px on phones) touch target. url: an app path.
      Use: <p th:replace="~{layout/parts :: authLink('/password/forgot', #{login.forgot})}"></p> -->
 <p th:fragment="authLink(url, label)" class="auth-link"><a th:href="@{${url}}" th:text="${label}">Back to sign in</a></p>
 
-<!-- Password fields (P13): sign-in and registration. The input sits in a .password-field with passwordToggle after
+<!-- Password fields: sign-in and registration. The input sits in a .password-field with passwordToggle after
      it; capsLockHint goes right after the .password-field. js/password.js brings both to life; without it the
      field is an ordinary password field.
        <div class="password-field">
@@ -108,7 +108,7 @@
           th:data-shown="#{password.shown}" th:data-hidden="#{password.hidden}"></span>
 </th:block>
 
-<!-- A new password and its repetition (registration P13, password reset P14), for a form class that extends
+<!-- A new password and its repetition (registration, password reset), for a form class that extends
      core/form/NewPasswordForm. Inside the form (th:object set). Both fields have show / hide and the Caps Lock hint;
      under the first, the rules the server checks as a checklist that js/password.js ticks while the user types (a
      check mark and "done" for a rule that is met, an empty circle and "not yet" for one that is not; without the
@@ -164,13 +164,13 @@
 <p th:fragment="capsLockHint(fieldId)" class="caps-lock-hint" aria-live="polite" th:id="${fieldId + 'CapsLock'}"
    th:data-caps-lock-for="${fieldId}" th:data-text="#{password.capsLock}"></p>
 
-<!-- One sidebar entry (P07). section: its NavSection key; the entry whose key is navSection (navigation/NavigationAdvice,
+<!-- One sidebar entry. section: its NavSection key; the entry whose key is navSection (navigation/NavigationAdvice,
      from the URL) is active: lighter background, a 3px accent bar on the left, aria-current="page". Exactly one entry
      is active on a page, none on a page without an entry (an error page outside every section).
      url: an app path. label: text. count: a number shown as a quiet pill on the right, hidden when null or zero,
      "99+" above 99; countLabel: the same number in words for screen readers ("3 unread"), or null without count.
      The icon is navIcon(section). data-nav on the item is the section, for scripts that update its count in place
-     (js/notifications.js, P23).
+     (js/notifications.js).
      Use: <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li> -->
 <li th:fragment="navItem(section, url, label, count, countLabel)" class="nav-item" th:data-nav="${section}"
     th:with="active=${navSection == section}">
@@ -184,13 +184,13 @@
     </a>
 </li>
 
-<!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
+<!-- The crew's tab bar: below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
      sidebar has the same entries (layout/layout.html, groups On board and Supplies). Fixed at the bottom of the screen,
      above the safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each
-     entry is tabItem. Four equal tabs per role since P65, from shipNav.tabs (navigation/ShipNav, the one place that
+     entry is tabItem. Four equal tabs per role, from shipNav.tabs (navigation/ShipNav, the one place that
      decides them), then More: the Master Home, Approvals, Vessel order; the Chief cook Home, Stores, Requests; other
-     crew Home, News, Library (as since P47). More (P31) is a link to a page (/ship/more) listing Notifications (first,
-     with its unread count, P47) and whatever is not a tab, under the sidebar's headings.
+     crew Home, News, Library. More is a link to a page (/ship/more) listing Notifications (first,
+     with its unread count) and whatever is not a tab, under the sidebar's headings.
      More's badge is what waits behind it: the unread notifications plus the counters of the entries under it
      (shipNav.moreBase). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the
      number) let js/notifications.js recount it after Mark as read. -->
@@ -207,9 +207,9 @@
     </ul>
 </nav>
 
-<!-- One tab of the tab bar (P26), with the same parameters as navItem: the icon over the label, the active one (the
+<!-- One tab of the tab bar, with the same parameters as navItem: the icon over the label, the active one (the
      tab of the URL's section, navTab from navigation/NavigationAdvice: the section's own tab, or More for everything
-     under it, P65) in navy and semibold with a bar on its top edge and aria-current="page".
+     under it) in navy and semibold with a bar on its top edge and aria-current="page".
      count: a badge on the icon, hidden when null or zero, "99+" above 99; countLabel the same in words.
      data-nav: for js/notifications.js, which updates the count after Mark as read. -->
 <li th:fragment="tabItem(section, url, label, count, countLabel)" class="tab-bar-item" th:data-nav="${section}"
@@ -225,14 +225,14 @@
     </a>
 </li>
 
-<!-- Sign out: the sidebar's user block and the crew home page (P26, next to the signed-in name, for shared PCs on
+<!-- Sign out: the sidebar's user block and the crew home page (next to the signed-in name, for shared PCs on
      board). buttonClass: the button's classes. -->
 <form th:fragment="signOut(buttonClass)" th:action="@{/logout}" method="post">
     <button type="submit" th:class="${buttonClass}" th:data-busy-label="#{save.busy.signOut}"
             th:text="#{nav.signOut}">Sign out</button>
 </form>
 
-<!-- Sign out in the sidebar's user block (P29): the same form, with an icon that the 64px rail shows in place of the
+<!-- Sign out in the sidebar's user block: the same form, with an icon that the 64px rail shows in place of the
      words (they stay for screen readers and come back as a tooltip on hover and focus). -->
 <form th:fragment="sidebarSignOut" th:action="@{/logout}" method="post">
     <button type="submit" class="btn btn-outline-light btn-sm text-nowrap sidebar-sign-out"
@@ -245,7 +245,7 @@
     </button>
 </form>
 
-<!-- "Expand menu" / "Collapse menu" from 768px (P29), at the top of the sidebar since P39: right of the brand mark,
+<!-- "Expand menu" / "Collapse menu" from 768px, at the top of the sidebar: right of the brand mark,
      under it (centred) in the rail. Icon only (a 20px "panel left": a rectangle with its left bar, and a chevron that
      points the way the sidebar will move: left when expanded, right in the rail) on a 44px target; the words stay as
      its accessible name and show as a tooltip on hover and keyboard focus. A small form, so it works without
@@ -268,7 +268,7 @@
     </button>
 </form>
 
-<!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). The empty states (P25) show the same
+<!-- 20px icon of a sidebar entry; name is the entry's section key (see navItem). The empty states show the same
      icons larger, and 'items' (galley items, a ship tab without a sidebar entry). -->
 <svg th:fragment="navIcon(name)" class="sidebar-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
@@ -278,14 +278,14 @@
     <th:block th:if="${name == 'ships'}"><path d="M3 14h18l-2.5 5h-13z"/><path d="M6 14V9h12v5M12 9V4"/></th:block>
     <th:block th:if="${name == 'crew'}"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></th:block>
     <th:block th:if="${name == 'certificates'}"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M8 7h8M8 11h5M10 16l-1.5 5 3.5-2 3.5 2-1.5-5"/></th:block>
-    <!-- Vetting (P40): a shield with a check mark. -->
+    <!-- Vetting: a shield with a check mark. -->
     <th:block th:if="${name == 'vetting'}"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6z"/><path d="m8.8 12.2 2.3 2.3 4.3-4.5"/></th:block>
     <th:block th:if="${name == 'announcements'}"><path d="M3 10v4h4l7 5V5L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/></th:block>
     <th:block th:if="${name == 'orders'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></th:block>
-    <!-- Suppliers (P44): a delivery truck. -->
+    <!-- Suppliers: a delivery truck. -->
     <th:block th:if="${name == 'suppliers'}"><path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3.5v2.5h-7"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></th:block>
     <th:block th:if="${name == 'users'}"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M14 10h4M14 14h3"/></th:block>
-    <!-- Required documents (P42): a page with a checklist, two ticked lines and one open. -->
+    <!-- Required documents: a page with a checklist, two ticked lines and one open. -->
     <th:block th:if="${name == 'requirements'}"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5"/><path d="m8 11.5 1.2 1.2 2-2.2M13 12h3M8 16.5l1.2 1.2 2-2.2M13 17h3"/></th:block>
     <th:block th:if="${name == 'audit'}"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></th:block>
     <th:block th:if="${name == 'library'}"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3M9 7h6"/></th:block>
@@ -294,14 +294,14 @@
     <th:block th:if="${name == 'profile'}"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6 6 0 0 1 11 0"/></th:block>
     <th:block th:if="${name == 'approvals'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M8.5 13l2.5 2.5 4.5-5"/></th:block>
     <th:block th:if="${name == 'order'}"><path d="M3 4h2.5l2.2 11h10.8l2-8H7"/><circle cx="9.5" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></th:block>
-    <!-- Stores (P52): a shelf unit with a jar and a box. -->
+    <!-- Stores: a shelf unit with a jar and a box. -->
     <th:block th:if="${name == 'stores'}"><path d="M4 3v18M20 3v18M4 11h16M4 19h16"/><path d="M7 11V7.5h3.5V11M13.5 19v-4.5h3.5V19"/></th:block>
-    <!-- Requests (P54): a clipboard with a plus, what the Chief cook and crew ask the Master for. -->
+    <!-- Requests: a clipboard with a plus, what the Chief cook and crew ask the Master for. -->
     <th:block th:if="${name == 'requests'}"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M12 9.5v7M8.5 13h7"/></th:block>
     <th:block th:if="${name == 'more'}"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></th:block>
 </svg>
 
-<!-- A person's round picture (P31): their profile photo (the 96px version, a square from the middle of the photo), or
+<!-- A person's round picture: their profile photo (the 96px version, a square from the middle of the photo), or
      their initials on the primary tint without one. Decorative (the name is always next to it): alt="" and hidden from
      screen readers. Lazy, so a long crew list loads the photos as they scroll into view.
        initials  "DC"; photo  the photo's URL (@{...}) or null; size  'sm' (40px, list rows) or 'lg' (64px, headers)
@@ -312,7 +312,7 @@
     <th:block th:unless="${photo != null}" th:text="${initials}">DC</th:block>
 </span>
 
-<!-- Dates and times (P11). Office and ship read the same time for the same event: every time is shown in UTC and
+<!-- Dates and times. Office and ship read the same time for the same event: every time is shown in UTC and
      says so, in one format in both languages (month names in the page language), from the @dates bean
      (core/time/Dates). -->
 
@@ -326,13 +326,13 @@
      Use: <time th:replace="~{layout/parts :: localDate(${c.expiresOn})}"></time> -->
 <time th:fragment="localDate(date)" class="text-nowrap" th:datetime="${date}" th:text="${@dates.date(date)}">21 Oct 2026</time>
 
-<!-- The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row, P22). Like
+<!-- The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row). Like
      localTime, js/local-time.js adds the viewer's own date and time as a tooltip and as screen reader text.
      Use: <time th:replace="~{layout/parts :: utcDate(${version.publishedAt})}"></time> -->
 <time th:fragment="utcDate(instant)" class="local-time text-nowrap" th:datetime="${@dates.iso(instant)}"
       th:text="${@dates.utcDate(instant)}">21 Oct 2026</time>
 
-<!-- The UTC time of an instant, "12:40 UTC", under a heading that already gives the day (a notification, P23). Like
+<!-- The UTC time of an instant, "12:40 UTC", under a heading that already gives the day (a notification). Like
      localTime, js/local-time.js adds the viewer's own date and time as a tooltip and as screen reader text.
      Use: <time th:replace="~{layout/parts :: utcTime(${n.createdAt})}"></time> -->
 <time th:fragment="utcTime(instant)" class="local-time text-nowrap" th:datetime="${@dates.iso(instant)}"
@@ -343,7 +343,7 @@
      certificateHint(date): a certificate's expiry date (LocalDate): " · in 23 days", " · expires today",
        " · expired 5 days ago".
      invitationHint(expiresAt): an invitation's expiry (Instant): " · expires in 2 days", " · expired today".
-     invitationExpiredHint(expiresAt): after "Invitation expired" (P17), when: " · 2 days ago", " · today".
+     invitationExpiredHint(expiresAt): after "Invitation expired", when: " · 2 days ago", " · today".
      Use: <span th:replace="~{layout/parts :: certificateHint(${c.expiresOn})}"></span> -->
 <span th:fragment="certificateHint(date)" class="date-hint"><span aria-hidden="true">·</span> <th:block
         th:text="${@dates.certificateHint(date)}">in 23 days</th:block></span>
@@ -356,7 +356,7 @@
 <span th:fragment="expiryDate(date)"><time th:replace="~{layout/parts :: localDate(${date})}"></time>
     <span th:replace="~{layout/parts :: certificateHint(${date})}"></span></span>
 
-<!-- Read receipts of a news item (P39, announcements): the crew's own, on their list and the item's page, and the
+<!-- Read receipts of a news item (announcements): the crew's own, on their list and the item's page, and the
      office's, per recipient. read: two ticks in the primary blue (like a messenger's "read"); not read: one grey tick.
      Never by colour or icon alone: the words are always there, visible or for screen readers.
      readTicks(read): the 16px icon only, decorative. -->
@@ -385,8 +385,8 @@
 
 <!-- 16px icon before the label of a page header action, in the style of the sidebar icons.
      name: 'plus' (add), 'upload' (import), 'download' (export, a library file), 'check' (the current view of a
-     viewSwitch, P20), 'external' (opens in a new tab: a library PDF, P22; say so in visually hidden text too),
-     'paperclip' (a certificate's file, P39), 'trash' (Delete row, P43), 'snooze' (a snoozed alert, P43).
+     viewSwitch), 'external' (opens in a new tab: a library PDF; say so in visually hidden text too),
+     'paperclip' (a certificate's file), 'trash' (Delete row), 'snooze' (a snoozed alert).
      Use: <svg th:replace="~{layout/parts :: icon('plus')}"></svg><span th:text="#{...}">Add ship</span> -->
 <svg th:fragment="icon(name)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -429,7 +429,7 @@
     </div>
 </details>
 
-<!-- An action that asks first (P10): deactivate, delete, cancel, retire. Never one click.
+<!-- An action that asks first: deactivate, delete, cancel, retire. Never one click.
      A POST form that opts in to the confirmation dialog (confirmDialog, js/confirm.js) with data attributes. Its
      trigger is a link to the action's own URL: with the script, clicking it opens the dialog and Confirm submits the
      form; without the script (or a browser without <dialog>) it opens the plain confirmation page (GET on the same
@@ -439,7 +439,7 @@
        action     the POST URL, e.g. '/office/ships/' + ${s.id} + '/deactivate'
        tab        the ship page tab to return to (sent as "tab", also on the confirmation page's URL), or null
        fields     more fields to send the same way, a map of names to values, or null: the list and filters an
-                  invitation's Cancel returns to (crew/CrewListReturn, P17)
+                  invitation's Cancel returns to (crew/CrewListReturn)
        label      the trigger's text: "Deactivate"
        linkClass  the trigger's classes: 'dropdown-item dropdown-item-danger' in a "more" menu, a btn class on a page
        title      the dialog's heading, naming the record: "Deactivate MV Demo?"
@@ -447,11 +447,11 @@
        confirm    the confirm button: "Deactivate"
        tone       'danger' (cannot be undone: red button, Enter does not confirm) or 'neutral' (Activate undoes it)
        dismiss    the dismiss button when "Cancel" would be confusing ("Keep invitation" next to "Cancel invitation")
-       id         the form's id, when a confirmTrigger elsewhere on the page opens it (P43: a row of a grid that is
+       id         the form's id, when a confirmTrigger elsewhere on the page opens it (a row of a grid that is
                   itself a form, where a form cannot sit); trigger=false then leaves the trigger out
-       note       the label of an optional note the dialog asks for and posts as "note" (P50: "Note (optional)"; noteMax its
+       note       the label of an optional note the dialog asks for and posts as "note" ("Note (optional)"; noteMax its
                   length), or null for none. The plain confirmation page asks for it too (ConfirmPages.note)
-       changeList P58: what will change, a list of lines shown as a list under the body (resetting a vessel's required
+       changeList What will change, a list of lines shown as a list under the body (resetting a vessel's required
                   documents), or null for none. The plain confirmation page lists them too (ConfirmPages.items)
      Use: <form th:replace="~{layout/parts :: confirmForm(action=..., label=#{ship.deactivate}, linkClass='...',
                 title=#{ship.deactivate.confirm.title(${s.name})}, body=#{...}, confirm=#{ship.deactivate}, tone='neutral')}"></form> -->
@@ -471,7 +471,7 @@
        data-confirm-open aria-haspopup="dialog" th:text="${label}">Deactivate</a>
 </form>
 
-<!-- The trigger of a confirmForm that sits elsewhere on the page (P43), by its id (data-confirm-form, js/confirm.js):
+<!-- The trigger of a confirmForm that sits elsewhere on the page, by its id (data-confirm-form, js/confirm.js):
      an icon button whose text is its accessible name. Without the script the link opens the plain confirmation page
      at url (the action's own URL with its fields as the query).
        formId     the confirmForm's id;  url  the confirmation page, an app path with its query
@@ -485,7 +485,7 @@
     <span th:class="${icon != null} ? 'visually-hidden' : null" th:text="${label}">Remove</span>
 </a>
 
-<!-- The one confirmation dialog (P10), once per page (layout/layout.html). js/confirm.js fills it from the
+<!-- The one confirmation dialog, once per page (layout/layout.html). js/confirm.js fills it from the
      data-confirm-* attributes of the form whose trigger was clicked (confirmForm) and shows it as a modal <dialog>:
      focus starts on Cancel, Esc and the backdrop cancel, and in a danger dialog Enter does not confirm (Space or a
      click does). The confirm button gets its tone from the script (btn-outline-danger or btn-primary). -->
@@ -498,9 +498,9 @@
         </div>
         <div class="modal-body">
             <p class="mb-0" id="confirmDialogBody"></p>
-            <!-- P58: what will change (the form's hidden ul[data-confirm-items]), as a list. -->
+            <!-- What will change (the form's hidden ul[data-confirm-items]), as a list. -->
             <ul class="confirm-dialog-items" data-confirm-items-list hidden></ul>
-            <!-- P50: shown for a form with data-confirm-note; its text is posted as the form's "note". -->
+            <!-- Shown for a form with data-confirm-note; its text is posted as the form's "note". -->
             <div class="confirm-dialog-note" data-confirm-note-box hidden>
                 <label for="confirmDialogNote" class="form-label" data-confirm-note-label></label>
                 <input type="text" id="confirmDialogNote" class="form-control" autocomplete="off">
@@ -513,7 +513,7 @@
     </div>
 </dialog>
 
-<!-- Saving on a bad connection (P15, js/save.js).
+<!-- Saving on a bad connection (js/save.js).
      offlineBanner: once per page (layout/layout.html), fixed at the bottom of the window. Empty, and so invisible, until
      the browser reports no connection; the script then fills it with data-text ("No connection. Your text is kept on
      this device.", on a page with a draft form) or data-text-plain, and empties it when the connection is back. A live
@@ -534,7 +534,7 @@
     </div>
 </template>
 
-<!-- Page header (P06): the first thing in every page's <main>, so every page starts the same way. In this order:
+<!-- Page header: the first thing in every page's <main>, so every page starts the same way. In this order:
        breadcrumbs  every page below the top level (the sidebar entries are the top level): the section, the record,
                     then this page, each a link except the last; the last is the heading and is added here.
        eyebrow      real context only: the ship's name and IMO number on ship-scoped pages (always in this place,
@@ -554,7 +554,7 @@
        subtitle     text; subtitleParts instead when the line has markup (e.g. a localTime), ~{::pageSubtitle}
        actions      a fragment of buttons, ~{::pageActions}
        media        a picture before the heading, ~{::pageMedia}: the person's personAvatar on the crew's own pages
-                    (P31: Home, My profile, More)
+                    (Home, My profile, More)
      Define the fragments inside the host element (they are replaced with it):
        <header th:replace="~{layout/parts :: pageHeader(heading=#{item.list.heading}, count=${items.size()},
                             crumbs=~{::pageCrumbs}, actions=~{::pageActions})}">
@@ -609,10 +609,10 @@
 <span th:fragment="status(tone, label)" class="badge status-badge" th:classappend="'status-' + ${tone}"
       th:text="${label}">Active</span>
 
-<!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows, P09). Same tones as
+<!-- Status badge with a 12px icon in place of the dot (the Overview's "Needs attention" rows). Same tones as
      status; the text still carries the meaning. icon: 'alert' (expired), 'clock' (expiring, waiting), 'export'
-     (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank, P18), 'check'
-     (valid, P20), 'dash' (nothing known, P40: no RightShip inspection).
+     (not exported), 'mail' (invitation), 'eye' (not acknowledged), 'key' (the access of a rank), 'check'
+     (valid), 'dash' (nothing known, No RightShip inspection).
      Use: <span th:replace="~{layout/parts :: statusIcon('danger', #{...}, 'alert')}"></span> -->
 <span th:fragment="statusIcon(tone, label, icon)" class="badge status-badge status-badge-icon"
       th:classappend="'status-' + ${tone}">
@@ -630,7 +630,7 @@
     <span th:text="${label}">Expired</span>
 </span>
 
-<!-- A count in a table cell that links to the list behind it (the Overview's fleet table, P09). Zero is a muted dash,
+<!-- A count in a table cell that links to the list behind it (the Overview's fleet table). Zero is a muted dash,
      not a link ("0" for screen readers). url: a URL built with @{...}.
      Use: <td class="num"><th:block th:replace="~{layout/parts :: countLink(${row.crew}, @{/office/crew(shipId=${id})})}"></th:block></td> -->
 <th:block th:fragment="countLink(value, url)">
@@ -639,18 +639,18 @@
     <a th:unless="${value == 0}" class="count-link" th:href="${url}" th:text="${value}">3</a>
 </th:block>
 
-<!-- A ship's name, linking to its page (office pages; P08: every ship name in the office links there).
+<!-- A ship's name, linking to its page (office pages; every ship name in the office links there).
      Use: <td><a th:replace="~{layout/parts :: shipLink(${u.ship})}"></a></td> -->
 <a th:fragment="shipLink(ship)" class="ship-link" th:href="@{/office/ships/{id}(id=${ship.id})}" th:text="${ship.name}">MV Demo</a>
 
-<!-- A country's flag (P43): the 4x3 SVG of the flag-icons project for the ISO code (ship/Flags, served by the app),
+<!-- A country's flag: the 4x3 SVG of the flag-icons project for the ISO code (ship/Flags, served by the app),
      20 x 15px with a subtle border so a white flag stays visible. Decorative: the country's name is always next to it
      (alt=""). Nothing at all when there is no image for the code, never a broken image.
      Use: <img th:replace="~{layout/parts :: flag(${ship.flag})}"> -->
 <!-- th:with: a link expression (@{...}) cannot call beans. -->
 <img th:fragment="flag(code)" th:if="${@flags.has(code)}" th:with="flagPath=${@flags.path(code)}" class="flag-icon" th:src="@{${flagPath}}" alt="" width="20" height="15" loading="lazy" decoding="async">
 
-<!-- A country as "[flag] Greece (GR)" (P43): the flag, then the label as given ("Greece (GR)", or the name alone).
+<!-- A country as "[flag] Greece (GR)": the flag, then the label as given ("Greece (GR)", or the name alone).
      Vessel flags (lists, headers, particulars) and nationalities (profiles). The label stays on one line with its flag.
      Use: <span th:replace="~{layout/parts :: country(${s.flag}, ${countries[s.flag]})}"></span> -->
 <span th:fragment="country(code, label)" class="country"><img th:replace="~{layout/parts :: flag(${code})}"><span
@@ -661,7 +661,7 @@
 <span th:fragment="email(value)" class="truncate" th:title="${value}" th:text="${value}">jane@example.com</span>
 
 <!-- Expiry badge of a certificate: Expired, 30 / 60 / 90 days (the smallest reminder threshold reached), or Valid.
-     today is the UTC date. The state is in the text and the icon's shape (P20): a warning triangle when expired, a
+     today is the UTC date. The state is in the text and the icon's shape: a warning triangle when expired, a
      clock while it runs out, a tick when valid; the colour only repeats it. Used on the crew edit page, the
      Certificates list and matrix, and the ship's Overview tab. -->
 <th:block th:fragment="certificateBadge(c, today)">
@@ -675,7 +675,7 @@
     </th:block>
 </th:block>
 
-<!-- Two or more views of the same records, as ordinary links (P20: the ship's certificates as a matrix or a list).
+<!-- Two or more views of the same records, as ordinary links (the ship's certificates as a matrix or a list).
      The current one has aria-current="page", the selected look and a tick; each is a 40px (44px on phones) target.
      label: what the group switches, for screen readers; views: the links, ~{::viewLinks}, each
      <a class="view-switch-link" th:href="..." th:aria-current="${current} ? 'page'">Matrix</a>.
@@ -685,7 +685,7 @@
     <th:block th:replace="${views}"></th:block>
 </nav>
 
-<!-- A date range for a history or log page (P58), inside the page's GET filter form: quick choices above, then From
+<!-- A date range for a history or log page, inside the page's GET filter form: quick choices above, then From
      and To side by side (two equal columns at every width, also at 360px) with the form's buttons on the same row from
      768px and under them on phones.
      The quick choices ("Last 30 days", "Last 60 days", "Last 90 days") are a segmented group of plain links
@@ -723,7 +723,7 @@
     </div>
 </div>
 
-<!-- Lists (P19): search, filters, sort and pages, the same on every office list. The state is a
+<!-- Lists: search, filters, sort and pages, the same on every office list. The state is a
      core/list/ListQuery, model attribute "list": it builds every link below, all in the URL, so a list can be
      reloaded, bookmarked and linked to. The rows are one Spring Page, queried in the database. The pattern: app.css,
      section "Lists: search, filters, sort and pages". -->
@@ -787,7 +787,7 @@
      sorted column has aria-sort and an arrow up (ascending) or down (descending), the others a quiet up-and-down
      mark. The shape tells the direction, not the colour.
      Use: <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th>
-     sortHeaderCell: the same with classes for the cell, as its column's cells have them (P58: 'code-cell' for a
+     sortHeaderCell: the same with classes for the cell, as its column's cells have them ('code-cell' for a
      centred short code such as a currency):
           <th th:replace="~{layout/parts :: sortHeaderCell(${list}, 'currency', #{supplier.currency}, 'code-cell')}"></th> -->
 <th th:fragment="sortHeader(list, key, label)" th:replace="~{layout/parts :: sortHeaderCell(${list}, ${key}, ${label}, null)}"></th>
@@ -804,7 +804,7 @@
     </a>
 </th>
 
-<!-- The pager at the end of a list card: "1 to 10 of 412", the page size (10, 20, 50 or 100, P43; a new size starts at page 1) and
+<!-- The pager at the end of a list card: "1 to 10 of 412", the page size (10, 20, 50 or 100; a new size starts at page 1) and
      Previous / Next, which keep the search, filters and sort. Shown when there are more rows than the smallest page.
      rows: the Spring Page; list: the ListQuery.
      Use: <nav th:replace="~{layout/parts :: pager(${people}, ${list})}"></nav> -->
@@ -833,7 +833,7 @@
 </nav>
 
 <!-- An empty list card. With a search or a filter set, "No results for these filters" and Clear all (one compact
-     line); otherwise the list's own emptyState (P25), with the named parameters icon, title, text and action passed
+     line); otherwise the list's own emptyState, with the named parameters icon, title, text and action passed
      on to it. rows: the Spring Page; list: the ListQuery. While list.emptyUnfiltered(rows), the page header leaves
      out the actions the empty state shows, so the view keeps one primary button.
      Use: <th:block th:replace="~{layout/parts :: listEmpty(rows=${items}, list=${list}, icon='items',
@@ -849,7 +849,7 @@
     </th:block>
 </th:block>
 
-<!-- Empty state (P25): a list with nothing in it yet says what it is for and what to do first. An icon, a one-line
+<!-- Empty state: a list with nothing in it yet says what it is for and what to do first. An icon, a one-line
      title, one sentence of help and the list's first action, centred in the card. Distinct from the filtered-empty
      line of listEmpty ("No results for these filters"), which is left aligned, has no icon and offers Clear all.
      Named parameters:
@@ -877,7 +877,7 @@
 <a th:fragment="emptyLink(url, label, buttonClass)" th:class="${buttonClass}" th:href="@{${url}}"
    th:text="${label}">Go to Ships</a>
 
-<!-- Form parts (P05). The pattern: app.css, section "Forms". -->
+<!-- Form parts. The pattern: app.css, section "Forms". -->
 
 <!-- "(optional)" after the label of a field that may stay empty. No asterisks on required fields.
      Use: <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label> -->
@@ -897,7 +897,7 @@
          th:text="#{form.counter.limit(${max})}">Up to 4,000 characters</div>
 </th:block>
 
-<!-- Quantity fields (P60): one rule per unit, core/form/QuantityRules (@quantityRules). A text input, so a comma works
+<!-- Quantity fields: one rule per unit, core/form/QuantityRules (@quantityRules). A text input, so a comma works
      as the decimal separator (Greek keyboards); inputmode shows the number pad on phones ("numeric" for whole-number
      units). js/quantity.js filters what is typed to digits and one separator (a comma becomes a dot) and checks the
      limit as the person types; without it the server checks everything and the form still posts.
@@ -960,7 +960,7 @@
     </div>
 </th:block>
 
-<!-- Error pages (P12): templates/error/403.html, 404.html, 5xx.html and, for any other status, error.html. Each is
+<!-- Error pages: templates/error/403.html, 404.html, 5xx.html and, for any other status, error.html. Each is
        <main th:replace="~{layout/parts :: errorPage(#{error.404.title}, #{error.404.text})}"></main>
      heading: what happened; text: one sentence saying what it means. The status code (the model's "status") is the
      eyebrow; the next step is the user's home page (/office or /ship). Signed in, the page sits in the normal frame
@@ -997,9 +997,9 @@
 
 <!-- Flash messages: a flash attribute "successMessage" or "errorMessage" holding a message key, and optionally
      "successArgs" / "errorArgs", an Object[] with the message's arguments ("Invitation sent to {0}."), and "successDownloadUrl",
-     the GET URL of a file the action prepared (P21: "3 requests exported · Download again"). js/download.js starts
+     the GET URL of a file the action prepared ("3 requests exported · Download again"). js/download.js starts
      that download once when the page opens; the link is there to repeat it, and is all there is without the script. -->
-<!-- data-flash="success": the server confirmed a save; js/save.js then removes the draft of the form just sent (P15). -->
+<!-- data-flash="success": the server confirmed a save; js/save.js then removes the draft of the form just sent. -->
 <th:block th:fragment="flash">
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert" data-flash="success">
         <span th:text="${successArgs != null} ? ${#messages.msgWithParams(successMessage, successArgs)} : #{${successMessage}}"></span>
@@ -1014,7 +1014,7 @@
     </div>
 </th:block>
 
-<!-- Import from a file (P24): the crew and the item import share their steps (core/importfile/ImportSteps) and
+<!-- Import from a file: the crew and the item import share their steps (core/importfile/ImportSteps) and
      these parts. Every page of an import has the model attribute "flow" (core/importfile/ImportFlow: the import's
      texts under flow.messagePrefix, its URLs, its ship and breadcrumbs) and "step" (1 to 4). The shared pages are
      templates/importfile/*.html; the review pages are crewimport/review.html and item/import-review.html. The pattern:
@@ -1073,8 +1073,7 @@
     </label>
 </td>
 
-<!-- An editable text cell of a review row. Its local rules ride along as data attributes for the live check (P39,
-     js/import-check.js): data-required (the message when empty; requiredKey null: optional), data-max-length (the row's
+<!-- An editable text cell of a review row. Its local rules ride along as data attributes for the live check (js/import-check.js): data-required (the message when empty; requiredKey null: optional), data-max-length (the row's
      @Size for the property) and data-too-long, data-email (type 'email': the message for an invalid address), and data-server-error (what the
      server found, shown again while the value is the one the server checked). The server checks everything again;
      without JavaScript only its errors show. property: the row's property; label: the column's name; cellClass: the
@@ -1093,7 +1092,7 @@
 
 <!-- Above the review table, inside the review form: the row filters (All, With errors, Excluded, each with its
      count; they keep the edits, as Check again does), what the import will do, and "Exclude all rows with errors".
-     form: the ImportForm; show: the current filter (null for all). The live check (P39, js/import-check.js) starts
+     form: the ImportForm; show: the current filter (null for all). The live check (js/import-check.js) starts
      from the counts of all rows (data-error-count, data-changing-count: rows to create or update), as the filters may
      show only some of them. -->
 <div th:fragment="importSummary(form, show)" class="import-summary" data-import-check
@@ -1111,7 +1110,7 @@
                   th:text="${count}">10</span>
         </button>
     </div>
-    <p class="import-plan" th:text="#{importFile.review.plan(${form.createCount}, ${form.updateCount}, ${form.unchangedCount})}">
+    <p class="import-plan text-meta" th:text="#{importFile.review.plan(${form.createCount}, ${form.updateCount}, ${form.unchangedCount})}">
         8 new, 2 updates, 1 without changes.</p>
     <!-- data-label-one, data-label-many: its text for 1 row and for 100 (the live check puts the count in). -->
     <button th:if="${form.errorCount > 0}" type="submit" class="btn btn-outline-secondary btn-sm import-exclude-errors"
@@ -1128,7 +1127,7 @@
 
 <!-- The review's actions: the import (enabled when no included row has errors and a row changes something), Check
      again and Cancel. submitLabel: the import button's text; submitHint: why it is disabled (hidden while enabled;
-     the live check, P39, enables and disables the button as cells are corrected). -->
+     the live check enables and disables the button as cells are corrected). -->
 <th:block th:fragment="importReviewActions(form, show, submitLabel, submitHint)">
     <div class="form-actions">
         <button type="submit" class="btn btn-primary" th:formaction="@{${flow.path('/submit')}}" data-import-submit

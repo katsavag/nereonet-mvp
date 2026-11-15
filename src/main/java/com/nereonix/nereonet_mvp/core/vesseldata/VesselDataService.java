@@ -21,7 +21,7 @@ import com.nereonix.nereonet_mvp.core.vesseldata.VesselApiClient.Fetch;
 import jakarta.annotation.PreDestroy;
 
 /**
- * VesselAPI data per vessel (P45). The provider is called only by lookup(), on a user's "Look up by IMO" or "Refresh
+ * VesselAPI data per vessel. The provider is called only by lookup(), on a user's "Look up by IMO" or "Refresh
  * from VesselAPI", from the server, never while a page opens; the pages read the stored rows (view()).
  * <ul>
  *   <li>lookup: the three calls at the same time, each on its own, so one failing or slow call never stops the others.

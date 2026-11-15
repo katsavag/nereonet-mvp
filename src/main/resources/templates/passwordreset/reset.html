@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/auth :: layout(#{passwordReset.reset.title}, ~{::main})}">
 <body>
-<!-- Password reset (P14), from the emailed link: the new password with the rules, show / hide and checklist of
+<!-- Password reset, from the emailed link: the new password with the rules, show / hide and checklist of
      registration (layout/parts :: newPasswordFields). The language switch keeps the token. -->
 <main th:replace="~{layout/parts :: authFrame(content=~{::authContent}, lang=true, token=${form.token})}">
     <th:block th:fragment="authContent">
@@ -26,6 +26,7 @@
                         th:text="#{passwordReset.reset.submit}">Save new password</button>
             </div>
         </form>
+        <script th:src="@{/js/password.js}" defer></script>
     </th:block>
 </main>
 </body>

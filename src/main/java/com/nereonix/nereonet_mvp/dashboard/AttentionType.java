@@ -3,39 +3,39 @@ package com.nereonix.nereonet_mvp.dashboard;
 import java.util.Locale;
 
 /**
- * The kinds of open item on the Overview's "Needs attention" card (P09), most urgent first: the list is sorted in
+ * The kinds of open item on the Overview's "Needs attention" card, most urgent first: the list is sorted in
  * this order, then by date within a kind (oldest or soonest first).
  */
 public enum AttentionType {
 
     /** A certificate past its expiry date. */
     CERTIFICATE_EXPIRED(Group.CERTIFICATES),
-    /** A seafarer on board missing a required document, an expired one included (P42): one item per person. */
+    /** A seafarer on board missing a required document, an expired one included: one item per person. */
     DOCUMENTS_MISSING(Group.DOCUMENTS),
-    /** A vessel's SIRE 2.0 operator comments due within 3 days, or overdue (P41): a deadline that cannot be missed. */
+    /** A vessel's SIRE 2.0 operator comments due within 3 days, or overdue: a deadline that cannot be missed. */
     SIRE_COMMENTS(Group.VETTING),
-    /** A vessel's RightShip inspection expired, unacceptable or expiring within 60 days (P40). */
+    /** A vessel's RightShip inspection expired, unacceptable or expiring within 60 days. */
     VETTING_INSPECTION(Group.VETTING),
-    /** A vessel's latest SIRE 2.0 report no longer current, or current for 60 days at most (P41). */
+    /** A vessel's latest SIRE 2.0 report no longer current, or current for 60 days at most. */
     SIRE_REPORT(Group.VETTING),
-    /** An open SIRE 2.0 observation past its target date, on a vessel's latest inspection (P41). */
+    /** An open SIRE 2.0 observation past its target date, on a vessel's latest inspection. */
     SIRE_OBSERVATION(Group.VETTING),
-    /** A vessel's RightShip Safety Score of 2 or below (P40). */
+    /** A vessel's RightShip Safety Score of 2 or below. */
     VETTING_SCORE(Group.VETTING),
-    /** A certificate expiring within DashboardService.OPEN_ITEM_CERTIFICATE_DAYS. */
+    /** A certificate expiring within NeedsAttention.OPEN_ITEM_CERTIFICATE_DAYS. */
     CERTIFICATE_EXPIRING(Group.CERTIFICATES),
-    /** An order a ship has sent (P36) that the office has never exported. */
+    /** An order a ship has sent that the office has never exported. */
     ORDER_NOT_EXPORTED(Group.ORDERS),
     /**
-     * An order received on board with a read invoice (P64) the office has not marked matched: order, delivery and
+     * An order received on board with a read invoice the office has not marked matched: order, delivery and
      * invoice to compare. Most differences first. It replaces ORDER_SHORTAGE for those orders.
      */
     ORDER_INVOICE(Group.ORDERS),
-    /** An order received on board with lines short (P51) that no office user has marked "Shortage handled". */
+    /** An order received on board with lines short that no office user has marked "Shortage handled". */
     ORDER_SHORTAGE(Group.ORDERS),
-    /** An open request for quotes (P44) with quotes from at least two suppliers: ready to compare and award. */
+    /** An open request for quotes with quotes from at least two suppliers: ready to compare and award. */
     RFQ_READY(Group.QUOTES),
-    /** An open request for quotes past its reply-by date with fewer than two quotes (P44). */
+    /** An open request for quotes past its reply-by date with fewer than two quotes. */
     RFQ_PAST_REPLY_BY(Group.QUOTES),
     /** A crew invitation that expired, or was sent more than 48 hours ago and is still not accepted. */
     INVITATION(Group.INVITATIONS),
@@ -56,12 +56,12 @@ public enum AttentionType {
 
     /**
      * The kinds as the Overview filters them (/office?type=invitations) and as the fleet table counts them. With a
-     * kind's chip selected, the "Needs attention" header links to its full list, when it has one (P65).
+     * kind's chip selected, the "Needs attention" header links to its full list, when it has one.
      */
     public enum Group {
         CERTIFICATES, DOCUMENTS, VETTING, ORDERS, QUOTES, INVITATIONS, ACKNOWLEDGEMENTS;
 
-        /** The full list of this kind outside the Overview (P43; P65: "Open the full list" in the header of Needs
+        /** The full list of this kind outside the Overview ("Open the full list" in the header of Needs
          *  attention, with the kind's chip selected), or null when it has none. */
         public String listUrl() {
             return switch (this) {

@@ -25,14 +25,14 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 import jakarta.persistence.EntityManager;
 
-// Item requests, for any feature (P33). The Chief cook's and the crew's request pages (P54, shiprequest) call submit,
+// Item requests, for any feature. The Chief cook's and the crew's request pages (P54, shiprequest) call submit,
 // and while a request is PENDING the person who asked can change it (update) or cancel it; the Master decides on
-// /ship/approvals (approve, decline; P34). A decision, a change and a cancel all lock the request's row first
+// /ship/approvals (approve, decline). A decision, a change and a cancel all lock the request's row first
 // (ItemRequestRepository.findForDecision), so they never interleave.
 @Service
 public class RequestService {
 
-    // An item needs a unit. A new item asked for without one gets this when the request is approved (P34); the
+    // An item needs a unit. A new item asked for without one gets this when the request is approved; the
     // office can change it on the item list.
     public static final String NEW_ITEM_DEFAULT_UNIT = "pcs";
 
@@ -66,7 +66,7 @@ public class RequestService {
      * Saves a new request as PENDING with its lines (request.getLines(), not saved yet), records it in the audit log
      * (by requestedBy, so no signed-in user is needed) and notifies the enabled Master of the ship: "New request to
      * approve", linking to /ship/approvals/{id}. createdAt is now unless already set. The caller sets ship and
-     * requestedBy. Throws InvalidRequestException (an IllegalArgumentException, with its Problem, P54) for a request
+     * requestedBy. Throws InvalidRequestException (an IllegalArgumentException, with its Problem) for a request
      * without lines, or a line that has both or neither of an item and a new item name, an item of another ship, or a
      * quantity that is not above zero.
      */
@@ -178,7 +178,7 @@ public class RequestService {
     }
 
     /**
-     * The person who asked changes their PENDING request (P54): its lines become the given ones (not saved yet; each
+     * The person who asked changes their PENDING request: its lines become the given ones (not saved yet; each
      * an item of the request's ship or a new item name, as in submit), with the same checks as submit
      * (InvalidRequestException, and nothing changes). Locked as approve locks it, so a change and a decision never
      * interleave. Records "Request changed" (by the person who asked); nobody is notified. NOT_PENDING (nothing
@@ -208,7 +208,7 @@ public class RequestService {
     }
 
     /**
-     * The person who asked cancels their PENDING request (P54): CANCELLED, so it leaves the Master's waiting requests
+     * The person who asked cancels their PENDING request: CANCELLED, so it leaves the Master's waiting requests
      * and never goes into an order. decidedBy and decidedAt stay empty (nobody decided); the audit log keeps when
      * ("Request cancelled", by the person who asked). Nobody is notified. Locked, NOT_PENDING, NOT_FOUND and
      * AccessDeniedException as update.

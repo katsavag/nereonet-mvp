@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${detail.request.id})}, ~{::main})}">
 <body>
-<!-- One of the person's own requests (P54): when it was sent, its status, who decided and when, and for a declined one
+<!-- One of the person's own requests: when it was sent, its status, who decided and when, and for a declined one
      the Master's reason; then its lines by category (Provisions, then Personal items): name, quantity and unit, with a
      "New item" badge on a line for an item that is not on the list. While it waits for the Master: Edit and Cancel
-     request (a confirmation first, P10). Once the Master decided, or it was cancelled, it is read only and says so.
+     request (a confirmation first). Once the Master decided, or it was cancelled, it is read only and says so.
      English only. Model: detail (ShipRequestService.Detail). -->
 <main th:with="request=${detail.request}, pending=${detail.pending}, status=${detail.request.status.name()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.number(${request.id})}, crumbs=~{::pageCrumbs},

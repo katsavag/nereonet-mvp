@@ -38,7 +38,7 @@ import com.nereonix.nereonet_mvp.stores.VoiceCountService.VoiceCountException;
 
 import jakarta.servlet.http.HttpSession;
 
-// Counting the store by voice (P57), the Chief cook only (SecurityConfig: /ship/stores/**).
+// Counting the store by voice, the Chief cook only (SecurityConfig: /ship/stores/**).
 //   POST /ship/stores/count/voice           the recording (multipart "audio") from js/stores-voice.js: transcribed and
 //                                           read into a Proposal kept in the HTTP session (SESSION_KEY), replacing
 //                                           any earlier one; the stock is not touched. The recording is not kept.
@@ -140,7 +140,7 @@ public class VoiceCountController {
             if (input.isRemoved()) {
                 continue;
             }
-            // P60: the rule of the item's unit for a store count.
+            // The rule of the item's unit for a store count.
             Level known = items.get(line.itemId());
             QuantityRules.Check check = (known != null ? quantityRules.forItem(known.item(), Use.COUNT)
                     : quantityRules.forUnit(line.unit(), Use.COUNT)).check(input.getQuantity());

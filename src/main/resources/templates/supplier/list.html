@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{supplier.list.title}, ~{::main})}">
 <body>
-<!-- The suppliers the office asks for quotes (P44): name (opens Edit), contact email, ports served, currency, website
-     and status, by name. Search (name, email, ports), status filter, sort by name or currency, pages (P19). Empty
-     (P25): what suppliers are for, with Add supplier, which the header then leaves out. Model: list (ListQuery),
+<!-- The suppliers the office asks for quotes: name (opens Edit), contact email, ports served, currency, website
+     and status, by name. Search (name, email, ports), status filter, sort by name or currency, pages. Empty: what suppliers are for, with Add supplier, which the header then leaves out. Model: list (ListQuery),
      suppliers (Page of Supplier), status. -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{supplier.list.heading}, count=${suppliers.totalElements},

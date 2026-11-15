@@ -14,7 +14,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * How the app shows dates and times (P11), used as {@code @dates} in Thymeleaf. Office and ship read the same time
+ * How the app shows dates and times, used as {@code @dates} in Thymeleaf. Office and ship read the same time
  * for the same event, so every time is shown in UTC and says so: "21 Oct 2026 · 12:40 UTC". A date without a time
  * (a certificate's expiry) has no zone: "21 Oct 2026". One format in both languages; month names follow the page
  * language. Relative hints ("in 23 days", "expired 5 days ago") count whole UTC days from today (UTC).
@@ -47,13 +47,13 @@ public class Dates {
         return date == null ? "" : DateTimeFormatter.ofPattern(DATE_PATTERN, locale()).format(date);
     }
 
-    /** The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row, P22); empty for null. */
+    /** The UTC date of an instant, "21 Oct 2026", where the time would be noise (a library list row); empty for null. */
     public String utcDate(Instant instant) {
         return instant == null ? "" : date(LocalDate.ofInstant(instant, ZoneOffset.UTC));
     }
 
     /** The UTC date of an instant without the year when it is this year (UTC), "13 Nov", else "13 Nov 2025": a news
-     *  item's meta line on the crew's News (P47); empty for null. */
+     *  item's meta line on the crew's News; empty for null. */
     public String shortDate(Instant instant) {
         if (instant == null) {
             return "";
@@ -69,13 +69,13 @@ public class Dates {
                 : DateTimeFormatter.ofPattern(DATE_TIME_PATTERN, locale()).withZone(ZoneOffset.UTC).format(instant);
     }
 
-    /** "21 Oct 2026 · 12:40 UTC" in the given language, outside a request (an email, P29); empty for null. */
+    /** "21 Oct 2026 · 12:40 UTC" in the given language, outside a request (an email); empty for null. */
     public static String dateTime(Instant instant, Locale locale) {
         return instant == null ? ""
                 : DateTimeFormatter.ofPattern(DATE_TIME_PATTERN, locale).withZone(ZoneOffset.UTC).format(instant);
     }
 
-    /** "12:40 UTC", under a heading that gives the day (a notification, P23); empty for null. */
+    /** "12:40 UTC", under a heading that gives the day (a notification); empty for null. */
     public String utcTime(Instant instant) {
         return instant == null ? "" : TIME.format(instant);
     }

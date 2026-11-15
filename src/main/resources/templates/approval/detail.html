@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${detail.request.id})}, ~{::main})}">
 <body>
-<!-- One request of the Master's ship (P33): who asked and when, its status (and who approved or declined it, when, and why it was
+<!-- One request of the Master's ship: who asked and when, its status (and who approved or declined it, when, and why it was
      declined), then its lines by category (Provisions, then Personal items): name, quantity and unit. A line for an
-     item not in the ship's list yet has a "New item" badge. English only. A PENDING request has Approve and Decline
-     (P34): Approve posts at once; Decline opens a modal asking for the reason. Model: detail (ApprovalService.Detail),
+     item not in the ship's list yet has a "New item" badge. English only. A PENDING request has Approve and Decline: Approve posts at once; Decline opens a modal asking for the reason. Model: detail (ApprovalService.Detail),
      declineForm (DeclineForm). -->
 <main th:with="request=${detail.request}, pending=${detail.request.status.name() == 'PENDING'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.number(${request.id})}, crumbs=~{::pageCrumbs},

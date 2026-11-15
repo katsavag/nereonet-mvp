@@ -26,7 +26,7 @@ public class RegistrationController {
 
     private final RegistrationService registrationService;
     private final SignIn signIn;
-    // Free text shown on the "link is invalid or has expired" page (P13); blank: not shown.
+    // Free text shown on the "link is invalid or has expired" page; blank: not shown.
     private final String supportContact;
     private final int invitationValidDays;
 
@@ -47,7 +47,7 @@ public class RegistrationController {
         return showForm(registrationService.findValidInvitation(token), model);
     }
 
-    // Registered: signed in at once and sent to their home page (P13), not to the sign-in form.
+    // Registered: signed in at once and sent to their home page, not to the sign-in form.
     @PostMapping("/register")
     public String register(@Valid @ModelAttribute("form") RegistrationForm form, BindingResult result, Model model,
                            RedirectAttributes redirectAttributes,

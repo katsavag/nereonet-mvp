@@ -10,8 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // ISO 3166 country codes for the flag field, shown as "Greece (GR)". Names come from the JDK.
-// Public for labels(): the flag filter of the announcement form's ship list (P28); and for isCode() and nameOf(): a crew
-// member's nationality (P31).
+// Public for labels(): the flag filter of the announcement form's ship list; and for isCode() and nameOf(): a crew
+// member's nationality.
 public final class Countries {
 
     private static final Set<String> CODES = Set.of(Locale.getISOCountries());
@@ -41,17 +41,17 @@ public final class Countries {
         return CODES.contains(code) ? code : null;
     }
 
-    // A known ISO 3166 code, exactly as stored ("GR"). A crew member's nationality (P31).
+    // A known ISO 3166 code, exactly as stored ("GR"). A crew member's nationality.
     public static boolean isCode(String code) {
         return code != null && CODES.contains(code);
     }
 
-    // "GR" -> "Greece" in the given language; null for null or an unknown code. A crew member's nationality (P31).
+    // "GR" -> "Greece" in the given language; null for null or an unknown code. A crew member's nationality.
     public static String nameOf(String code, Locale locale) {
         return isCode(code) ? name(code, locale) : null;
     }
 
-    // VesselAPI's country_code (P45): "PA", "pa" or the three-letter "PAN" -> "PA". Null if blank or not a known country.
+    // VesselAPI's country_code: "PA", "pa" or the three-letter "PAN" -> "PA". Null if blank or not a known country.
     public static String codeOf(String code) {
         if (code == null || code.isBlank()) {
             return null;
@@ -68,7 +68,7 @@ public final class Countries {
         return CODES.contains(value) ? value : null;
     }
 
-    // VesselAPI's country (P45): an English country name, "Panama" -> "PA", ignoring case. Null if not known.
+    // VesselAPI's country: an English country name, "Panama" -> "PA", ignoring case. Null if not known.
     public static String codeOfName(String name) {
         if (name == null || name.isBlank()) {
             return null;

@@ -60,14 +60,14 @@ import jakarta.persistence.criteria.Predicate;
 public class CertificateService {
 
     /**
-     * Which certificates the Certificates list shows (P19, P20). shipId: one ship's crew, or null; activeShips: only
+     * Which certificates the Certificates list shows. shipId: one ship's crew, or null; activeShips: only
      * the crew of active ships (what the Overview counts); status: the Status filter. The search is the type, the
      * number or the crew member's name.
      */
     public record Filter(Long shipId, boolean activeShips, CertificateStatus status) {
     }
 
-    // The export's columns (P20; an Excel workbook since P39, .xls since P40, the same columns): a file format, never translated.
+    // The export's columns (an Excel workbook since P39, .xls since P40, the same columns): a file format, never translated.
     private static final List<String> LIST_HEADER = List.of("imo_number", "ship_name", "crew_member", "rank", "type",
             "number", "expires_on", "days_left", "status");
 
@@ -133,7 +133,7 @@ public class CertificateService {
     }
 
     /**
-     * The certificates whose snooze holds today (P43), to leave out of the default views or to list alone; one
+     * The certificates whose snooze holds today, to leave out of the default views or to list alone; one
      * query, none when the view takes every certificate.
      */
     private List<Long> snoozedIds(Filter filter) {
@@ -145,7 +145,7 @@ public class CertificateService {
                 AlertKind.CERTIFICATE_EXPIRED, AlertKind.CERTIFICATE_EXPIRING);
     }
 
-    /** The active snoozes of the page's certificates, by certificate id (P43): the muted rows with Undo. */
+    /** The active snoozes of the page's certificates, by certificate id: the muted rows with Undo. */
     @Transactional(readOnly = true)
     public Map<Long, AlertSnooze> snoozesOf(List<Certificate> certificates) {
         LocalDate today = today();
@@ -161,7 +161,7 @@ public class CertificateService {
         return result;
     }
 
-    /** The certificate's alert right now (P43): expired, or expiring at its level; null beyond 90 days (nothing to snooze). */
+    /** The certificate's alert right now: expired, or expiring at its level; null beyond 90 days (nothing to snooze). */
     public static Alert alertOf(Certificate c, LocalDate today) {
         int level = AlertLevels.ofDate(c.getExpiresOn(), today);
         if (level == AlertLevels.NONE) {
@@ -180,7 +180,7 @@ public class CertificateService {
             if (status != null) {
                 where.add(status);
             }
-            // P43: the snoozed ones only, or every view but "all" without them.
+            // The snoozed ones only, or every view but "all" without them.
             if (filter.status().snoozed()) {
                 where.add(snoozedIds.isEmpty() ? cb.disjunction() : root.get("id").in(snoozedIds));
             } else if (filter.status().excludesSnoozed() && !snoozedIds.isEmpty()) {
@@ -228,7 +228,7 @@ public class CertificateService {
 
     /**
      * Whether there is any certificate at all, of one ship's crew or (shipId null) of anyone: an empty list then says
-     * "No certificates expire within 90 days" rather than "No certificates yet" (P25).
+     * "No certificates expire within 90 days" rather than "No certificates yet".
      */
     @Transactional(readOnly = true)
     public boolean anyCertificates(Long shipId) {
@@ -245,7 +245,7 @@ public class CertificateService {
     private record Column(String key, String name, long holders) {
     }
 
-    /** The ship's certificate matrix (P20): its active crew on board and the types they hold. */
+    /** The ship's certificate matrix: its active crew on board and the types they hold. */
     @Transactional(readOnly = true)
     public CertificateMatrix matrix(Ship ship) {
         List<User> crew = new ArrayList<>(findShipCrew(ship));
@@ -263,7 +263,7 @@ public class CertificateService {
         byType.forEach((key, list) -> columns.add(new Column(key, mostUsedSpelling(list),
                 list.stream().map(c -> c.getUser().getId()).distinct().count())));
 
-        // P42: per person, the types they are required to hold; a required type nobody holds is a column too.
+        // Per person, the types they are required to hold; a required type nobody holds is a column too.
         RequirementRules rules = complianceService.rules();
         LocalDate today = today();
         Map<Long, Set<String>> required = new LinkedHashMap<>();
@@ -310,7 +310,7 @@ public class CertificateService {
     }
 
     /**
-     * The list as an Excel workbook (P20; .xls since P40, .xlsx in P39), sheet "Certificates", one row per certificate:
+     * The list as an Excel workbook (.xls since P40, .xlsx in P39), sheet "Certificates", one row per certificate:
      * imo_number, ship_name, crew_member, rank (Rank's name), type, number, expires_on (a date), days_left (a number,
      * negative once expired) and status (expired, 30_days, 60_days, 90_days or valid: the badge). name: the file name
      * before the date, e.g. "certificates".
@@ -329,8 +329,8 @@ public class CertificateService {
         return sheet.file(name + "-" + today);
     }
 
-    /** The matrix as a workbook (P20, P39), sheet "Certificate matrix": crew_member, rank, then one column per type
-     *  with the expiry date (a date), "missing" for a required document not held (P42), or empty. */
+    /** The matrix as a workbook, sheet "Certificate matrix": crew_member, rank, then one column per type
+     *  with the expiry date (a date), "missing" for a required document not held, or empty. */
     public XlsExport.File matrixXls(String name, CertificateMatrix matrix) {
         List<String> header = new ArrayList<>(List.of("crew_member", "rank"));
         header.addAll(matrix.types());
@@ -364,7 +364,7 @@ public class CertificateService {
 
     /**
      * A new expiry date deletes the certificate's reminder rows, so its reminders start again. A file in the form
-     * replaces the current one (or adds one); otherwise removeFile removes it (P39). The old file is deleted from
+     * replaces the current one (or adds one); otherwise removeFile removes it. The old file is deleted from
      * disk once the change is saved.
      */
     @Transactional
@@ -406,7 +406,7 @@ public class CertificateService {
     }
 
     /**
-     * The file of a crew member's certificate (P39), for the office or for that crew member (the callers check
+     * The file of a crew member's certificate, for the office or for that crew member (the callers check
      * who asks); 404 when the certificate has none.
      */
     @Transactional(readOnly = true)
@@ -419,7 +419,7 @@ public class CertificateService {
                 fileStorage.load(certificate.getFileStoragePath()));
     }
 
-    /** The signed-in crew member's own certificates (My profile, P39): soonest expiry first, so expired ones lead. */
+    /** The signed-in crew member's own certificates (My profile): soonest expiry first, so expired ones lead. */
     @Transactional(readOnly = true)
     public List<Certificate> ownCertificates(Long userId) {
         return certificateRepository.findAllByUserIdOrderByExpiresOnAsc(userId);
@@ -452,7 +452,7 @@ public class CertificateService {
                 + ", expires " + certificate.getExpiresOn();
     }
 
-    // The type is stored as a known type is spelled when it differs only in case or surrounding spaces (P20). The
+    // The type is stored as a known type is spelled when it differs only in case or surrounding spaces. The
     // certificate being edited does not count, so the only certificate of a type can still correct its spelling.
     private void apply(Certificate certificate, String type, String number, LocalDate expiresOn) {
         List<CertificateRepository.TypeCount> used = certificateRepository.countByType().stream()

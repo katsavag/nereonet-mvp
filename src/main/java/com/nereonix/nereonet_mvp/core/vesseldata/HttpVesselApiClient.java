@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
- * The real VesselAPI client (P45): GET with Accept: application/json and Authorization: Bearer &lt;key&gt;, 5 s to
+ * The real VesselAPI client: GET with Accept: application/json and Authorization: Bearer &lt;key&gt;, 5 s to
  * connect and 5 s to read. The body is kept as received (VesselDataSnapshot.rawJson); this class only checks it is a
  * JSON object of a sane size. Logs say which call ended how, never the key, the headers or the body.
  * Active unless app.vesselapi.fake is true.

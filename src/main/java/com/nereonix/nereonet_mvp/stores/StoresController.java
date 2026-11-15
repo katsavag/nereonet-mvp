@@ -36,7 +36,7 @@ import com.nereonix.nereonet_mvp.core.stock.StockStatus;
 
 import jakarta.servlet.http.HttpSession;
 
-// The Chief cook's store (P52): the stock of their own ship's provisions, and one item with its history. P53: counting
+// The Chief cook's store: the stock of their own ship's provisions, and one item with its history. P53: counting
 // by hand (/ship/stores/count, each row saved on its own) and the ship's history (/ship/stores/history). P57: counting
 // by voice from the Count page (VoiceCountController).
 // SecurityConfig limits /ship/stores/** to CHIEF_COOK (the Master and crew members get 403). English only, as every
@@ -49,12 +49,12 @@ public class StoresController {
     // Grouped by place and by name within a place: there is nothing to sort, but ListQuery needs its default.
     private static final ListSort[] SORTS = {ListSort.asc("name")};
 
-    /** A count the server refused (P53), shown next to its row on the count page: the item, the value sent and (P60)
+    /** A count the server refused, shown next to its row on the count page: the item, the value sent and
      *  the error of the quantity rule. */
     public record CountError(Long itemId, String value, MessageSourceResolvable message) {
     }
 
-    /** A count saved, for js/stores-count.js (P53): the new quantity, its status (key, badge tone and words) and
+    /** A count saved, for js/stores-count.js: the new quantity, its status (key, badge tone and words) and
      *  "Saved"; or, refused, only the error. */
     public record Counted(String quantity, String status, String tone, String statusLabel, String message,
                           String error) {
@@ -73,7 +73,7 @@ public class StoresController {
         this.messageSource = messageSource;
     }
 
-    // status: low or out (anything else: all); listRequest: q, the search by part of the name (P19). No paging: the
+    // status: low or out (anything else: all); listRequest: q, the search by part of the name. No paging: the
     // whole store, grouped by place.
     @GetMapping(PATH)
     public String list(@AuthenticationPrincipal CurrentUser currentUser,
@@ -98,9 +98,9 @@ public class StoresController {
         return "stores/item";
     }
 
-    // P53: every active provisions item by place, each with its expected quantity in its own small form. Flash
+    // Every active provisions item by place, each with its expected quantity in its own small form. Flash
     // attributes after a row's form was posted without JavaScript: countSaved (the item's id) or countError.
-    // P57: voiceEnabled (both providers configured: the Count by voice card) and voicePending (a proposal waits in the
+    // VoiceEnabled (both providers configured: the Count by voice card) and voicePending (a proposal waits in the
     // session for its review).
     @GetMapping(PATH + "/count")
     public String countPage(@AuthenticationPrincipal CurrentUser currentUser, HttpSession session, Model model) {
@@ -145,7 +145,7 @@ public class StoresController {
                 message("stores.count.saved"), null));
     }
 
-    // P53: every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
+    // Every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
     // date or outside the sensible range shows its error under the field and filters nothing. P58: the quick choices
     // of layout/parts :: dateRange (the last 30, 60 and 90 days, links that keep the type).
     @GetMapping(PATH + "/history")
@@ -196,7 +196,7 @@ public class StoresController {
         return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 
-    // P60: a count of this item as typed, by the rule of its unit for the store.
+    // A count of this item as typed, by the rule of its unit for the store.
     private QuantityRules.Check check(CurrentUser currentUser, Long id, String quantity) {
         Item item = storesService.countable(currentUser.getUsername(), id);
         return quantityRules.forItem(item, Use.COUNT).check(quantity);

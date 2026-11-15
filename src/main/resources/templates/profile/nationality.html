@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.field.nationality}, ~{::main})}">
 <body>
-<!-- My profile, Nationality (P31): one list of countries (ship/Countries, as a ship's flag), "Not given" first. -->
+<!-- My profile, Nationality: one list of countries (ship/Countries, as a ship's flag), "Not given" first. -->
 <main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{profile.field.nationality}, crumbs=~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">

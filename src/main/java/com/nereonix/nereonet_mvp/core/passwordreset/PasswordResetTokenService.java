@@ -14,7 +14,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * Signed password reset tokens (P14), as InvitationTokenService signs invitations (HS256, the same secret):
+ * Signed password reset tokens, as InvitationTokenService signs invitations (HS256, the same secret):
  * jti = tokenId, sub = email, exp = expiresAt. The audience "password-reset" is required when parsing, so an
  * invitation token is never accepted as a reset token (it has no audience).
  */

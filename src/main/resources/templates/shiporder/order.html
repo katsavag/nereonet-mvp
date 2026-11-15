@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.title}, ~{::main})}">
 <body>
-<!-- The Master's ship order (P35): the OPEN order of their own ship, the approved requests added up by item. Each line
+<!-- The Master's ship order: the OPEN order of their own ship, the approved requests added up by item. Each line
      says who asked for it; its quantity can be changed and the line removed, each a small form that saves at once
      (nobody is notified). Under the lines, "Send to office" with the requested port, the date needed by and an
      optional note; after sending the order is read-only (/ship/orders/{id}). English only, as every crew screen.
-     P55: the Chief cook (canManage false) sees the same lines and who asked, with no quantity inputs, no Remove and no
+     The Chief cook (canManage false) sees the same lines and who asked, with no quantity inputs, no Remove and no
      Send to office: one line says only the Master can change or send the order.
-     P59: above it, "Orders in progress": one card per order sent and not received yet (ShipOrderPageService
+     Above it, "Orders in progress": one card per order sent and not received yet (ShipOrderPageService
      .inProgress, most urgent first), with its status, number of items and one line: the delivery port and date once
      scheduled ("Delivery was due 12 Nov 2026, Antwerp" with a warning icon once the date has passed), else when it was
      sent. The Master has Confirm receipt (the primary) on a scheduled delivery; everyone has Open order. No section
      without any; with some, the OPEN order follows under "Current order".
-     P61: the Chief cook (canCount) has Count delivery on a scheduled delivery (View count once sent); a count sent to
+     The Chief cook (canCount) has Count delivery on a scheduled delivery (View count once sent); a count sent to
      the Master says "Counted by the Chief cook, to approve", one sent back says so.
      Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage, canCount (boolean),
-     sendForm (SendOrderForm). P60: the quantities follow the rule of
+     sendForm (SendOrderForm). The quantities follow the rule of
      the item's unit (README 35). -->
 <main th:with="v=${view}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${v.ship},
@@ -44,7 +44,7 @@
                     <p th:unless="${p.toReceive()}" class="order-progress-meta"
                        th:text="#{order.progress.sent(${@dates.utcDate(o.sentAt)})}">Sent on 14 Nov 2026 · waiting for the
                         office to schedule the delivery</p>
-                    <!-- P61: where the Chief cook's count of the delivery stands. -->
+                    <!-- Where the Chief cook's count of the delivery stands. -->
                     <p th:if="${o.countToApprove}" class="order-progress-meta order-progress-count">
                         <span th:replace="~{layout/parts :: statusIcon('info', #{order.count.toApprove}, 'clock')}"></span></p>
                     <p th:if="${p.toReceive() and o.deliveryCountStatus.name() == 'RETURNED'}" class="order-progress-meta order-progress-count"
@@ -87,7 +87,7 @@
 
         <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block>
 
-        <!-- Send to office: port and date required, the date from today to two years ahead (UTC, P39). Posted with errors, the page
+        <!-- Send to office: port and date required, the date from today to two years ahead (UTC). Posted with errors, the page
              comes back with them. -->
         <section th:if="${canManage}" class="card form-box" aria-labelledby="sendTitle">
             <div class="card-body p-3 p-md-4">

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.compare.match.title}, ~{::main})}">
 <body>
-<!-- P64, Change the product of an invoice line after receipt: the order's lines, the vessel's other active items, or
+<!-- Change the product of an invoice line after receipt: the order's lines, the vessel's other active items, or
      Not ordered (a radio each, the current one checked). Saving corrects the comparison and the name learned for the
      supplier; the store is not moved, so the vessel's Chief cook is asked to count these items.
      Model: order, line (DeliveryInvoiceLine), choices (InvoiceComparisonService.Choices). -->

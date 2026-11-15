@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 // Creates the first office user on startup if there is none. After the schema migrations (highest precedence) and
-// before DevData (unordered), so the demo data can name that user (P41: the owner of the SIRE observations).
+// before DevData (unordered), so the demo data can name that user (the owner of the SIRE observations).
 @Order(0)
 @Component
 public class BootstrapData implements ApplicationRunner {

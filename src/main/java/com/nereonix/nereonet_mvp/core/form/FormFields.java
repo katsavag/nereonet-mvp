@@ -16,10 +16,10 @@ import jakarta.validation.constraints.Size;
 import jakarta.validation.metadata.PropertyDescriptor;
 
 /**
- * Helpers for the form templates (P05), used as {@code @formFields} in Thymeleaf:
+ * Helpers for the form templates, used as {@code @formFields} in Thymeleaf:
  * the character limits of a field, read from its {@code @Size} in the form class (the counter under the field, and
  * the "At least 8 characters" rule of the registration password),
- * the min and max of a date input, read from its {@code @PlausibleDate} (P39),
+ * the min and max of a date input, read from its {@code @PlausibleDate},
  * and the field id and order of each error (the error summary at the top of a form, layout/parts :: errorSummary).
  */
 @Component("formFields")
@@ -34,7 +34,7 @@ public class FormFields {
             "contentValid", "text",
             "fileTypeAllowed", "file",
             "fileSizeAllowed", "file",
-            // P44: the RFQ form and the quote form.
+            // The RFQ form and the quote form.
             "replyByInTime", "replyBy",
             "anyLineOffered", "lines");
 
@@ -59,7 +59,7 @@ public class FormFields {
                 .orElse(null);
     }
 
-    /** The {@code @Size(min)} of the property in the form's class, or null when it has none (P13: password rules). */
+    /** The {@code @Size(min)} of the property in the form's class, or null when it has none (password rules). */
     public Integer minLength(Object form, String property) {
         PropertyDescriptor descriptor = validator.getConstraintsForClass(form.getClass())
                 .getConstraintsForProperty(property);
@@ -74,13 +74,13 @@ public class FormFields {
                 .orElse(null);
     }
 
-    /** The earliest date the property's {@code @PlausibleDate} accepts, for the input's min (P39); null without one. */
+    /** The earliest date the property's {@code @PlausibleDate} accepts, for the input's min; null without one. */
     public LocalDate minDate(Object form, String property) {
         PlausibleDate limits = plausibleDate(form, property);
         return limits == null ? null : PlausibleDateValidator.earliest(limits, LocalDate.now(ZoneOffset.UTC));
     }
 
-    /** The latest date the property's {@code @PlausibleDate} accepts, for the input's max (P39); null without one. */
+    /** The latest date the property's {@code @PlausibleDate} accepts, for the input's max; null without one. */
     public LocalDate maxDate(Object form, String property) {
         PlausibleDate limits = plausibleDate(form, property);
         return limits == null ? null : PlausibleDateValidator.latest(limits, LocalDate.now(ZoneOffset.UTC));

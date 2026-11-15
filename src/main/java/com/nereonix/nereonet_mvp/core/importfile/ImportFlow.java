@@ -5,7 +5,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
 /**
- * What the shared import pages (templates/importfile, P24) need to know about one kind of import, model attribute
+ * What the shared import pages (templates/importfile) need to know about one kind of import, model attribute
  * "flow".
  *
  * messagePrefix the kind's own texts: messagePrefix + ".title", ".heading", ".upload.intro", ...

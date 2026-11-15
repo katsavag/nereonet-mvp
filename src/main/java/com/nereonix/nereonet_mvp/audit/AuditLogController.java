@@ -19,7 +19,7 @@ import com.nereonix.nereonet_mvp.core.time.Dates;
 @Controller
 public class AuditLogController {
 
-    // The columns that sort (P19), the default first.
+    // The columns that sort, the default first.
     private static final ListSort[] SORTS =
             {ListSort.desc("when"), ListSort.asc("who"), ListSort.asc("action"), ListSort.asc("ship")};
 
@@ -31,8 +31,8 @@ public class AuditLogController {
         this.dates = dates;
     }
 
-    // filter: ship and UTC days; listRequest: search, sort, page and page size (P19; 10 a page as every list since
-    // P43). A day outside the sensible range (P39: @PlausibleDate) or not a date shows its error under the field and
+    // filter: ship and UTC days; listRequest: search, sort, page and page size (10 a page as every list since
+    // P43). A day outside the sensible range (@PlausibleDate) or not a date shows its error under the field and
     // filters nothing.
     @GetMapping("/office/audit")
     public String list(@Validated @ModelAttribute("filter") AuditFilterForm filter, BindingResult bindingResult,

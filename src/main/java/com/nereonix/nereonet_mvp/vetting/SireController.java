@@ -29,7 +29,7 @@ import com.nereonix.nereonet_mvp.core.vetting.SireView;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
- * SIRE 2.0 in Vetting (P41), office only (/office/** in SecurityConfig). Below /office/vetting/{shipId}/sire:
+ * SIRE 2.0 in Vetting, office only (/office/** in SecurityConfig). Below /office/vetting/{shipId}/sire:
  *   (the page)                                    the latest inspection (?inspection={id}: an earlier one;
  *                                                 ?show=all: closed observations too)
  *   /inspections/new                              Add inspection

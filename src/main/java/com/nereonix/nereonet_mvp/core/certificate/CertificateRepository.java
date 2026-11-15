@@ -17,7 +17,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     record TypeCount(String type, long count) {
     }
 
-    // Every type in use with its number of certificates (P20: the type suggestions and the match on save).
+    // Every type in use with its number of certificates (the type suggestions and the match on save).
     @Query("""
             select new com.nereonix.nereonet_mvp.core.certificate.CertificateRepository$TypeCount(c.type, count(c))
             from Certificate c group by c.type""")
@@ -61,15 +61,15 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
                          or (s.kind = :expiring and c.expiresOn >= :today
                              and s.level <= case when c.expiresOn <= :d30 then 1 when c.expiresOn <= :d60 then 2 else 3 end))) """;
 
-    /** As countByExpiresOnLessThanEqual, without the certificates whose snooze holds (P43): the sidebar counter. */
+    /** As countByExpiresOnLessThanEqual, without the certificates whose snooze holds: the sidebar counter. */
     @Query("select count(c) from Certificate c where c.expiresOn <= :until and not " + SNOOZED)
     long countOpenUntil(LocalDate until, LocalDate today, LocalDate d30, LocalDate d60, AlertKind expired,
                         AlertKind expiring);
 
-    // Whether the crew of one ship hold any certificate: the empty state of the ship's Certificates list (P25).
+    // Whether the crew of one ship hold any certificate: the empty state of the ship's Certificates list.
     boolean existsByUserShipId(Long shipId);
 
-    // Not expired yet, expiring on or before "until", of enabled users, not snoozed (P43). For the reminder job.
+    // Not expired yet, expiring on or before "until", of enabled users, not snoozed. For the reminder job.
     @EntityGraph(attributePaths = {"user", "user.ship"})
     @Query("select c from Certificate c where c.user.enabled = true and c.expiresOn >= :today and c.expiresOn <= :until"
             + " and not " + SNOOZED + " order by c.expiresOn asc, c.id asc")

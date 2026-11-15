@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{profile.field.bio}, ~{::main})}">
 <body>
-<!-- My profile, Bio (P31): plain text, at most 280 characters (the counter of P05), line breaks kept; shown as text,
+<!-- My profile, Bio: plain text, at most 280 characters (with a counter), line breaks kept; shown as text,
      so a link is never a link. Empty is stored as nothing ("Not given"). The text is kept as a draft in the browser
-     while the user types (P15, data-draft). -->
+     while the user types (data-draft). -->
 <main class="form-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{profile.field.bio}, crumbs=~{::pageCrumbs})}">
         <th:block th:fragment="pageCrumbs">

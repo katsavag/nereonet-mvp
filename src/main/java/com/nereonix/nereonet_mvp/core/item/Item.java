@@ -51,7 +51,7 @@ public class Item {
     @Column(length = PLACE_MAX_LENGTH)
     private String place;
 
-    // P60: optional, the most one request, order line or receipt line of this item may hold, in its unit. Replaces the
+    // Optional, the most one request, order line or receipt line of this item may hold, in its unit. Replaces the
     // maximum of the unit (core/form/QuantityRules). Null: the unit's maximum. Not part of the item import.
     @Column(precision = 12, scale = 3)
     private BigDecimal maxPerRequest;

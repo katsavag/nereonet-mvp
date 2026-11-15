@@ -16,7 +16,7 @@ import org.springframework.validation.Errors;
 import com.nereonix.nereonet_mvp.core.item.Item;
 
 /**
- * The one rule for every quantity a person types (P60), used as {@code @quantityRules} in templates.
+ * The one rule for every quantity a person types, used as {@code @quantityRules} in templates.
  *
  * The rule depends on the item's unit (free text): it is normalised (case, a final dot, spaces) and mapped to a
  * {@link Kind}: kg and lt take up to 3 decimals; g, ml and every countable or unknown unit (pcs, box, can, ...) whole

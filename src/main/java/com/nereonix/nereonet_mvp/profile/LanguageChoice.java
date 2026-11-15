@@ -13,7 +13,7 @@ import com.nereonix.nereonet_mvp.core.profile.CrewProfile;
 import com.nereonix.nereonet_mvp.core.profile.Languages;
 
 /**
- * The Languages page's working list (P31), before Save. It lives in the page, never in the database: in the URL
+ * The Languages page's working list, before Save. It lives in the page, never in the database: in the URL
  * (?languages=en,el&q=gre) and in the Save form's hidden field. Add, Remove, Move up and Move down are links to the
  * same page with the changed list, so they work without JavaScript and nothing is stored until Save; the search
  * ("Find") is a GET form that carries the list along. js/profile.js filters the results as the user types.

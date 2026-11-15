@@ -26,7 +26,7 @@ import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * Matches the lines read from an order's invoice to the order (P63) and keeps the names learned. ensureMatched runs
+ * Matches the lines read from an order's invoice to the order and keeps the names learned. ensureMatched runs
  * when the count or the approval opens: every invoice line not matched yet (new, or read again) is matched once, by
  * the name learned for its supplier and description (SupplierItemName), else InvoiceMatcher over the order's lines
  * not removed, else over the vessel's other active items, else PICK. The pack factor is worked out per match

@@ -19,7 +19,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // An in-app message for one user, shown on /notifications. It stays unread until the user opens it or marks it as
-// read (P23). Deleted together with the user (database cascade).
+// read. Deleted together with the user (database cascade).
 @Entity
 @Getter
 @Setter

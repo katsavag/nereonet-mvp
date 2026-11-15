@@ -7,7 +7,7 @@ import java.util.Objects;
 import com.nereonix.nereonet_mvp.core.user.Role;
 
 /**
- * The ship user's navigation (P65), the one place that decides it per role:
+ * The ship user's navigation, the one place that decides it per role:
  *   onBoard   the sidebar's "On board" group: Home, News, Library, My crew (every ship role).
  *   supplies  the sidebar's "Supplies" group, in the order of the work: Requests (Chief cook, crew members), Approvals
  *             (Master), Vessel order (Master, Chief cook), Stores (Chief cook).
@@ -48,7 +48,7 @@ public record ShipNav(List<Entry> onBoard, List<Entry> supplies, List<Entry> tab
             supplies.add(new Entry("approvals", "/ship/approvals", "nav.approvals", c.approvals(), "nav.count.approvals"));
         }
         if (role == Role.MASTER || role == Role.CHIEF_COOK) {
-            // The Chief cook reads the vessel order without its counter (P55: orders is null for them).
+            // The Chief cook reads the vessel order without its counter (orders is null for them).
             supplies.add(new Entry("order", "/ship/order", "nav.order", c.orders(), "nav.count.order"));
         }
         if (role == Role.CHIEF_COOK) {

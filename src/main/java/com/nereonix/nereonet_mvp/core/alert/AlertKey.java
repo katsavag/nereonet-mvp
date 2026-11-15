@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What identifies one alert (P43): its kind and the id of its subject (AlertKind says which record that is). Written
+ * What identifies one alert: its kind and the id of its subject (AlertKind says which record that is). Written
  * as "CERTIFICATE_EXPIRING:12" in the snooze form's items and in the lists' checkboxes.
  */
 public record AlertKey(AlertKind kind, long subjectId) {

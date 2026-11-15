@@ -31,7 +31,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The stock of a ship's provisions (P52), shared by the Chief cook's Stores pages and, later, the request page, the
+ * The stock of a ship's provisions, shared by the Chief cook's Stores pages and, later, the request page, the
  * receipt on board and the office. Only PROVISIONS items have stock; personal items never appear. An item without a
  * StockLevel row has quantity 0. P53: the Chief cook counts an item by hand (count). P56: a delivery the Master
  * received adds to the store (receive, called by OrderReceiptService.confirmReceipt).
@@ -52,7 +52,7 @@ public class StockService {
     private final EntityManager entityManager;
     private final BigDecimal lowThreshold;
 
-    /** The ship's history (P53) shows this many movements a page. */
+    /** The ship's history shows this many movements a page. */
     public static final int HISTORY_PAGE_SIZE = 50;
 
     public StockService(ItemRepository itemRepository, StockLevelRepository levelRepository,
@@ -119,7 +119,7 @@ public class StockService {
     }
 
     /**
-     * The Chief cook counts an item by hand (P53): its stock becomes the counted quantity at once, and a COUNT movement
+     * The Chief cook counts an item by hand: its stock becomes the counted quantity at once, and a COUNT movement
      * keeps what the store expected (before) and what was counted (after), by the cook, now. A count equal to the
      * expected quantity is saved too: it confirms the count. Recorded in the audit log ("Basmati rice: 10 -> 7 kg").
      * No approval, no draft. The item's row is locked first (as ShipOrderService locks the ship's row): two tabs
@@ -168,7 +168,7 @@ public class StockService {
     }
 
     /**
-     * A delivered line adds to the store (P56): the item's stock goes up by the line's received quantity and a RECEIPT
+     * A delivered line adds to the store: the item's stock goes up by the line's received quantity and a RECEIPT
      * movement keeps before and after, by the Master, at the order's receivedAt, linked to the order. Called by
      * OrderReceiptService.confirmReceipt in its transaction, once the line's receivedQuantity and the order's
      * receivedAt are set; a confirmed receipt never changes (the order is CLOSED), so a line is received only once.
@@ -183,7 +183,7 @@ public class StockService {
         return receive(order, line, master, null);
     }
 
-    /** As receive, with the movement's note (P61: "Counted by Demo Cook" when the Chief cook counted the delivery);
+    /** As receive, with the movement's note ("Counted by Demo Cook" when the Chief cook counted the delivery);
      *  a blank note is none. */
     @Transactional
     public Level receive(ShipOrder order, ShipOrderLine line, User master, String note) {
@@ -223,7 +223,7 @@ public class StockService {
     }
 
     /**
-     * Every movement of the ship's provisions (P53), newest first, HISTORY_PAGE_SIZE a page (page from 0). type: only
+     * Every movement of the ship's provisions, newest first, HISTORY_PAGE_SIZE a page (page from 0). type: only
      * that type, or all when null; from and to: UTC days, both included, or open when null.
      */
     @Transactional(readOnly = true)

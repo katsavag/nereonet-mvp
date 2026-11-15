@@ -30,7 +30,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The Chief cook's Stores pages (P52): the provisions of the signed-in cook's own ship with their stock. An item of
+ * The Chief cook's Stores pages: the provisions of the signed-in cook's own ship with their stock. An item of
  * another ship, or one that is not PROVISIONS, is a 404, never a 403. P53: counting by hand and the ship's history.
  */
 @Service
@@ -51,7 +51,7 @@ public class StoresService {
     /**
      * counts: Low and Out of stock over every item, whatever the filter. lastCount: the latest COUNT movement, or null
      * ("Not counted yet"). total: the number of items in the store; groups: the items the filter and search leave.
-     * nextDelivery (P55): the ship's order with a scheduled delivery (ShipOrderService.nextDelivery), or null.
+     * nextDelivery: the ship's order with a scheduled delivery (ShipOrderService.nextDelivery), or null.
      */
     public record Stores(Ship ship, Counts counts, Instant lastCount, int total, List<PlaceGroup> groups,
                          ShipOrder nextDelivery) {
@@ -160,7 +160,7 @@ public class StoresService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    /** The movements of the cook's ship (P53), newest first, StockService.HISTORY_PAGE_SIZE a page. */
+    /** The movements of the cook's ship, newest first, StockService.HISTORY_PAGE_SIZE a page. */
     public record History(Ship ship, Page<StockMovement> movements) {
     }
 
@@ -171,7 +171,7 @@ public class StoresService {
         return new History(ship, stockService.history(ship, type, from, to, page));
     }
 
-    /** Every active provisions item of the cook's vessel, by name, with its stock (P57: the items a phrase heard by
+    /** Every active provisions item of the cook's vessel, by name, with its stock (the items a phrase heard by
      *  voice can be counted as). */
     @Transactional(readOnly = true)
     public List<Level> levels(String email) {

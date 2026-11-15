@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{users.list.title}, ~{::main})}">
 <body>
-<!-- Office users and pending office invitations in one list (P07); /office/invitations redirects here. Searched,
-     filtered by status, sorted and paginated on the server (P19). -->
-<!-- Empty (P25; only before the first office user, as the signed-in user is listed): the empty state holds Invite. -->
+<!-- Office users and pending office invitations in one list; /office/invitations redirects here. Searched,
+     filtered by status, sorted and paginated on the server. -->
+<!-- Empty (only before the first office user, as the signed-in user is listed): the empty state holds Invite. -->
 <main th:with="noUsers=${list.emptyUnfiltered(people)}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{users.list.heading}, count=${people.totalElements}, actions=${noUsers} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">

@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// Add supplier and Edit supplier (P44): name, contact email, ports served (free text), currency, website, active.
+// Add supplier and Edit supplier: name, contact email, ports served (free text), currency, website, active.
 public class SupplierForm {
 
     @NotBlank(message = "{supplier.error.nameRequired}")

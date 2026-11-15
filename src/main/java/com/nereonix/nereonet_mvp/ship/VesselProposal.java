@@ -9,7 +9,7 @@ import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.vesseldata.VesselParticulars;
 
 /**
- * What a VesselAPI lookup proposes for the vessel's own fields (P45), next to the provider's values it came from.
+ * What a VesselAPI lookup proposes for the vessel's own fields, next to the provider's values it came from.
  *   name           as VesselAPI gives it
  *   type           vessel_subtype, else vessel_type, mapped to ShipType; OTHER when neither says clearly; null when
  *                  both are missing

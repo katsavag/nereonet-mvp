@@ -2,7 +2,7 @@ package com.nereonix.nereonet_mvp.core.library;
 
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// "Send reminder" on the acknowledgement overview (P22), for the crew (library) and the office (officelibrary)
+// "Send reminder" on the acknowledgement overview, for the crew (library) and the office (officelibrary)
 // controllers: sends it and says what happened as a flash message on the overview.
 public final class LibraryReminders {
 

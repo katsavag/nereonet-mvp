@@ -15,7 +15,7 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     // One ship's requests with this status (the dev data seeds PENDING ones only while there are none).
     long countByStatusAndShipId(RequestStatus status, Long shipId);
 
-    // The Master's approvals (P33, P48): one ship's pending requests, oldest first, and its approved or declined ones,
+    // The Master's approvals: one ship's pending requests, oldest first, and its approved or declined ones,
     // newest decision first. The detail page finds a request only within the Master's ship, so another ship's is a 404.
     List<ItemRequest> findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(Long shipId, RequestStatus status);
 
@@ -23,18 +23,18 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
 
     Optional<ItemRequest> findByIdAndShipId(Long id, Long shipId);
 
-    // Approving or declining (P34): the row is locked until the decision is saved, so a second click, or a cancel at
+    // Approving or declining: the row is locked until the decision is saved, so a second click, or a cancel at
     // the same moment, waits and then sees the request is no longer PENDING.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from ItemRequest r where r.id = :id and r.ship.id = :shipId")
     Optional<ItemRequest> findForDecision(Long id, Long shipId);
 
-    // The requests of the person who asked (P54): their list, newest first, and one of them (anyone else's is a 404).
+    // The requests of the person who asked: their list, newest first, and one of them (anyone else's is a 404).
     List<ItemRequest> findAllByRequestedByIdOrderByCreatedAtDescIdDesc(Long userId);
 
     Optional<ItemRequest> findByIdAndRequestedById(Long id, Long userId);
 
-    // The Chief cook's and crew's sidebar counter of Requests (P54): their own requests with this status, one query.
+    // The Chief cook's and crew's sidebar counter of Requests: their own requests with this status, one query.
     long countByRequestedByEmailAndStatus(String email, RequestStatus status);
 
     // The Master's sidebar counter of Approvals: requests with this status on that user's ship, in one query.

@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-// One row of an import review screen (P24). The values are in the subclass, as strings, so a wrong value from the
+// One row of an import review screen. The values are in the subclass, as strings, so a wrong value from the
 // file can be shown and corrected.
 public abstract class ImportRow implements Serializable {
 

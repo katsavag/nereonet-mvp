@@ -5,7 +5,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * Where one seafarer stands on the documents the office requires for their rank on their vessel's type (P42).
+ * Where one seafarer stands on the documents the office requires for their rank on their vessel's type.
  * documents: required ones first, then optional ones; each group missing, expired, expiring, valid, then by type.
  * Empty for a person without a rank or a vessel, or whose rank nothing applies to.
  * The totals count required documents only, an expired one as missing: "5 of 7" is held() of required().

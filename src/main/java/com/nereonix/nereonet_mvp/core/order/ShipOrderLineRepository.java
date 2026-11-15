@@ -9,10 +9,10 @@ public interface ShipOrderLineRepository extends JpaRepository<ShipOrderLine, Lo
 
     Optional<ShipOrderLine> findByOrderIdAndItemId(Long orderId, Long itemId);
 
-    // A line of an order of this ship (P35); another ship's line is not found.
+    // A line of an order of this ship; another ship's line is not found.
     Optional<ShipOrderLine> findByIdAndOrderShipId(Long id, Long shipId);
 
-    // The Master's counter of Ship order (P35): lines of the OPEN order of the ship of the user with this email.
+    // The Master's counter of Ship order: lines of the OPEN order of the ship of the user with this email.
     @Query("""
             select count(l) from ShipOrderLine l
             where l.order.status = :status

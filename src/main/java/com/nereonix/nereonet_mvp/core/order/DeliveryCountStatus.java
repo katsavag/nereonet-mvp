@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.order;
 
 /**
- * The Chief cook's count of a delivery (P61), kept on a CONFIRMED order (ShipOrder.deliveryCount; null in the
+ * The Chief cook's count of a delivery, kept on a CONFIRMED order (ShipOrder.deliveryCount; null in the
  * database is NONE, for orders from before P61 and orders nobody counted). A count only helps the Master: it never
  * blocks Confirm receipt.
  */

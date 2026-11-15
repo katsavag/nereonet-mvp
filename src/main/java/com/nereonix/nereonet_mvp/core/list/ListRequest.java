@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.list;
 
 /**
- * The part of a list's URL that every list shares (P19): ?q=search&amp;sort=name&amp;dir=desc&amp;page=2&amp;size=50.
+ * The part of a list's URL that every list shares: ?q=search&amp;sort=name&amp;dir=desc&amp;page=2&amp;size=50.
  * Bound from the query string with @ModelAttribute; every value may be missing or wrong, ListQuery.of() falls back
  * to the list's defaults. page is 1-based, as the user sees it.
  */

@@ -118,7 +118,7 @@ public class LibraryController {
         model.addAttribute("item", item);
         model.addAttribute("acknowledgement",
                 libraryService.currentAcknowledgement(currentUser.getUsername(), item).orElse(null));
-        // Only the Master sees the version history (P22).
+        // Only the Master sees the version history.
         model.addAttribute("versions",
                 currentUser.getRole() == Role.MASTER ? libraryService.versions(item) : null);
         return "library/item";
@@ -130,7 +130,7 @@ public class LibraryController {
         return "redirect:/ship/library/" + id;
     }
 
-    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it (P22).
+    // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it.
     @GetMapping("/ship/library/{id}/file")
     public ResponseEntity<Resource> file(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                          @RequestParam(defaultValue = "false") boolean download) {
@@ -138,7 +138,7 @@ public class LibraryController {
         return LibraryFileResponse.of(item.getCurrentVersion(), libraryService.currentFile(item), download);
     }
 
-    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load (P10). 404 when the item
+    // The confirmation page of Send reminder: where it leads when js/confirm.js did not load. 404 when the item
     // is not Required, as the overview.
     @GetMapping("/ship/library/{id}/acknowledgements/remind")
     public String confirmRemind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
@@ -196,7 +196,7 @@ public class LibraryController {
         return "redirect:/ship/library/" + id;
     }
 
-    // The confirmation page: where Retire leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Retire leads when js/confirm.js did not load.
     @GetMapping("/ship/library/{id}/retire")
     public String confirmRetire(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                 Model model) {

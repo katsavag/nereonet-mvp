@@ -4,7 +4,7 @@ import java.util.Locale;
 
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 
-// The three tabs of /ship/approvals (P33, P48), chosen with ?tab=pending|approved|declined; anything else is Pending.
+// The three tabs of /ship/approvals, chosen with ?tab=pending|approved|declined; anything else is Pending.
 // The old ?tab=decided is a 301 to Approved (ApprovalController).
 public enum ApprovalTab {
     PENDING(RequestStatus.PENDING), APPROVED(RequestStatus.APPROVED), DECLINED(RequestStatus.REJECTED);

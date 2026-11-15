@@ -19,21 +19,21 @@ public class EditShipForm {
 
     private ShipType type;
 
-    // P46: the 2-letter code ("GR"), typed or picked from the list; stored in upper case. "Greece (GR)" is still
+    // The 2-letter code ("GR"), typed or picked from the list; stored in upper case. "Greece (GR)" is still
     // accepted (Countries.toCode).
     private String flag;
 
-    // P45: the token of a "Refresh from VesselAPI" kept by the server (VesselLookupStore) until Save.
+    // The token of a "Refresh from VesselAPI" kept by the server (VesselLookupStore) until Save.
     private String lookupToken;
 
-    // P45: the ticked rows of the Saved / VesselAPI table (name, type, flag): only these change, with the server's
+    // The ticked rows of the Saved / VesselAPI table (name, type, flag): only these change, with the server's
     // values of the lookup.
     private List<String> accept = new ArrayList<>();
 
-    // P45: the flag chosen when VesselAPI's country and country code disagree (an ISO code); empty keeps the saved one.
+    // The flag chosen when VesselAPI's country and country code disagree (an ISO code); empty keeps the saved one.
     private String flagChoice;
 
-    // P58: when the type changes, whether the vessel's required documents become the new type's defaults (true) or
+    // When the type changes, whether the vessel's required documents become the new type's defaults (true) or
     // stay as they are (false, the default). Ignored while the type stays the same.
     private boolean resetRequirements;
 

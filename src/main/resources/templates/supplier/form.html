@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${supplier == null} ? #{supplier.add} : #{supplier.editTitle(${supplier.name})}, ~{::main})}">
 <body>
-<!-- Add supplier and Edit supplier (P44), a full page (six fields, P05): name, contact email (where the RFQ emails
+<!-- Add supplier and Edit supplier, a full page (six fields): name, contact email (where the RFQ emails
      go), ports served (free text; an RFQ lists the suppliers whose ports mention its port first), currency (ISO code,
      what its quotes usually come in), website, and active (an inactive supplier is not offered for new RFQs). The
      channel is Email for every supplier today and is shown, not chosen. Model: form (SupplierForm), supplier (null

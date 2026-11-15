@@ -44,7 +44,7 @@ public class LibraryFileStorage {
 
     /**
      * Deletes the file once the current transaction has committed (at once without one), so a change that is rolled
-     * back keeps its file. A file already gone is fine. (P51: a receipt file the Master removes before confirming.)
+     * back keeps its file. A file already gone is fine. (a receipt file the Master removes before confirming.)
      */
     public void deleteLater(String storagePath) {
         Path file = inside(storagePath);

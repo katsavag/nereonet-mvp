@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.mail;
 import java.util.List;
 
 /**
- * The content of an email that asks for one action through a link (P29): an invitation, a password reset. Every text
+ * The content of an email that asks for one action through a link: an invitation, a password reset. Every text
  * is final, in the email's language; templates/email/action.html lays it out (HtmlEmails).
  *   language     "en" or "el", the html lang
  *   subject      also the HTML title

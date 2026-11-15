@@ -8,7 +8,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The Required documents page (P42) for one vessel (P58; one vessel type before): certificate types as rows, ranks
+ * The Required documents page for one vessel (one vessel type before): certificate types as rows, ranks
  * grouped by department as columns. suggestions: some row of this vessel is still a default it was given and the
  * office has not saved (the notice at the top). resetChanges: what "Reset to Bulk carrier defaults" would change, one
  * line each in the request's language (empty: the vessel has its type's defaults).

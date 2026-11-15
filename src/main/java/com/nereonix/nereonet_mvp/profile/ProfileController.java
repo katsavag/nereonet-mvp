@@ -33,11 +33,11 @@ import com.nereonix.nereonet_mvp.ship.Countries;
 import jakarta.validation.Valid;
 
 /**
- * My profile (P31): what a seafarer says about themselves, four optional fields, each on its own page with Save and
+ * My profile: what a seafarer says about themselves, four optional fields, each on its own page with Save and
  * Cancel; Save comes back to My profile with "Saved.". Always the signed-in person's own profile: no URL names a
  * user. Name, rank, department and ship are the office's and only shown. Also "More" (/ship/more), the fifth tab of
  * the phone tab bar: My profile, My crew and Sign out. English only, every ship role (SecurityConfig: /ship/**).
- * P39: My profile also lists the person's own certificates, read only, each with its file when the office attached
+ * My profile also lists the person's own certificates, read only, each with its file when the office attached
  * one; only the certificate's owner can open that file here (anyone else: 404), and the office from the crew pages.
  */
 @Controller
@@ -63,7 +63,7 @@ public class ProfileController {
     @GetMapping("/ship/profile")
     public String profile(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
         ProfileService.Own own = own(currentUser, model);
-        // P42: their required documents missing or expired, listed first under My certificates.
+        // Their required documents missing or expired, listed first under My certificates.
         model.addAttribute("compliance", complianceService.of(own.user()));
         model.addAttribute("certificates", certificateService.ownCertificates(currentUser.getId()));
         model.addAttribute("today", certificateService.today());
@@ -203,7 +203,7 @@ public class ProfileController {
         return "profile/photo";
     }
 
-    // Where "Delete my profile photo" leads when js/confirm.js did not load (P10).
+    // Where "Delete my profile photo" leads when js/confirm.js did not load.
     @GetMapping("/ship/profile/photo/delete")
     public String confirmDeletePhoto(Model model) {
         return confirmPages.neutral()

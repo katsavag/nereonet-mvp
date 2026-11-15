@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.certificate;
 import java.util.regex.Pattern;
 
 /**
- * Where the add and edit certificate forms go back to (P20): the page they were opened from, sent along as
+ * Where the add and edit certificate forms go back to: the page they were opened from, sent along as
  * ?returnTo= on the link and as a hidden field on the form. Only office pages that open these forms are accepted,
  * each with a numeric id and a query string of URL-safe characters: the Certificates list with its filters, a ship's
  * certificate matrix or list, a ship's Overview tab, the Overview, a crew member's page. Anything else (another

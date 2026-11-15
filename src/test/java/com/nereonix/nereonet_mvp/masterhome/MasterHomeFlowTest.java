@@ -109,7 +109,7 @@ class MasterHomeFlowTest {
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">1</span>");
         // Nothing else waits: quiet cards with a zero, no tint.
         for (String key : List.of("order", "deliveries", "announcements", "library")) {
-            assertThat(card(html, key)).as(key).contains("<span class=\"master-card-count num\">0</span>")
+            assertThat(card(html, key)).as(key).contains("<span class=\"home-card-count num\">0</span>")
                     .doesNotContain("is-due", ">to do<");
         }
         // Not the crew home page.
@@ -221,7 +221,7 @@ class MasterHomeFlowTest {
     }
 
     private static String card(String html, String key) {
-        return section(Pattern.compile("(?s)<a class=\"master-card[^\"]*\"[^>]*data-card=\"" + key + "\">.*?</a>"), html);
+        return section(Pattern.compile("(?s)<a class=\"home-card[^\"]*\"[^>]*data-card=\"" + key + "\">.*?</a>"), html);
     }
 
     private static String section(Pattern pattern, String html) {

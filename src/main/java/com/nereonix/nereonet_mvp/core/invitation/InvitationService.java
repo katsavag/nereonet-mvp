@@ -161,7 +161,7 @@ public class InvitationService {
                 .filter(invitation -> invitation.getStatus() == Invitation.Status.PENDING);
     }
 
-    // Plain text and HTML (P29). The invitee's language is unknown: crew emails are English, as crew screens are;
+    // Plain text and HTML. The invitee's language is unknown: crew emails are English, as crew screens are;
     // office emails follow the language of the office user who sends (or resends) the invitation.
     private void sendEmail(Invitation invitation) {
         String url = baseUrl + "/register?token=" + tokenService.create(invitation);

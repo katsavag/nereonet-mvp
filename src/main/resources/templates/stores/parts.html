@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Parts of the Chief cook's store (P52). -->
+<!-- Parts of the Chief cook's store. -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -9,7 +9,7 @@
 <span th:fragment="statusBadge(status)"
       th:replace="~{layout/parts :: status(${status.tone()}, #{${status.labelKey()}})}"></span>
 
-<!-- A movement's difference, after minus before (P53): "+3", "-3" or "0". -->
+<!-- A movement's difference, after minus before: "+3", "-3" or "0". -->
 <span th:fragment="difference(difference)" class="num"
       th:text="${(difference.signum() > 0 ? '+' : '') + difference.stripTrailingZeros().toPlainString()}">-3</span>
 
@@ -17,7 +17,7 @@
 <span th:fragment="quantity(quantity, unit)" class="stores-qty"><span class="num"
         th:text="${quantity.stripTrailingZeros().toPlainString()}">12.5</span> <span th:text="${unit}">kg</span></span>
 
-<!-- Count by voice (P57): hidden until js/stores-voice.js shows it, so
+<!-- Count by voice: hidden until js/stores-voice.js shows it, so
      without JavaScript there is no recording and counting by hand works as before. "Enable microphone" asks for the
      microphone once (the browser's prompt would otherwise break the first hold); "Hold to speak" records while held
      (pointer or Space/Enter) and sends on release to action, with the form's CSRF token. The texts the script shows

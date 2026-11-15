@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.library}, ~{::main})}">
 <body>
-<!-- The Library tab of the ship page (see ship/ShipFrame). An empty library (P25): Add an item is in the empty state
+<!-- The Library tab of the ship page (see ship/ShipFrame). An empty library: Add an item is in the empty state
      instead of the tab heading. -->
 <main>
     <th:block th:replace="~{ship/parts :: header}"></th:block>

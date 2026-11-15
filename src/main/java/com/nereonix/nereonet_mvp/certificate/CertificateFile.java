@@ -10,7 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 /**
- * The scan of a certificate (P39): its file name, content type (checked on upload: PDF, JPEG or PNG) and content.
+ * The scan of a certificate: its file name, content type (checked on upload: PDF, JPEG or PNG) and content.
  * Opened in the browser (inline) under its own name; never kept by a cache, as it is personal and the crew may use a
  * shared PC. Spring Security sends X-Content-Type-Options: nosniff, so the browser keeps the stored type.
  */

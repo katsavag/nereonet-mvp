@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Saved column and value mappings (P24): one per kind of import and set of column names.
+// Saved column and value mappings: one per kind of import and set of column names.
 @Service
 public class ImportMappingService {
 

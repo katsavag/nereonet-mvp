@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- Step 3 of the item import (P24): every item from the file, editable. The row filters, the plan and "Exclude all
+<!-- Step 3 of the item import: every item from the file, editable. The row filters, the plan and "Exclude all
      rows with errors" are layout/parts :: importSummary; the first two columns (row, name) stay in place when the
      table scrolls sideways. Each row says what it does: a new item, an update of the item with that name (unit,
      category and place), or no change (skipped). Category is the file's text: Provisions or Personal items. The cells
-     check themselves as they are corrected (P39, js/import-check.js); the server checks everything again. -->
+     check themselves as they are corrected (js/import-check.js); the server checks everything again. -->
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{itemImport.review.title}, ~{::main})}">
 <body>
 <main>
@@ -61,6 +61,7 @@
         <th:block th:replace="~{layout/parts :: importReviewActions(${itemImport}, ${show},
                 #{itemImport.review.submit}, #{itemImport.review.submitHint})}"></th:block>
     </form>
+    <script th:src="@{/js/import-check.js}" defer></script>
 </main>
 </body>
 </html>

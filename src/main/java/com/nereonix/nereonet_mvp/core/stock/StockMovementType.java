@@ -1,6 +1,6 @@
 package com.nereonix.nereonet_mvp.core.stock;
 
-// What changed a stock quantity (P52). Labels: stores.movement.<NAME> in messages.properties.
+// What changed a stock quantity. Labels: stores.movement.<NAME> in messages.properties.
 public enum StockMovementType {
 
     // The Chief cook counted the item and set what is on board.

@@ -1,6 +1,6 @@
 package com.nereonix.nereonet_mvp.core.importfile;
 
-// What importing a row does (P24), shown on each row of the review screen. Labels: importFile.action.<NAME>.
+// What importing a row does, shown on each row of the review screen. Labels: importFile.action.<NAME>.
 public enum ImportAction {
     // A new record (for crew: an invitation).
     CREATE,

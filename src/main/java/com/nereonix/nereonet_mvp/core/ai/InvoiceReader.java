@@ -6,7 +6,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReading.PageResult;
 
 /**
- * Reads the photographed pages of a supplier's invoice into invoice lines (P62), called by the server only
+ * Reads the photographed pages of a supplier's invoice into invoice lines, called by the server only
  * (core/order/InvoiceReadingService). MistralInvoiceReader is the real one; FakeInvoiceReader answers in dev
  * (app.mistral.fake) and in the tests, as CountExtractor / FakeCountExtractor do. Only the page images are sent
  * anywhere: never a name of the crew, the order or anything else.

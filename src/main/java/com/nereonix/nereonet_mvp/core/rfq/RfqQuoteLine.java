@@ -14,7 +14,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// A supplier's price for one RFQ line (P44). A line the supplier did not offer has no row ("Not offered", never zero).
+// A supplier's price for one RFQ line. A line the supplier did not offer has no row ("Not offered", never zero).
 //   unitPrice        the price of one pack, in the quote's currency
 //   quantityOffered  how many packs the supplier offers
 //   packSize, packUnit  what one pack holds, e.g. 5 L; both empty: a pack is one of the item's unit

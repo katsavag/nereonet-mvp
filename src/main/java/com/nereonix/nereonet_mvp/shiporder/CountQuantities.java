@@ -10,7 +10,7 @@ import com.nereonix.nereonet_mvp.core.order.CountSheet;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 
 /**
- * A quantity typed in one row of the delivery count (P63): the cook's count and the Master's change. P60's receipt
+ * A quantity typed in one row of the delivery count: the cook's count and the Master's change. P60's receipt
  * rule (0 allowed): the item's, or for a row in the invoice's unit that unit's ("bags": whole numbers). The value is
  * returned in the item's unit (12 bags of 10 kg: 120).
  */

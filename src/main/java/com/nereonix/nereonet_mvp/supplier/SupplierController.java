@@ -23,7 +23,7 @@ import com.nereonix.nereonet_mvp.core.supplier.SupplierService;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// The office's suppliers (P44): /office/suppliers, the list (P19: search, status filter, sort, pages; P25 empty
+// The office's suppliers: /office/suppliers, the list (search, status filter, sort, pages; P25 empty
 // state), Add supplier and Edit supplier (full pages: six fields). /office/** is OFFICE_USER only (SecurityConfig).
 @Controller
 public class SupplierController {

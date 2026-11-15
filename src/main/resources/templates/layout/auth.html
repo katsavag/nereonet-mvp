@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  The layout of the signed-out pages (P30): sign-in, registration (and its invalid link page) and password reset.
+  The layout of the signed-out pages: sign-in, registration (and its invalid link page) and password reset.
   Pages use it like this:
     <html th:replace="~{layout/auth :: layout(#{login.title}, ~{::main})}">
   and their <main> is layout/parts :: authFrame. Unlike layout/layout it never shows the signed-in frame: someone still
@@ -17,7 +17,7 @@
 </div>
 <main th:replace="${content}"></main>
 
-<!-- "No connection." (P15): empty and invisible until js/save.js sees the browser go offline. -->
+<!-- "No connection.": empty and invisible until js/save.js sees the browser go offline. -->
 <div th:replace="~{layout/parts :: offlineBanner}"></div>
 
 <th:block th:replace="~{layout/layout :: scripts}"></th:block>

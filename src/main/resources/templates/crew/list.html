@@ -4,9 +4,9 @@
 <body>
 <!-- Also the Crew tab of the ship page (shipTab set, see ship/ShipFrame): the ship header instead of the page
      header, the ship fixed (no ship filter, no ship column), and actions for this ship that come back to the tab.
-     Invitation rows (P17) show their status with its date and have Resend and, in the menu, Cancel invitation; both
-     come back to this list as it was: search, filters, sort and page (listParams, crew/CrewListReturn, P19). -->
-<!-- No crew yet (P25): the empty state holds the actions, so the header leaves them out; on the fleet list without an
+     Invitation rows show their status with its date and have Resend and, in the menu, Cancel invitation; both
+     come back to this list as it was: search, filters, sort and page (listParams, crew/CrewListReturn). -->
+<!-- No crew yet: the empty state holds the actions, so the header leaves them out; on the fleet list without an
      active ship it leads to Ships instead (crew belong to a ship). -->
 <main th:with="onShip=${shipTab != null}, noCrew=${list.emptyUnfiltered(people)}">
     <th:block th:if="${onShip}">
@@ -39,7 +39,7 @@
 
     </th:block>
 
-    <!-- Search, filters and chips (P19, layout/parts :: filterBar). A GET form, so the filtered page can be bookmarked
+    <!-- Search, filters and chips (layout/parts :: filterBar). A GET form, so the filtered page can be bookmarked
          and linked to (/office/crew?status=expired). The Crew tab has no ship filter. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{crew.search}, ~{::listFilters})}">
         <th:block th:fragment="listFilters">
@@ -52,7 +52,7 @@
                             th:text="#{${'crew.filter.status.' + st.key()}}">Invitation expired</option>
                 </select>
             </div>
-            <!-- P42: only the people missing a required document (expired counts as missing). -->
+            <!-- Only the people missing a required document (expired counts as missing). -->
             <div th:if="${anyRequirements}" class="filter-field filter-field-check">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="filterDocuments" name="documents"
@@ -63,7 +63,7 @@
         </th:block>
     </div>
 
-    <!-- P18: the crew members in the list (as filtered, every page) whose rank does not set the role they have, or
+    <!-- The crew members in the list (as filtered, every page) whose rank does not set the role they have, or
          who have no rank. -->
     <th:block th:unless="${onShip}"><section th:replace="~{crew/parts :: rankReview(${rankNeedsReview})}"></section></th:block>
 
@@ -82,18 +82,18 @@
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones,
              stack-hide: not shown there; table-sticky: the header stays visible while the page scrolls.
-             One page of users and pending invitations together, sorted on the server (P19). -->
+             One page of users and pending invitations together, sorted on the server. -->
         <div th:unless="${people.isEmpty()}" class="table-responsive table-sticky">
             <table class="table data-table data-table-stack align-middle mb-0">
                 <thead>
                 <tr>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'email', #{user.email})}"></th>
-                    <!-- The rank, and a badge for the roles with their own access (P18: there is no Role column). -->
+                    <!-- The rank, and a badge for the roles with their own access (there is no Role column). -->
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'rank', #{user.rank})}"></th>
                     <th:block th:unless="${onShip}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'ship', #{user.ship})}"></th></th:block>
                     <th th:replace="~{layout/parts :: sortHeader(${list}, 'status', #{user.status})}"></th>
-                    <!-- P42: required documents held, "5 of 7"; first click puts the most missing first. -->
+                    <!-- Required documents held, "5 of 7"; first click puts the most missing first. -->
                     <th:block th:if="${anyRequirements}"><th th:replace="~{layout/parts :: sortHeader(${list}, 'documents', #{crew.documents})}"></th></th:block>
                     <th scope="col"><span class="visually-hidden" th:text="#{user.actions}">Actions</span></th>
                 </tr>
@@ -153,8 +153,7 @@
         <nav th:replace="~{layout/parts :: pager(${people}, ${list})}"></nav>
     </div>
 
-    <!-- Add crew member: sends an invitation. Full screen on phones. Four fields: there is no role, the rank sets it
-         (P18), and the access it gives is shown under the rank. The ship keeps the full width, so its name and IMO number are never cut off. On a ship's Crew tab
+    <!-- Add crew member: sends an invitation. Full screen on phones. Four fields: there is no role, the rank sets it, and the access it gives is shown under the rank. The ship keeps the full width, so its name and IMO number are never cut off. On a ship's Crew tab
          (active ships only) the ship is preselected and can still be changed; it posts to the tab's own URL, so errors
          show on the tab and, once sent, the user is on the Crew tab of the ship the invitation is for. -->
     <div th:if="${!onShip or ship.active}" class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalTitle" aria-hidden="true">
@@ -226,7 +225,7 @@
     </div>
 </main>
 
-<!-- P42: the required documents of the people of this list as filtered (every page, no invitations) as an .xls: one
+<!-- The required documents of the people of this list as filtered (every page, no invitations) as an .xls: one
      row per person and document. -->
 <a th:fragment="documentsExport" class="btn btn-outline-secondary" th:href="@{${documentsExportUrl}}" download>
     <svg th:replace="~{layout/parts :: icon('download')}"></svg>

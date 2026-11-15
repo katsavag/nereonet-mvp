@@ -2,11 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.certificates}, ~{::main})}">
 <body>
-<!-- The ship page's Certificates tab (P20): who on board holds which certificate. matrix: certificate/CertificateMatrix.
+<!-- The ship page's Certificates tab: who on board holds which certificate. matrix: certificate/CertificateMatrix.
      Rows: the active crew on board by department and rank; columns: the certificate types they hold. Each cell is the
      expiry date and the state badge of the certificate that expires last, and opens it; a dash when the person has
      none, which opens Add certificate with the person and the type filled in. Both come back here (returnTo).
-     P42: the types required of anyone on board are columns too; an empty cell required of that person says Missing.
+     The types required of anyone on board are columns too; an empty cell required of that person says Missing.
      The crew column stays put while the table scrolls sideways (.cert-matrix). The tab's List view is
      certificate/list.html; both start with tabTop. -->
 <main>
@@ -42,7 +42,7 @@
                             <time th:replace="~{layout/parts :: localDate(${c.expiresOn})}"></time>
                             <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
                         </a>
-                        <!-- P42: a required document not held is Missing (danger, with its icon and the word); a cell
+                        <!-- A required document not held is Missing (danger, with its icon and the word); a cell
                              not required of this person stays a muted dash. Both add one. -->
                         <a th:unless="${cell.certificate}" class="cert-matrix-link cert-matrix-add"
                            th:classappend="${cell.missing()} ? 'cert-matrix-missing'"
@@ -61,7 +61,7 @@
 
 <!-- The top of the Certificates tab, in both views: the ship frame, the tab heading with Export and Add
      certificate (both for what this view shows; Add comes back to it), the Matrix / List switch and the view's hint.
-     view: 'matrix' or 'list'; exportUrl: this view's export (an Excel workbook, P39). Needs returnTo (this view's URL) in the model. -->
+     view: 'matrix' or 'list'; exportUrl: this view's export (an Excel workbook). Needs returnTo (this view's URL) in the model. -->
 <th:block th:fragment="tabTop(view, exportUrl, noCertificates)">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
     <div th:replace="~{ship/parts :: tabHeading(#{certificate.list.heading}, ${noCertificates} ? null : ~{certificate/matrix :: tabActions(${exportUrl}, ${view})})}"></div>
@@ -69,7 +69,7 @@
     <p class="tab-hint" th:text="${view == 'matrix'} ? #{certificate.matrix.hint} : #{certificate.list.hint}">Active crew on board ...</p>
 </th:block>
 
-<!-- P43: the list view adds Snooze selected (its form is in certificate/list.html). -->
+<!-- The list view adds Snooze selected (its form is in certificate/list.html). -->
 <th:block th:fragment="tabActions(exportUrl, view)">
     <th:block th:if="${view == 'list'}"><button th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button></th:block>
     <a class="btn btn-outline-secondary" th:href="@{${exportUrl}}" download>
@@ -84,7 +84,7 @@
     <span th:text="#{certificate.new.heading}">Add certificate</span>
 </a>
 
-<!-- The tab without certificates (P25), matrix and list: with crew on board, Add certificate (which the tab heading
+<!-- The tab without certificates, matrix and list: with crew on board, Add certificate (which the tab heading
      then leaves out); without, the way to the Crew tab, as a certificate needs a crew member. -->
 <div th:fragment="tabEmpty(crewOnBoard)"
      th:replace="~{layout/parts :: emptyState(icon='certificates',

@@ -43,7 +43,7 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 
-// Ship orders, for any feature (P34). RequestService.approve adds each approved request to the ship's OPEN order; the
+// Ship orders, for any feature. RequestService.approve adds each approved request to the ship's OPEN order; the
 // Master edits its lines and sends it to the office (P35, shiporder). Every change of the ship locks the ship's row
 // first, so an approval, an edit and a send never interleave: an approval made while the order is sent goes into a
 // new OPEN order. The office (P36, officeorder) lists the sent orders, schedules the delivery (port and date; P51,
@@ -56,14 +56,14 @@ public class ShipOrderService {
     static final int QUANTITY_SCALE = 3;
     static final int QUANTITY_INTEGER_DIGITS = 9;
 
-    /** The orders the office sees (P36): those a Master has sent. Never OPEN ones. */
+    /** The orders the office sees: those a Master has sent. Never OPEN ones. */
     public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
             ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
 
-    /** The orders still on the office's desk (P51): Pending and Delivery scheduled, the sidebar's Orders counter. */
+    /** The orders still on the office's desk: Pending and Delivery scheduled, the sidebar's Orders counter. */
     public static final List<ShipOrderStatus> NOT_RECEIVED = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
 
-    /** The columns of the office's export (P36; an Excel workbook since P39, .xls since P40, the same columns), one row per order
+    /** The columns of the office's export (an Excel workbook since P39, .xls since P40, the same columns), one row per order
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
@@ -114,7 +114,7 @@ public class ShipOrderService {
      * added to the order line of the same item, or a new order line is made, and the request line is linked to it.
      * Every line must have an item (RequestService.approve creates the new ones first). The ship's row is locked
      * first, so two approvals at the same time never make two OPEN orders, or two lines for one item.
-     * AccessDeniedException when the request was not decided by an enabled Master of its ship (P55).
+     * AccessDeniedException when the request was not decided by an enabled Master of its ship.
      */
     @Transactional
     public ShipOrder addApprovedRequest(ItemRequest request) {
@@ -162,7 +162,7 @@ public class ShipOrderService {
     }
 
     /**
-     * The Master changes the quantity of a line of their ship's OPEN order (P35). Nobody is notified and nothing is
+     * The Master changes the quantity of a line of their ship's OPEN order. Nobody is notified and nothing is
      * recorded in the audit log: the order is still being put together. NOT_OPEN (nothing changed) when the line's
      * order was already sent; NOT_FOUND when the ship has no such line. IllegalArgumentException for a quantity that
      * is not valid (isValidQuantity); AccessDeniedException when the user is not an enabled Master with a ship.
@@ -185,7 +185,7 @@ public class ShipOrderService {
     }
 
     /**
-     * The Master removes a line from their ship's OPEN order (P35). The request lines that went into it are unlinked
+     * The Master removes a line from their ship's OPEN order. The request lines that went into it are unlinked
      * (the requests stay approved). NOT_OPEN, NOT_FOUND and exceptions as changeQuantity.
      */
     @Transactional
@@ -210,7 +210,7 @@ public class ShipOrderService {
     }
 
     /**
-     * The Master sends their ship's OPEN order to the office (P35): SENT with the requested port, needed by date and
+     * The Master sends their ship's OPEN order to the office: SENT with the requested port, needed by date and
      * note, sentBy and sentAt. Records "Order sent" and notifies every enabled office user: "New order from MV Demo".
      * From then on the order is read-only, and the next approved request opens a new OPEN order. Returns a Send
      * without an order (nothing changed) when the ship has no OPEN order or it has no lines.
@@ -246,7 +246,7 @@ public class ShipOrderService {
         order.setOfficeNote(note);
         order.setSentBy(master);
         order.setSentAt(Instant.now());
-        // P50: what the ship sent, whatever the office changes later.
+        // What the ship sent, whatever the office changes later.
         for (ShipOrderLine line : order.getLines()) {
             line.setOriginalQuantity(line.getQuantity());
         }
@@ -265,13 +265,13 @@ public class ShipOrderService {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // The office (P36)
+    // The office
     // ---------------------------------------------------------------------------------------------------------------
 
     /**
      * One page of the orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN), newest sent first, paginated
      * in the database. shipId and status null mean every ship and every one of those statuses; notExported keeps
-     * those never exported; invoiceDiffer (P64) those received whose invoice is not matched yet and has lines that
+     * those never exported; invoiceDiffer those received whose invoice is not matched yet and has lines that
      * differ. The search is an order number ("12" or "#12"), or the ship's name or IMO number.
      */
     @Transactional(readOnly = true)
@@ -323,7 +323,7 @@ public class ShipOrderService {
         return orderRepository.findFirstByShipIdAndStatusOrderByDeliveryDateAscIdAsc(shipId, ShipOrderStatus.CONFIRMED);
     }
 
-    /** Orders Pending or Delivery scheduled, every ship: the office's sidebar counter (P51; not exported before). */
+    /** Orders Pending or Delivery scheduled, every ship: the office's sidebar counter (not exported before). */
     @Transactional(readOnly = true)
     public long countNotReceived() {
         return orderRepository.countByStatusIn(NOT_RECEIVED);
@@ -385,7 +385,7 @@ public class ShipOrderService {
             return Schedule.RECEIVED;
         }
         boolean change = order.getStatus() == ShipOrderStatus.CONFIRMED;
-        // P50: the lines are read-only from now on; the ship hears about the office's changes before the delivery.
+        // The lines are read-only from now on; the ship hears about the office's changes before the delivery.
         editService.notifyPending(order);
         order.setConfirmedPort(port);
         order.setDeliveryDate(delivery.deliveryDate());
@@ -400,7 +400,7 @@ public class ShipOrderService {
                 : "order.notification.deliveryScheduled", new Object[] {port, date}, Locale.ENGLISH);
         for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
             for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
-                // The Master's order page; the Chief cook's is the same page, read only (P55).
+                // The Master's order page; the Chief cook's is the same page, read only.
                 notificationService.notify(user, NotificationType.ORDER, ship.getName(), text,
                         "/ship/orders/" + order.getId());
             }
@@ -411,8 +411,8 @@ public class ShipOrderService {
     /**
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
      * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
-     * category (Provisions, then Personal items) and item name; status as the office sees it (P49, P51: pending,
-     * delivery_scheduled (P65; delivery_pending before), received); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity
+     * category (Provisions, then Personal items) and item name; status as the office sees it (pending,
+     * delivery_scheduled (delivery_pending before), received); quantity is what to deliver (0 for a line the office removed), sent_quantity
      * what the ship sent (empty for a line the office added), office_change changed, removed, added or empty,
      * office_note the office's note; received_quantity what arrived on board and received_at when (P51, empty until
      * the Master confirmed receipt); P64, for an order received with a read invoice: invoiced_quantity (the item's
@@ -464,7 +464,7 @@ public class ShipOrderService {
                         difference(row)));
                 lineCount++;
             }
-            // P64: the invoice's lines linked to no order line (not ordered), in the invoice's unit.
+            // The invoice's lines linked to no order line (not ordered), in the invoice's unit.
             if (comparison != null) {
                 for (InvoiceComparison.Row row : comparison.getRows()) {
                     if (row.getOrderLine() != null) {
@@ -493,7 +493,7 @@ public class ShipOrderService {
         return Optional.of(sheet.file("ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC)));
     }
 
-    // P64: the comparison of a received order with a read invoice (no quotes, no decisions: the numbers only), or null.
+    // The comparison of a received order with a read invoice (no quotes, no decisions: the numbers only), or null.
     private InvoiceComparison comparison(ShipOrder order) {
         if (order.getStatus() != ShipOrderStatus.CLOSED) {
             return null;
@@ -507,7 +507,7 @@ public class ShipOrderService {
                 ? InvoiceComparison.of(order, invoice, lines, java.util.Map.of(), null, java.util.Map.of()) : null;
     }
 
-    // P64, the difference column: received minus invoiced (nothing invoiced: 0), in the row's unit; empty without an
+    // The difference column: received minus invoiced (nothing invoiced: 0), in the row's unit; empty without an
     // invoice or when its quantity was not read.
     private static BigDecimal difference(InvoiceComparison.Row row) {
         if (row == null || (row.isOnInvoice() && row.getInvoiced() == null)) {
@@ -518,7 +518,7 @@ public class ShipOrderService {
         return received.subtract(invoiced);
     }
 
-    /** The status column of the export: pending (P49), delivery_scheduled (P65; delivery_pending before) and received (P51). */
+    /** The status column of the export: pending, delivery_scheduled (delivery_pending before) and received. */
     static String exportStatus(ShipOrderStatus status) {
         return switch (status) {
             case SENT -> "pending";
@@ -528,7 +528,7 @@ public class ShipOrderService {
         };
     }
 
-    /** The office_change column (P50): what the office did to the line, or null. */
+    /** The office_change column: what the office did to the line, or null. */
     static String officeChange(ShipOrderLine line) {
         if (line.isRemoved()) {
             return "removed";
@@ -571,7 +571,7 @@ public class ShipOrderService {
     }
 
     // The line, after locking the Master's ship; null when the ship has no such line.
-    /** A line of one of the ship's orders, read only (P60: its item's quantity rule before a change); empty if none. */
+    /** A line of one of the ship's orders, read only (its item's quantity rule before a change); empty if none. */
     @Transactional(readOnly = true)
     public java.util.Optional<ShipOrderLine> findLine(Long shipId, Long lineId) {
         return lineRepository.findByIdAndOrderShipId(lineId, shipId);

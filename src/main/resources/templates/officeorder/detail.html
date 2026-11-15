@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.number(${order.id})}, ~{::main})}">
 <body>
-<!-- One order a ship has sent (P36): its status, who sent it and when, the requested port, needed by date and the
+<!-- One order a ship has sent: its status, who sent it and when, the requested port, needed by date and the
      Master's note, the confirmation once set, when it was last exported; then its lines by category (Provisions, then
-     Personal items). P50: while SENT ("Pending") the office changes them: each line's quantity with an optional note
+     Personal items). While SENT ("Pending") the office changes them: each line's quantity with an optional note
      (Save), Remove (asks first, with an optional note), and "Add an item" from the vessel's active items; removed
      lines stay, struck through, and every change shows under the item's name, as on the Master's page. Until the ship
      is told, a note says so with "Done editing". Once the delivery is scheduled the lines are read-only.
      Export (the page action) downloads an Excel workbook of
      this order's file and marks it exported. While SENT, "Schedule delivery" with the delivery port (the requested
-     port to start with) and the date (P51; "Confirm delivery" before); while CONFIRMED ("Delivery scheduled") "Change
-     delivery". The office never closes an order: the Master confirms receipt on board (P51). Then "Receipt on board":
-     received when and by whom, the delivery receipt's files (Open in a new tab, P22; Download), per line ordered vs
+     port to start with) and the date; while CONFIRMED ("Delivery scheduled") "Change
+     delivery". The office never closes an order: the Master confirms receipt on board. Then "Receipt on board":
+     received when and by whom, the delivery receipt's files (Open in a new tab; Download), per line ordered vs
      received with shortages marked ("Short by 5 kg"), and while lines are short and not handled, "Shortage handled"
-     with a note (required). P64: received with a read invoice, the card "Order, delivery and invoice"
+     with a note (required). Received with a read invoice, the card "Order, delivery and invoice"
      (officeorder/compare :: card) under the order details replaces "Shortage handled".
      Model: comparison (InvoiceComparison or null), acceptNoteMax, order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
      editable, editPending, noteMax, received, receiptFiles, shortageNoteMax, and while editable hasItems (the vessel
      has active items), itemGroups (OfficeOrderController.ItemGroup: the active items not on the order) and
      onOrderGroups (OfficeOrderController.LineGroup: the lines not removed).
-     P59: Add an item and Schedule delivery are as wide as the cards above them (.form-box-full) and from 992px lay
-     their fields out in a row with the button at its end (.form-row-wide). P60: the line quantities and Add an item follow the rule of the item's unit, the limit
+     Add an item and Schedule delivery are as wide as the cards above them (.form-box-full) and from 992px lay
+     their fields out in a row with the button at its end (.form-row-wide). The line quantities and Add an item follow the rule of the item's unit, the limit
      under the field (README 35).
-     P65: one primary button, the page's next step: Schedule delivery while Pending; while Delivery scheduled, "Save
+     One primary button, the page's next step: Schedule delivery while Pending; while Delivery scheduled, "Save
      delivery changes" only once a field of it changed (an outline button until then, js/forms.js
      data-primary-on-change; primary when the form came back with errors), else none; once Received, Shortage handled
      (or the comparison's Mark as matched). Done editing is secondary, Add to order an outline primary. -->
@@ -33,7 +33,7 @@
             <li th:replace="~{layout/parts :: crumb(#{nav.orders}, '/office/orders')}"></li>
         </th:block>
         <th:block th:fragment="pageActions">
-            <!-- P44: ask suppliers for prices (a SENT order without an open RFQ), or go to the open one. -->
+            <!-- Ask suppliers for prices (a SENT order without an open RFQ), or go to the open one. -->
             <a th:if="${canRequestQuotes}" class="btn btn-outline-secondary" th:href="@{/office/orders/{id}/rfq/new(id=${order.id})}">
                 <svg th:replace="~{layout/parts :: icon('plus')}"></svg>
                 <span th:text="#{rfq.request}">Request quotes</span>
@@ -79,13 +79,13 @@
                 <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.confirmedBy}">Confirmed by</dt>
                 <dd class="col-sm-8 col-lg-9" th:text="${order.confirmedBy} ? ${order.confirmedBy.fullName} : #{audit.deletedUser}">Jane Doe</dd>
             </th:block>
-            <!-- P61: once received, the Chief cook's count the Master approved. -->
+            <!-- Once received, the Chief cook's count the Master approved. -->
             <th:block th:if="${order.status.name() == 'CLOSED' and order.countApproved and order.countSentAt != null}">
                 <dt class="col-sm-4 col-lg-3" th:text="#{officeorder.counted}">Delivery count</dt>
                 <dd class="col-sm-8 col-lg-9" th:text="#{officeorder.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
                         ${@dates.utcDate(order.countSentAt)})}">Counted by Demo Cook on 14 Nov 2026</dd>
             </th:block>
-            <!-- P44: the latest award of a request for quotes. -->
+            <!-- The latest award of a request for quotes. -->
             <th:block th:if="${award != null}">
                 <dt class="col-sm-4 col-lg-3" th:text="#{rfq.awardedTo}">Awarded to</dt>
                 <dd class="col-sm-8 col-lg-9">
@@ -98,10 +98,10 @@
         </dl>
     </div>
 
-    <!-- P64: order, delivery and invoice side by side, for an order received with a read invoice. -->
+    <!-- Order, delivery and invoice side by side, for an order received with a read invoice. -->
     <th:block th:if="${comparison != null}"><section th:replace="~{officeorder/compare :: card}"></section></th:block>
 
-    <!-- P51: the receipt on board, once the Master confirmed it. -->
+    <!-- The receipt on board, once the Master confirmed it. -->
     <section th:if="${received}" class="card mb-4" aria-labelledby="receiptTitle">
         <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="receiptTitle" th:text="#{officeorder.receipt.heading}">Receipt on board</h2>
@@ -137,7 +137,7 @@
                 </li>
             </ul>
         </div>
-        <!-- Lines short: "Shortage handled" with a note, or who handled it and the note. P64: not for an order with a
+        <!-- Lines short: "Shortage handled" with a note, or who handled it and the note. Not for an order with a
              read invoice, where a shortage is one of the differences of "Order, delivery and invoice". -->
         <div th:if="${order.shortLines > 0 and comparison == null}" class="card-body border-top">
             <h3 class="h6 fw-semibold" th:text="#{officeorder.shortage.heading}">Shortage</h3>
@@ -163,7 +163,7 @@
         </div>
     </section>
 
-    <!-- P44: the order's requests for quotes, newest first. -->
+    <!-- The order's requests for quotes, newest first. -->
     <section th:unless="${rfqs.isEmpty()}" class="card mb-4" aria-labelledby="rfqsTitle">
         <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="rfqsTitle" th:text="#{rfq.list.heading}">Requests for quotes</h2>
@@ -193,7 +193,7 @@
         </div>
     </section>
 
-    <!-- P50: changes the ship has not been told about yet, and "Done editing" to tell it now. -->
+    <!-- Changes the ship has not been told about yet, and "Done editing" to tell it now. -->
     <div th:if="${editPending}" class="order-edit-pending mb-4" role="status">
         <p class="mb-0" th:text="#{officeorder.edit.pending}">The master and the chief cook haven't been told about your
             changes yet. They are told when you press Done editing, or 10 minutes after your last change.</p>
@@ -276,7 +276,7 @@
         </div>
     </section>
 
-    <!-- P50: add one of the vessel's active items. P59: two panels, stacked on phones, side by side from 768px. Left,
+    <!-- Add one of the vessel's active items. Two panels, stacked on phones, side by side from 768px. Left,
          "Not on the order": the active items not on it (a removed line's item included: it comes back), grouped by
          category, each a radio (name="itemId") with its name and unit as the label, in a list that scrolls within
          --nn-picker-height. Right, "On the order": its lines (name, quantity, unit), read only; they are changed in
@@ -309,7 +309,7 @@
                                      th:attr="aria-labelledby=${'addItemCategory' + it.index}">
                                     <p class="item-picker-category" th:id="${'addItemCategory' + it.index}"
                                        th:text="#{${g.category.labelKey()}}">Provisions</p>
-                                    <ul class="item-picker-items">
+                                    <ul class="item-picker-items list-plain">
                                         <li th:each="i : ${g.items}">
                                             <label class="item-picker-option" data-item-option>
                                                 <input type="radio" name="itemId" class="form-check-input" th:value="${i.id}"
@@ -338,7 +338,7 @@
                             <th:block th:each="g, it : ${onOrderGroups}">
                                 <p class="item-picker-category" th:id="${'onOrderCategory' + it.index}"
                                    th:text="#{${g.category.labelKey()}}">Provisions</p>
-                                <ul class="item-picker-items" th:attr="aria-labelledby=${'onOrderCategory' + it.index}">
+                                <ul class="item-picker-items list-plain" th:attr="aria-labelledby=${'onOrderCategory' + it.index}">
                                     <li th:each="line : ${g.lines}" class="item-picker-ref">
                                         <span class="item-picker-ref-name" th:text="${line.item.name}">Basmati rice</span>
                                         <span class="item-picker-ref-qty"><span class="font-monospace"
@@ -425,6 +425,7 @@
             </form>
         </div>
     </section>
+    <script th:src="@{/js/item-search.js}" defer></script>
 </main>
 </body>
 </html>

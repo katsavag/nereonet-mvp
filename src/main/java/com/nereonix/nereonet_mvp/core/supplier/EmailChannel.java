@@ -16,7 +16,7 @@ import com.nereonix.nereonet_mvp.core.rfq.RfqWorkbook;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * The email channel (P44): the RFQ as an email to the supplier's address, from the system sender with Reply-To the
+ * The email channel: the RFQ as an email to the supplier's address, from the system sender with Reply-To the
  * office user, so the supplier's answer lands in that person's inbox; the office then enters it by hand. The request
  * has the lines in its body (HTML and plain text, SupplierEmails) and the same lines as an .xls attachment
  * (RfqWorkbook). Subjects start with the RFQ number ("RFQ #12: ..."), so replies keep it.

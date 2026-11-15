@@ -6,7 +6,7 @@ import java.util.Locale;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 
 /**
- * Where a seafarer stands on one required document (P42), from the certificate of that type that expires last:
+ * Where a seafarer stands on one required document, from the certificate of that type that expires last:
  * Valid, Expiring (within EXPIRING_DAYS, today included), Expired (the date has passed, UTC days) or Missing (none).
  * Expired counts as missing in the totals ("5 of 7"). Listed in this order of urgency: missing first.
  * Each has its badge: tone, icon and words (requirement.state.&lt;NAME&gt;), never colour alone; export(): the

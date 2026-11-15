@@ -20,7 +20,7 @@ import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /**
- * Profile photos (P31), with the JDK's ImageIO only. Whatever the browser sent, the server makes its own JPEGs:
+ * Profile photos, with the JDK's ImageIO only. Whatever the browser sent, the server makes its own JPEGs:
  *   - the real type is read from the file's first bytes (JPEG or PNG), not from its name or the browser's word;
  *   - a camera photo's EXIF orientation is applied, so it is not shown on its side;
  *   - "large": at most 512 px on the longest side; "small": a 96 x 96 square from the middle, for the round pictures

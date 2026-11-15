@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 // The add and edit item form. The place is shown only for Provisions; ItemService drops it for personal items.
-// P60: maxPerRequest, optional, the most one request or order line may hold ("2,5" is 2.5), with the decimals of the
+// MaxPerRequest, optional, the most one request or order line may hold ("2,5" is 2.5), with the decimals of the
 // unit (whole numbers for pcs); it replaces the unit's maximum (core/form/QuantityRules).
 @PlausibleQuantity(quantity = "maxPerRequest", unit = "unit", limit = false)
 public class ItemForm {

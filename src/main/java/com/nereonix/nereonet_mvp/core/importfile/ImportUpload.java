@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// An uploaded file while it is being imported (P24), kept in the HTTP session with its review form (ImportForm) from
+// An uploaded file while it is being imported, kept in the HTTP session with its review form (ImportForm) from
 // the upload until the import is done or cancelled: the file's sheets, the chosen sheet and header row, and the column
 // and value mapping. Nothing of it is saved before the last step.
 public class ImportUpload implements Serializable {

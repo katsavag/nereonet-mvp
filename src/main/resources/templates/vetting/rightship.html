@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{vetting.rightship}, ~{::main})}">
 <body>
-<!-- A vessel's RightShip page (P40). From 992px two columns: the dashboard (7/12) and the official document (5/12);
+<!-- A vessel's RightShip page. From 992px two columns: the dashboard (7/12) and the official document (5/12);
      below that one column, the document after the dashboard. No chart library: the bars are HTML and CSS
      (vetting/parts :: scoreBar), and the page works without JavaScript.
        a. score header: the vessel, "RightShip Safety Score", the bar and "3/5", vessel type, calculation date;
@@ -14,8 +14,7 @@
        d. Official document: the newest report (an image inline; a PDF as a link that opens it in a new tab), its
           date and uploader, Open and Download; the earlier reports under it, newest first.
      Header actions: Open in RightShip (with a platform link), Refresh from RightShip (API configured), Open vessel,
-     Edit RightShip data, Upload report (the primary). An empty state that holds an action takes it out of the header
-     (P25), so the page keeps one primary button.
+     Edit RightShip data, Upload report (the primary). An empty state that holds an action takes it out of the header, so the page keeps one primary button.
      Model: ship, rightShip (RightShipView), report (the newest RightShipReport or null), earlierReports,
      apiConfigured, syncFailedAt, impacts. -->
 <main th:with="rs=${rightShip}, st=${rightShip.status()}, hasData=${rightShip.hasData()}, hasReport=${report != null},
@@ -91,7 +90,7 @@
                         </div>
                     </dl>
                     <!-- Who entered it, or that it came from the API, and when. -->
-                    <p th:if="${hasData}" class="rs-updated">
+                    <p th:if="${hasData}" class="rs-updated text-meta">
                         <th:block th:if="${rs.fromApi()}" th:text="#{vetting.updated.api}">Updated from RightShip</th:block>
                         <th:block th:unless="${rs.fromApi()}"
                                   th:text="${st.updatedBy != null} ? #{vetting.updated.by(${st.updatedBy.fullName})} : #{vetting.updated.manual}">Entered by Jane Doe</th:block>
@@ -121,7 +120,7 @@
                         <p class="rs-subscores-hint" th:text="#{vetting.subscores.hint}">The lowest subscore limits the Safety Score.</p>
                         <th:block th:each="g : ${rs.groups()}">
                             <h3 class="rs-impact" th:id="${'rsImpact' + g.impact()}" th:text="#{${g.impact().messageKey()}}">Highest impact</h3>
-                            <ul class="rs-subscore-list" th:attr="aria-labelledby=${'rsImpact' + g.impact()}">
+                            <ul class="rs-subscore-list list-plain" th:attr="aria-labelledby=${'rsImpact' + g.impact()}">
                                 <li th:each="r : ${g.rows()}" class="rs-subscore" th:classappend="${r.lowest()} ? 'is-lowest'">
                                     <span class="rs-subscore-name">
                                         <span th:text="#{${r.subscore().messageKey()}}">Vessel incident performance</span>
@@ -156,7 +155,7 @@
                             <div class="card-body">
                                 <h2 class="rs-small-title" id="rsGhgTitle" th:text="#{vetting.ghg}">GHG Rating</h2>
                                 <p class="rs-ghg"><span th:replace="~{vetting/parts :: ghg(${rs})}">C</span></p>
-                                <p th:if="${st.ghgRatedAt != null}" class="rs-small-meta">
+                                <p th:if="${st.ghgRatedAt != null}" class="rs-small-meta text-meta">
                                     <span th:text="#{vetting.ghg.ratedAt}">Rated</span>
                                     <time th:replace="~{layout/parts :: localDate(${st.ghgRatedAt})}"></time>
                                 </p>
@@ -214,7 +213,7 @@
                 <div th:if="${hasReport}" class="card-body"
                      th:with="fileUrl=${fileBase + report.id + '/file'}">
                     <!-- The preview: an image at the card's width, opening at full size in a new tab; a PDF as a link
-                         that opens it in the browser in a new tab (P22). -->
+                         that opens it in the browser in a new tab. -->
                     <a th:if="${report.image}" class="rs-preview" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
                         <img class="rs-preview-image" th:src="@{${fileUrl}}" loading="lazy" decoding="async"
                              th:alt="#{vetting.report.alt(${ship.name}, ${@dates.date(report.documentDate)})}"
@@ -267,7 +266,7 @@
                     <!-- Earlier reports, newest first. -->
                     <th:block th:unless="${earlierReports.isEmpty()}">
                         <h3 class="rs-earlier-title" id="rsEarlierTitle" th:text="#{vetting.report.earlier}">Earlier reports</h3>
-                        <ul class="rs-earlier" aria-labelledby="rsEarlierTitle">
+                        <ul class="rs-earlier list-plain" aria-labelledby="rsEarlierTitle">
                             <li th:each="e : ${earlierReports}" class="rs-earlier-item"
                                 th:with="earlierUrl=${fileBase + e.id + '/file'}">
                                 <span class="rs-earlier-text">

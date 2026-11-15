@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.approve.title}, ~{::main})}">
 <body>
-<!-- "Approve the delivery" (P63): the Master's one short page when the Chief cook's count waits (it replaces P51's
-     receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
+<!-- "Approve the delivery": the Master's one short page when the Chief cook's count waits (it takes the
+     place of the receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
      cook's note, and Change: that one row's input, shiporder/parts :: countRow; a changed row says "Changed from 23"),
      Show all (every row, read only, Change per row) and the invoice's photos, the cook's note for the Master. Approve
-     (large: P51's confirm in one step; the time received is when the cook sent the count, Change date opens P51's
-     date and time field) and Send back to cook (P61, a note required). No prices, no invoice checks, no uncertain
-     matches or conversions here: those are kept for the office (P64). Everything works without JavaScript.
+     (large: the receipt's confirm in one step; the time received is when the cook sent the count, Change date opens
+     the receipt's date and time field) and Send back to cook (a note required). No prices, no invoice checks, no uncertain
+     matches or conversions here: those are kept for the office. Everything works without JavaScript.
      English only. Model: order, sheet (CountSheet), change (the row open), all, showInvoice, rowError
      (DeliveryCountController.RowError), approveError (a message key), pages (the invoice's), hasFiles, receivedAt,
      receivedAtMin, receivedAtMax, countNoteMax. -->
@@ -107,7 +107,7 @@
     <p class="approve-hint" th:text="#{order.approve.hint}">Approving updates the stock and tells the office. It cannot be
         changed afterwards.</p>
 
-    <!-- P61: Send back to cook, with a note. -->
+    <!-- Send back to cook, with a note. -->
     <details class="count-return" id="countTitle">
         <summary class="btn btn-outline-secondary" th:text="#{order.count.return.action}">Send back to cook</summary>
         <form method="post" th:action="@{${baseUrl + '/return'}}" class="mt-3" novalidate>

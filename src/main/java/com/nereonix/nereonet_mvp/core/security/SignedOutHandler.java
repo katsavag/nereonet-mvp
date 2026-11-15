@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Access denied (P12). A form whose CSRF token does not match was sent after the session expired (the token lived in
+ * Access denied. A form whose CSRF token does not match was sent after the session expired (the token lived in
  * it) or from a page of an older session: the user is signed out, if still signed in, and sent to /login?expired,
  * which says "You were signed out. Sign in to continue."; after signing in they are back on the page the form was on
  * (ReturnTo). Everything else is a 403, shown by templates/error/403.html.

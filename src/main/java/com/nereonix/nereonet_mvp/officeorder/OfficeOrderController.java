@@ -52,12 +52,12 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// The orders the ships have sent, as the office sees them (P36): the list, one order, scheduling its delivery (port
+// The orders the ships have sent, as the office sees them: the list, one order, scheduling its delivery (port
 // and date; "confirming" until P51) and changing it until the Master confirms receipt, and the export (an Excel
 // workbook since P39). P51: a received order shows the receipt (its files, ordered vs received per line) and, when
 // lines were short, "Shortage handled" with a note. P64: received with a read invoice, the card "Order, delivery and
 // invoice" (InvoiceComparisonService; its actions in OfficeInvoiceController) replaces "Shortage handled". The logic is ShipOrderService's. While an order is SENT
-// the office can change its lines (P50: quantity, remove, add an item; OfficeOrderEditService), each a plain POST form.
+// the office can change its lines (quantity, remove, add an item; OfficeOrderEditService), each a plain POST form.
 // /office/** is limited to OFFICE_USER in SecurityConfig. An OPEN order (still being put together on board) is a 404.
 @Controller
 public class OfficeOrderController {
@@ -78,7 +78,7 @@ public class OfficeOrderController {
     public record LineGroup(ItemCategory category, List<ShipOrderLine> lines) {
     }
 
-    /** One category's active items, by name: the choices of "Add an item" (P50; P59: only those not on the order). */
+    /** One category's active items, by name: the choices of "Add an item" (P59: only those not on the order). */
     public record ItemGroup(ItemCategory category, List<Item> items) {
     }
 
@@ -111,9 +111,9 @@ public class OfficeOrderController {
     }
 
     // shipId, status (sent, delivery_scheduled, closed; P65: confirmed and delivery_pending still mean
-    // delivery_scheduled), exported=no (not exported yet) and invoice=differ (P64: the invoice's
+    // delivery_scheduled), exported=no (not exported yet) and invoice=differ (the invoice's
     // lines differ, not matched yet) filter the list; anything else in status, exported or invoice filters nothing.
-    // listRequest: search and page (P19).
+    // listRequest: search and page.
     @GetMapping(LIST)
     public String list(@RequestParam(required = false) Long shipId,
                        @RequestParam(required = false) String status,
@@ -175,10 +175,10 @@ public class OfficeOrderController {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // P51: the receipt on board, as the office sees it once the Master confirmed it.
+    // The receipt on board, as the office sees it once the Master confirmed it.
     // ---------------------------------------------------------------------------------------------------------------
 
-    /** A file of the receipt: opened in the browser (P22), or downloaded. 404 until the receipt is confirmed. */
+    /** A file of the receipt: opened in the browser, or downloaded. 404 until the receipt is confirmed. */
     @GetMapping(LIST + "/{id}/receipt/{fileId}")
     public ResponseEntity<Resource> receiptFile(@PathVariable Long id, @PathVariable Long fileId,
                                                 @RequestParam(defaultValue = "false") boolean download) {
@@ -205,7 +205,7 @@ public class OfficeOrderController {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // P50: the office changes the lines of a SENT order. Each saves at once and comes back to the order page with a
+    // The office changes the lines of a SENT order. Each saves at once and comes back to the order page with a
     // message; a quantity or note that is not valid comes back with an error, nothing saved.
     // ---------------------------------------------------------------------------------------------------------------
 
@@ -217,7 +217,7 @@ public class OfficeOrderController {
         ShipOrder order = sent(id);
         ShipOrderLine line = order.getLines().stream().filter(l -> l.getId().equals(lineId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        // P60: the rule of the item's unit; the quantity already on the line may stay above the maximum.
+        // The rule of the item's unit; the quantity already on the line may stay above the maximum.
         QuantityRules.Check check = quantityRules.forItem(line.getItem(), Use.OFFICE_ORDER)
                 .check(quantity, line.getQuantity());
         if (!check.ok()) {
@@ -231,7 +231,7 @@ public class OfficeOrderController {
                 "officeorder.edit.changed", redirectAttributes);
     }
 
-    // Without JavaScript the Remove link opens this plain confirmation page (P10), with the optional note.
+    // Without JavaScript the Remove link opens this plain confirmation page, with the optional note.
     @GetMapping(LIST + "/{id}/lines/{lineId}/remove")
     public String confirmRemove(@PathVariable Long id, @PathVariable Long lineId, Model model) {
         ShipOrder order = sent(id);
@@ -277,7 +277,7 @@ public class OfficeOrderController {
         Item item = itemRepository.findById(itemId)
                 .filter(i -> i.getShip().getId().equals(order.getShip().getId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        // P60: the rule of the item's unit, for the quantity added.
+        // The rule of the item's unit, for the quantity added.
         QuantityRules.Check check = quantityRules.forItem(item, Use.OFFICE_ORDER).check(quantity);
         if (!check.ok()) {
             return quantityError(id, null, item.getId(), item.getName(), quantity, check, redirectAttributes);
@@ -326,7 +326,7 @@ public class OfficeOrderController {
                 : null;
     }
 
-    // P60: a refused quantity: the error with the item's name on top, and under the field with what was typed: a
+    // A refused quantity: the error with the item's name on top, and under the field with what was typed: a
     // line's ("quantityError", lineId) or Add an item's ("addQuantityError", itemId: the item stays chosen).
     private static String quantityError(Long id, Long lineId, Long itemId, String itemName, String quantity,
                                         QuantityRules.Check check, RedirectAttributes redirectAttributes) {
@@ -339,7 +339,7 @@ public class OfficeOrderController {
 
     /**
      * The workbook of the checked orders (the list), or of one order (its page): a .xls download, one row per order
-     * line (P40; .xlsx in P39, CSV before). It marks them exported now. Too many lines for one .xls sheet: back to the
+     * line (.xlsx in P39, CSV before). It marks them exported now. Too many lines for one .xls sheet: back to the
      * list with "Too many rows for one file", nothing marked. Nothing checked, or none of them an order the ships sent:
      * back to the list with a message.
      */
@@ -374,21 +374,21 @@ public class OfficeOrderController {
         model.addAttribute("groups", byCategory.entrySet().stream()
                 .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
         model.addAttribute("canConfirm", order.getStatus() != ShipOrderStatus.CLOSED);
-        // P51: the receipt, once the Master confirmed it (the files the Master is still uploading are not shown).
+        // The receipt, once the Master confirmed it (the files the Master is still uploading are not shown).
         boolean received = order.getStatus() == ShipOrderStatus.CLOSED;
         model.addAttribute("received", received);
         model.addAttribute("receiptFiles", received ? receiptService.files(order.getId()) : List.of());
         model.addAttribute("shortageNoteMax", ShipOrder.NOTE_MAX_LENGTH);
-        // P64: order, delivery and invoice side by side, for an order received with a read invoice (null otherwise).
+        // Order, delivery and invoice side by side, for an order received with a read invoice (null otherwise).
         model.addAttribute("comparison", received ? comparisonService.comparison(order).orElse(null) : null);
         model.addAttribute("acceptNoteMax", InvoiceDecision.NOTE_MAX_LENGTH);
-        // P50: the lines can be changed while SENT; "Done editing" while the ship has not been told about a change.
+        // The lines can be changed while SENT; "Done editing" while the ship has not been told about a change.
         boolean editable = OfficeOrderEditService.isEditable(order);
         model.addAttribute("editable", editable);
         model.addAttribute("editPending", editable && order.getOfficeEditedAt() != null);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         if (editable) {
-            // P59: "Add an item" offers the vessel's active items NOT on the order (a removed line's item is not on
+            // "Add an item" offers the vessel's active items NOT on the order (a removed line's item is not on
             // it: adding it brings the line back), and lists the lines on it for reference. The server still accepts
             // an item already on the order (a stale page) and adds to its line.
             Set<Long> onOrder = order.getLines().stream().filter(line -> !line.isRemoved())
@@ -416,7 +416,7 @@ public class OfficeOrderController {
                     .map(entry -> new LineGroup(entry.getKey(), List.copyOf(entry.getValue()))).toList());
         }
         model.addAttribute("confirmForm", confirmForm);
-        // P44: the order's requests for quotes, the open one, whether one can be started, and the latest award.
+        // The order's requests for quotes, the open one, whether one can be started, and the latest award.
         model.addAttribute("rfqs", rfqService.forOrder(order.getId()));
         model.addAttribute("canRequestQuotes", rfqService.canRequest(order));
         model.addAttribute("award", rfqService.awarded(order.getId()).orElse(null));

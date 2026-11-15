@@ -30,7 +30,7 @@ import com.nereonix.nereonet_mvp.requirement.Compliance;
 import com.nereonix.nereonet_mvp.requirement.ComplianceService;
 
 /**
- * What the snooze page shows for the alerts asked for (P43): each item found again from its key, as it stands right
+ * What the snooze page shows for the alerts asked for: each item found again from its key, as it stands right
  * now. An item that is not an alert any more (a renewed certificate, a vessel with new data, a key that names
  * nothing) is left out, so nothing stale is ever snoozed. Items of inactive vessels are left out too: they are not
  * alerts anywhere.

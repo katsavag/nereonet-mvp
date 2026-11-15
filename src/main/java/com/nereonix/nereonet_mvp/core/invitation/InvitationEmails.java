@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.time.Dates;
 import com.nereonix.nereonet_mvp.core.user.Role;
 
 /**
- * The invitation email (P29): who invites, what the person is joining ("MV Demo as Second Officer", or the office),
+ * The invitation email: who invites, what the person is joining ("MV Demo as Second Officer", or the office),
  * the button to accept, the link as text and its expiry in UTC. Crew invitations are in English (crew screens are
  * English only); office invitations are in the language of the office user who sends them.
  */

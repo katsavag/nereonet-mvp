@@ -14,13 +14,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * The grid of one vessel as posted (P42; P58: per vessel, by its id in "vessel"): a plain form, so it saves without JavaScript. One row per certificate
+ * The grid of one vessel as posted (P58: per vessel, by its id in "vessel"): a plain form, so it saves without JavaScript. One row per certificate
  * type: rows[i].type (hidden), rows[i].ranks (a checkbox per rank, its value the Rank), rows[i].optional and
  * rows[i].note. An unticked checkbox sends nothing, so ranks is empty and optional false unless sent.
  */
 public class RequirementGridForm {
 
-    // P58: the id of the vessel whose grid this is; Save comes back to it.
+    // The id of the vessel whose grid this is; Save comes back to it.
     private String vessel;
 
     @Valid
@@ -34,7 +34,7 @@ public class RequirementGridForm {
 
         private Set<Rank> ranks = new HashSet<>();
 
-        // The row toggle (P43), "Select all ranks for <type>": every rank of the row, also without JavaScript.
+        // The row toggle, "Select all ranks for <type>": every rank of the row, also without JavaScript.
         private boolean all;
 
         private boolean optional;

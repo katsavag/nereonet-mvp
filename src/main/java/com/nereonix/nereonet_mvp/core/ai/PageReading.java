@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * What one invoice page says (P62), as read, before any check (core/order/InvoiceChecks does those).
+ * What one invoice page says, as read, before any check (core/order/InvoiceChecks does those).
  * tableFound: a table of lines was found (by its header row, or structured by the chat model). The header fields are
  * null when the page does not show them: the invoice's supplier, number, date and the customer's order reference,
  * "page x of y", the page total, and on the last page usually net, VAT and total.

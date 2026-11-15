@@ -19,7 +19,7 @@ import jakarta.validation.constraints.Size;
 // application.yml match CertificateFileStorage.MAX_FILE_SIZE.
 public class CertificateForm {
 
-    /** The P39 limits of Expires on, either way from today; a later date does not count for required documents (P42). */
+    /** The P39 limits of Expires on, either way from today; a later date does not count for required documents. */
     public static final int EXPIRES_YEARS = 30;
 
     @NotBlank(message = "{certificate.error.typeRequired}")

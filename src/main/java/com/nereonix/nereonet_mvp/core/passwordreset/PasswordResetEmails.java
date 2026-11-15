@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.mail.HtmlEmails;
 import com.nereonix.nereonet_mvp.core.time.Dates;
 
 /**
- * The password reset email (P14), with the HTML version of P29 in the invitation's template: the button to set a new
+ * The password reset email, with the HTML version of P29 in the invitation's template: the button to set a new
  * password, the link as text, when it stops working (UTC), and why the person got it. In the language of the page the
  * link was asked for on.
  */

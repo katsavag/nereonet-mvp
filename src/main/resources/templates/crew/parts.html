@@ -2,9 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Fragments for the crew and office user lists, and for the crew's own My profile and My crew (P31, below). -->
+<!-- Fragments for the crew and office user lists, and for the crew's own My profile and My crew (below). -->
 
-<!-- P18: the rank sets the role, the office never picks one. -->
+<!-- The rank sets the role, the office never picks one. -->
 
 <!-- The options of a rank picker, grouped by department (Deck, Engine, Catering) in the Rank order; ${rankGroups} is
      Rank.groups(). Each option names the role it sets (data-role) for the access line (accessHint). Goes inside a
@@ -31,13 +31,13 @@
 
 <!-- In the lists, after the rank: a small badge for the roles that have their own access (Master and Chief cook:
      Role.isOnePerShip), "Master access"; nothing for a crew member. role: the user's (or invitation's)
-     actual role, which for a user from before P18 may not be the one their rank sets. -->
+     actual role, which for an older account may not be the one their rank sets. -->
 <th:block th:fragment="accessBadge(role)">
     <th:block th:if="${role != null and role.onePerShip}"><span
             th:replace="~{layout/parts :: statusIcon('primary', #{crew.access.badge(${#messages.msg('role.' + role)})}, 'key')}">Master access</span></th:block>
 </th:block>
 
-<!-- The Crew list's "Rank needs review" notice (P18): users with no rank, or whose rank does not set the role they
+<!-- The Crew list's "Rank needs review" notice: users with no rank, or whose rank does not set the role they
      have (User.rankNeedsReview). They keep their role; each links to the edit form, where saving applies the rank's.
      users: those of the list shown, as filtered (CrewController); nothing is shown when there are none. -->
 <section th:fragment="rankReview(users)" th:if="${!users.isEmpty()}" class="alert alert-warning rank-review"
@@ -48,18 +48,18 @@
     </h2>
     <p class="mb-2" th:text="#{crew.rankReview.text}">These crew members have no rank, or a rank that does not match
         their access.</p>
-    <ul class="rank-review-list">
+    <ul class="rank-review-list list-plain">
         <li th:each="u : ${users}">
             <a class="alert-link" th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
             <span class="rank-review-detail"><span aria-hidden="true">·</span> <span th:text="${u.ship != null} ? ${u.ship.name} : #{crew.rankReview.noVessel}">MV Demo</span>
                 <span aria-hidden="true">·</span> <span th:text="#{crew.rankReview.detail(${u.rank} ? ${#messages.msg('rank.' + u.rank)} : ${#messages.msg('crew.rankReview.noRank')}, ${#messages.msg('role.' + u.role)})}">Rank: not set · access now: Master</span></span>
         </li>
     </ul>
-    <!-- P42: without a rank or a vessel no required documents apply, so their Documents column is a dash. -->
+    <!-- Without a rank or a vessel no required documents apply, so their Documents column is a dash. -->
     <p class="mt-2 mb-0" th:text="#{crew.rankReview.documents}">Without a rank and a vessel, no required documents apply to them.</p>
 </section>
 
-<!-- Required documents (P42) -->
+<!-- Required documents -->
 
 <!-- The Crew list's Documents column: "5 of 7" required documents held (expired counts as missing), with an icon and
      the state in words for screen readers: a warning triangle while one is missing or expired, a clock while one
@@ -85,10 +85,10 @@
             ${d.state().icon()})}"></span>
 </th:block>
 
-<!-- The office crew member page's "Required documents" card (P42): the documents their rank needs on their vessel's
+<!-- The office crew member page's "Required documents" card: the documents their rank needs on their vessel's
      type, missing and expired first, then expiring and valid, optional ones last ("Optional", never counted). Each:
-     the type, the office's note, the certificate's expiry date, the state badge; Add certificate (the P20 form with
-     the person and the type filled in, coming back here) for one missing or expired, Open for one with a file (P39).
+     the type, the office's note, the certificate's expiry date, the state badge; Add certificate (the certificate form with
+     the person and the type filled in, coming back here) for one missing or expired, Open for one with a file.
      Without required documents: why (no rank or vessel, or nothing set for them) and the way to Required documents.
      c: the person's Compliance; member: the user; today: the UTC date. -->
 <section th:fragment="requiredDocumentsCard(c)" class="card form-box mt-4" id="requiredDocuments"
@@ -112,8 +112,8 @@
                         <span th:text="${d.type()}">Tanker Endorsement</span>
                         <span th:if="${d.optional()}" class="form-label-optional" th:text="#{requirement.optional}">Optional</span>
                     </p>
-                    <p th:if="${d.note() != null}" class="requirement-row-note" th:text="${d.note()}">Needed before joining.</p>
-                    <p th:if="${cert != null}" class="requirement-row-meta">
+                    <p th:if="${d.note() != null}" class="requirement-row-note text-meta" th:text="${d.note()}">Needed before joining.</p>
+                    <p th:if="${cert != null}" class="requirement-row-meta text-meta">
                         <span th:text="#{certificate.expiresOn}">Expires</span>
                         <span th:replace="~{layout/parts :: expiryDate(${cert.expiresOn})}"></span>
                     </p>
@@ -137,7 +137,7 @@
     </p>
 </section>
 
-<!-- Crew Home and the Master's home (P42): one line, "2 required documents missing" (expired included), linking to My
+<!-- Crew Home and the Master's home: one line, "2 required documents missing" (expired included), linking to My
      profile's My certificates, where they are listed; nothing when none is missing. A warning triangle and the words,
      the whole line one link at least 44px high. English only. count: the number missing. -->
 <th:block th:fragment="documentsMissingLink(count)">
@@ -150,19 +150,19 @@
     </a>
 </th:block>
 
-<!-- The crew's own missing and expired required documents (P42), at the top of My certificates on My profile: each
+<!-- The crew's own missing and expired required documents, at the top of My certificates on My profile: each
      with "Missing" or "Expired", the office's note, and "Contact the office to add it." English only. docs: the
      required documents missing or expired (Compliance.missingDocuments()). -->
 <th:block th:fragment="myMissingDocuments(docs)">
     <li th:each="d : ${docs}" class="list-group-item cert-row cert-row-required" th:with="cert=${d.certificate()}">
         <div class="cert-row-main">
             <p class="cert-row-type" th:text="${d.type()}">Tanker Endorsement</p>
-            <p th:if="${cert != null}" class="cert-row-meta">
+            <p th:if="${cert != null}" class="cert-row-meta text-meta">
                 <span th:text="#{home.certificates.expires}">Expires</span>
                 <span th:replace="~{layout/parts :: expiryDate(${cert.expiresOn})}"></span>
             </p>
-            <p th:if="${d.note() != null}" class="cert-row-meta" th:text="${d.note()}">Needed before joining.</p>
-            <p class="cert-row-meta cert-row-contact" th:text="#{profile.required.contact}">Contact the office to add it.</p>
+            <p th:if="${d.note() != null}" class="cert-row-meta text-meta" th:text="${d.note()}">Needed before joining.</p>
+            <p class="cert-row-meta cert-row-contact text-meta" th:text="#{profile.required.contact}">Contact the office to add it.</p>
         </div>
         <th:block th:replace="~{crew/parts :: documentState(${d})}"></th:block>
         <th:block th:if="${cert != null}">
@@ -171,11 +171,11 @@
     </li>
 </th:block>
 
-<!-- My profile and My crew (P31): the crew's own pages (profile/*.html, mycrew/*.html). English only. -->
+<!-- My profile and My crew: the crew's own pages (profile/*.html, mycrew/*.html). English only. -->
 
 <!-- One field of My profile: the whole row is one link to the field's page, at least 56px high: the field's name, its
      value under it ("Not given" in the secondary colour when empty) and a chevron. value: text, or null when empty.
-     flag (P43): the ISO code of a country value, shown as its flag before the name (the nationality row), else null.
+     flag: the ISO code of a country value, shown as its flag before the name (the nationality row), else null.
      Use: <li th:replace="~{crew/parts :: profileRow('/ship/profile/bio', #{profile.field.bio}, ${profile.bio}, null)}"></li> -->
 <li th:fragment="profileRow(url, label, value, flag)" class="profile-row-item">
     <a class="profile-row" th:href="@{${url}}">
@@ -191,7 +191,7 @@
     </a>
 </li>
 
-<!-- A certificate's file (P39): a paperclip and "Open", opening the scan in a new tab; nothing when it has none. Its
+<!-- A certificate's file: a paperclip and "Open", opening the scan in a new tab; nothing when it has none. Its
      accessible name says whose file it is: "Open the file of STCW Basic Safety (opens in a new tab)"; the file's
      name is its tooltip. c: the certificate; url: where the file is served (/office/crew/{user}/certificates/{id}/file
      for the office, /ship/profile/certificates/{id}/file for the crew member); linkClass: e.g. 'btn btn-ghost btn-sm'.
@@ -204,10 +204,10 @@
 </a>
 
 <!-- The signed-in crew member's own certificates, read only, soonest expiry first (so expired, then expiring soon): a
-     card of rows (.cert-row) with the type, "Expires 10 Jan 2027 · in 60 days", the number when set and the P20 badge
-     (icon and words, not colour alone). On crew Home (P26) and on My profile (P39), where withFile adds Open for a
+     card of rows (.cert-row) with the type, "Expires 10 Jan 2027 · in 60 days", the number when set and the state badge
+     (icon and words, not colour alone). On crew Home and on My profile, where withFile adds Open for a
      certificate whose file the office attached. certificates: the person's; today: the UTC date.
-     required (P42, My profile): their required documents missing or expired, listed first (myMissingDocuments); an
+     required (My profile): their required documents missing or expired, listed first (myMissingDocuments); an
      expired certificate listed there is not repeated below. null on Home. -->
 <div th:fragment="myCertificates(certificates, today, withFile, required)" class="card"
      th:with="shownAbove=${required == null} ? null : ${required.![certificate() != null ? certificate().id : null]},
@@ -219,11 +219,11 @@
         <li th:each="c : ${certificates}" th:unless="${shownAbove != null and shownAbove.contains(c.id)}" class="list-group-item cert-row">
             <div class="cert-row-main">
                 <p class="cert-row-type" th:text="${c.type}">STCW Basic Safety</p>
-                <p class="cert-row-meta">
+                <p class="cert-row-meta text-meta">
                     <span th:text="#{home.certificates.expires}">Expires</span>
                     <span th:replace="~{layout/parts :: expiryDate(${c.expiresOn})}"></span>
                 </p>
-                <p th:if="${c.number}" class="cert-row-meta"
+                <p th:if="${c.number}" class="cert-row-meta text-meta"
                    th:text="#{home.certificates.number(${c.number})}">No. 12345</p>
             </div>
             <th:block th:replace="~{layout/parts :: certificateBadge(${c}, ${today})}"></th:block>
@@ -235,7 +235,7 @@
     </ul>
 </div>
 
-<!-- One person of My crew (P31): the whole row is one link to their page, at least 56px high: their picture (photo or
+<!-- One person of My crew: the whole row is one link to their page, at least 56px high: their picture (photo or
      initials), name and rank ("Rank not set" without one); the signed-in person's row says "· you" after the name.
      p: a mycrew/CrewmateView. -->
 <li th:fragment="crewmateRow(p)" class="crewmate-item">
@@ -255,7 +255,7 @@
 <span th:fragment="status(enabled)"
       th:replace="~{layout/parts :: status(${enabled} ? 'ok' : 'neutral', ${enabled} ? #{user.status.active} : #{user.status.inactive})}">Active</span>
 
-<!-- A pending invitation's status (P17), on Office users and Crew: "Invited · expires in 3 days", or past its expiry
+<!-- A pending invitation's status, on Office users and Crew: "Invited · expires in 3 days", or past its expiry
      date "Invitation expired · 2 days ago" in the warning tone. The words carry the meaning, not the colour. -->
 <th:block th:fragment="invitationStatus(inv)">
     <th:block th:if="${inv.displayStatus.name() == 'EXPIRED'}">
@@ -268,7 +268,7 @@
     </th:block>
 </th:block>
 
-<!-- A pending invitation's row actions (P17): Resend, one click, also when expired (new link and expiry date); Cancel
+<!-- A pending invitation's row actions: Resend, one click, also when expired (new link and expiry date); Cancel
      invitation in the "more" menu, asking first. Both send the fields of the list they are on (listParams, see
      crew/CrewListReturn; none on Office users), so they return to it with its filters. -->
 <div th:fragment="invitationActions(inv)" class="row-actions">

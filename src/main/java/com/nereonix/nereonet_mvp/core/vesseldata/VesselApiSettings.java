@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The VesselAPI settings (P45), app.vesselapi.*:
+ * The VesselAPI settings, app.vesselapi.*:
  *   base-url  default https://api.vesselapi.com/v1 (no trailing slash)
  *   api-key   VESSELAPI_API_KEY, from the environment or the local .env (gitignored). Never logged, never in a page,
  *             an audit entry or an error message.

@@ -11,7 +11,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reading VesselAPI bodies (P45), leniently: a missing, null or wrongly typed field is simply not shown, never an
+ * Reading VesselAPI bodies, leniently: a missing, null or wrongly typed field is simply not shown, never an
  * error. The body itself is kept as received (VesselDataSnapshot.rawJson); nothing here changes it.
  */
 public final class VesselJson {

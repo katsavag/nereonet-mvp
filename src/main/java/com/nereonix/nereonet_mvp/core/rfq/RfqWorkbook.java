@@ -7,7 +7,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.export.XlsExport;
 
 /**
- * The RFQ as an Excel 97-2003 workbook (P44), attached to the email to each supplier: the export conventions of P39
+ * The RFQ as an Excel 97-2003 workbook, attached to the email to each supplier: the export conventions of P39
  * and P40 (XlsExport: one sheet, bold frozen header with an autofilter, date cells, numbers as numbers), sheet "RFQ",
  * one row per line by category and item name, with empty columns for the supplier's answer. The column names are a
  * file format, never translated.

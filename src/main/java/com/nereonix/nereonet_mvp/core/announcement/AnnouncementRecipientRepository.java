@@ -14,7 +14,7 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
 
     List<AnnouncementRecipient> findAllByAnnouncementOrderByUserFullNameAsc(Announcement announcement);
 
-    // One row per announcement among these ids that has recipients: the page of the Announcements list (P19).
+    // One row per announcement among these ids that has recipients: the page of the Announcements list.
     @Query("""
             select new com.nereonix.nereonet_mvp.core.announcement.RecipientCount(
                 r.announcement.id, count(r), count(r.acknowledgedAt))
@@ -22,8 +22,8 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
     List<RecipientCount> countFor(Collection<Long> announcementIds);
 
     /**
-     * The announcements this user is a recipient of (the crew's Announcements, P27): the ones still to acknowledge first
-     * (P37), each group newest first.
+     * The announcements this user is a recipient of (the crew's Announcements): the ones still to acknowledge first,
+     * each group newest first.
      */
     @Query("""
             select r from AnnouncementRecipient r join fetch r.announcement a
@@ -39,10 +39,10 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
             order by case when r.acknowledgedAt is null then 0 else 1 end, a.createdAt desc, a.id desc""")
     Slice<AnnouncementRecipient> findForUser(String email, Pageable pageable);
 
-    /** How many announcements this user has still to acknowledge: the crew's sidebar counter (P37). */
+    /** How many announcements this user has still to acknowledge: the crew's sidebar counter. */
     long countByUserEmailAndAcknowledgedAtIsNull(String email);
 
-    /** The ones this user has not acknowledged yet, oldest first (To read on the crew home page, P27). */
+    /** The ones this user has not acknowledged yet, oldest first (To read on the crew home page). */
     @Query("""
             select r from AnnouncementRecipient r join fetch r.announcement a
             where r.user.email = :email and r.acknowledgedAt is null order by a.createdAt asc, a.id asc""")

@@ -37,7 +37,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The office compares order, delivery and invoice (P64; InvoiceComparison) once the Master confirmed receipt of an
+ * The office compares order, delivery and invoice (InvoiceComparison) once the Master confirmed receipt of an
  * order with a read invoice: it accepts each difference with a note, confirms or changes each point to review (a
  * product match or a pack conversion is then learned for the supplier, InvoiceMatchService.learn; a line read wrong is
  * corrected, keeping the value as read), and marks the order MATCHED. Changing a match or a conversion after receipt
@@ -383,7 +383,7 @@ public class InvoiceComparisonService {
 
     /**
      * Mark as matched: every difference accepted, every point to review confirmed or changed (OPEN_LEFT otherwise).
-     * MATCHED with who and when; a shortage of the receipt (P51) is handled with it. Recorded as "Invoice matched".
+     * MATCHED with who and when; a shortage of the receipt is handled with it. Recorded as "Invoice matched".
      */
     @Transactional
     public Outcome markMatched(User officeUser, Long orderId) {

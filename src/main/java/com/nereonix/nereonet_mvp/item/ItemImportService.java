@@ -32,7 +32,7 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
-// Item list import for one ship (P24): map the columns of any item file (the template, or a purchasing system's
+// Item list import for one ship: map the columns of any item file (the template, or a purchasing system's
 // export), validate every row, then save. A name the ship does not have is a new item; a name it has (ignoring case)
 // updates that item's unit, category and place, or is skipped when they are the same. The category must be
 // "Provisions" or "Personal items" (ignoring case); the place is kept for provisions only. Nothing is saved before

@@ -5,7 +5,7 @@ import com.nereonix.nereonet_mvp.ship.Countries;
 
 import jakarta.validation.constraints.AssertTrue;
 
-// My profile, Nationality (P31): an ISO 3166 code from the list, or empty for "Not given".
+// My profile, Nationality: an ISO 3166 code from the list, or empty for "Not given".
 public class NationalityForm {
 
     private String nationality;

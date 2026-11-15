@@ -60,7 +60,7 @@
                             <div th:replace="~{layout/parts :: counter(${form}, 'place', 'place')}"></div>
                         </div>
                     </div>
-                    <!-- P60: optional, in the item's unit (decimals as its unit: whole numbers for pcs). Replaces the
+                    <!-- Optional, in the item's unit (decimals as its unit: whole numbers for pcs). Replaces the
                          unit's maximum in requests, orders and receipts; the hint says what that maximum is. -->
                     <div class="field-half" th:with="unitRule=${@quantityRules.forUnit(form.unit, 'REQUEST')},
                                                      err=${#fields.hasErrors('maxPerRequest')}">
@@ -84,7 +84,7 @@
             </form>
         </div>
     </div>
-    <!-- The ship this form changes, beside it from 1200px (P29). -->
+    <!-- The ship this form changes, beside it from 1200px. -->
     <section th:replace="~{ship/parts :: formAside(${ship})}"></section>
 </main>
 </body>

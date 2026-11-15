@@ -50,7 +50,7 @@ public class CrewController {
     private final ProfileService profileService;
     private final ComplianceService complianceService;
 
-    // ?documents=missing: the Crew list's "Missing documents" filter (P42).
+    // ?documents=missing: the Crew list's "Missing documents" filter.
     private static final String MISSING = "missing";
 
     public CrewController(CrewService crewService, ShipFrame shipFrame, ConfirmPages confirmPages,
@@ -62,7 +62,7 @@ public class CrewController {
         this.complianceService = complianceService;
     }
 
-    // The Crew list's columns that sort (P19), the default first; the Crew tab has no Ship column.
+    // The Crew list's columns that sort, the default first; the Crew tab has no Ship column.
     private static final ListSort[] FLEET_SORTS =
             {ListSort.asc("name"), ListSort.asc("email"), ListSort.asc("rank"), ListSort.asc("ship"), ListSort.asc("status"),
                     ListSort.desc("documents")};
@@ -71,7 +71,7 @@ public class CrewController {
                     ListSort.desc("documents")};
 
     // The "Add crew member" form is a modal on the list page. status: the Status filter (CrewStatus key); an unknown
-    // value shows every status. documents=missing: only people missing a required document (P42). listRequest:
+    // value shows every status. documents=missing: only people missing a required document. listRequest:
     // search, sort and page (P19, core/list/ListQuery).
     @GetMapping("/office/crew")
     public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
@@ -81,7 +81,7 @@ public class CrewController {
         return showList(shipId, CrewStatus.of(status).orElse(null), MISSING.equals(documents), listRequest, model);
     }
 
-    // The required documents of the people of the list as filtered, every page (P42): one row per person and document.
+    // The required documents of the people of the list as filtered, every page: one row per person and document.
     @GetMapping("/office/crew/documents/export")
     public Object exportDocuments(@RequestParam(required = false) Long shipId,
                                   @RequestParam(required = false) String status,
@@ -162,7 +162,7 @@ public class CrewController {
     }
 
     // Sends the invitation, or rejects the field at fault and returns null. The one-per-ship rule is about the rank's
-    // role, so it is reported on the rank field (P18).
+    // role, so it is reported on the rank field.
     private Invitation invite(AddCrewForm form, BindingResult result, CurrentUser currentUser) {
         if (result.hasErrors()) {
             return null;
@@ -191,7 +191,7 @@ public class CrewController {
         return showEditForm(user, model);
     }
 
-    // A crew member's profile photo (P31), for the Profile card of the edit page. size: 512 or 96; 404 for anything
+    // A crew member's profile photo, for the Profile card of the edit page. size: 512 or 96; 404 for anything
     // but their current photo.
     @GetMapping("/office/crew/{id}/photo/{key}/{size}")
     public ResponseEntity<Resource> photo(@PathVariable Long id, @PathVariable String key, @PathVariable String size) {
@@ -215,7 +215,7 @@ public class CrewController {
         return "redirect:/office/crew";
     }
 
-    // The confirmation pages: where Deactivate and Delete lead when js/confirm.js did not load (P10).
+    // The confirmation pages: where Deactivate and Delete lead when js/confirm.js did not load.
     @GetMapping("/office/users/{id}/deactivate")
     public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
         User user = crewService.getUser(id);
@@ -308,7 +308,7 @@ public class CrewController {
         model.addAttribute("list", list);
         Page<PeopleQueries.Row> people = crewService.findCrew(shipId, status, missing, list);
         model.addAttribute("people", people);
-        // P18: the "Rank needs review" notice, for the crew members in the list as filtered.
+        // The "Rank needs review" notice, for the crew members in the list as filtered.
         model.addAttribute("rankNeedsReview", crewService.findRankNeedsReview(shipId, status, missing, list));
         model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
@@ -333,7 +333,7 @@ public class CrewController {
         return showAddForm(model);
     }
 
-    // P42: the list's filters, with "Missing documents" (?documents=missing) after the status.
+    // The list's filters, with "Missing documents" (?documents=missing) after the status.
     private static ListQuery fleetList(Long shipId, CrewStatus status, boolean missing, ListRequest request,
                                        List<Ship> ships) {
         return withDocuments(CrewStatus.filter(ListQuery.of("/office/crew", request, FLEET_SORTS)
@@ -349,7 +349,7 @@ public class CrewController {
         return list.filter("documents", missing ? MISSING : null, "crew.filter.missingDocuments", null);
     }
 
-    // P42: each user's required documents ("5 of 7"), the filter's state and the export of the list as filtered.
+    // Each user's required documents ("5 of 7"), the filter's state and the export of the list as filtered.
     // Two queries for the page, whatever its size: the requirements, and the certificates of its users.
     private void showDocuments(Page<PeopleQueries.Row> people, boolean missing, ListQuery list, String exportPath,
                                Model model) {
@@ -375,9 +375,9 @@ public class CrewController {
         model.addAttribute("ships", crewService.findActiveShips());
         model.addAttribute("certificates", crewService.findCertificates(user.getId()));
         model.addAttribute("today", crewService.today());
-        // P42: the documents their rank needs on their vessel, missing and expired first.
+        // The documents their rank needs on their vessel, missing and expired first.
         model.addAttribute("compliance", complianceService.of(user));
-        // P31: what the crew member chose to share, read only.
+        // What the crew member chose to share, read only.
         model.addAttribute("profile", profileService.profileOf(user));
         return "crew/edit";
     }

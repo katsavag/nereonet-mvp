@@ -16,13 +16,13 @@ import com.nereonix.nereonet_mvp.core.user.Rank;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * The office's required documents (P42), loaded once per page, and how they apply to one seafarer:
+ * The office's required documents, loaded once per page, and how they apply to one seafarer:
  * <ul>
- *   <li>a requirement applies to a person with a rank on a vessel when it is that vessel's (P58: each vessel has its
+ *   <li>a requirement applies to a person with a rank on a vessel when it is that vessel's (each vessel has its
  *   own; by vessel type before) and its ranks include the rank. Without a rank or a vessel nothing applies;</li>
  *   <li>rows of the same type on one vessel (RequirementService keeps one) are one document: required when any of
  *   them is, optional only when all are; the first note;</li>
- *   <li>a document is held by the certificate of the same type (P20: equal after strip() and toLowerCase) that expires
+ *   <li>a document is held by the certificate of the same type (equal after strip() and toLowerCase) that expires
  *   last. A certificate whose expiry date is past the P39 limit (more than CertificateForm.EXPIRES_YEARS years ahead,
  *   a typing slip from before P39) does not count: the document is Missing until the date is corrected.</li>
  * </ul>

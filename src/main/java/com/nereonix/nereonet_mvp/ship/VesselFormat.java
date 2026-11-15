@@ -6,7 +6,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * Numbers of the Vessel data tab (P45), as {@code @vesselFormat} in templates: grouped and with the decimal mark of
+ * Numbers of the Vessel data tab, as {@code @vesselFormat} in templates: grouped and with the decimal mark of
  * the page language, at most two decimals, no trailing zeros ("40,562", "11.4", "225"). Empty for null.
  */
 @Component("vesselFormat")
@@ -43,7 +43,7 @@ public class VesselFormat {
     }
 
     /**
-     * P46: the country name of a flag field's text in the page language ("BG" -> "Bulgaria"), shown next to the field
+     * The country name of a flag field's text in the page language ("BG" -> "Bulgaria"), shown next to the field
      * and as the label of each country in the list; empty when the text is not a known country.
      */
     public String countryName(String input) {

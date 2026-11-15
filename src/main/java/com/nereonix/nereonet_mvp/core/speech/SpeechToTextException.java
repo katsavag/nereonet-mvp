@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.speech;
 
 /**
- * Speech to text failed (P57). The message names only what went wrong (the reason, a status code), never the key, the
+ * Speech to text failed. The message names only what went wrong (the reason, a status code), never the key, the
  * audio or the text.
  */
 public class SpeechToTextException extends RuntimeException {

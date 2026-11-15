@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.vetting;
 import java.time.LocalDate;
 
 /**
- * How a vessel's RightShip inspection stands today (P40), for the badges: always an icon and words, never colour alone.
+ * How a vessel's RightShip inspection stands today, for the badges: always an icon and words, never colour alone.
  * <ul>
  *   <li>UNACCEPTABLE: the last inspection's outcome was Unacceptable (danger);</li>
  *   <li>EXPIRED: valid until a day before today (danger);</li>

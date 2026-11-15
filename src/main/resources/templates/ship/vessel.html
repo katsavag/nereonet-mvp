@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.vessel}, ~{::main})}">
 <body>
-<!-- The ship page's Vessel data tab (P45, VesselDataController): what VesselAPI last returned, read from the stored
+<!-- The ship page's Vessel data tab (VesselDataController): what VesselAPI last returned, read from the stored
      rows only (vesselData, VesselDataView); opening it never calls VesselAPI. A card per part, each showing only the
      fields VesselAPI gave (Technical: every row, a muted dash where there is no value), with the provider's time and
      the fetch time at the bottom, and the last failed refresh in words. Then "Full VesselAPI response": each call's

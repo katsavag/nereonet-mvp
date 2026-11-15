@@ -16,7 +16,7 @@ import org.springframework.web.context.request.WebRequest;
 import jakarta.servlet.RequestDispatcher;
 
 /**
- * Spring Boot's error attributes plus a reference for the error pages (P12): templates/error/5xx.html shows
+ * Spring Boot's error attributes plus a reference for the error pages: templates/error/5xx.html shows
  * "11 Nov 2026 · 14:03 UTC · 7KQ3MX2P" for the user to quote to the office, and the same reference is logged with
  * the failed request, next to the stack trace the server logs.
  *   errorTime       when it happened (Instant, shown in UTC with layout/parts :: localTime)

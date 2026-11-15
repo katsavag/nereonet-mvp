@@ -42,7 +42,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * Reading the photographed invoice of an order (P62). start (on "Done: start counting", or "Read again") marks the
+ * Reading the photographed invoice of an order. start (on "Done: start counting", or "Read again") marks the
  * pages to read (WAITING) and the invoice READING; the pages are then read one at a time, in the background
  * (app.invoice.read-in-background, false in the tests: then at once, in the caller's transaction), each page saved as
  * soon as it is read, so a page that fails keeps the others' lines. When no page waits, finish runs InvoiceChecks over

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{approval.title}, ~{::main})}">
 <body>
-<!-- The Master's approvals (P33, P48): the item requests of their own ship, in three tabs (ordinary links, ?tab=...),
+<!-- The Master's approvals: the item requests of their own ship, in three tabs (ordinary links, ?tab=...),
      each with its count. Pending: PENDING, oldest first. Approved: APPROVED, and Declined: REJECTED, newest decision
      first, with the decision and its date. Each row is one link (who asked, stretched over the row) to the request.
      English only, as every crew screen. Model: approvals (ApprovalService.Approvals). -->

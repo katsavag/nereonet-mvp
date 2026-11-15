@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${announcement.title}, ~{::main})}">
 <body>
-<!-- One news item as its recipient sees it (P27; "News" on the crew side since P39; made for phones in P47): "Back to
+<!-- One news item as its recipient sees it ("News" on the crew side, made for phones): "Back to
      News" at the top, the target as the eyebrow (All vessels, or the vessel the person was on when it was sent: never
-     the other target vessels, P28), the title (22px bold), "Office · <sender>" and when it was sent (UTC), the message
+     the other target vessels), the title (22px bold), "Office · <sender>" and when it was sent (UTC), the message
      as plain text with its line breaks and blank lines as paragraph spacing, then the person's own read receipt:
-     opening this page reads it (P39, ShipAnnouncementController: no button), so it always ends with the two ticks and
+     opening this page reads it (ShipAnnouncementController: no button), so it always ends with the two ticks and
      "Read <date and time> UTC", the first time the person opened it. "Back to News" again at the end. The reading
      column has a comfortable line length. Never who else has or has not read it. -->
 <main class="news-page news-item">

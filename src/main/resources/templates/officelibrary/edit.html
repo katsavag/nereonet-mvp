@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{library.edit.heading}, ~{::main})}">
 <body>
-<!-- "New version" of the item's read view (P22). Cancel and Publish go back to the read view; Retire is there too. -->
+<!-- "New version" of the item's read view. Cancel and Publish go back to the read view; Retire is there too. -->
 <main class="form-page form-page-aside" th:with="itemUrl=${'/office/ships/' + item.ship.id + '/library/' + item.id}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{library.edit.heading}, crumbs=~{::pageCrumbs}, eyebrowShip=${item.ship})}">
         <th:block th:fragment="pageCrumbs">
@@ -15,7 +15,7 @@
             <form th:replace="~{core/library/parts :: versionForm(${itemUrl + '/edit'}, ${itemUrl})}"></form>
         </div>
     </div>
-    <!-- The ship this form changes, beside it from 1200px (P29). -->
+    <!-- The ship this form changes, beside it from 1200px. -->
     <section th:replace="~{ship/parts :: formAside(${item.ship})}"></section>
 </main>
 </body>

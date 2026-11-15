@@ -26,7 +26,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A vessel's RightShip standing (P40). Every change (the office's edit, the nightly sync, "Refresh from RightShip")
+ * A vessel's RightShip standing. Every change (the office's edit, the nightly sync, "Refresh from RightShip")
  * adds a row and makes it the current one; the earlier rows stay as history. At most one row per vessel is current.
  * <ul>
  *   <li>safetyScore: null not rated, 0 sanctioned ("No safety score"), else 1 to 5; indicative: RightShip marks it

@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Signs a user in without the sign-in form (P13: right after registration; P14: right after a password reset; the
+ * Signs a user in without the sign-in form (right after registration; P14: right after a password reset; the
  * user then goes to their home page). Does what a successful form login does: a new session id (no session
  * fixation), a new CSRF token, and the security context stored in the session. The caller has just checked who the
  * user is.

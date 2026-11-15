@@ -34,7 +34,7 @@ import com.nereonix.nereonet_mvp.core.user.Role;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * "Photograph the invoice" (P62), phone first: when a delivery arrives the vessel's Chief cook (Count delivery) or
+ * "Photograph the invoice", phone first: when a delivery arrives the vessel's Chief cook (Count delivery) or
  * Master (Confirm receipt, without a count of the cook to approve) photographs the supplier's invoice page by page;
  * the server reads it (InvoiceReadingService) and the browser goes straight on to the count (the cook's count page,
  * the Master's receipt). Nothing is matched to the order and nothing touches the store here. SecurityConfig gives

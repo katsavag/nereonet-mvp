@@ -7,8 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The email cannot be changed, so it is not part of this form. There is no role: saving sets the one of the rank
-// (P18), also for a user whose rank and role disagreed (User.rankNeedsReview).
+// The email cannot be changed, so it is not part of this form. There is no role: saving sets the one of the rank,
+// also for a user whose rank and role disagreed (User.rankNeedsReview).
 public class EditCrewForm {
 
     @NotBlank(message = "{user.error.fullNameRequired}")

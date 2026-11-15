@@ -5,7 +5,7 @@ import java.time.Instant;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-// P50: every minute, tells the ship about the office's changes of an order once the office has not changed it for 10
+// Every minute, tells the ship about the office's changes of an order once the office has not changed it for 10
 // minutes (app.orders.office-edit-quiet) and never pressed "Done editing".
 @Component
 public class OfficeOrderEditJob {

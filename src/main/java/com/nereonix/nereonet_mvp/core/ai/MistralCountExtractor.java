@@ -25,7 +25,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The real count extractor (P57): Mistral's chat completions, as its documentation describes them.
+ * The real count extractor: Mistral's chat completions, as its documentation describes them.
  * POST /v1/chat/completions with "Authorization: Bearer &lt;key&gt;" and
  *   {"model": app.mistral.model, "temperature": 0, "response_format": {"type": "json_object"},
  *    "messages": [{"role": "system", ...the rules...}, {"role": "user", ...{"items": [...], "transcript": ...}...}]}

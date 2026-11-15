@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.confirm.ConfirmPage.Crumb;
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPage.Tone;
 
 /**
- * Builds the plain confirmation page (P10) from the same message keys as the action's dialog. A controller answers a
+ * Builds the plain confirmation page from the same message keys as the action's dialog. A controller answers a
  * GET on the action's own URL with it, e.g. GET /office/ships/3/deactivate:
  * <pre>
  * return confirmPages.neutral()
@@ -112,7 +112,7 @@ public class ConfirmPages {
             return this;
         }
 
-        /** An optional text field posted with the action (P50), its label a message key. */
+        /** An optional text field posted with the action, its label a message key. */
         public Builder note(String labelKey, String name, int maxLength) {
             note = new ConfirmPage.NoteField(text(labelKey), name, maxLength);
             return this;

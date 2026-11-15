@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{rfq.number(${rfq.id})}, ~{::main})}">
 <body>
-<!-- One request for quotes (P44). A sealed comparison: only the office sees the prices side by side.
+<!-- One request for quotes. A sealed comparison: only the office sees the prices side by side.
      1. The request: status, port, delivery date, reply-by date (with its hint), who sent it; once closed, the award
         or the cancellation.
      2. Suppliers: one row each with its status (Sent, Quoted, Declined, No reply, Failed), the answer (total and

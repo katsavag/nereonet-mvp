@@ -21,7 +21,7 @@ import com.nereonix.nereonet_mvp.core.request.RequestService.Outcome;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.shiprequest.ShipRequestService.Read;
 
-// The Chief cook's and crew's own requests to the Master (P54): the list, one request, a new one, and while it waits
+// The Chief cook's and crew's own requests to the Master: the list, one request, a new one, and while it waits
 // for the Master, editing and cancelling it. SecurityConfig limits /ship/requests/** to CHIEF_COOK and CREW_MEMBER
 // (the Master decides on /ship/approvals and gets 403 here). Anyone else's request is a 404. English only, as every
 // crew screen. The form works without JavaScript: Add and Remove (the cook's new items) post the form and show it
@@ -98,7 +98,7 @@ public class ShipRequestController {
         return post(currentUser, id, posted, add, remove, model, redirectAttributes);
     }
 
-    // The confirmation page: where Cancel request leads when js/confirm.js did not load (P10).
+    // The confirmation page: where Cancel request leads when js/confirm.js did not load.
     @GetMapping(PATH + "/{id}/cancel")
     public String confirmCancel(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model,
                                 RedirectAttributes redirectAttributes) {

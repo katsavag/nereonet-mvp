@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.title}, ~{::main})}">
 <body>
-<!-- "Count what arrived" (P61, P63), the Chief cook's, phone first. The rows (core/order/CountSheet) by category: each
+<!-- "Count what arrived", the Chief cook's, phone first. The rows (core/order/CountSheet) by category: each
      order line not removed by the office, and each invoice line matched to a vessel item not on the order. Two tabs,
      links that work without JavaScript: To do (the rows not counted; a row leaves it when confirmed, so the list only
      gets shorter) and Done (?tab=done: what was counted, with Change, ?change=key). A To do row has only its name with

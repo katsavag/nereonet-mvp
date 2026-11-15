@@ -33,9 +33,9 @@ import com.nereonix.nereonet_mvp.ship.ShipTab;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig. No edit or delete on purpose, so sending takes two steps
-// (P10): the form posts to /review, which shows what will be sent and to how many people; only the review page's
+//: the form posts to /review, which shows what will be sent and to how many people; only the review page's
 // "Send to N people on N ships" posts to /send. "Back to edit" posts the text back to /new, which shows the form again.
-// The target is All ships or Selected ships, a ticked list of active ships (P28).
+// The target is All ships or Selected ships, a ticked list of active ships.
 // The ship page's Announcements tab lists one ship's; New announcement there opens the form with that ship ticked
 // (?shipId=) and, once sent, returns to the tab (the form's returnShipId field).
 @Controller
@@ -49,10 +49,10 @@ public class AnnouncementController {
         this.shipFrame = shipFrame;
     }
 
-    // The columns that sort (P19), the default first.
+    // The columns that sort, the default first.
     private static final ListSort[] SORTS = {ListSort.desc("sentAt"), ListSort.asc("title"), ListSort.asc("target")};
 
-    // listRequest: search, sort and page (P19).
+    // listRequest: search, sort and page.
     @GetMapping("/office/announcements")
     public String list(@RequestParam(required = false) Long shipId, @ModelAttribute ListRequest listRequest,
                        Model model) {
@@ -90,7 +90,7 @@ public class AnnouncementController {
         return showForm(fromShip, model);
     }
 
-    // Step 1 of 2 (P10): the form's Review button. A valid form shows the review page: the target ships, the
+    // Step 1 of 2: the form's Review button. A valid form shows the review page: the target ships, the
     // recipients per ship, the chosen ships that are no longer active (left out) and the text as the crew will see it.
     // Nothing is saved; the review page carries the form in hidden fields, with the active ships only.
     @PostMapping("/office/announcements/review")
@@ -140,13 +140,13 @@ public class AnnouncementController {
 
     // Review and send take only POST. A form sent from a page with one of these URLs (the form shown again with its
     // errors, or the review page) after the session expired comes back here after signing in (P12, ReturnTo): show the
-    // form, where js/save.js restores the text from the browser's draft (P15).
+    // form, where js/save.js restores the text from the browser's draft.
     @GetMapping({"/office/announcements/review", "/office/announcements/send"})
     public String backToForm() {
         return "redirect:/office/announcements/new";
     }
 
-    // The text, then the acknowledgements per ship (with the total) and who has and has not acknowledged (P28).
+    // The text, then the acknowledgements per ship (with the total) and who has and has not acknowledged.
     @GetMapping("/office/announcements/{id}")
     public String detail(@PathVariable Long id, Model model) {
         Announcement announcement = announcementService.get(id);

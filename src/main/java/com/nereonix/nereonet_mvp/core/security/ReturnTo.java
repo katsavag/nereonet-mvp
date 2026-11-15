@@ -16,11 +16,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * Where a user goes after signing in (P12): back to the page they were on, else their home page.
+ * Where a user goes after signing in: back to the page they were on, else their home page.
  *   - a form sent after the session expired (SignedOutHandler): the page the form was on, from the Referer header,
  *     kept in the new session under ATTRIBUTE;
  *   - a page opened while signed out: the request Spring Security saved before sending the user to /login.
- * Only paths of this app, never /login, /logout, /register, /password (P14) or /error, and never a page of the other
+ * Only paths of this app, never /login, /logout, /register, /password or /error, and never a page of the other
  * side (an /office page for crew, a /ship page for the office): on a shared PC the next person may be someone else.
  */
 public final class ReturnTo {

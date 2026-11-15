@@ -5,7 +5,7 @@
     <th:block th:fragment="authContent">
         <header th:replace="~{layout/parts :: pageHeader(heading=#{registration.invalid.heading})}"></header>
 
-        <!-- The two causes (P13) and what to do about each; the office contact (app.support-contact) only when set. -->
+        <!-- The two causes and what to do about each; the office contact (app.support-contact) only when set. -->
         <p th:text="#{registration.invalid.text}">An invitation link stops working for one of two reasons:</p>
         <ul class="invalid-link-causes">
             <li>

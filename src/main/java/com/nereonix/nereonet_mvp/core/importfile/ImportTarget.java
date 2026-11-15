@@ -2,7 +2,7 @@ package com.nereonix.nereonet_mvp.core.importfile;
 
 import java.util.List;
 
-// One kind of import (crew, items) as the shared steps (ImportSteps, P24) see it.
+// One kind of import (crew, items) as the shared steps (ImportSteps) see it.
 public interface ImportTarget<F extends ImportForm<?>> {
 
     /** "crew" or "item": saved mappings are per kind. */

@@ -21,10 +21,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A supplier's name for one of a vessel's items, learned from a delivery (P63): the invoice's description, normalised
+ * A supplier's name for one of a vessel's items, learned from a delivery: the invoice's description, normalised
  * (InvoiceMatcher.key), is that item, and one invoice unit is packFactor of the item's unit (null: the same unit, or
  * not worked out). Saved when the Chief cook chooses the product of an invoice line, and when the Master approves a
- * count with an uncertain match the cook confirmed (the office may still correct it, P64). The next invoice of that
+ * count with an uncertain match the cook confirmed (the office may still correct it). The next invoice of that
  * supplier with the same description matches the item automatically. supplier: one of the suppliers (core/supplier)
  * when the invoice's supplier name is one of them; otherwise null, and supplierName (normalised, the name as read)
  * keeps it.

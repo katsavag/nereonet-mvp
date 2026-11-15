@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The six RightShip subscores (P40), in RightShip's order, each in its impact group: the lowest subscore limits the
+ * The six RightShip subscores, in RightShip's order, each in its impact group: the lowest subscore limits the
  * overall Safety Score. Labels: vetting.subscore.name (lower case); key() is the form field's name.
  */
 public enum Subscore {

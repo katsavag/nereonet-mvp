@@ -46,11 +46,11 @@ public class DashboardController {
         model.addAttribute("dashboard", dashboard);
         model.addAttribute("list", list);
         model.addAttribute("groups", AttentionType.Group.values());
-        // First run (P25): the setup checklist, until every step is done.
+        // First run: the setup checklist, until every step is done.
         model.addAttribute("setup", dashboardService.setup());
-        // This page as it is (filter, sort, page), for the forms and links to come back to (P20, P43).
+        // This page as it is (filter, sort, page), for the forms and links to come back to.
         model.addAttribute("overviewUrl", list.getUrl());
-        // P43: the fleet card's flags.
+        // The fleet card's flags.
         model.addAttribute("countries", Countries.labels(LocaleContextHolder.getLocale()));
         return "dashboard/dashboard";
     }

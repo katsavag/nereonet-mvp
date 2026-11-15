@@ -173,7 +173,6 @@ class MessageKeysTest {
             "approval.decision.APPROVED",
             "approval.decision.REJECTED",
             "approval.reason",
-            "approval.lines",
             "approval.unit.none",
             "request.status.PENDING",
             "request.status.APPROVED",
@@ -242,7 +241,6 @@ class MessageKeysTest {
             "order.receipt.received",
             "order.receipt.received.label",
             "order.receipt.notDelivered",
-            "order.receipt.notDelivered.label",
             "order.receipt.note.label",
             "order.receipt.note.placeholder",
             "order.receipt.files",
@@ -250,8 +248,6 @@ class MessageKeysTest {
             "order.receipt.files.add",
             "order.receipt.files.uploaded",
             "order.receipt.files.remove",
-            "order.receipt.files.removeLabel",
-            "order.receipt.files.chosen",
             "order.receipt.receivedAt",
             "order.receipt.receivedAt.hint",
             "order.receipt.review",
@@ -463,7 +459,6 @@ class MessageKeysTest {
             "stores.voice.review.hint",
             "stores.voice.review.transcript",
             "stores.voice.review.lines",
-            "stores.voice.review.item",
             "stores.voice.review.counted",
             "stores.voice.review.expected",
             "stores.voice.review.words",
@@ -726,6 +721,78 @@ class MessageKeysTest {
         Set<String> translated = new TreeSet<>(ENGLISH_ONLY);
         translated.retainAll(keys(GREEK));
         assertThat(translated).as("ENGLISH_ONLY keys that now have Greek text: remove them from the list").isEmpty();
+    }
+
+    /** Where the keys are used: the Java code, the templates, the scripts and the configuration. */
+    private static final List<Path> SOURCES = List.of(Path.of("src/main/java"), Path.of("src/main/resources/templates"),
+            Path.of("src/main/resources/static/js"), Path.of("src/main/resources/application.yml"));
+
+    /**
+     * Keys built at run time in a way the check below cannot see. Every other key built from a prefix uses a
+     * literal that ends with a dot ('rank.' + rank) or is followed by + ("dashboard.setup." + key), and those count.
+     */
+    private static final List<String> BUILT_AT_RUN_TIME = List.of(
+            // Spring's codes for a value that does not convert (typeMismatch.<type>).
+            "typeMismatch.",
+            // shiporder/parts :: officeChange(line, keys) and receivedShort(line, keys): keys + '.added', ...
+            "officeorder.change.", "order.officeChange.", "officeorder.receipt.notDelivered", "officeorder.receipt.shortBy",
+            // OfficeInvoiceController: successKey + "Stock".
+            "officeorder.compare.factor.changedStock", "officeorder.compare.match.changedStock");
+
+    /** ImportFlow.key(suffix): the import kinds' texts, messagePrefix + "." + suffix. */
+    private static final List<String> IMPORT_PREFIXES = List.of("crewImport.", "itemImport.");
+
+    private static final Pattern PREFIX_LITERAL = Pattern.compile(
+            "[\"']([A-Za-z][A-Za-z0-9_.]*\\.)[\"']|[\"']([A-Za-z][A-Za-z0-9_.]*)[\"']\\s*\\+");
+    private static final Pattern IMPORT_KEY = Pattern.compile("\\.key\\([\"']([A-Za-z0-9_.]+)[\"']\\)");
+
+    @Test
+    void everyKeyIsUsed() throws IOException {
+        StringBuilder text = new StringBuilder();
+        for (Path source : SOURCES) {
+            try (var files = Files.walk(source)) {
+                for (Path file : files.filter(Files::isRegularFile).toList()) {
+                    text.append(Files.readString(file, StandardCharsets.UTF_8)).append('\n');
+                }
+            }
+        }
+        String code = text.toString();
+        Set<String> prefixes = new TreeSet<>(BUILT_AT_RUN_TIME);
+        var literals = PREFIX_LITERAL.matcher(code);
+        while (literals.find()) {
+            prefixes.add(literals.group(1) != null ? literals.group(1) : literals.group(2));
+        }
+        Set<String> imported = new TreeSet<>();
+        var importKeys = IMPORT_KEY.matcher(code);
+        while (importKeys.find()) {
+            IMPORT_PREFIXES.forEach(prefix -> imported.add(prefix + importKeys.group(1)));
+        }
+
+        // Every dotted word of the code, and each of its shorter forms (a.b.c gives a.b.c, a.b and a).
+        Set<String> words = new java.util.HashSet<>();
+        var word = Pattern.compile("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matcher(code);
+        while (word.find()) {
+            String w = word.group();
+            for (int dot = w.length(); dot > 0; dot = w.lastIndexOf('.', dot - 1)) {
+                if (!words.add(w.substring(0, dot))) {
+                    break;
+                }
+            }
+        }
+
+        Set<String> unused = new TreeSet<>();
+        Set<String> all = new TreeSet<>(keys(ENGLISH));
+        all.addAll(keys(GREEK));
+        for (String key : all) {
+            boolean literal = words.contains(key);
+            boolean built = imported.contains(key)
+                    || prefixes.stream().anyMatch(prefix -> prefix.length() > 3 && key.startsWith(prefix));
+            if (!literal && !built) {
+                unused.add(key);
+            }
+        }
+        assertThat(unused).as("message keys no template, class or script uses: remove them from both files, or add "
+                + "their prefix to BUILT_AT_RUN_TIME if they are built in a way this check cannot see").isEmpty();
     }
 
     private static Set<String> keys(Path file) throws IOException {

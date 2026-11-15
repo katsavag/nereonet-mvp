@@ -25,7 +25,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import io.jsonwebtoken.JwtException;
 
 /**
- * Forgot password (P14). A user asks for a link on /password/forgot; the email holds a link to /password/reset that
+ * Forgot password. A user asks for a link on /password/forgot; the email holds a link to /password/reset that
  * works once and for 60 minutes; the new password is set there.
  * The request never says whether an address has an account: the page is the same, and the email is sent on another
  * thread, so the answer takes as long for a known address as for an unknown one. No email goes to an unknown or

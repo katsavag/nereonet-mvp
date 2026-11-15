@@ -9,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
-// A profile photo file (P31), for the crew (/ship/crew/{id}/photo/...) and the office (/office/crew/{id}/photo/...).
+// A profile photo file, for the crew (/ship/crew/{id}/photo/...) and the office (/office/crew/{id}/photo/...).
 // The URL carries the photo's key, which changes with every new photo, so the browser may keep it for a year without
 // asking again (over a satellite link); "private": only the signed-in person's browser, never a shared cache.
 public final class PhotoResponse {

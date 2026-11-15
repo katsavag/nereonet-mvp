@@ -53,7 +53,7 @@ public class ItemService {
     }
 
     /**
-     * One page of the ship's Items tab (P19), paginated in the database. active: true, false or null (both);
+     * One page of the ship's Items tab, paginated in the database. active: true, false or null (both);
      * category: one category, or null for both; the search is the name or the place. Sort keys: name (default),
      * unit, category (by enum name: Personal items before Provisions), place, status (active first).
      */
@@ -130,7 +130,7 @@ public class ItemService {
         return item;
     }
 
-    // For the audit log, e.g. "Rice, kg, Provisions, Dry store" (P60: and ", max 200" when the item has its own maximum)
+    // For the audit log, e.g. "Rice, kg, Provisions, Dry store" (and ", max 200" when the item has its own maximum)
     private static String describe(Item item) {
         return item.getName() + ", " + item.getUnit() + ", " + item.getCategory().fileValue() + ", "
                 + (item.getPlace() == null ? "-" : item.getPlace())

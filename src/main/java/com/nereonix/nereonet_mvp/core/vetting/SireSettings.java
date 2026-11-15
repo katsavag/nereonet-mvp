@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The company's SIRE 2.0 policy (P41), app.sire.*, shown on the SIRE page as "company policy". These are this
+ * The company's SIRE 2.0 policy, app.sire.*, shown on the SIRE page as "company policy". These are this
  * company's own choices, not OCIMF rules:
  *   report-current-months  how long a report is treated as current after the inspection (default 12)
  *   comment-days           how many days the operator has for its comments on a draft report, counted from the

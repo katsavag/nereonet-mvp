@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 
 /**
- * P33: Hibernate (ddl-auto: update) never changes a column it created. On a database from before P33 that leaves
+ * Hibernate (ddl-auto: update) never changes a column it created. On a database from before P33 that leaves
  * request_line.item_id not null (a line for a new item has no item), and the check constraints PostgreSQL got for
  * item_request.status and notification.type without CANCELLED and REQUEST. On startup this drops the not null and
  * re-creates both constraints from the enums. Each statement gives the same result when run again, so it runs on

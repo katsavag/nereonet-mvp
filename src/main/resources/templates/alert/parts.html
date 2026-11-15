@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Fragments of snoozing alerts (P43): alert/snooze.html, the Certificates and Vetting lists, the Overview.
-     The pattern: app.css, section "Snoozing alerts (P43)". -->
+<!-- Fragments of snoozing alerts: alert/snooze.html, the Certificates and Vetting lists, the Overview.
+     The pattern: app.css, section "Snoozing alerts". -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- One alert as the snooze page reviews it: its kind as a badge (the P09 icons), what names it, the vessel and the
+<!-- One alert as the snooze page reviews it: its kind as a badge (the Overview icons), what names it, the vessel and the
      date. v: an alert/AlertView. -->
 <span th:fragment="alertSummary(v)" class="snooze-item-main" th:with="k=${v.kind().name()}">
     <span th:replace="~{layout/parts :: statusIcon(${v.expired()} ? 'danger' : 'warning', #{${v.kind().messageKey()}}, ${v.expired()} ? 'alert' : 'clock')}"></span>
@@ -49,7 +49,7 @@
     <span th:text="#{snooze.action}">Snooze</span>
 </a>
 
-<!-- "Snooze selected" for a list of checked rows (P10: the snooze page reviews them): a page header button that
+<!-- "Snooze selected" for a list of checked rows (the snooze page reviews them): a page header button that
      submits the list's GET form (form attribute), disabled by js/list-rows.js while nothing is checked. formId: the
      form's id. -->
 <button th:fragment="snoozeSelected(formId)" type="submit" th:form="${formId}" class="btn btn-outline-secondary"
@@ -58,21 +58,21 @@
     <span th:text="#{snooze.selected}">Snooze selected</span>
 </button>
 
-<!-- The snooze form of a list (P43): a GET to the snooze page, empty but for the way back; the rows' checkboxes and
+<!-- The snooze form of a list: a GET to the snooze page, empty but for the way back; the rows' checkboxes and
      the header's Snooze selected belong to it by their form attribute (the rows hold forms of their own, Undo or
      Resend, and a form cannot hold another form). formId: its id; returnTo: this page's URL. -->
 <form th:fragment="snoozeForm(formId, returnTo)" th:id="${formId}" th:action="@{/office/alerts/snooze}" method="get" data-selection class="snooze-list-form">
     <input type="hidden" name="returnTo" th:value="${returnTo}">
 </form>
 
-<!-- The selection line of such a list (as the Orders list, P36): how many are checked and, on phones, the select-all
+<!-- The selection line of such a list (as the Orders list): how many are checked and, on phones, the select-all
      checkbox. Shown by js/list-rows.js only. formId: the snooze form's id. -->
 <div th:fragment="selectionLine(formId)" class="list-selection" hidden data-selection-only th:data-selection-for="${formId}">
     <div class="form-check list-selection-all">
         <input class="form-check-input" type="checkbox" id="selectAllPhone" data-select-all th:form="${formId}">
         <label class="form-check-label" for="selectAllPhone" th:text="#{snooze.selectAll.short}">Select all on this page</label>
     </div>
-    <p id="selectionCount" class="list-selection-count" role="status" data-selection-count th:data-selection-for="${formId}"
+    <p id="selectionCount" class="list-selection-count text-meta" role="status" data-selection-count th:data-selection-for="${formId}"
        th:data-none="#{snooze.selection.none}" th:data-one="#{snooze.selection.one}"
        th:data-many="#{snooze.selection.many('{count}')}" th:text="#{snooze.selection.none}">Select the items to snooze</p>
 </div>

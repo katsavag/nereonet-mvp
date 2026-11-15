@@ -20,7 +20,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * The scans of certificates (P39) on disk, like the library's files (LibraryFileStorage): in
+ * The scans of certificates on disk, like the library's files (LibraryFileStorage): in
  * app.certificate.storage-dir (by default a "certificates" folder inside the library's folder), each under a
  * generated name; the uploaded file name is only kept in Certificate.fileName. A file is a PDF, JPEG or PNG of at
  * most 10 MB (the multipart limit in application.yml): its extension says which, and its first bytes must agree,

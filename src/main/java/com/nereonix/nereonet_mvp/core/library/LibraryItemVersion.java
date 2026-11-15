@@ -69,7 +69,7 @@ public class LibraryItemVersion {
         return storagePath != null;
     }
 
-    /** A PDF opens in the browser (inline); DOCX and XLSX are always downloaded (P22). */
+    /** A PDF opens in the browser (inline); DOCX and XLSX are always downloaded. */
     public boolean isPdf() {
         return PDF.equals(fileContentType);
     }

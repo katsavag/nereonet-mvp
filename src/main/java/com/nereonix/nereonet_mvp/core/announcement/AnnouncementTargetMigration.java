@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * P28: before, an announcement had one nullable ship_id (null: all ships). Hibernate adds the new fleet_wide column
+ * Before, an announcement had one nullable ship_id (null: all ships). Hibernate adds the new fleet_wide column
  * (false) and the announcement_ship table but never drops a column, so on startup, while announcement.ship_id still
  * exists, this moves each row to the new model in one transaction: ship_id set gives one announcement_ship row,
  * ship_id null gives fleet_wide = true; then ship_id is dropped, so it runs once. Nothing to do on a new database.

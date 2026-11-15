@@ -19,7 +19,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// A confirmed column and value mapping (P24), saved when an import is done and suggested again for a file of the
+// A confirmed column and value mapping, saved when an import is done and suggested again for a file of the
 // same kind with the same column names (in any order). Never holds file contents other than column names and the
 // values that were mapped (e.g. the rank "C/E").
 @Entity

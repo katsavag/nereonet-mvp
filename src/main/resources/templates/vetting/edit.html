@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{vetting.edit}, ~{::main})}">
 <body>
-<!-- "Edit RightShip data" (P40): a vessel's RightShip standing, as the office reads it off the RightShip report or
+<!-- "Edit RightShip data": a vessel's RightShip standing, as the office reads it off the RightShip report or
      platform. Every field may stay empty (not known); a select's empty option is "not known". Saving adds a row
      to the vessel's history and makes it the current one (VettingService.saveManual).
      Sections: Safety Score, Subscores (in their impact groups), GHG Rating, RightShip inspection, Restrictions.

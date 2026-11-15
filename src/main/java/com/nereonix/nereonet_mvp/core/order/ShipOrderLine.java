@@ -17,9 +17,9 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// One item of a ship order (P34) and its total quantity, in the item's unit. One line per item. The request lines
+// One item of a ship order and its total quantity, in the item's unit. One line per item. The request lines
 // that went into it point to it (RequestLine.shipOrderLine), so the order can show who asked for what.
-// P50: while the order is SENT the office can change the quantity, remove the line or add one (OfficeOrderEditService).
+// While the order is SENT the office can change the quantity, remove the line or add one (OfficeOrderEditService).
 // The line keeps what the ship sent (originalQuantity); a removed line stays, marked removed, with its last quantity.
 @Entity
 @Getter
@@ -42,17 +42,17 @@ public class ShipOrderLine {
 
     public static final int NOTE_MAX_LENGTH = 200;
 
-    // The quantity the ship sent, set once when the order is sent (P50). Null while OPEN, for a line the office added,
+    // The quantity the ship sent, set once when the order is sent. Null while OPEN, for a line the office added,
     // and for lines sent before P50 (the office's first change then keeps the quantity it found).
     @Column(precision = 12, scale = 3)
     private BigDecimal originalQuantity;
 
-    // Removed by the office (P50): still listed, struck through; not delivered (quantity 0 in the export).
+    // Removed by the office: still listed, struck through; not delivered (quantity 0 in the export).
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean removed;
 
-    // Added by the office to a SENT order (P50); the ship never asked for it.
+    // Added by the office to a SENT order; the ship never asked for it.
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean addedByOffice;
@@ -61,12 +61,12 @@ public class ShipOrderLine {
     @Column(length = NOTE_MAX_LENGTH)
     private String changeNote;
 
-    // Changed by the office since the ship was last told (P50): counted by the next "The office changed order 12".
+    // Changed by the office since the ship was last told: counted by the next "The office changed order 12".
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean officeChangePending;
 
-    // P51: what arrived on board, as the Master confirmed it (0 for "Not delivered"), and the Master's note on it.
+    // What arrived on board, as the Master confirmed it (0 for "Not delivered"), and the Master's note on it.
     // Null until the receipt, and for a line the office removed.
     @Column(precision = 12, scale = 3)
     private BigDecimal receivedQuantity;
@@ -74,7 +74,7 @@ public class ShipOrderLine {
     @Column(length = NOTE_MAX_LENGTH)
     private String receiptNote;
 
-    // P61: what the Chief cook counted of this line (0: nothing arrived) and his note on it ("2 boxes damaged"). Null
+    // What the Chief cook counted of this line (0: nothing arrived) and his note on it ("2 boxes damaged"). Null
     // until counted; kept after the receipt, so the receipt can be read against the count.
     @Column(precision = 12, scale = 3)
     private BigDecimal countedQuantity;
@@ -82,12 +82,12 @@ public class ShipOrderLine {
     @Column(length = NOTE_MAX_LENGTH)
     private String countNote;
 
-    // P63: the Master's change of the cook's count before approving it (the item's unit; null: as counted). Cleared
+    // The Master's change of the cook's count before approving it (the item's unit; null: as counted). Cleared
     // when the count is sent back.
     @Column(precision = 12, scale = 3)
     private BigDecimal approvedQuantity;
 
-    // P63, kept with the receipt for the office (P64): what the invoice said of this line in the item's unit (null:
+    // Kept with the receipt for the office: what the invoice said of this line in the item's unit (null:
     // not on the invoice, not read or not convertible), the invoice line it came from, and the marks.
     @Column(precision = 12, scale = 3)
     private BigDecimal invoicedQuantity;
@@ -103,13 +103,13 @@ public class ShipOrderLine {
     @Column(nullable = false)
     private boolean conversionToReview;
 
-    // P63: not ordered, it arrived with the invoice (a vessel item the invoice was matched to): added on approval with
+    // Not ordered, it arrived with the invoice (a vessel item the invoice was matched to): added on approval with
     // quantity 0.
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean addedOnReceipt;
 
-    /** How much less arrived than was ordered (P51); null when the line was not received short. */
+    /** How much less arrived than was ordered; null when the line was not received short. */
     public BigDecimal getShortBy() {
         if (removed || receivedQuantity == null || receivedQuantity.compareTo(quantity) >= 0) {
             return null;

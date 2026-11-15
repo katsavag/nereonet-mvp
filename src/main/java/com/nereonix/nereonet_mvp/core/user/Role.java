@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.user;
 
 // What a user can do (SecurityConfig). Labels: role.<NAME>; for ship roles also role.access.<NAME> (what it allows).
-// The office never picks a ship role: it follows from the rank (Rank.role(), P18).
+// The office never picks a ship role: it follows from the rank (Rank.role()).
 public enum Role {
     OFFICE_USER,
     MASTER,

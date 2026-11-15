@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import com.nereonix.nereonet_mvp.core.alert.AlertKind;
 
 /**
- * SIRE 2.0 inspections (P41). "Latest" is a vessel's inspection with no later one (by inspection date, then id): the
+ * SIRE 2.0 inspections. "Latest" is a vessel's inspection with no later one (by inspection date, then id): the
  * one the Vetting list, the vessel's card, the sidebar counter and the Overview look at.
  */
 public interface SireInspectionRepository extends JpaRepository<SireInspection, Long> {
@@ -26,7 +26,7 @@ public interface SireInspectionRepository extends JpaRepository<SireInspection, 
     String NEEDS_ATTENTION = " (" + REPORT_DUE + " or " + COMMENTS_DUE + ") ";
 
     /**
-     * The same, less what a snooze that holds today puts aside (P43): a SIRE_REPORT snooze at the report's level
+     * The same, less what a snooze that holds today puts aside: a SIRE_REPORT snooze at the report's level
      * (0 no longer current: inspected on notCurrentCutoff or before; 1 ending within 30 days: on cutoff30 or before;
      * else 2), a SIRE_COMMENTS snooze at the comments' level (0 overdue: the base date on overdueCutoff or before,
      * else 1). AlertLevels; SireSettings works out the cut-offs.
@@ -61,7 +61,7 @@ public interface SireInspectionRepository extends JpaRepository<SireInspection, 
     List<SireInspection> findLatestNeedingAttention(LocalDate currentCutoff, LocalDate commentsCutoff);
 
     /** The vessels of findLatestNeedingAttention, for the sidebar counter (nothing loaded to count), less the items
-     *  whose snooze holds (P43). */
+     *  whose snooze holds. */
     @Query("select distinct i.ship.id from SireInspection i where i.ship.active = true and" + LATEST + "and"
             + NEEDS_ATTENTION_NOT_SNOOZED)
     List<Long> findShipIdsNeedingAttention(LocalDate currentCutoff, LocalDate commentsCutoff, LocalDate today,

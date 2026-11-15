@@ -26,7 +26,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// One change of an item's stock (P52), the store's history: a count by the Chief cook or a delivery received. Never
+// One change of an item's stock, the store's history: a count by the Chief cook or a delivery received. Never
 // changed or deleted: @Immutable (Hibernate ignores changes to a loaded row), no setters, made only with of(...), and
 // StockMovementRepository has no delete. The only change is the database's own: "by" becomes null when that user is
 // deleted.
@@ -75,7 +75,7 @@ public class StockMovement {
     @JoinColumn(name = "order_id")
     private ShipOrder order;
 
-    /** After minus before: -3 for a count that found 3 less than the store expected (P53). */
+    /** After minus before: -3 for a count that found 3 less than the store expected. */
     public BigDecimal getDifference() {
         return quantityAfter.subtract(quantityBefore);
     }

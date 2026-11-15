@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * The sidebar toggle without JavaScript (P29): the "Expand menu" / "Collapse menu" button is a small form that posts
+ * The sidebar toggle without JavaScript: the "Expand menu" / "Collapse menu" button is a small form that posts
  * here; the answer sets the cookie SidebarPreference reads and goes back to the same page. With JavaScript,
  * js/sidebar.js sets the same cookie and the form is never sent. A display preference of this browser, not a change
  * to any record, so it is not in the audit log and shows no message.

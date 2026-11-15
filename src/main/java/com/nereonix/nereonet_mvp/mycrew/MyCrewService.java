@@ -19,7 +19,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * My crew (P31): who is on board the signed-in person's ship now, read only. The same number of queries whatever the
+ * My crew: who is on board the signed-in person's ship now, read only. The same number of queries whatever the
  * size of the crew: the signed-in user (with their ship), then one CrewmateQueries query for everyone and their
  * profiles (MyCrewFlowTest checks it). Anyone not on board that ship now (another ship, invited, deactivated, an
  * office user, or no such user) is a 404, never a 403, so nobody can probe who exists.

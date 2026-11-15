@@ -16,7 +16,7 @@ import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Kind;
 
 /**
- * Matching the lines read from a supplier's invoice to the order (P63), pure Java. A wrong automatic match is the
+ * Matching the lines read from a supplier's invoice to the order, pure Java. A wrong automatic match is the
  * costly error, so it is strict: when in doubt CHECK rather than MATCHED, and PICK rather than CHECK.
  *
  * Names are normalised (case, accents, punctuation; plural "s" dropped) into words; pack sizes such as 500G, 10KG,
@@ -90,7 +90,7 @@ public final class InvoiceMatcher {
     /**
      * How the invoice's unit converts to the item's: one invoice unit is factor of the item's unit. pack ("10 kg"),
      * unitOne and unitMany ("bag", "bags") name the invoice's unit when it differs; all null when the invoice counts in
-     * the item's own unit (factor 1). converted: the factor was worked out (the office reviews it, P64).
+     * the item's own unit (factor 1). converted: the factor was worked out (the office reviews it).
      */
     public record Conversion(BigDecimal factor, String pack, String unitOne, String unitMany, boolean converted) {
 

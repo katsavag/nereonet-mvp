@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Parts of the office's ship orders (P36). -->
+<!-- Parts of the office's ship orders. -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
 <!-- An order's status as the office sees it: Pending (info: waiting for the office), Delivery scheduled (neutral:
-     waiting for the vessel's receipt, P51), Received (ok). P65: the same words as on the ship's pages
+     waiting for the vessel's receipt), Received (ok). The same words as on the ship's pages
      (order.status.*); only the colours differ, by whose turn it is.
      The words carry the state, the colour repeats it.
      Use: <span th:replace="~{officeorder/parts :: statusBadge(${order.status})}"></span> -->
@@ -22,7 +22,7 @@
     <span th:unless="${order.exportedAt != null}" class="text-body-secondary" th:text="#{officeorder.exported.no}">Not yet</span>
 </th:block>
 
-<!-- P64: where the office stands with the order's invoice: Matched (ok), "3 differ" (warning), To confirm (info: all
+<!-- Where the office stands with the order's invoice: Matched (ok), "3 differ" (warning), To confirm (info: all
      lines agree, not marked matched yet), or None (no read invoice, or not received yet).
      Use: <th:block th:replace="~{officeorder/parts :: invoiceBadge(${order})}"></th:block> -->
 <th:block th:fragment="invoiceBadge(order)">

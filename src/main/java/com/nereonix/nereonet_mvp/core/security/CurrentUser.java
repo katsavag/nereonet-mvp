@@ -24,7 +24,7 @@ public class CurrentUser extends User {
     }
 
     // The user's id. Pages carry it (<body data-user>), so the drafts js/save.js keeps in the browser are per user and
-    // one person's text is never offered to the next person on a shared PC (P15).
+    // one person's text is never offered to the next person on a shared PC.
     public Long getId() {
         return id;
     }
@@ -47,7 +47,7 @@ public class CurrentUser extends User {
         return initialsOf(fullName);
     }
 
-    // The same for anyone's name: the round picture of a person without a photo (P31).
+    // The same for anyone's name: the round picture of a person without a photo.
     public static String initialsOf(String fullName) {
         String[] parts = fullName.trim().split("\s+");
         if (parts[0].isEmpty()) {
