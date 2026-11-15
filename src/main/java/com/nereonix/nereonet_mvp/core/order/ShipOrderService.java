@@ -60,7 +60,7 @@ public class ShipOrderService {
     public static final List<ShipOrderStatus> SENT_TO_OFFICE = List.of(ShipOrderStatus.SENT,
             ShipOrderStatus.CONFIRMED, ShipOrderStatus.CLOSED);
 
-    /** The orders still on the office's desk (P51): Pending and Delivery pending, the sidebar's Orders counter. */
+    /** The orders still on the office's desk (P51): Pending and Delivery scheduled, the sidebar's Orders counter. */
     public static final List<ShipOrderStatus> NOT_RECEIVED = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
 
     /** The columns of the office's export (P36; an Excel workbook since P39, .xls since P40, the same columns), one row per order
@@ -323,7 +323,7 @@ public class ShipOrderService {
         return orderRepository.findFirstByShipIdAndStatusOrderByDeliveryDateAscIdAsc(shipId, ShipOrderStatus.CONFIRMED);
     }
 
-    /** Orders Pending or Delivery pending, every ship: the office's sidebar counter (P51; not exported before). */
+    /** Orders Pending or Delivery scheduled, every ship: the office's sidebar counter (P51; not exported before). */
     @Transactional(readOnly = true)
     public long countNotReceived() {
         return orderRepository.countByStatusIn(NOT_RECEIVED);
@@ -347,9 +347,9 @@ public class ShipOrderService {
 
     /** What scheduleDelivery did. */
     public enum Schedule {
-        // The delivery of a Pending order is scheduled: Delivery pending.
+        // The delivery of a Pending order is scheduled: Delivery scheduled.
         SCHEDULED,
-        // The port or date of a Delivery pending order changed.
+        // The port or date of a Delivery scheduled order changed.
         CHANGED,
         // The order is received (CLOSED): nothing changed.
         RECEIVED,
@@ -412,7 +412,7 @@ public class ShipOrderService {
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
      * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
      * category (Provisions, then Personal items) and item name; status as the office sees it (P49, P51: pending,
-     * delivery_pending, received); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity
+     * delivery_scheduled (P65; delivery_pending before), received); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity
      * what the ship sent (empty for a line the office added), office_change changed, removed, added or empty,
      * office_note the office's note; received_quantity what arrived on board and received_at when (P51, empty until
      * the Master confirmed receipt); P64, for an order received with a read invoice: invoiced_quantity (the item's
@@ -518,11 +518,11 @@ public class ShipOrderService {
         return received.subtract(invoiced);
     }
 
-    /** The status column of the export: the office's words, pending (P49), delivery_pending and received (P51). */
+    /** The status column of the export: pending (P49), delivery_scheduled (P65; delivery_pending before) and received (P51). */
     static String exportStatus(ShipOrderStatus status) {
         return switch (status) {
             case SENT -> "pending";
-            case CONFIRMED -> "delivery_pending";
+            case CONFIRMED -> "delivery_scheduled";
             case CLOSED -> "received";
             case OPEN -> "open";
         };

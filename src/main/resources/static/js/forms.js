@@ -16,6 +16,9 @@
 //    Without this script the field stays visible.
 //  - [data-date-range] (P58, layout/parts :: dateRange): typing a date of the range clears the mark of the quick
 //    choice (aria-current), since the dates are no longer that choice.
+//  - button[data-primary-on-change] (P65): an outline button that becomes the page's primary (btn-primary) once a
+//    field of its form differs from what the page loaded with, and goes back when they are the same again (the
+//    office's Save delivery changes). Without this script it stays an outline button and still submits.
 (function () {
     'use strict';
 
@@ -220,6 +223,23 @@
         const update = () => { field.hidden = select.value === field.dataset.initialValue; };
         select.addEventListener('change', update);
         update();
+    });
+
+    document.querySelectorAll('button[data-primary-on-change]').forEach(button => {
+        const form = button.form;
+        if (!form) {
+            return;
+        }
+        const fields = Array.from(form.elements)
+            .filter(field => field.name && !['hidden', 'submit', 'button'].includes(field.type));
+        const initial = fields.map(field => field.value);
+        const update = () => {
+            const changed = fields.some((field, i) => field.value !== initial[i]);
+            button.classList.toggle('btn-primary', changed);
+            button.classList.toggle('btn-outline-secondary', !changed);
+        };
+        form.addEventListener('input', update);
+        form.addEventListener('change', update);
     });
 
     document.querySelectorAll('[data-date-range]').forEach(range => {

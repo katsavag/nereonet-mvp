@@ -159,11 +159,11 @@ class ShipOrderFlowTest {
 
         // Read-only now: the detail page has no forms, the order page is empty and edits change nothing.
         String detail = page("/ship/orders/" + order.getId());
-        assertThat(detail).contains("Sent to office", "Rotterdam", "Deliver to the gangway", "Basmati rice")
+        assertThat(detail).contains(">Pending</span>", "Waiting for the office to schedule the delivery", "Rotterdam", "Deliver to the gangway", "Basmati rice")
                 .doesNotContain("/ship/order/lines/");
         // P59: the sent order is in progress, above the empty collecting order.
         assertThat(main(page("/ship/order"))).containsSubsequence("Orders in progress", "Order #" + order.getId(),
-                "Sent to office", "2 items", "waiting for the office to schedule the delivery", "Current order",
+                ">Pending</span>", "2 items", "waiting for the office to schedule the delivery", "Current order",
                 "Nothing to order yet", "Approved requests are collected here.");
         changeQuantity(riceLine, "1").andExpect(flash().attribute("errorMessage", "order.notOpen"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("12");
@@ -253,7 +253,8 @@ class ShipOrderFlowTest {
         String html = page("/ship/orders");
 
         assertThat(html).contains("<title>All orders · Nereonet</title>", "<span>All orders</span>", "Delivery scheduled",
-                "Delivery: Antwerp", "Sent to office", "Requested: Piraeus");
+                "Delivery: Antwerp", ">Pending</span>", "Requested: Piraeus", "Waiting for the office to schedule the delivery")
+                .doesNotContain("Sent to office");
         assertThat(html.indexOf("Order #" + second.getId())).isLessThan(html.indexOf("Order #" + first.getId()));
         mockMvc.perform(get("/ship/orders/" + openOrderAfter().getId()).with(user(new CurrentUser(master))))
                 .andExpect(redirectedUrl("/ship/order"));
@@ -395,7 +396,7 @@ class ShipOrderFlowTest {
                         "href=\"/ship/orders/" + sooner.getId() + "\"", ">Open order<",
                         "aria-label=\"Open order #" + sooner.getId() + "\"")
                 .doesNotContain("is-overdue", "was due");
-        assertThat(card(progress, waiting)).contains("Sent to office", "2 items", "Sent on "
+        assertThat(card(progress, waiting)).contains(">Pending</span>", "2 items", "Sent on "
                         + DAY.format(waiting.getSentAt().atZone(ZoneOffset.UTC)) + " · waiting for the office to schedule the delivery",
                         ">Open order<")
                 .doesNotContain("/receipt", "Confirm receipt");

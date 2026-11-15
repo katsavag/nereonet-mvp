@@ -88,7 +88,7 @@
     }
 
     // The crew's phone tab bar (P26, layout/parts :: tabBar): More's badge (P47: Notifications is on the More page) is
-    // the unread notifications plus the part that is not notifications (data-more-base, the Master's approvals), with
+    // the unread notifications plus the part that is not notifications (data-more-base, the counters under More, P65), with
     // its words from data-more-label; nothing at zero.
     function updateTabBar(data) {
         const bar = document.querySelector('.tab-bar[data-more-base]');

@@ -41,7 +41,10 @@
     <div class="card mb-4">
         <dl class="card-body row mb-0">
             <dt class="col-sm-4 col-lg-3" th:text="#{order.status}">Status</dt>
-            <dd class="col-sm-8 col-lg-9"><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span></dd>
+            <dd class="col-sm-8 col-lg-9"><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span>
+                <!-- P65: Pending says whom it waits for. -->
+                <span th:if="${order.status.name() == 'SENT'}" class="d-block small text-body-secondary mt-1"
+                      th:text="#{order.status.SENT.waiting}">Waiting for the office to schedule the delivery</span></dd>
             <dt class="col-sm-4 col-lg-3" th:text="#{order.sentBy}">Sent</dt>
             <dd class="col-sm-8 col-lg-9">
                 <span th:text="${order.sentBy} ? ${order.sentBy.fullName} : #{audit.deletedUser}">Ship Master</span>

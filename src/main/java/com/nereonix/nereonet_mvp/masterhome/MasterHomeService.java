@@ -12,8 +12,6 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderLineRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
-import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
-import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -54,18 +52,16 @@ public class MasterHomeService {
     }
 
     private final UserRepository userRepository;
-    private final ItemRequestRepository requestRepository;
     private final ShipOrderLineRepository orderLineRepository;
     private final ShipOrderRepository orderRepository;
     private final AnnouncementRecipientRepository recipientRepository;
     private final LibraryItemRepository libraryItemRepository;
 
-    public MasterHomeService(UserRepository userRepository, ItemRequestRepository requestRepository,
+    public MasterHomeService(UserRepository userRepository,
                              ShipOrderLineRepository orderLineRepository, ShipOrderRepository orderRepository,
                              AnnouncementRecipientRepository recipientRepository,
                              LibraryItemRepository libraryItemRepository) {
         this.userRepository = userRepository;
-        this.requestRepository = requestRepository;
         this.orderLineRepository = orderLineRepository;
         this.orderRepository = orderRepository;
         this.recipientRepository = recipientRepository;
@@ -83,9 +79,8 @@ public class MasterHomeService {
         // P61: the deliveries the Chief cook counted, waiting for the Master's approval: "1 counted by the Chief cook,
         // to approve" under the card's label.
         long counted = toReceive.stream().filter(ShipOrder::isCountToApprove).count();
+        // P65: no Approvals card: Approvals is a tab (phones) and a sidebar entry with the same number waiting.
         List<Card> cards = List.of(
-                Card.toDo("approvals", "approvals",
-                        requestRepository.countByStatusAndShipId(RequestStatus.PENDING, ship.getId()), "/ship/approvals"),
                 Card.toDo("order", "order",
                         orderLineRepository.countByOrderStatusOnShipOf(ShipOrderStatus.OPEN, email), "/ship/order"),
                 new Card("deliveries", "stores", toReceive.size(), deliveriesUrl, false, "deliveries.counted", counted),

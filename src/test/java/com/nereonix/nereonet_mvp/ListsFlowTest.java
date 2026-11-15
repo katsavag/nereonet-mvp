@@ -189,8 +189,14 @@ class ListsFlowTest {
         assertThat(names(html(get("/office/orders").param("q", "beta")))).containsExactly(number(exported.getId()));
         assertThat(names(html(get("/office/orders").param("q", "#" + firstId)))).containsExactly(number(firstId));
         assertThat(names(html(get("/office/orders").param("q", "#" + open.getId())))).isEmpty();
-        assertThat(names(html(get("/office/orders").param("status", "confirmed"))))
-                .containsExactly(number(exported.getId()));
+        // P65: delivery_scheduled, the select's value; delivery_pending and confirmed, older links, still filter it.
+        for (String value : List.of("delivery_scheduled", "delivery_pending", "confirmed")) {
+            assertThat(names(html(get("/office/orders").param("status", value))))
+                    .containsExactly(number(exported.getId()));
+        }
+        assertThat(html(get("/office/orders").param("status", "delivery_pending")))
+                .containsPattern("<option value=\"delivery_scheduled\"\\s+selected=\"selected\">Delivery scheduled</option>")
+                .contains("Status: Delivery scheduled");
         assertThat(names(html(get("/office/orders").param("shipId", beta.getId().toString()))))
                 .containsExactly(number(exported.getId()));
         String notExported = html(get("/office/orders").param("exported", "no"));

@@ -185,31 +185,31 @@
 </li>
 
 <!-- The crew's tab bar (P26): below 768px, ship users navigate with it instead of an offcanvas menu; from 768px the
-     sidebar has the same entries (layout/layout.html, group On board). Fixed at the bottom of the screen, above the
-     safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each entry is
-     tabItem. Four equal tabs since P47: Home, News (P27 announcements, "News" since P39), Library and More (P31), a link
-     to a page (/ship/more) listing Notifications (first, with its unread count, P47), the Master's Approvals and Ship
-     order, My profile, My crew and Sign out, which the sidebar shows directly from 768px.
-     More's badge is what waits behind it: the unread notifications plus, for the Master, the requests waiting for
-     them (P33), for the Chief cook the provisions Low or Out of stock (P52, Stores), and for the Chief cook and crew
-     members their requests still waiting for the Master (P54, Requests). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the number)
-     let js/notifications.js recount it after Mark as read. -->
+     sidebar has the same entries (layout/layout.html, groups On board and Supplies). Fixed at the bottom of the screen,
+     above the safe area of phones with a home indicator; body.has-tab-bar gives the page room for it (app.css). Each
+     entry is tabItem. Four equal tabs per role since P65, from shipNav.tabs (navigation/ShipNav, the one place that
+     decides them), then More: the Master Home, Approvals, Vessel order; the Chief cook Home, Stores, Requests; other
+     crew Home, News, Library (as since P47). More (P31) is a link to a page (/ship/more) listing Notifications (first,
+     with its unread count, P47) and whatever is not a tab, under the sidebar's headings.
+     More's badge is what waits behind it: the unread notifications plus the counters of the entries under it
+     (shipNav.moreBase). data-more-base (the part that is not notifications) and data-more-label (its words, {0} the
+     number) let js/notifications.js recount it after Mark as read. -->
 <nav th:fragment="tabBar" class="tab-bar d-md-none" th:attr="aria-label=#{nav.label}"
-     th:with="moreBase=${(approvalsWaiting ?: 0) + (storesBelowThreshold ?: 0) + (requestsWaiting ?: 0)}, moreCount=${moreBase + (unreadNotifications ?: 0)}"
+     th:with="moreBase=${shipNav.moreBase()}, moreCount=${moreBase + (unreadNotifications ?: 0)}"
      th:data-more-base="${moreBase}" th:data-more-label="#{nav.count.more('{0}')}">
     <ul class="tab-bar-list">
-        <li th:replace="~{layout/parts :: tabItem('home', '/ship', #{nav.home}, null, null)}"></li>
-        <li th:replace="~{layout/parts :: tabItem('announcements', '/ship/news', #{nav.news},
-                ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
-        <li th:replace="~{layout/parts :: tabItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
+        <th:block th:each="t : ${shipNav.tabs}">
+            <li th:replace="~{layout/parts :: tabItem(${t.section}, ${t.url}, ${#messages.msg(t.labelKey)}, ${t.count},
+                    ${t.countKey == null ? null : #messages.msg(t.countKey, t.countValue())})}"></li>
+        </th:block>
         <li th:replace="~{layout/parts :: tabItem('more', '/ship/more', #{nav.more},
                 ${moreCount}, #{nav.count.more(${moreCount})})}"></li>
     </ul>
 </nav>
 
 <!-- One tab of the tab bar (P26), with the same parameters as navItem: the icon over the label, the active one (the
-     tab of the URL's section, navTab from navigation/NavigationAdvice: the section itself, or More for My profile and
-     My crew, P31) in navy and semibold with a bar on its top edge and aria-current="page".
+     tab of the URL's section, navTab from navigation/NavigationAdvice: the section's own tab, or More for everything
+     under it, P65) in navy and semibold with a bar on its top edge and aria-current="page".
      count: a badge on the icon, hidden when null or zero, "99+" above 99; countLabel the same in words.
      data-nav: for js/notifications.js, which updates the count after Mark as read. -->
 <li th:fragment="tabItem(section, url, label, count, countLabel)" class="tab-bar-item" th:data-nav="${section}"

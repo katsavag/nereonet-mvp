@@ -8,8 +8,9 @@
 <p th:fragment="readOnlyNote" class="text-body-secondary" th:text="#{order.readOnly}">Only the Master can
     change or send the order.</p>
 
-<!-- An order's status as a badge: Collecting (neutral), Sent to office (neutral), Delivery scheduled (info: the Master
-     confirms receipt next, P51), Received (ok). The words carry the state, the colour repeats it.
+<!-- An order's status as a badge: Collecting (neutral), Pending (neutral; "Sent to office" before P65: a line near it
+     says it waits for the office, order.status.SENT.waiting), Delivery scheduled (info: the Master confirms receipt
+     next, P51), Received (ok). The words carry the state, the colour repeats it.
      Use: <span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span> -->
 <span th:fragment="statusBadge(status)"
       th:replace="~{layout/parts :: status(${status.name() == 'CONFIRMED'} ? 'info' : (${status.name() == 'CLOSED'} ? 'ok'

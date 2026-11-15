@@ -76,8 +76,9 @@ Requirements: Java 25, Docker.
    (sent and the delivery not scheduled yet; "1 not exported yet", counting only the Not exported items, to Orders
    filtered to Pending). From 1200px the tiles are
    a row of four and the page has two columns: **Needs attention** on the left (7/12) and, stacked on the right,
-   **By category**, **Next 30 days**, **Fleet** and **Recent activity**; from 768px the tiles are 2 × 2 and the
-   columns go under each other; on phones one column, the tiles two per row.
+   **Next 30 days**, **Fleet** and **Recent activity** (P65: the By category card is gone, the chips already show
+   each category with its count); from 768px the tiles are 2 × 2 and the columns go under each other; on phones one
+   column, the tiles two per row.
    - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
      1. certificate expired; then (P40, P41, see 25) a vessel's vetting: SIRE 2.0 operator comments overdue or due
      within 3 days, RightShip inspection expired, unacceptable or expiring within 60 days, SIRE 2.0 report no longer
@@ -107,11 +108,11 @@ Requirements: Java 25, Docker.
      keeps the vessel). **Open certificate** opens the form, which comes back to this page as it was (page, sort,
      filters) after Save or Cancel. With nothing open the card says "Nothing needs your attention" and when it was
      checked; a chip with nothing says "Nothing needs your attention here".
-   - **By category**: one tile per category with its open count in the tone of the category ("3 open" in red for
-     certificates, amber for orders) or a green "All clear", each a link to the full list: orders to
-     `/office/orders?exported=no` (not exported yet), certificates to `/office/certificates?status=expired,30&activeShips=true`
-     (exactly the certificates counted, see 12), vetting to `/office/vetting?status=attention`, required documents to
-     `/office/crew?status=active&documents=missing`, the others to this page filtered to that kind.
+     P65: with a chip selected, the card header links to that category's full list, **Open the full list** (what the
+     By category card linked to before): orders to `/office/orders?exported=no` (not exported yet), certificates to
+     `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see 12), vetting to
+     `/office/vetting?status=attention`, required documents to `/office/crew?status=active&documents=missing`
+     (`AttentionType.Group.listUrl`). Quotes, invitations and announcements have no full list, so no link.
    - **Next 30 days**: the coming dates in order, at most 8 (certificates expiring, RightShip inspections ending,
      SIRE 2.0 reports ending and operator comments due, order deliveries), each with the vessel and the record link;
      **See all** opens the list by date. Nothing that has passed, nothing snoozed.
@@ -431,8 +432,8 @@ Requirements: Java 25, Docker.
    to exactly what they count (each tested in `CertificatePlanningFlowTest`):
    - the sidebar counter (expired or within 30 days, every ship): the **Certificates** entry opens
      `?status=expired,30` while the counter shows; without a counter, the list as it is;
-   - the Overview's **By category** tile for certificates (the same, crew of active ships; P43, "Full lists" before):
-     `?status=expired,30&activeShips=true`;
+   - the Overview's Certificates chip, then **Open the full list** (the same, crew of active ships; P43, "Full
+     lists" before, P65 the By category tile before): `?status=expired,30&activeShips=true`;
    - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
    P43: the crew member's name in the list links to their page (`/office/crew/{id}/edit`), as in the Crew list; each
    row has a checkbox and **Snooze**, a snoozed certificate's row is muted with "Snoozed by … until …" and **Undo**,
@@ -790,14 +791,23 @@ Requirements: Java 25, Docker.
      of provisions Low and Out of stock ("2 low · 1 out of stock"), tinted while either is above zero.
    - From 992 px To read (and the Master's card) and the certificates sit side by side.
    - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
-     :: tabBar`) with **Home**, **News** (P27; "Announcements" before P39), **Library**, **Notifications** and **More** (P31: My profile,
-     My crew and Sign out, see 20) (the Notifications unread count as a badge on the icon, in words
-     for screen readers, kept up to date by `js/notifications.js` after Mark as read), each a 56 px target, the active
-     one navy and semibold with a bar on its top edge and `aria-current="page"`. It replaces the offcanvas menu and
-     the bell for ship users; office users keep both. From 768 px the sidebar has the same entries (On board: Home,
-     News, Library and, since P31, My crew; since P54 Requests for the Chief cook and crew members, see 31; Account:
-     Notifications and My profile). The page keeps room for the bar, and the offline banner and the
-     pinned **I have read this** sit above it.
+     :: tabBar`) with four tabs per role since P65, Home first and **More** last: the Master **Home**, **Approvals**
+     and **Vessel order**; the Chief cook **Home**, **Stores** and **Requests**; crew members **Home**, **News** (P27;
+     "Announcements" before P39) and **Library**. Each tab's counter is a badge on its icon, in words for screen
+     readers; each is a 56 px target, the active one navy and semibold with a bar on its top edge and
+     `aria-current="page"`. **More** (`/ship/more`, see 20) lists Notifications and My profile, then whatever is not a
+     tab under the sidebar's headings **On board** and **Supplies** (News and Library for the Master and the Chief
+     cook, My crew for everyone, Vessel order for the Chief cook, Requests for crew members), each with its counter;
+     the More tab's badge adds them up with the unread notifications (kept up to date by `js/notifications.js` after
+     Mark as read), and More is the active tab on their pages. One place decides the entries per role:
+     `navigation/ShipNav` (model attribute `shipNav`, with `navTab` from `NavigationAdvice`). It replaces the
+     offcanvas menu and the bell for ship users; office users keep both. From 768 px the sidebar has every entry (P65):
+     **On board** Home, News, Library and My crew; **Supplies**, in the order of the work, Requests (Chief cook, crew
+     members, see 31), Approvals (Master, 21), Vessel order (Master, Chief cook, 23) and Stores (Chief cook, 30);
+     **Account** My profile and Notifications. The page keeps room for the bar, and the offline banner and the pinned
+     **I have read this** sit above it.
+   - P65: Home's cards whose target became a tab with the same number are gone: the Master's **Requests to approve**
+     (the Approvals tab) and the Chief cook's **My requests** (the Requests tab; crew members keep the card).
    - The page loads no script of its own (only the layout's shared files) and no images, except since P31 the
      person's own 96 px photo when they have added one (about 2 KB, cached for a year). Measured with the dev data
      as `cook.demo@example.com` (Chrome, 390 px): the HTML is 19.6 KB; with an empty cache the whole page transfers
@@ -844,8 +854,8 @@ Requirements: Java 25, Docker.
      link (`/ship/profile/certificates/{id}/file`, see 12). Their crewmates never see them (My crew is unchanged).
      P42 (see 26): the required documents missing or expired come first, marked **Missing** or **Expired**, with the
      office's note and "Contact the office to add it."
-   - **Where**: on phones the tab bar's fifth tab is **More** (`/ship/more`): who is signed in, **My profile**, **My
-     crew** and **Sign out**. From 768 px the sidebar has **My crew** under On board and **My profile** under Account.
+   - **Where**: on phones the tab bar's last tab is **More** (`/ship/more`): who is signed in, **My profile**, **My
+     crew**, what else is not a tab (P65, see 18) and **Sign out**. From 768 px the sidebar has **My crew** under On board and **My profile** under Account.
      The person's photo (or initials) is next to their name on Home (18) and on My profile.
    - **My profile** (`/ship/profile`): the office's details as the header (name, "rank · ship", read only), "Your
      crewmates and the office can see what you fill in.", then four full-width rows, each its own page with **Save**
@@ -899,8 +909,8 @@ Requirements: Java 25, Docker.
    `approval/ApprovalController` and `ApprovalService`, `templates/approval/`; English only, as every crew screen.
    `/ship/approvals/**` is for MASTER only (`SecurityConfig`): the Chief cook and crew members get 403. A request of
    another ship is a 404.
-   - **Where**: **Approvals** in the sidebar under On board, with the number waiting as a pill; on phones it is the
-     first row of **More** (`/ship/more`), with the same number, and the More tab carries it as a badge.
+   - **Where**: **Approvals** in the sidebar under Supplies (P65), with the number waiting as a pill; on phones it is
+     the Master's second tab (P65; a row of More before), with the same number as a badge.
    - **List** (`/ship/approvals`): three tabs (ordinary links), each with its count (P48). **Pending** (the default):
      PENDING requests, oldest first. **Approved** (`?tab=approved`) and **Declined** (`?tab=declined`): APPROVED or
      REJECTED requests, newest decision first, each with "Approved" or "Declined" and the date. The old
@@ -954,7 +964,8 @@ Requirements: Java 25, Docker.
 
 23. The ship order and "Send to office" (P35, the Master only; the Chief cook reads it since P55, see 32). `core/order/ShipOrderService` (`changeQuantity`,
    `removeLine`, `send`) and `shiporder/` (`ShipOrderController`, `ShipOrderPageService`, `SendOrderForm`).
-   - **Ship order** ("Vessel order" on screen since P39) in the sidebar (on phones under More), with the Master's
+   - **Ship order** ("Vessel order" on screen since P39) in the sidebar under Supplies (on phones the Master's third
+     tab since P65, under More for the Chief cook), with the Master's
      counter (the Chief cook has the entry without it, P55). P59: it counts orders, not lines (it counted the lines of
      the OPEN order before): the orders that need the Master, the OPEN order once it has a line (to send) plus the
      CONFIRMED ones (to receive). One collecting order shows 1 whatever its number of lines; a collecting order and a
@@ -966,7 +977,7 @@ Requirements: Java 25, Docker.
      Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
      OPEN order, or with no lines: "Nothing to order yet. Approved requests are collected here."
    - **Orders in progress** (P59; before, a sent order was only under Past orders, so the Master did not find the
-     delivery to confirm): above the OPEN order, one card per order of the vessel that is SENT ("Sent to office") or
+     delivery to confirm): above the OPEN order, one card per order of the vessel that is SENT ("Pending"; "Sent to office" before P65) or
      CONFIRMED ("Delivery scheduled"), most urgent first: the scheduled deliveries by delivery date (earliest first),
      then the orders waiting for the office by sent date (waiting longest first). Each card: "Order #12", the status
      badge (`shiporder/parts :: statusBadge`), the number of items (lines the office did not remove) and one line:
@@ -993,8 +1004,11 @@ Requirements: Java 25, Docker.
      CLOSED), newest sent first, with status, requested port,
      needed by and, once the office has set them, confirmed port and delivery date. `/ship/orders/{id}` shows one
      with its lines (the OPEN one redirects to `/ship/order`).
-   - Status labels: OPEN "Collecting", SENT "Sent to office", CONFIRMED "Delivery scheduled" (P51; "Confirmed by
-     office" before), CLOSED "Received". The office says "Pending", "Delivery pending" and "Received" (P49, P51).
+   - Status labels (`order.status.*`, the same on the ship's pages and the office's, English and Greek, P65): OPEN
+     "Collecting", SENT "Pending" ("Sent to office" on board and "Pending" in the office before), CONFIRMED "Delivery
+     scheduled" (P51; "Confirmed by office" before, and "Delivery pending" in the office until P65), CLOSED
+     "Received". On the ship's pages a Pending order also says "Waiting for the office to schedule the delivery" (the
+     order page under the badge, All orders and the Master's home on its row, the Orders in progress card).
    - Another ship's line or order is a 404; crew members get 403, and so does the Chief cook for every POST (the
      cook reads the pages, P55). New column `ship_order.office_note`
      (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
@@ -1010,12 +1024,13 @@ Requirements: Java 25, Docker.
 
 24. Ship orders in the office (P36, office users only). `core/order/ShipOrderService` (`findSent`, `scheduleDelivery`,
    `export`, `countNotReceived`) and `officeorder/` (`OfficeOrderController`, `ConfirmOrderForm`).
-   - **Orders** in the sidebar (`/office/orders`), with the number of open orders: Pending plus Delivery pending (P51;
+   - **Orders** in the sidebar (`/office/orders`), with the number of open orders: Pending plus Delivery scheduled (P51;
      "2 open"). The list: the
      orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN ones, which are still being put together on
      board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Pending, Delivery
-     pending, Received) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`
-     Pending, `confirmed` Delivery pending, `closed` Received) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
+     scheduled, Received) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`
+     Pending, `delivery_scheduled` Delivery scheduled (P65; the older `delivery_pending` and `confirmed` still work),
+     `closed` Received) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
      the ship name or IMO number; 10 per page, 20, 50 or 100 on request (paged in the database). A row opens its order.
    - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
      scheduled delivery once set (port, delivery date, by whom) and when it was last exported; then its lines by category
@@ -1032,11 +1047,17 @@ Requirements: Java 25, Docker.
      ("Delivery changed by office", "Delivery changed: ..."), as often as needed. The office cannot close an order:
      only the Master's receipt does (P51, below); once CLOSED the form is gone and a POST changes nothing ("This order
      was received on board."). The order's row is locked while scheduling.
+     P65: the page has one primary button, its next step: **Schedule delivery** while Pending (**Done editing**
+     secondary, **Add to order** an outline primary); while Delivery scheduled, **Save delivery changes** ("Save
+     change" before) is an outline button until a field of the form changes (`js/forms.js`,
+     `data-primary-on-change`; primary too when the form came back with errors), so the page has none until then;
+     once Received, **Shortage handled** (or, with a read invoice, **Mark as matched**, P64).
    - **Export**: on the order page, and on the list for the checked rows (the header checkbox checks the page).
      `POST /office/orders/export` (`ids`) answers with the Excel file `ship-orders-<date>.xls` (P39; CSV before; `.xls` since P40; the
      format is in 12), sheet "Orders", one row per order line, the orders newest sent first and each order's lines by category
      and item name: `imo_number,ship_name,order_id,status,sent_at,requested_port,needed_by,confirmed_port,delivery_date,category,item_name,unit,quantity,sent_quantity,office_change,office_note,received_quantity,received_at`
-     (`status` `pending`, `delivery_pending` or `received` (P51; `confirmed`, `closed` before); P51: `received_quantity`
+     (`status` `pending`, `delivery_scheduled` or `received` (P51; `confirmed`, `closed` before; P65:
+     `delivery_scheduled`, `delivery_pending` before); P51: `received_quantity`
      a number and `received_at` a date and time cell in UTC, both empty until the order is received; `sent_at` a date and time cell in UTC, `needed_by` and `delivery_date` date cells, `quantity` a number,
      category `Provisions` or `Personal items`; P50: `quantity` is what to deliver, 0 for a line the office removed,
      `sent_quantity` what the ship sent (empty for a line the office added), `office_change` `changed`, `removed`,
@@ -1362,7 +1383,7 @@ Requirements: Java 25, Docker.
      (`returnTo`, only local paths; "2 items snoozed."). An item that no longer needs attention is dropped from the
      selection ("Nothing to snooze" when none is left).
    - **While snoozed**: the item leaves the sidebar counters (Certificates, Vetting), the Overview (the list, the
-     tiles, By category, Next 30 days and the Fleet counts; the Items tile says "3 snoozed") and the certificate
+     tiles, the chips, Next 30 days and the Fleet counts; the Items tile says "3 snoozed") and the certificate
      reminder emails; it stays in its list, muted, with "Snoozed by Jane Office until 12 Dec 2026" and **Undo** (any
      office user; POST, comes back with "Snooze undone: the item is back."). The Status filters of the two lists leave
      snoozed items out; **Snoozed** lists them. The certificate or the vetting data do not change.
@@ -1550,9 +1571,9 @@ Requirements: Java 25, Docker.
        movements, newest first; `lastCount(ship)` the latest COUNT movement; `count(cook, item, quantity, note)` and
        `history(ship, type, from, to, page)` (P53, below).
      A delivery adds to the stock when the Master confirms its receipt (P56, `receive`, see 33).
-   - **Where**: **Stores** in the sidebar under On board, with the number of provisions Low or Out of stock as a pill
-     (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is a row of **More**
-     (`/ship/more`) with the same number, and the More tab carries it in its badge, as the Master's Approvals (21).
+   - **Where**: **Stores** in the sidebar under Supplies (P65), with the number of provisions Low or Out of stock as a
+     pill (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is the Chief cook's second tab
+     (P65; a row of More before) with the same number as a badge.
      The cook's Home (18) has a **Stores** card above To read with both counts ("2 low · 1 out of stock"), tinted
      while either is above zero. The Master's home gets its Stores card later.
    - **The store** (`/ship/stores`, titled "Stores"): a summary first, **Low** and **Out of stock** (each a link to
@@ -1622,10 +1643,11 @@ Requirements: Java 25, Docker.
    `js/request-form.js`; styles in `app.css`, "Requests (P54)". English only, as every crew screen.
    `/ship/requests` and `/ship/requests/**` are for CHIEF_COOK and CREW_MEMBER (`SecurityConfig`): the Master does not
    ask, they decide (21, 22), and gets 403. A request is not an order: only an approved one goes into the ship order.
-   - **Where**: **Requests** in the sidebar under On board, with the number of the person's own requests still waiting
-     for the Master (one count query, `ItemRequestRepository.countByRequestedByEmailAndStatus`); on phones a row of
-     **More** with the same number, and the More tab carries it in its badge, as the Master's Approvals. Home (18) has
-     a **My requests** card ("1 waiting", for the cook after Stores), and the cook's Stores summary a **Requests
+   - **Where**: **Requests** in the sidebar under Supplies (P65), with the number of the person's own requests still
+     waiting for the Master (one count query, `ItemRequestRepository.countByRequestedByEmailAndStatus`); on phones the
+     Chief cook's third tab (P65) and a row of **More** for crew members, with the same number (the More tab adds it
+     to its badge). Home (18) has a **My requests** card for crew members ("1 waiting"; the cook's until P65), and the
+     cook's Stores summary a **Requests
      waiting** tile (30).
    - **List** (`/ship/requests`): the signed-in person's own requests, newest first: the request number (one link over
      the row), when it was sent (UTC), the number of items and the status (`request.status.*`: Waiting for the master,
@@ -2329,7 +2351,8 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
       Orders (P36, see 24), Suppliers (P44, see 28)),
       **Administration** (Office users, Audit log), **Account** (Notifications; the language switch moved to the top
       bar, P29); crew: **On board**
-      (Home `/ship`, Announcements `/ship/announcements`, Library) and **Account** (Notifications). The user block (name,
+      (Home `/ship`, News `/ship/news`, Library, My crew), **Supplies** (P65: Requests, Approvals, Vessel order,
+      Stores, per role, see 18) and **Account** (My profile, Notifications). The user block (name,
       role, **Sign out**) is pinned at the bottom; when the window is shorter than the navigation, only the navigation
       scrolls. The brand (logo and name) links to the user's home page (`/office` or `/ship`);
     - the entry of the current section is active: lighter background, a 3 px pink bar on its left edge, white semibold

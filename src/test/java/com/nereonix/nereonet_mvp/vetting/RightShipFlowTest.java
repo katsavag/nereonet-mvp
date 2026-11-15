@@ -349,8 +349,10 @@ class RightShipFlowTest {
 
         String overview = html(get("/office"));
         assertThat(overview).contains("RightShip inspection", "Expires in 38 days", "Open RightShip",
-                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "<span class=\"category-tile-label\">Vetting</span>",
-                "href=\"/office/vetting?status=attention\"");
+                "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "<span>Vetting</span>");
+        // P65: the Vetting chip selected, the full list of the vessels needing attention.
+        assertThat(html(get("/office").param("type", "vetting")))
+                .contains("href=\"/office/vetting?status=attention\">Open the full list</a>");
 
         String ships = html(get("/office/ships").param("sort", "score"));
         assertThat(names(ships)).containsExactly("ALDER", "LAUREL", "MV Demo");

@@ -6,10 +6,12 @@
      and vessel filters); groups: every AttentionType.Group; overviewUrl: this page as it is, sent as returnTo so the
      forms come back here; countries: the fleet's flags.
      Layout: from 1200px a row of four stat tiles, then two columns, "Needs attention" (7/12) and the stacked cards
-     (5/12: By category, Next 30 days, Fleet, Recent activity); from 768 to 1199px the tiles 2 x 2 and the columns
+     (5/12: Next 30 days, Fleet, Recent activity); from 768 to 1199px the tiles 2 x 2 and the columns
      under each other; on phones one column, Needs attention first (the tiles are above it, two per row).
      Needs attention: one row per open item, most urgent first (AttentionType; ?sort=date for the dates), 10 a page
-     (P19), filter chips by category with counts (links, so they work without JavaScript; /office?type=...). Each row:
+     (P19), filter chips by category with counts (links, so they work without JavaScript; /office?type=...); with a
+     chip selected whose kind has a full list elsewhere (AttentionType.Group.listUrl), the header links to it (P65:
+     "Open the full list", in place of the By category card). Each row:
      the status badge with an icon and the kind, the title linking to the record, the vessel, the date, and one action;
      a certificate or vetting item also has its checkbox and Snooze (P43: the snooze page). Snoozed items are left out.
      First run (P25): setup (DashboardService.Setup) is a checklist of four steps, shown until all are done. While there
@@ -85,6 +87,8 @@
         <div class="card-header attention-header">
             <h2 class="h5 fw-bold mb-0" id="attentionTitle" th:text="#{dashboard.attention.heading}">Needs attention</h2>
             <div class="attention-header-tools">
+                <a th:if="${d.group != null and d.group.listUrl() != null}" class="overview-card-link"
+                   th:href="@{${d.group.listUrl()}}" th:text="#{dashboard.attention.fullList}">Open the full list</a>
                 <p class="attention-total"><span class="visually-hidden" th:text="#{dashboard.attention.totalLabel}">Open items:</span>
                     <span class="num" th:text="${d.items.totalElements}">11</span></p>
                 <button th:unless="${d.items.isEmpty()}" th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button>
@@ -441,28 +445,7 @@
     </section>
 
     <div class="overview-side">
-        <!-- a. By category (P43): a tile per kind with its open count, a status icon and the link to its full list. -->
-        <section class="card overview-card" aria-labelledby="categoryTitle">
-            <div class="card-header overview-card-header">
-                <h2 class="overview-card-title" id="categoryTitle" th:text="#{dashboard.category.heading}">By category</h2>
-            </div>
-            <ul class="category-tiles">
-                <li th:each="g : ${groups}" th:with="n=${d.countOf(g)}">
-                    <a class="category-tile" th:href="${g.listUrl() != null} ? @{${g.listUrl()}} : @{/office(type=${g.param()})}">
-                        <span class="category-tile-icon" aria-hidden="true"><svg th:replace="~{layout/parts :: navIcon(${g.icon()})}"></svg></span>
-                        <span class="category-tile-text">
-                            <span class="category-tile-label" th:text="#{${'dashboard.category.' + g.name()}}">Certificates</span>
-                            <span class="category-tile-count">
-                                <th:block th:if="${n > 0}"><span th:replace="~{layout/parts :: statusIcon(${g.tone()}, #{dashboard.category.open(${n})}, ${g.tone() == 'danger'} ? 'alert' : (${g.tone() == 'warning'} ? 'clock' : 'eye'))}"></span></th:block>
-                                <th:block th:unless="${n > 0}"><span th:replace="~{layout/parts :: statusIcon('ok', #{dashboard.category.allClear}, 'check')}"></span></th:block>
-                            </span>
-                        </span>
-                    </a>
-                </li>
-            </ul>
-        </section>
-
-        <!-- b. Next 30 days: the coming dates in order, at most 8, See all to the list by date. -->
+        <!-- a. Next 30 days: the coming dates in order, at most 8, See all to the list by date. -->
         <section class="card overview-card" aria-labelledby="upcomingTitle">
             <div class="card-header overview-card-header">
                 <h2 class="overview-card-title" id="upcomingTitle" th:text="#{dashboard.upcoming.heading}">Next 30 days</h2>
@@ -485,7 +468,7 @@
             </ul>
         </section>
 
-        <!-- c. Fleet: one compact row per vessel, those with open items first, at most 8. -->
+        <!-- b. Fleet: one compact row per vessel, those with open items first, at most 8. -->
         <section class="card overview-card" aria-labelledby="fleetTitle">
             <div class="card-header overview-card-header">
                 <h2 class="overview-card-title" id="fleetTitle" th:text="#{dashboard.fleet.heading}">Fleet</h2>
@@ -531,7 +514,7 @@
             </div>
         </section>
 
-        <!-- d. Recent activity: the last 5 audit entries with the time (UTC). -->
+        <!-- c. Recent activity: the last 5 audit entries with the time (UTC). -->
         <section class="card overview-card" aria-labelledby="recentTitle">
             <div class="card-header overview-card-header">
                 <h2 class="overview-card-title" id="recentTitle" th:text="#{dashboard.recent.heading}">Recent activity</h2>

@@ -206,6 +206,10 @@ class OrderReceiptFlowTest {
                         "/office/orders/" + order.getId() + "/receipt/" + files.getFirst().getId(), ">Received</span>",
                         "Short by 5 kg", "Not delivered", "Two bags torn", "/shortage-handled\"")
                 .doesNotContain("id=\"confirmTitle\"");
+        // P65: received with the shortage open, Shortage handled is the page's one primary button.
+        assertThat(java.util.regex.Pattern.compile("class=\"btn btn-primary\"[^>]*>([^<]*)<")
+                .matcher(office.substring(office.indexOf("<main"), office.indexOf("</main>"))).results()
+                .map(m -> m.group(1).strip()).toList()).containsExactly("Shortage handled");
         mockMvc.perform(get("/office/orders/{id}/receipt/{f}", order.getId(), files.getFirst().getId()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline")))
@@ -452,7 +456,7 @@ class OrderReceiptFlowTest {
         mockMvc.perform(get("/ship/orders/{id}/receipt", order.getId()).with(user(new CurrentUser(otherMaster))))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/ship/orders/{id}/receipt", order.getId())).andExpect(status().isForbidden());
-        assertThat(page("/office/orders/" + order.getId())).contains(">Delivery pending</span>", "Change delivery")
+        assertThat(page("/office/orders/" + order.getId())).contains(">Delivery scheduled</span>", "Change delivery")
                 .doesNotContain("Receipt on board");
     }
 

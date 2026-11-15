@@ -1373,7 +1373,7 @@ fieldset:disabled button.btn {
      - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
        (.overview-side, 5/12); under each other below that, Needs attention first.
      - .attention: the "Needs attention" card. Header: title, the number of open items and Snooze selected
-       (.attention-header-tools). .attention-chips: the filter chips by category (.chip, with its count; the current
+       (.attention-header-tools; with a chip selected, "Open the full list" too, P65). .attention-chips: the filter chips by category (.chip, with its count; the current
        one filled) and the order (Most urgent / By date, a view-switch). .attention-filter: a vessel filter
        (/office?shipId=...), with the way back to all.
      - .attention-item: one open item, compact: the checkbox of a snoozable item (.attention-select), then the status
@@ -1384,8 +1384,7 @@ fieldset:disabled button.btn {
        cut with an ellipsis) and the actions across; below that they wrap and the actions go under the text.
      - .attention-empty: "Nothing needs your attention" and the time of the last check.
      - .overview-card: a card of the right column with a header (title and a link on the right), one of:
-       .category-tiles (two per row: icon, the kind, its open count as a status badge), .upcoming-list (the date, what,
-       the vessel), .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
+       .upcoming-list (the date, what, the vessel), .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
        who, the vessel, when). An empty card shows the P25 empty state, compact.
      - .status-badge-icon: a status badge (layout/parts :: statusIcon) with a 12px icon in place of the dot.
      - .count-zero / .count-link: a count in the fleet table (layout/parts :: countLink); zero is a muted dash.
@@ -1505,50 +1504,6 @@ fieldset:disabled button.btn {
     color: var(--nn-text-secondary);
 }
 
-/* By category */
-.category-tiles {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    background-color: var(--nn-divider);
-    border-top: 1px solid var(--nn-divider);
-    border-radius: 0 0 var(--nn-radius-card) var(--nn-radius-card);
-    overflow: hidden;
-}
-.category-tile {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-3);
-    height: 100%;
-    min-height: 4rem;
-    padding: var(--nn-space-3) var(--nn-space-4);
-    background-color: var(--nn-surface);
-    color: var(--nn-text);
-    text-decoration: none;
-}
-.category-tile:hover { color: var(--nn-text); background-color: var(--nn-hover); }
-.category-tile:hover .category-tile-label { text-decoration: underline; }
-.category-tile-icon {
-    flex: none;
-    color: var(--nn-text-secondary);
-}
-.category-tile-icon > svg { width: 20px; height: 20px; }
-.category-tile-text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--nn-space-1);
-    min-width: 0;
-}
-.category-tile-label {
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-.category-tile-count .status-badge { white-space: nowrap; }
-
 /* Next 30 days */
 .upcoming-item {
     display: flex;
@@ -1667,6 +1622,8 @@ fieldset:disabled button.btn {
 .attention-sort .view-switch { margin: 0; }
 .attention-header-tools {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
     gap: var(--nn-space-3);
 }
@@ -3833,8 +3790,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        line above, padded over the safe area of phones with a home indicator. Four equal columns (P47).
      - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
        aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
-     - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the Master's
-       approvals, P47), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
+     - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the counters
+       of what is under it, P47, P65), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
    The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
    this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
    --------------------------------------------------------------------------------------------------------------- */
@@ -3863,7 +3820,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .tab-bar-list {
     display: grid;
     grid-auto-flow: column;
-    /* Four equal tabs (P47: Home, News, Library, More); the labels are short enough for a 320px phone. */
+    /* Four equal tabs (P47; per role since P65, navigation/ShipNav); a long label ("Vessel order") wraps. */
     grid-auto-columns: minmax(0, 1fr);
     margin: 0;
     padding: 0;
@@ -4842,6 +4799,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     overflow-wrap: anywhere;
 }
 .more-links { margin-bottom: var(--nn-section-gap); }
+/* P65: the More page's group headings (On board, Supplies), as the sidebar's groups. */
+.more-group-title {
+    margin: var(--nn-section-gap) 0 var(--nn-space-3);
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+}
 @media (max-width: 575.98px) {
     .more-sign-out { width: 100%; }
 }

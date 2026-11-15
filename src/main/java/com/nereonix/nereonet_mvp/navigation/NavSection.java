@@ -4,8 +4,8 @@ import java.util.List;
 
 /**
  * The sidebar entry a URL belongs to. A page below an entry keeps it active: /office/crew/12/edit is CREW,
- * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew'); tab() is the crew's
- * phone tab bar entry (navTab == 'more'), the same except for the entries under More (P31).
+ * /office/ships/3/library is SHIPS. key() is what the layout compares (navSection == 'crew'); the ship user's phone
+ * tab of a section depends on their role (ShipNav.tabOf, P65).
  */
 public enum NavSection {
 
@@ -32,16 +32,17 @@ public enum NavSection {
     // Ship. Home is /ship itself only (P26), see of().
     HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
-    // The Master's approvals (P33). On phones it is under More, so More is its tab.
+    // The Master's approvals (P33). On phones a tab of the Master's since P65 (ShipNav).
     APPROVALS("approvals", List.of("/ship/approvals")),
-    // The Master's ship order and past orders (P35). On phones under More, as Approvals.
+    // The Master's ship order and past orders (P35). On phones a tab of the Master's since P65.
     ORDER("order", List.of("/ship/order", "/ship/orders")),
-    // The Chief cook's store (P52). On phones under More, as Approvals.
+    // The Chief cook's store (P52). On phones a tab of the Chief cook's since P65.
     STORES("stores", List.of("/ship/stores")),
-    // The Chief cook's and crew's own requests to the Master (P54). On phones under More, as Approvals.
+    // The Chief cook's and crew's own requests to the Master (P54). On phones a tab of the Chief cook's since P65,
+    // under More for crew members.
     REQUESTS("requests", List.of("/ship/requests")),
-    // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of My profile, My crew and Sign
-    // out; it has no sidebar entry.
+    // Ship, Account: My profile (P31). More (/ship/more) is the phone tab bar's list of what is not a tab (P65) and
+    // Sign out; it has no sidebar entry.
     PROFILE("profile", List.of("/ship/profile")),
     MORE("more", List.of("/ship/more")),
     // Account, everyone
@@ -57,14 +58,6 @@ public enum NavSection {
 
     public String key() {
         return key;
-    }
-
-    /** The phone tab (P26) that is active on this section's pages: More for My profile, My crew and More itself
-     *  (P31), for Approvals (P33), Ship order (P35), Stores (P52) and Requests (P54), and for Notifications (P47: no
-     *  longer a tab of its own); every other section is its own tab. The office has no tab bar. */
-    public String tab() {
-        return this == PROFILE || this == MORE || this == CREW || this == APPROVALS || this == ORDER
-                || this == STORES || this == REQUESTS || this == NOTIFICATIONS ? MORE.key : key;
     }
 
     /**

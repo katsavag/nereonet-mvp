@@ -190,27 +190,26 @@ class ShipHomeFlowTest {
 
     @Test
     void crewNavigateWithTheTabBarOnPhones() throws Exception {
-        notificationService.notify(cook, NotificationType.LIBRARY, "MV Demo", "New document to read",
+        notificationService.notify(crew, NotificationType.LIBRARY, "MV Demo", "New document to read",
                 "/ship/library/" + policy.getId());
-        String html = home(cook);
+        String html = home(crew);
 
-        // The tab bar (P47): Home (active), News, Library and More, four tabs; Notifications is on the More page, and
-        // its unread count is on the More tab, in words too.
+        // The tab bar (P47): for crew members Home (active), News, Library and More, four tabs; Notifications is on
+        // the More page, and its unread count is on the More tab, in words too.
         String tabBar = section(TAB_BAR, html);
-        assertThat(Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
-                .map(m -> m.group(1)).toList()).containsExactly("/ship", "/ship/news", "/ship/library", "/ship/more");
+        assertThat(tabs(tabBar)).containsExactly("/ship", "/ship/news", "/ship/library", "/ship/more");
         assertThat(tabBar).contains("aria-label=\"Main navigation\"",
                         "<a class=\"tab-bar-link active\" href=\"/ship\" aria-current=\"page\">")
                 .containsPattern("(?s)href=\"/ship/more\".*?<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>"
                         + ".*?<span class=\"visually-hidden\">1 new or waiting</span>")
                 .doesNotContain("/notifications");
         // The More page: Notifications first, with its count; on the notifications page More is the active tab.
-        String more = html(get("/ship/more").with(user(new CurrentUser(cook))));
+        String more = html(get("/ship/more").with(user(new CurrentUser(crew))));
         assertThat(more).containsSubsequence("<ul class=\"profile-rows\">", "href=\"/notifications\"", "Notifications",
                 "<span class=\"more-count num\" aria-hidden=\"true\">1</span>", "1 unread", "href=\"/ship/profile\"");
-        assertThat(section(TAB_BAR, html(get("/notifications").with(user(new CurrentUser(cook))))))
+        assertThat(section(TAB_BAR, html(get("/notifications").with(user(new CurrentUser(crew))))))
                 .contains("<a class=\"tab-bar-link active\" href=\"/ship/more\" aria-current=\"page\">");
-        assertThat(section(TAB_BAR, html(get("/ship/library").with(user(new CurrentUser(cook))))))
+        assertThat(section(TAB_BAR, html(get("/ship/library").with(user(new CurrentUser(crew))))))
                 .contains("<a class=\"tab-bar-link active\" href=\"/ship/library\" aria-current=\"page\">");
         // No offcanvas menu button and no bell for the crew: the tab bar and its More page have both.
         assertThat(html).containsPattern("<body[^>]* class=\"has-tab-bar[ \"]")
@@ -222,7 +221,52 @@ class ShipHomeFlowTest {
                 + " width=\"32\" height=\"32\" alt=\"\" loading=\"lazy\">");
         assertThat(html.replaceAll("<img class=\"brand-mark\"[^>]*>", ""))
                 .doesNotContain("<img", "<picture", "url(", "<script>");
-        assertThat(scripts(html)).isEqualTo(scripts(html(get("/ship/library").with(user(new CurrentUser(cook))))));
+        assertThat(scripts(html)).isEqualTo(scripts(html(get("/ship/library").with(user(new CurrentUser(crew))))));
+    }
+
+    // P65: four tabs per role, Home first and More last; whatever left the bar is on the More page under the sidebar's
+    // headings, with its counter, and the More tab adds up what is under it.
+    @Test
+    @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
+    void theTabsFitTheRole() throws Exception {
+        announcementService.create("Safety drill", "Drill on Friday.", false, List.of(ship.getId()),
+                "office@example.com");
+
+        // The Master: Approvals and Vessel order are tabs (active on their pages); News and Library are under More,
+        // and so is the news not opened yet, on the More tab.
+        String masterBar = section(TAB_BAR, home(master));
+        assertThat(tabs(masterBar)).containsExactly("/ship", "/ship/approvals", "/ship/order", "/ship/more");
+        assertThat(masterBar).contains("<span class=\"tab-bar-label\">Approvals</span>",
+                        "<span class=\"tab-bar-label\">Vessel order</span>", "data-more-base=\"1\"")
+                // The news not opened yet plus its notification.
+                .containsPattern("(?s)href=\"/ship/more\".*?<span class=\"tab-bar-count num\" aria-hidden=\"true\">2</span>");
+        assertThat(section(TAB_BAR, html(get("/ship/approvals").with(user(new CurrentUser(master))))))
+                .contains("<a class=\"tab-bar-link active\" href=\"/ship/approvals\" aria-current=\"page\">");
+        assertThat(section(TAB_BAR, html(get("/ship/news").with(user(new CurrentUser(master))))))
+                .contains("<a class=\"tab-bar-link active\" href=\"/ship/more\" aria-current=\"page\">");
+        String masterMore = html(get("/ship/more").with(user(new CurrentUser(master))));
+        assertThat(moreLinks(masterMore)).containsExactly("/notifications", "/ship/profile", "/ship/news",
+                "/ship/library", "/ship/crew");
+        assertThat(masterMore).contains("<h2 class=\"more-group-title\" id=\"moreOnBoard\">On board</h2>")
+                .doesNotContain("id=\"moreSupplies\"")
+                .containsPattern("(?s)href=\"/ship/news\">.*?<span class=\"more-count num\" aria-hidden=\"true\">1</span>"
+                        + "\\s*<span class=\"visually-hidden\">1 unread</span>");
+
+        // The Chief cook: Stores and Requests; News, Library and Vessel order under More.
+        String cookBar = section(TAB_BAR, home(cook));
+        assertThat(tabs(cookBar)).containsExactly("/ship", "/ship/stores", "/ship/requests", "/ship/more");
+        assertThat(section(TAB_BAR, html(get("/ship/library").with(user(new CurrentUser(cook))))))
+                .contains("<a class=\"tab-bar-link active\" href=\"/ship/more\" aria-current=\"page\">");
+        String cookMore = html(get("/ship/more").with(user(new CurrentUser(cook))));
+        assertThat(moreLinks(cookMore)).containsExactly("/notifications", "/ship/profile", "/ship/news",
+                "/ship/library", "/ship/crew", "/ship/order");
+        assertThat(cookMore).containsSubsequence("id=\"moreOnBoard\">On board</h2>",
+                "<h2 class=\"more-group-title\" id=\"moreSupplies\">Supplies</h2>",
+                "<ul class=\"profile-rows\" aria-labelledby=\"moreSupplies\">", "href=\"/ship/order\"");
+
+        // Crew members: as before, Requests and My crew under More.
+        assertThat(moreLinks(html(get("/ship/more").with(user(new CurrentUser(crew))))))
+                .containsExactly("/notifications", "/ship/profile", "/ship/crew", "/ship/requests");
     }
 
     @Test
@@ -232,6 +276,19 @@ class ShipHomeFlowTest {
         assertThat(html).contains("data-bs-target=\"#sidebar\"", "id=\"notificationBell\"")
                 .doesNotContain("class=\"tab-bar", "class=\"has-tab-bar\"");
         mockMvc.perform(get("/ship")).andExpect(status().isForbidden());
+    }
+
+    private static List<String> tabs(String tabBar) {
+        return Pattern.compile("class=\"tab-bar-link[^\"]*\" href=\"([^\"]+)\"").matcher(tabBar).results()
+                .map(m -> m.group(1)).toList();
+    }
+
+    /** The rows of the More page, in order. */
+    private static List<String> moreLinks(String html) {
+        String nav = html.substring(html.indexOf("<nav class=\"more-links\""));
+        nav = nav.substring(0, nav.indexOf("</nav>"));
+        return Pattern.compile("<a class=\"profile-row\" href=\"([^\"]+)\"").matcher(nav).results()
+                .map(m -> m.group(1)).toList();
     }
 
     private String home(User u) throws Exception {

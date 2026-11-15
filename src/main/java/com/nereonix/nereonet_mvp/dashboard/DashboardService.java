@@ -62,7 +62,7 @@ import com.nereonix.nereonet_mvp.requirement.RequiredDocument;
 
 /**
  * The office Overview (P09, P43): four stat tiles, a work list of open items ("Needs attention", paged, filtered by
- * category or vessel), and the cards By category, Next 30 days, Fleet and Recent activity; also the Overview tab of
+ * category or vessel), and the cards Next 30 days, Fleet and Recent activity; also the Overview tab of
  * the ship page.
  *
  * load() always runs the same 13 queries, whatever the size of the fleet: the active ships with their crew, the
@@ -435,7 +435,7 @@ public class DashboardService {
                            long ordersNotExported, long openItems) {
     }
 
-    /** A kind of open item with its number (not snoozed), for the chips and the By category card. */
+    /** A kind of open item with its number (not snoozed), for the filter chips. */
     public record GroupCount(Group group, long count) {
     }
 

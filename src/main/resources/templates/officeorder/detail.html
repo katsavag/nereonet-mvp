@@ -9,7 +9,7 @@
      is told, a note says so with "Done editing". Once the delivery is scheduled the lines are read-only.
      Export (the page action) downloads an Excel workbook of
      this order's file and marks it exported. While SENT, "Schedule delivery" with the delivery port (the requested
-     port to start with) and the date (P51; "Confirm delivery" before); while CONFIRMED ("Delivery pending") "Change
+     port to start with) and the date (P51; "Confirm delivery" before); while CONFIRMED ("Delivery scheduled") "Change
      delivery". The office never closes an order: the Master confirms receipt on board (P51). Then "Receipt on board":
      received when and by whom, the delivery receipt's files (Open in a new tab, P22; Download), per line ordered vs
      received with shortages marked ("Short by 5 kg"), and while lines are short and not handled, "Shortage handled"
@@ -21,7 +21,11 @@
      onOrderGroups (OfficeOrderController.LineGroup: the lines not removed).
      P59: Add an item and Schedule delivery are as wide as the cards above them (.form-box-full) and from 992px lay
      their fields out in a row with the button at its end (.form-row-wide). P60: the line quantities and Add an item follow the rule of the item's unit, the limit
-     under the field (README 35). -->
+     under the field (README 35).
+     P65: one primary button, the page's next step: Schedule delivery while Pending; while Delivery scheduled, "Save
+     delivery changes" only once a field of it changed (an outline button until then, js/forms.js
+     data-primary-on-change; primary when the form came back with errors), else none; once Received, Shortage handled
+     (or the comparison's Mark as matched). Done editing is secondary, Add to order an outline primary. -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.number(${order.id})}, crumbs=~{::pageCrumbs},
             eyebrowShip=${order.ship}, actions=~{::pageActions})}">
@@ -194,7 +198,7 @@
         <p class="mb-0" th:text="#{officeorder.edit.pending}">The master and the chief cook haven't been told about your
             changes yet. They are told when you press Done editing, or 10 minutes after your last change.</p>
         <form method="post" th:action="@{/office/orders/{id}/edits/done(id=${order.id})}">
-            <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.finish}">Done editing</button>
+            <button type="submit" class="btn btn-outline-secondary" th:text="#{officeorder.edit.finish}">Done editing</button>
         </form>
     </div>
     <p th:if="${editable and !editPending}" class="text-body-secondary small" th:text="#{officeorder.edit.hint}">You can
@@ -375,7 +379,7 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" th:text="#{officeorder.edit.add.submit}">Add to order</button>
+                        <button type="submit" class="btn btn-outline-primary" th:text="#{officeorder.edit.add.submit}">Add to order</button>
                     </div>
                 </th:block>
             </form>
@@ -412,8 +416,11 @@
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary"
-                            th:text="${order.status.name() == 'CONFIRMED'} ? #{officeorder.confirm.save} : #{officeorder.confirm.submit}">Confirm delivery</button>
+                    <button type="submit" class="btn"
+                            th:with="quiet=${order.status.name() == 'CONFIRMED' and !#fields.hasAnyErrors()}"
+                            th:classappend="${quiet} ? 'btn-outline-secondary' : 'btn-primary'"
+                            th:attr="data-primary-on-change=${quiet} ? 'true' : null"
+                            th:text="${order.status.name() == 'CONFIRMED'} ? #{officeorder.confirm.save} : #{officeorder.confirm.submit}">Schedule delivery</button>
                 </div>
             </form>
         </div>

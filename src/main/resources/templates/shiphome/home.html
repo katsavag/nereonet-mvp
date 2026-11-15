@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
 <body>
 <!-- The crew home page (P26), for the Chief cook and Crew members (the Master has masterhome/home): what this person is asked to read and whether their certificates are in order, in one
      phone screen. English only, as every crew screen. Read only. No images (but the person's own
@@ -20,9 +20,9 @@
     <!-- P52, the Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
          number of provisions Low and Out of stock. Styled as the cards of the Master's home: tinted, with "to do"
          for screen readers, while anything is Low or Out of stock.
-         P54, the Chief cook and crew members: the Requests card, one link to /ship/requests with the number of their
-         requests still waiting for the Master (requestsWaiting, from NavigationAdvice). Not tinted: the waiting is the
-         Master's, not theirs. -->
+         P54, crew members (the Chief cook too until P65, when Requests became the cook's tab with the same number): the
+         Requests card, one link to /ship/requests with the number of their requests still waiting for the Master
+         (requestsWaiting, from NavigationAdvice). Not tinted: the waiting is the Master's, not theirs. -->
     <section class="home-section" aria-labelledby="homeCardsTitle">
         <h2 class="visually-hidden" id="homeCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
         <ul class="master-cards">
@@ -40,7 +40,7 @@
                     <span th:if="${stores.any()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
                 </a>
             </li>
-            <li>
+            <li sec:authorize="hasRole('CREW_MEMBER')">
                 <a class="master-card" th:href="@{/ship/requests}" data-card="requests">
                     <span class="master-card-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon('requests')}"></svg></span>

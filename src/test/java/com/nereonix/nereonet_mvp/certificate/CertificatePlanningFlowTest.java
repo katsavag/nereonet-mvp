@@ -167,12 +167,15 @@ class CertificatePlanningFlowTest {
     void eachCertificateCountOnTheOverviewLinksToAListOfExactlyThatCount() throws Exception {
         String overview = html(get("/office"));
 
-        // a. The By category card (P43): certificates expired or expiring within 30 days, crew of active ships.
-        Matcher full = Pattern.compile("(?s)<a class=\"category-tile\" href=\"(/office/certificates[^\"]*)\">.*?"
-                + "<span class=\"category-tile-label\">Certificates</span>.*?<span>(\\d+) open</span>")
+        // a. The Certificates chip (P43): certificates expired or expiring within 30 days, crew of active ships; with
+        // it selected, "Open the full list" (P65; the By category card before) lists exactly that many.
+        Matcher chip = Pattern.compile("(?s)<span>Certificates</span>\\s*<span class=\"chip-count num\">(\\d+)</span>")
                 .matcher(overview);
+        assertThat(chip.find()).isTrue();
+        assertThat(chip.group(1)).isEqualTo("3");
+        Matcher full = Pattern.compile("href=\"(/office/certificates[^\"]*)\">Open the full list</a>")
+                .matcher(html(get("/office").param("type", "certificates")));
         assertThat(full.find()).isTrue();
-        assertThat(full.group(2)).isEqualTo("3");
         assertThat(count(html(url(full.group(1))))).isEqualTo(3);
 
         // b. The Fleet card (P43): each active ship's open items link to the Overview filtered to that ship, which

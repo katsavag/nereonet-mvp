@@ -160,7 +160,7 @@ class OfficeOrderFlowTest {
                 .andReturn();
         XlsSheet sheet = XlsSheet.of(export.getResponse().getContentAsByteArray());
         assertThat(sheet.name()).isEqualTo("Orders");
-        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(), "delivery_pending",
+        List<Object> common = List.of("9074729", "MV Demo", order.getId().doubleValue(), "delivery_scheduled",
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
         assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
         assertThat(sheet.body()).containsExactly(
@@ -173,7 +173,7 @@ class OfficeOrderFlowTest {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");
             assertThat(e.getShip().getId()).isEqualTo(ship.getId());
         });
-        assertThat(page("/office/orders")).contains(">Delivery pending</span>", ">Exported</span>").doesNotContain("Not yet");
+        assertThat(page("/office/orders")).contains(">Delivery scheduled</span>", ">Exported</span>").doesNotContain("Not yet");
     }
 
     @Test
@@ -190,7 +190,7 @@ class OfficeOrderFlowTest {
         assertThat(notifications(master)).isEmpty();
 
         confirm(order, "Antwerp", "2026-11-20");
-        assertThat(page("/office/orders/" + order.getId())).contains("Change delivery", "Save change",
+        assertThat(page("/office/orders/" + order.getId())).contains("Change delivery", "Save delivery changes",
                 "name=\"confirmedPort\" value=\"Antwerp\"", "value=\"2026-11-20\"");
         confirm(order, "Hamburg", "2026-11-22").andExpect(flash().attribute("successMessage", "officeorder.deliveryChanged"));
         assertThat(order.getConfirmedPort()).isEqualTo("Hamburg");
@@ -241,7 +241,7 @@ class OfficeOrderFlowTest {
     }
 
     @Test
-    void aSentOrderIsPendingForTheOfficeAndSentToOfficeForTheShip() throws Exception {
+    void aSentOrderIsPendingForTheOfficeAndForTheShip() throws Exception {
         ShipOrder order = sentOrderWithTwoLines();
 
         // P49: the office's status label, filter option and filter chip say Pending; Greek: Σε εκκρεμότητα.
@@ -260,10 +260,10 @@ class OfficeOrderFlowTest {
         int column = EXPORT_HEADER.indexOf("status");
         assertThat(sheet.body()).extracting(row -> row.get(column)).containsExactly("pending", "pending");
 
-        // The ship keeps "Sent to office".
+        // P65: the ship reads Pending too ("Sent to office" before), with whom it waits for under it.
         assertThat(mockMvc.perform(get("/ship/orders/{id}", order.getId()).with(user(new CurrentUser(master))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
-                .contains("Sent to office").doesNotContain("Pending");
+                .contains(">Pending</span>", "Waiting for the office to schedule the delivery").doesNotContain("Sent to office");
     }
 
     // ---------------------------------------------------------------------------------------------------------------

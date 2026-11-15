@@ -384,6 +384,30 @@ class OfficeOrderEditFlowTest {
         assertThat(riceLine.isRemoved()).isFalse();
     }
 
+    // P65: one primary button per state, the page's next step. Pending: Schedule delivery (Done editing secondary, Add
+    // to order an outline primary). Delivery scheduled: none until a field of Save delivery changes changes (js/forms.js
+    // promotes it); posted with errors, it is the primary.
+    @Test
+    void theOrderPageHasOnePrimaryButtonPerState() throws Exception {
+        change(riceLine, "45", "");
+        String pending = page("/office/orders/" + order.getId());
+        assertThat(primaries(pending)).containsExactly("Schedule delivery");
+        assertThat(pending).contains("class=\"btn btn-outline-secondary\">Done editing</button>",
+                "class=\"btn btn-outline-primary\">Add to order</button>");
+
+        mockMvc.perform(post("/office/orders/{id}/confirm", order.getId()).param("confirmedPort", "Antwerp")
+                .param("deliveryDate", "2026-11-20").with(csrf()));
+        String scheduled = page("/office/orders/" + order.getId());
+        assertThat(primaries(scheduled)).isEmpty();
+        assertThat(scheduled).contains(">Delivery scheduled</span>")
+                .containsPattern("class=\"btn btn-outline-secondary\"\\s+data-primary-on-change=\"true\">Save delivery changes</button>");
+
+        String errors = mockMvc.perform(post("/office/orders/{id}/confirm", order.getId()).param("confirmedPort", " ")
+                        .param("deliveryDate", "2026-11-20").with(csrf()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(primaries(errors)).containsExactly("Save delivery changes");
+    }
+
     @Test
     void tenMinutesWithoutChangesTellTheShip() throws Exception {
         change(riceLine, "40", "");
@@ -431,6 +455,13 @@ class OfficeOrderEditFlowTest {
         int start = html.indexOf("data-item-picker");
         assertThat(start).as("the Add an item form").isPositive();
         return html.substring(start, html.indexOf("</form>", start));
+    }
+
+    // P65: the texts of the filled primary buttons in the page's main content.
+    static List<String> primaries(String html) {
+        String main = html.substring(html.indexOf("<main"), html.indexOf("</main>"));
+        return java.util.regex.Pattern.compile("class=\"btn btn-primary\"[^>]*>([^<]*)<").matcher(main).results()
+                .map(m -> m.group(1).strip()).toList();
     }
 
     // The item ids of the radios, in page order.

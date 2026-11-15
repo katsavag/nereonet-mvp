@@ -80,7 +80,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
 // The office Overview (P09, P43): the stat tiles, the "Needs attention" work list (paged, filter chips, sortable by
-// date), the By category, Next 30 days, Fleet and Recent activity cards, and a fixed number of queries.
+// date; P65: with a chip selected, the link to the kind's full list), the Next 30 days, Fleet and Recent activity
+// cards, and a fixed number of queries.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -150,8 +151,9 @@ class DashboardFlowTest {
                 "<a class=\"overview-tile-link\" href=\"/office/crew?status=active\">",
                 "<a class=\"overview-tile-link\" href=\"#attention\">",
                 "<a class=\"overview-tile-link\" href=\"/office/orders?status=sent\">");
-        // Every card has its empty state (P25); By category says all clear.
-        assertThat(html).contains("Nothing due in the next 30 days", "Nothing recorded yet", "All clear",
+        // Every card has its empty state (P25). P65: no By category card, which repeated the chips' counts.
+        assertThat(html).doesNotContain("By category", "category-tile");
+        assertThat(html).contains("Nothing due in the next 30 days", "Nothing recorded yet",
                 "id=\"fleetTitle\"", "MV Calm");
     }
 
@@ -206,10 +208,8 @@ class DashboardFlowTest {
                 .containsPattern("(?s)<span>Invitations</span>\\s*<span class=\"chip-count num\">2</span>")
                 .containsPattern("(?s)<span>Announcements</span>\\s*<span class=\"chip-count num\">2</span>")
                 .containsPattern("(?s)<span>Vetting</span>\\s*<span class=\"chip-count num\">0</span>");
-        // By category: each kind with its open count and the link to its list; Next 30 days: the expiring one.
-        assertThat(html).containsPattern("(?s)<a class=\"category-tile\" href=\"/office/orders\\?exported=no\">.*?<span>1 open</span>")
-                .containsPattern("(?s)<a class=\"category-tile\" href=\"/office/vetting\\?status=attention\">.*?<span>All clear</span>")
-                .contains("STCW Basic Safety expires", "href=\"/office?sort=date\"");
+        // Next 30 days: the expiring one.
+        assertThat(html).contains("STCW Basic Safety expires", "href=\"/office?sort=date\"");
         // Recent activity: the newest audit entries with the time.
         assertThat(html).contains("id=\"recentTitle\"", "href=\"/office/audit\"", "Nothing recorded yet"); // nothing here went through the audit log
 
@@ -239,9 +239,21 @@ class DashboardFlowTest {
         assertThat(list).contains("status-badge-icon", "<svg viewBox=\"0 0 24 24\"")
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
-        // The full list of each kind (the By category card and the chips).
-        assertThat(html).contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\"", "href=\"/office/orders?exported=no\"",
-                "href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"");
+        // The chips of each kind. P65: with a chip selected, the header of Needs attention links to the kind's full
+        // list (what the By category card linked to); All, and a kind without a full list, have no such link.
+        assertThat(html).contains("href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"")
+                .doesNotContain("Open the full list");
+        assertThat(attentionHeader(html(get("/office").param("type", "certificates"))))
+                .contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\">Open the full list</a>");
+        assertThat(attentionHeader(html(get("/office").param("type", "orders"))))
+                .contains("href=\"/office/orders?exported=no\">Open the full list</a>");
+        assertThat(attentionHeader(html(get("/office").param("type", "documents"))))
+                .contains("href=\"/office/crew?status=active&amp;documents=missing\">Open the full list</a>");
+        assertThat(attentionHeader(html(get("/office").param("type", "vetting"))))
+                .contains("href=\"/office/vetting?status=attention\">Open the full list</a>");
+        for (String kind : List.of("invitations", "acknowledgements", "quotes")) {
+            assertThat(html(get("/office").param("type", kind))).doesNotContain("Open the full list");
+        }
     }
 
     // P28: an announcement to several ships is one item as before (counted per recipient); its context names the
@@ -450,7 +462,7 @@ class DashboardFlowTest {
                 .doesNotContain("fs-2 fw-bold", "Active crew", "page-subtitle", "Set up Nereonet");
         assertThat(html(get("/office").param("lang", "el")))
                 .contains("Ενεργά πλοία", "Πλήρωμα επί των πλοίων", "Τίποτα δεν χρειάζεται την προσοχή σας",
-                        "Ανά κατηγορία", "Επόμενες 30 ημέρες", "Πρόσφατη δραστηριότητα");
+                        "Επόμενες 30 ημέρες", "Πρόσφατη δραστηριότητα");
     }
 
     // First run (P25) ------------------------------------------------------------------------------------------------
@@ -575,6 +587,12 @@ class DashboardFlowTest {
 
     private static String attentionList(String html) {
         return group(ATTENTION_LIST, html);
+    }
+
+    // P65: the header of the "Needs attention" card, up to the filter chips.
+    private static String attentionHeader(String html) {
+        int start = html.indexOf("class=\"card-header attention-header\"");
+        return html.substring(start, html.indexOf("class=\"attention-chips\"", start));
     }
 
     // The four tiles as "number label detail".

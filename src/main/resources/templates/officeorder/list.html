@@ -31,8 +31,8 @@
                 <label for="filterStatus" class="form-label" th:text="#{officeorder.filter.status}">Status</label>
                 <select id="filterStatus" name="status" class="form-select">
                     <option value="" th:text="#{officeorder.filter.status.all}">All</option>
-                    <option th:each="s : ${statuses}" th:with="value=${#strings.toLowerCase(s.name())}" th:value="${value}"
-                            th:selected="${value == status}" th:text="#{${'officeorder.status.' + s.name()}}">Sent</option>
+                    <option th:each="s : ${statuses}" th:with="value=${s.filterParam()}" th:value="${value}"
+                            th:selected="${value == status}" th:text="#{${s.labelKey()}}">Pending</option>
                 </select>
             </div>
             <div class="filter-field">

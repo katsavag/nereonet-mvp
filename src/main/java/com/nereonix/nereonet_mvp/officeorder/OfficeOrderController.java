@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -111,7 +110,8 @@ public class OfficeOrderController {
         this.comparisonService = comparisonService;
     }
 
-    // shipId, status (sent, confirmed, closed), exported=no (not exported yet) and invoice=differ (P64: the invoice's
+    // shipId, status (sent, delivery_scheduled, closed; P65: confirmed and delivery_pending still mean
+    // delivery_scheduled), exported=no (not exported yet) and invoice=differ (P64: the invoice's
     // lines differ, not matched yet) filter the list; anything else in status, exported or invoice filters nothing.
     // listRequest: search and page (P19).
     @GetMapping(LIST)
@@ -126,7 +126,7 @@ public class OfficeOrderController {
         boolean invoiceDiffer = INVOICE_DIFFER.equals(invoice);
         ListQuery list = ListQuery.of(LIST, listRequest, SORTS).filterShip(shipId, ships);
         if (chosen != null) {
-            list.filterKey("status", param(chosen), "officeorder.filter.status", "officeorder.status." + chosen.name());
+            list.filterKey("status", param(chosen), "officeorder.filter.status", chosen.labelKey());
         }
         if (notExported) {
             list.filterKey("exported", NOT_EXPORTED, "officeorder.filter.exported", "officeorder.filter.exported.no");
@@ -431,9 +431,13 @@ public class OfficeOrderController {
         return userRepository.findById(currentUser.getId()).orElseThrow();
     }
 
-    // "sent", "confirmed", "closed" (Pending, Delivery pending, Received); null for anything else (and OPEN, which the
-    // office never sees).
+    // "sent", "delivery_scheduled", "closed" (Pending, Delivery scheduled, Received); P65: the older "confirmed" and
+    // "delivery_pending" still mean Delivery scheduled, so saved links keep working. null for anything else (and OPEN,
+    // which the office never sees).
     private static ShipOrderStatus status(String value) {
+        if ("confirmed".equals(value) || "delivery_pending".equals(value)) {
+            return ShipOrderStatus.CONFIRMED;
+        }
         return Arrays.stream(ShipOrderStatus.values())
                 .filter(ShipOrderService.SENT_TO_OFFICE::contains)
                 .filter(status -> param(status).equals(value))
@@ -441,6 +445,6 @@ public class OfficeOrderController {
     }
 
     static String param(ShipOrderStatus status) {
-        return status.name().toLowerCase(Locale.ROOT);
+        return status.filterParam();
     }
 }

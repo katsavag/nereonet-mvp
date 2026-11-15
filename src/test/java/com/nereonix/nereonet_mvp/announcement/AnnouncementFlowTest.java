@@ -398,10 +398,11 @@ class AnnouncementFlowTest {
         assertThat(list).containsSubsequence("id=\"newsGroupNew\"", "Safety drill", "Bunkering plan")
                 .doesNotContain("newsGroupEarlier");
         assertThat(count(list, "news-row is-unread")).isEqualTo(2);
-        // The counter, in the sidebar and on the tab: the number and the same in words.
+        // The counter, in the sidebar: the number and the same in words. On phones News is under More for the Master
+        // (P65), so More's counter includes it.
         assertThat(list).containsPattern("(?s)data-nav=\"announcements\".*?<span class=\"nav-count num\" aria-hidden=\"true\">2</span>"
                         + "\\s*<span class=\"visually-hidden\">2 unread</span>")
-                .containsPattern("(?s)tab-bar-link[^>]*href=\"/ship/news\".*?<span class=\"tab-bar-count num\" aria-hidden=\"true\">2</span>");
+                .contains("data-more-base=\"2\"").doesNotContain("tab-bar-link active\" href=\"/ship/news\"");
         // The Master's home: News to read, 2.
         assertThat(html(get("/ship").with(user(new CurrentUser(master)))))
                 .containsPattern("(?s)href=\"/ship/news\".*?News to read.*?>2<");
@@ -414,16 +415,18 @@ class AnnouncementFlowTest {
                 "Safety drill", "<span class=\"visually-hidden\">Read</span>");
         assertThat(count(after, "news-row is-unread")).isEqualTo(1);
         // (The notifications keep their own count: a notification is read on the notifications page.)
-        assertThat(navItems(after, "announcements")).hasSize(2).allSatisfy(item ->
+        assertThat(navItems(after, "announcements")).hasSize(1).allSatisfy(item ->
                 assertThat(item).contains("<span class=\"visually-hidden\">1 unread</span>").doesNotContain("2 unread"));
+        assertThat(after).contains("data-more-base=\"1\"");
         assertThat(html(get("/ship").with(user(new CurrentUser(master)))))
                 .containsPattern("(?s)href=\"/ship/news\".*?News to read.*?>1<");
 
         // With nothing left to read there is no counter.
         html(get("/ship/news/{id}", older.getId()).with(user(new CurrentUser(master))));
         String none = html(get("/ship/news").with(user(new CurrentUser(master))));
-        assertThat(navItems(none, "announcements")).hasSize(2).allSatisfy(item ->
+        assertThat(navItems(none, "announcements")).hasSize(1).allSatisfy(item ->
                 assertThat(item).doesNotContain("nav-count", "tab-bar-count"));
+        assertThat(none).contains("data-more-base=\"0\"");
 
         // The office lists the Master under read, Anna under not read yet.
         String officeDetail = html(get("/office/announcements/{id}", newer.getId()));

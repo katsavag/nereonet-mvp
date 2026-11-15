@@ -493,10 +493,12 @@ class RequirementsFlowTest {
         String overview = html(get("/office"));
         assertThat(overview).containsSubsequence(">STCW Basic Safety Training</a>",
                         "/office/crew/" + carl.getId() + "/edit#requiredDocuments\">Carl Cook</a>",
-                        ">Medical Fitness Certificate</a>", "<a class=\"category-tile\" href=\"/office/crew?status=active&amp;documents=missing\">")
-                .contains("/office/crew/" + nora.getId() + "/edit#requiredDocuments\">Nora New</a>","4 required documents missing", "5 required documents missing",
-                        "href=\"/office/crew?status=active&amp;documents=missing\"")
+                        ">Medical Fitness Certificate</a>")
+                .contains("/office/crew/" + nora.getId() + "/edit#requiredDocuments\">Nora New</a>","4 required documents missing", "5 required documents missing")
                 .doesNotContain("/office/crew/" + bob.getId() + "/edit#requiredDocuments");
+        // P65: the Required documents chip selected, the full list of the crew with documents missing.
+        assertThat(html(get("/office").param("type", "documents")))
+                .contains("href=\"/office/crew?status=active&amp;documents=missing\">Open the full list</a>");
     }
 
     @Test

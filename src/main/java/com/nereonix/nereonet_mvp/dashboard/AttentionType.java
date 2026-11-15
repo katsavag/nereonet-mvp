@@ -55,14 +55,14 @@ public enum AttentionType {
     }
 
     /**
-     * The kinds as the Overview filters them (/office?type=invitations) and as the fleet table counts them. Each
-     * links to its full list: see the "full lists" links in dashboard/dashboard.html.
+     * The kinds as the Overview filters them (/office?type=invitations) and as the fleet table counts them. With a
+     * kind's chip selected, the "Needs attention" header links to its full list, when it has one (P65).
      */
     public enum Group {
         CERTIFICATES, DOCUMENTS, VETTING, ORDERS, QUOTES, INVITATIONS, ACKNOWLEDGEMENTS;
 
-        /** The full list of this kind outside the Overview (P43: the By category card), or null for the Overview
-         *  filtered to it (/office?type=...). */
+        /** The full list of this kind outside the Overview (P43; P65: "Open the full list" in the header of Needs
+         *  attention, with the kind's chip selected), or null when it has none. */
         public String listUrl() {
             return switch (this) {
                 case CERTIFICATES -> "/office/certificates?status=expired,30&activeShips=true";
@@ -70,27 +70,6 @@ public enum AttentionType {
                 case VETTING -> "/office/vetting?status=attention";
                 case ORDERS -> "/office/orders?exported=no";
                 case QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> null;
-            };
-        }
-
-        /** The sidebar icon of the By category tile (layout/parts :: navIcon). */
-        public String icon() {
-            return switch (this) {
-                case CERTIFICATES, DOCUMENTS -> "certificates";
-                case VETTING -> "vetting";
-                case ORDERS -> "orders";
-                case QUOTES -> "suppliers";
-                case INVITATIONS -> "crew";
-                case ACKNOWLEDGEMENTS -> "announcements";
-            };
-        }
-
-        /** The tone of the tile's status badge while it has open items: danger, warning or info. */
-        public String tone() {
-            return switch (this) {
-                case CERTIFICATES, DOCUMENTS, VETTING -> "danger";
-                case ORDERS -> "warning";
-                case QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> "info";
             };
         }
 

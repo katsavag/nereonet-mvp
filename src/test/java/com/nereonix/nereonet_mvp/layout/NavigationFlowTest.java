@@ -154,6 +154,30 @@ class NavigationFlowTest {
         assertActive(get("/ship/news").with(user(new CurrentUser(crew))), "/ship/news", "News");
     }
 
+    // P65: under On board Home, News, Library and My crew; the supply pages in their own group "Supplies", in the order
+    // of the work (Requests, Approvals, Vessel order, Stores), each to the roles that see it.
+    @Test
+    void theSupplyPagesAreGroupedPerRole() throws Exception {
+        User cook = userService.createUser("cook@example.com", "Demo Cook", "secret123", Role.CHIEF_COOK, ship, null);
+        assertThat(LINK.matcher(sidebar(get("/ship").with(user(new CurrentUser(master))))).results()
+                .map(m -> m.group(1)).toList())
+                .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/approvals", "/ship/order",
+                        "/ship/profile", "/notifications");
+        String cookNav = sidebar(get("/ship").with(user(new CurrentUser(cook))));
+        assertThat(LINK.matcher(cookNav).results().map(m -> m.group(1)).toList())
+                .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/requests", "/ship/order",
+                        "/ship/stores", "/ship/profile", "/notifications");
+        assertThat(cookNav).containsSubsequence(
+                "<p class=\"nav-group-label\" id=\"navGroupShip\">On board</p>", "href=\"/ship/crew\"",
+                "<p class=\"nav-group-label\" id=\"navGroupSupplies\">Supplies</p>",
+                "<ul class=\"nav flex-column\" aria-labelledby=\"navGroupSupplies\">", "href=\"/ship/requests\"",
+                "href=\"/ship/stores\"", "</ul>", ">Account</p>");
+        assertActive(get("/ship/stores").with(user(new CurrentUser(cook))), "/ship/stores", "Stores");
+        assertThat(sidebar(get("/ship").with(user(new CurrentUser(crew))))).contains(">Supplies</p>");
+        // The office has no Supplies group.
+        assertThat(sidebar(get("/office"))).doesNotContain("navGroupSupplies");
+    }
+
     @Test
     void theBrandLinksToTheUsersHomePage() throws Exception {
         assertThat(html(get("/office/crew"))).containsPattern("<a class=\"sidebar-brand\" href=\"/office\">");
@@ -171,7 +195,7 @@ class NavigationFlowTest {
         certificate(today.plusDays(30));   // expiring within 30 days
         certificate(today.plusDays(31));   // not yet
         order(ShipOrderStatus.SENT, null);              // Pending
-        order(ShipOrderStatus.CONFIRMED, Instant.now()); // Delivery pending, exported: still counted (P51)
+        order(ShipOrderStatus.CONFIRMED, Instant.now()); // Delivery scheduled, exported: still counted (P51)
         order(ShipOrderStatus.CLOSED, null);            // received on board: not counted, even never exported
         order(ShipOrderStatus.OPEN, null);              // still on board: not counted
         rightShip(today.minusDays(1));     // inspection expired

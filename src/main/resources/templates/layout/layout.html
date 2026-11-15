@@ -100,41 +100,26 @@
                             <li th:replace="~{layout/parts :: navItem('audit', '/office/audit', #{nav.audit}, null, null)}"></li>
                         </ul>
                     </th:block>
-                    <!-- Ship: the same entries as the phone tab bar (layout/parts :: tabBar, P26), News (P27
-                         announcements, "News" for the crew since P39) between Home and Library in both. My crew and My profile (P31) are under the tab bar's More, and
-                         so are the Master's Approvals (P33) and Ship order (P35), the Chief cook's Stores (P52) and the
-                         Chief cook's and crew's Requests (P54). -->
+                    <!-- Ship (P65): two groups from shipNav (navigation/ShipNav, the one place that decides them per
+                         role, with the phone tab bar and the More page). On board: Home, News (P27, P39, with the
+                         number not opened yet), Library and My crew (P31). Supplies, in the order of the work: Requests
+                         (the Chief cook and crew members, P54, with their requests still waiting for the Master),
+                         Approvals (the Master, P33, with the requests waiting for them), Vessel order (P35, the
+                         Master with the orders that need them, P59; the Chief cook reads it without a counter, P55)
+                         and Stores (the Chief cook, P52, with the provisions Low or Out of stock). -->
                     <th:block sec:authorize="!hasRole('OFFICE_USER')">
                         <p class="nav-group-label" id="navGroupShip" th:text="#{nav.group.ship}">On board</p>
                         <ul class="nav flex-column" aria-labelledby="navGroupShip">
-                            <li th:replace="~{layout/parts :: navItem('home', '/ship', #{nav.home}, null, null)}"></li>
-                            <!-- With the number not opened yet (P37, P39). -->
-                            <li th:replace="~{layout/parts :: navItem('announcements', '/ship/news', #{nav.news},
-                                    ${announcementsToAcknowledge}, #{nav.count.announcements(${announcementsToAcknowledge ?: 0})})}"></li>
-                            <li th:replace="~{layout/parts :: navItem('library', '/ship/library', #{nav.library}, null, null)}"></li>
-                            <li th:replace="~{layout/parts :: navItem('crew', '/ship/crew', #{nav.myCrew}, null, null)}"></li>
-                            <!-- The Master's approvals (P33), with the number waiting for them. -->
-                            <th:block sec:authorize="hasRole('MASTER')">
-                                <li th:replace="~{layout/parts :: navItem('approvals', '/ship/approvals', #{nav.approvals},
-                                        ${approvalsWaiting}, #{nav.count.approvals(${approvalsWaiting ?: 0})})}"></li>
+                            <th:block th:each="e : ${shipNav.onBoard}">
+                                <li th:replace="~{layout/parts :: navItem(${e.section}, ${e.url}, ${#messages.msg(e.labelKey)}, ${e.count},
+                                        ${e.countKey == null ? null : #messages.msg(e.countKey, e.countValue())})}"></li>
                             </th:block>
-                            <!-- The vessel order (P35), with the number of orders that need the Master (P59: the OPEN order
-                                 with a line, to send, and the CONFIRMED ones, to receive; lines before P59); the
-                                 Chief cook reads it (P55), without the counter (ordersToAct is null for them). -->
-                            <th:block sec:authorize="hasAnyRole('MASTER', 'CHIEF_COOK')">
-                                <li th:replace="~{layout/parts :: navItem('order', '/ship/order', #{nav.order},
-                                        ${ordersToAct}, #{nav.count.order(${ordersToAct ?: 0})})}"></li>
-                            </th:block>
-                            <!-- The Chief cook's and crew members' requests to the Master (P54), with the number still
-                                 waiting for the Master. -->
-                            <th:block sec:authorize="hasAnyRole('CHIEF_COOK', 'CREW_MEMBER')">
-                                <li th:replace="~{layout/parts :: navItem('requests', '/ship/requests', #{nav.requests},
-                                        ${requestsWaiting}, #{nav.count.requests(${requestsWaiting ?: 0})})}"></li>
-                            </th:block>
-                            <!-- The Chief cook's store (P52), with the number of provisions Low or Out of stock. -->
-                            <th:block sec:authorize="hasRole('CHIEF_COOK')">
-                                <li th:replace="~{layout/parts :: navItem('stores', '/ship/stores', #{nav.stores},
-                                        ${storesBelowThreshold}, #{nav.count.stores(${storesBelowThreshold ?: 0})})}"></li>
+                        </ul>
+                        <p class="nav-group-label" id="navGroupSupplies" th:text="#{nav.group.supplies}">Supplies</p>
+                        <ul class="nav flex-column" aria-labelledby="navGroupSupplies">
+                            <th:block th:each="e : ${shipNav.supplies}">
+                                <li th:replace="~{layout/parts :: navItem(${e.section}, ${e.url}, ${#messages.msg(e.labelKey)}, ${e.count},
+                                        ${e.countKey == null ? null : #messages.msg(e.countKey, e.countValue())})}"></li>
                             </th:block>
                         </ul>
                     </th:block>
@@ -201,8 +186,8 @@
             <main th:replace="${content}"></main>
         </div>
     </div>
-    <!-- Ship crew on phones (P26): Home, News (P39), Library and More (P31) at the bottom of the screen;
-         Notifications is the first row of the More page (P47). -->
+    <!-- Ship crew on phones (P26): four tabs per role (P65, navigation/ShipNav), More (P31) last, at the bottom of
+         the screen; Notifications is the first row of the More page (P47). -->
     <th:block sec:authorize="!hasRole('OFFICE_USER')">
         <nav th:replace="~{layout/parts :: tabBar}"></nav>
     </th:block>

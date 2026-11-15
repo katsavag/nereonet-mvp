@@ -27,7 +27,7 @@ import lombok.Setter;
 
 // The consolidated order of a ship (P34): the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
-// office schedules the delivery, port and date (CONFIRMED, P51: "Delivery pending"), and the Master confirms receipt
+// office schedules the delivery, port and date (CONFIRMED, P51: "Delivery scheduled"), and the Master confirms receipt
 // on board with the delivery receipt (CLOSED, "Received"); only the vessel closes an order.
 // While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship (P35),
 // and the office can change its lines until it confirms the delivery (P50).
