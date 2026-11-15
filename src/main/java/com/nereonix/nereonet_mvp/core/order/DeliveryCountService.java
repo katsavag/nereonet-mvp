@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -25,7 +24,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The Chief cook counts a delivery, the Master approves it (P61). While an order is CONFIRMED (delivery scheduled) the
+ * The Chief cook counts a delivery, the Master approves it (P61; P63: row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
  * vessel's enabled Chief cook counts what arrived of each line (saveDraft, as often as he likes), then sends the count
  * to the Master (send): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
  * confirms receipt (OrderReceiptService.confirmReceipt, which marks the count APPROVED) or sends it back with a note
@@ -48,85 +47,162 @@ public class DeliveryCountService {
         WRONG_STATE
     }
 
-    /** What the cook counted of one line: the quantity (null: not counted yet; 0: nothing arrived) and a note. */
-    public record LineCount(BigDecimal counted, String note) {
-    }
-
-    /** The count: per line by its id, and the cook's note to the Master (optional). */
-    public record Count(Map<Long, LineCount> lines, String note) {
-    }
-
     private final UserRepository userRepository;
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final MessageSource messageSource;
     private final EntityManager entityManager;
+    private final InvoiceMatchService matchService;
 
     public DeliveryCountService(UserRepository userRepository, AuditService auditService,
                                 NotificationService notificationService, MessageSource messageSource,
-                                EntityManager entityManager) {
+                                EntityManager entityManager, InvoiceMatchService matchService) {
         this.userRepository = userRepository;
         this.auditService = auditService;
         this.notificationService = notificationService;
         this.messageSource = messageSource;
         this.entityManager = entityManager;
+        this.matchService = matchService;
     }
 
     /**
-     * The cook saves the count as a draft: every line not removed gets the quantity given (null: not counted yet) and
-     * note; the order the cook's note. DRAFT, or RETURNED kept (the Master's note stays on top until he sends again).
-     * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException for a line of
-     * another order, a quantity that is not a received quantity (zero or more), or a note too long; 404 for an order
-     * of another ship; AccessDeniedException for anyone but the vessel's enabled Chief cook.
+     * P63: before the count (the cook) or the approval (the Master) is shown: the invoice lines not matched yet are
+     * matched (InvoiceMatchService.ensureMatched), the order's row locked. Nothing unless the order is CONFIRMED.
+     * 404 for another ship's order; AccessDeniedException for anyone but the vessel's enabled Chief cook or Master.
      */
     @Transactional
-    public Result saveDraft(User cook, Long orderId, Count count) {
+    public void prepare(User user, Long orderId) {
+        if (user == null || !user.isEnabled() || user.getShip() == null
+                || !(user.getRole() == Role.CHIEF_COOK || user.getRole() == Role.MASTER)) {
+            throw new AccessDeniedException("Only the Chief cook and the Master see the delivery count");
+        }
+        ShipOrder order = lock(user, orderId);
+        if (order.getStatus() == ShipOrderStatus.CONFIRMED) {
+            matchService.ensureMatched(order);
+        }
+    }
+
+    /**
+     * P63: the cook confirms one row of the count (CountSheet.Row key: "o12" an order line, "i34" an invoice line
+     * matched to an item not on the order): what arrived in the item's unit (0: nothing) and an optional note. The
+     * count is saved as he goes: DRAFT (RETURNED kept, the Master's note stays on top until he sends again).
+     * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException for a row of
+     * another order, a quantity that is not a received quantity, or a note too long; 404 for an order of another
+     * ship; AccessDeniedException for anyone but the vessel's enabled Chief cook.
+     */
+    @Transactional
+    public Result saveRow(User cook, Long orderId, String key, BigDecimal counted, String note) {
         ShipOrder order = lockForCook(cook, orderId);
         Result refused = refuseCount(order);
         if (refused != null) {
             return refused;
         }
-        apply(order, count);
-        if (order.getDeliveryCountStatus() != DeliveryCountStatus.RETURNED) {
-            order.setDeliveryCount(DeliveryCountStatus.DRAFT);
+        if (!OrderReceiptService.isValidReceivedQuantity(counted)) {
+            throw new IllegalArgumentException("A counted quantity is zero or more");
         }
-        order.setCountedBy(cook);
-        order.setCountUpdatedAt(Instant.now());
+        String text = blankToNull(note);
+        if (text != null && text.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
+            throw new IllegalArgumentException("A note is at most " + ShipOrderLine.NOTE_MAX_LENGTH + " characters");
+        }
+        CountSheet.Row row = matchService.sheet(order).row(key == null ? "" : key);
+        if (row == null) {
+            throw new IllegalArgumentException("Not a row of this count: " + key);
+        }
+        if (row.getOrderLine() != null) {
+            row.getOrderLine().setCountedQuantity(counted);
+            row.getOrderLine().setCountNote(text);
+        } else {
+            row.getExtra().setCountedQuantity(counted);
+            row.getExtra().setCountNote(text);
+        }
+        touch(order, cook);
         return Result.DONE;
     }
 
     /**
-     * The cook sends the count to the Master: as saveDraft, and every line must be counted. SENT_TO_MASTER; recorded
-     * as "Delivery counted"; the ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your
-     * approval", linking to the receipt page. Refusals as saveDraft; IllegalArgumentException also for a line without a
-     * quantity.
+     * P63, Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
+     * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
+     * to the office). The product chosen is learned for the supplier. Refusals as saveRow; IllegalArgumentException for
+     * a line of another order's invoice or a product it cannot be.
      */
     @Transactional
-    public Result send(User cook, Long orderId, Count count) {
+    public Result choose(User cook, Long orderId, Long invoiceLineId, Long orderLineId, Long itemId) {
         ShipOrder order = lockForCook(cook, orderId);
         Result refused = refuseCount(order);
         if (refused != null) {
             return refused;
         }
-        apply(order, count);
-        List<ShipOrderLine> lines = order.getLines().stream().filter(line -> !line.isRemoved()).toList();
-        if (lines.stream().anyMatch(line -> line.getCountedQuantity() == null)) {
-            throw new IllegalArgumentException("Every line needs a counted quantity before it is sent");
+        matchService.choose(order, invoiceLineId, orderLineId, itemId, cook);
+        touch(order, cook);
+        return Result.DONE;
+    }
+
+    /**
+     * The cook sends the count to the Master with an optional note (at most COUNT_NOTE_MAX_LENGTH). P63: rows not
+     * counted go as not counted (the Master sees them among the differences). SENT_TO_MASTER; recorded as "Delivery
+     * counted"; the ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval",
+     * linking to the approval. Refusals as saveRow.
+     */
+    @Transactional
+    public Result send(User cook, Long orderId, String note) {
+        ShipOrder order = lockForCook(cook, orderId);
+        Result refused = refuseCount(order);
+        if (refused != null) {
+            return refused;
         }
+        String text = blankToNull(note);
+        if (text != null && text.length() > ShipOrder.COUNT_NOTE_MAX_LENGTH) {
+            throw new IllegalArgumentException("A note to the Master is at most " + ShipOrder.COUNT_NOTE_MAX_LENGTH
+                    + " characters");
+        }
+        CountSheet sheet = matchService.sheet(order);
         Instant now = Instant.now();
+        order.setCountNote(text);
         order.setDeliveryCount(DeliveryCountStatus.SENT_TO_MASTER);
         order.setCountedBy(cook);
         order.setCountUpdatedAt(now);
         order.setCountSentAt(now);
-        long differ = lines.stream().filter(line -> line.getCountedQuantity().compareTo(line.getQuantity()) != 0).count();
         Ship ship = order.getShip();
-        auditService.record("ORDER_DELIVERY_COUNTED", ship, "Order #" + order.getId() + ", " + lines.size()
-                + (lines.size() == 1 ? " line" : " lines") + " counted, " + differ + " not as ordered", cook);
-        String text = messageSource.getMessage("order.notification.counted",
+        auditService.record("ORDER_DELIVERY_COUNTED", ship, "Order #" + order.getId() + ", "
+                + sheet.getCountedTotal() + " of " + sheet.getTotal() + " counted, " + sheet.getDifferentTotal()
+                + " different", cook);
+        String message = messageSource.getMessage("order.notification.counted",
                 new Object[] {order.getId(), cook.getFullName()}, Locale.ENGLISH);
         for (User master : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, Role.MASTER)) {
-            notificationService.notify(master, NotificationType.ORDER, ship.getName(), text,
+            notificationService.notify(master, NotificationType.ORDER, ship.getName(), message,
                     "/ship/orders/" + order.getId() + "/receipt");
+        }
+        return Result.DONE;
+    }
+
+    /**
+     * P63: the Master changes one row of a count waiting for approval, in the item's unit ("Changed from 23"); the
+     * cook's number is kept. The same number as counted clears the change. NOT_CONFIRMED, RECEIVED, WRONG_STATE (no
+     * count waiting): nothing changed. IllegalArgumentException for a row of another order or a quantity that is not a
+     * received quantity; 404 for another ship's order; AccessDeniedException for anyone but the vessel's enabled
+     * Master.
+     */
+    @Transactional
+    public Result change(User master, Long orderId, String key, BigDecimal quantity) {
+        checkMaster(master);
+        ShipOrder order = lock(master, orderId);
+        Result refused = refuseApproval(order);
+        if (refused != null) {
+            return refused;
+        }
+        if (!OrderReceiptService.isValidReceivedQuantity(quantity)) {
+            throw new IllegalArgumentException("A quantity is zero or more");
+        }
+        CountSheet.Row row = matchService.sheet(order).row(key == null ? "" : key);
+        if (row == null) {
+            throw new IllegalArgumentException("Not a row of this count: " + key);
+        }
+        BigDecimal counted = row.getCountedItem();
+        BigDecimal approved = counted != null && counted.compareTo(quantity) == 0 ? null : quantity;
+        if (row.getOrderLine() != null) {
+            row.getOrderLine().setApprovedQuantity(approved);
+        } else {
+            row.getExtra().setApprovedQuantity(approved);
         }
         return Result.DONE;
     }
@@ -141,24 +217,25 @@ public class DeliveryCountService {
      */
     @Transactional
     public Result sendBack(User master, Long orderId, String note) {
-        if (master == null || master.getRole() != Role.MASTER || !master.isEnabled() || master.getShip() == null) {
-            throw new AccessDeniedException("Only the Master of the ship sends a delivery count back");
-        }
+        checkMaster(master);
         String text = note == null ? "" : note.strip();
         if (text.isEmpty() || text.length() > ShipOrder.COUNT_NOTE_MAX_LENGTH) {
             throw new IllegalArgumentException("Sending a count back needs a note of at most "
                     + ShipOrder.COUNT_NOTE_MAX_LENGTH + " characters");
         }
         ShipOrder order = lock(master, orderId);
-        if (order.getStatus() == ShipOrderStatus.CLOSED) {
-            return Result.RECEIVED;
+        Result refused = refuseApproval(order);
+        if (refused != null) {
+            return refused;
         }
-        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
-            return Result.NOT_CONFIRMED;
-        }
-        if (order.getDeliveryCountStatus() != DeliveryCountStatus.SENT_TO_MASTER) {
-            return Result.WRONG_STATE;
-        }
+        // P63: the Master's changes go; the cook's numbers stay.
+        matchService.sheet(order).getRows().forEach(row -> {
+            if (row.getOrderLine() != null) {
+                row.getOrderLine().setApprovedQuantity(null);
+            } else {
+                row.getExtra().setApprovedQuantity(null);
+            }
+        });
         order.setDeliveryCount(DeliveryCountStatus.RETURNED);
         order.setCountReturnNote(text);
         order.setCountReturnedAt(Instant.now());
@@ -188,36 +265,30 @@ public class DeliveryCountService {
         return order.getDeliveryCountStatus().editable() ? null : Result.WRONG_STATE;
     }
 
-    // The count onto the order's lines (not the removed ones), checked first: nothing is set unless all is valid.
-    private static void apply(ShipOrder order, Count count) {
-        String note = blankToNull(count.note());
-        if (note != null && note.length() > ShipOrder.COUNT_NOTE_MAX_LENGTH) {
-            throw new IllegalArgumentException("A note to the Master is at most " + ShipOrder.COUNT_NOTE_MAX_LENGTH
-                    + " characters");
+    // NOT_CONFIRMED, RECEIVED or WRONG_STATE when no count waits for the Master; null when one does.
+    private static Result refuseApproval(ShipOrder order) {
+        if (order.getStatus() == ShipOrderStatus.CLOSED) {
+            return Result.RECEIVED;
         }
-        for (Long lineId : count.lines().keySet()) {
-            if (order.getLines().stream().noneMatch(line -> line.getId().equals(lineId) && !line.isRemoved())) {
-                throw new IllegalArgumentException("Not a line of this order: " + lineId);
-            }
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return Result.NOT_CONFIRMED;
         }
-        for (LineCount lineCount : count.lines().values()) {
-            if (lineCount.counted() != null && !OrderReceiptService.isValidReceivedQuantity(lineCount.counted())) {
-                throw new IllegalArgumentException("A counted quantity is zero or more");
-            }
-            String lineNote = blankToNull(lineCount.note());
-            if (lineNote != null && lineNote.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
-                throw new IllegalArgumentException("A note is at most " + ShipOrderLine.NOTE_MAX_LENGTH + " characters");
-            }
+        return order.getDeliveryCountStatus() == DeliveryCountStatus.SENT_TO_MASTER ? null : Result.WRONG_STATE;
+    }
+
+    // Saved as he goes: a draft (a count sent back stays RETURNED until he sends again).
+    private static void touch(ShipOrder order, User cook) {
+        if (order.getDeliveryCountStatus() != DeliveryCountStatus.RETURNED) {
+            order.setDeliveryCount(DeliveryCountStatus.DRAFT);
         }
-        for (ShipOrderLine line : order.getLines()) {
-            if (line.isRemoved()) {
-                continue;
-            }
-            LineCount lineCount = count.lines().get(line.getId());
-            line.setCountedQuantity(lineCount == null ? null : lineCount.counted());
-            line.setCountNote(lineCount == null ? null : blankToNull(lineCount.note()));
+        order.setCountedBy(cook);
+        order.setCountUpdatedAt(Instant.now());
+    }
+
+    private static void checkMaster(User master) {
+        if (master == null || master.getRole() != Role.MASTER || !master.isEnabled() || master.getShip() == null) {
+            throw new AccessDeniedException("Only the Master of the ship approves or sends back a delivery count");
         }
-        order.setCountNote(note);
     }
 
     private static String blankToNull(String text) {

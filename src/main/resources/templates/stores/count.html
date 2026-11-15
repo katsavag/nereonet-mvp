@@ -30,7 +30,7 @@
     </p>
 
     <!-- P57, Count by voice: only when both providers are configured (or faked) and there is something to count
-         (stores/parts :: voiceCard, shared with the delivery count since P61). -->
+         (stores/parts :: voiceCard). -->
     <th:block th:if="${voiceEnabled and s.total > 0}">
         <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint})}"></section>
     </th:block>

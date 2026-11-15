@@ -73,29 +73,28 @@ public class ReceiptForm {
     private List<Long> removeFileIds = new ArrayList<>();
 
     /**
-     * The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). P61:
-     * when the Chief cook's count waits for the Master, each line as he counted it (0: Not delivered) with his note.
+     * The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). (P63:
+     * a count of the Chief cook waiting for the Master is approved on its own page, not here.)
      */
     static ReceiptForm of(ShipOrder order) {
         ReceiptForm form = new ReceiptForm();
-        boolean counted = order.isCountToApprove();
         for (ShipOrderLine orderLine : ShipOrderService.byCategoryAndName(order.getLines())) {
             if (orderLine.isRemoved()) {
                 continue;
             }
             Line line = new Line();
             line.setLineId(orderLine.getId());
-            if (counted && orderLine.getCountedQuantity() != null) {
-                line.setReceived(orderLine.getCountedQuantity().stripTrailingZeros().toPlainString());
-                line.setNotDelivered(orderLine.getCountedQuantity().signum() == 0);
-                line.setNote(orderLine.getCountNote());
-            } else {
-                line.setReceived(orderLine.getQuantity().stripTrailingZeros().toPlainString());
-            }
+            line.setReceived(orderLine.getQuantity().stripTrailingZeros().toPlainString());
             form.lines.add(line);
         }
         form.receivedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
         return form;
+    }
+
+    /** P63: a time as a datetime-local input's value (UTC, to the minute); empty for none. */
+    public static String inputValue(Instant instant) {
+        return instant == null ? "" : INPUT.format(LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
+                .truncatedTo(ChronoUnit.MINUTES));
     }
 
     /** The datetime-local input's value: "2026-11-14T10:30"; empty when not set. */

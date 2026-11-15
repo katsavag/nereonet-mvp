@@ -113,5 +113,99 @@
     </section>
 </th:block>
 
+<!-- P63, a row of the delivery count (CountSheet.Row): its reference beside the name. "Invoice: 12 bags" (the invoice's
+     quantity in its own unit), "Invoice: not read", "Not on the invoice", or without a read invoice "Ordered: 12 kg".
+     Use: <span th:replace="~{shiporder/parts :: countRef(${r})}"></span> -->
+<span th:fragment="countRef(r)" class="count-ref" th:switch="${r.source.name()}">
+    <th:block th:case="'INVOICE'" th:text="#{order.count.ref.invoice(${r.text(r.invoiced)}, ${r.unit(r.invoiced)})}">Invoice: 12 bags</th:block>
+    <th:block th:case="'NOT_READ'" th:text="#{order.count.ref.notRead}">Invoice: not read</th:block>
+    <th:block th:case="'NOT_ON_INVOICE'" th:text="#{order.count.ref.notOnInvoice}">Not on the invoice</th:block>
+    <th:block th:case="*" th:text="#{order.count.ref.ordered(${r.text(r.ordered)}, ${r.unit(r.ordered)})}">Ordered: 12 kg</th:block>
+</span>
+
+<!-- P63, what arrived of a row in words: "23 of 25 kg arrived", "4 kg arrived, not on the invoice", "Not counted".
+     The Master's change counts (CountSheet.Row.result). Use: <th:block th:replace="~{shiporder/parts :: countResult(${r})}"></th:block> -->
+<th:block th:fragment="countResult(r)" th:with="res=${r.result}, base=${r.base}, src=${r.source.name()}">
+    <th:block th:if="${res == null}" th:text="#{order.count.line.notCounted}">Not counted</th:block>
+    <th:block th:if="${res != null and src == 'NOT_ON_INVOICE'}"
+              th:text="#{order.count.line.notOnInvoice(${r.text(res)}, ${r.unit(res)})}">4 kg arrived, not on the invoice</th:block>
+    <th:block th:if="${res != null and src != 'NOT_ON_INVOICE' and base != null}"
+              th:text="#{order.count.line.of(${r.text(res)}, ${r.text(base)}, ${r.unit(base)})}">23 of 25 kg arrived</th:block>
+    <th:block th:if="${res != null and base == null}"
+              th:text="#{order.count.line.arrived(${r.text(res)}, ${r.unit(res)})}">12 kg arrived</th:block>
+</th:block>
+
+<!-- P63, the form of one row of the delivery count, phone first: the name ("Basmati rice, 10 kg bag") with its
+     reference on the same line, one input with the unit beside it (empty in To do; the count so far when changed in
+     Done), one button. The button confirms the reference in one tap ("12 arrived"; "Confirm" when there is none); a
+     number typed is confirmed instead (js/count.js names the button "Confirm 23" and says "2 kg less than the
+     invoice" under it). Add a note opens one optional line (without JavaScript: ?note=key, the page again with it
+     open). One form per row: a confirmed row is saved at once and leaves To do.
+     r: the row; value: the input's value (null: empty); rowError (DeliveryCountController.RowError, or null);
+     openNote: the key of the row whose note is open; tab: 'todo' or 'done'; action: where it posts (the cook's
+     /count/row, the Master's /receipt/change); noteUrl: the page, for Add a note without JavaScript (null: no note);
+     extra: a hidden field's name to send too (the Master's 'all'), or null. -->
+<form th:fragment="countRow(r, value, rowError, openNote, tab, action, noteUrl, extra)" method="post" th:action="@{${action}}"
+      class="count-row-form" novalidate data-count-row
+      th:with="ref=${r.reference}, err=${rowError != null and rowError.key() == r.key}, i=${r.key},
+               rule=${r.packed} ? ${@quantityRules.forUnit(r.unit, 'RECEIPT')} : ${@quantityRules.forItem(r.item, 'RECEIPT')},
+               vsOrder=${r.source.name() == 'NO_INVOICE'},
+               typed=${err} ? ${rowError.value()} : ${value},
+               noteOpen=${noteUrl != null and (openNote == r.key or r.note != null)}"
+      th:attr="data-reference=${ref != null} ? ${r.text(ref)} : null,
+               data-arrived=${ref != null} ? #{order.count.arrived(${r.text(ref)})} : #{order.count.confirm},
+               data-confirm=#{order.count.confirmValue('{n}')},
+               data-less=${vsOrder} ? #{order.count.diff.lessOrdered('{n}', '{unit}')} : #{order.count.diff.less('{n}', '{unit}')},
+               data-more=${vsOrder} ? #{order.count.diff.moreOrdered('{n}', '{unit}')} : #{order.count.diff.more('{n}', '{unit}')},
+               data-unit-one=${r.unitOne}, data-unit-many=${r.unit}">
+    <input type="hidden" name="key" th:value="${r.key}">
+    <input th:if="${tab == 'done'}" type="hidden" name="tab" value="done">
+    <input th:if="${extra != null}" type="hidden" th:name="${extra}" value="">
+    <div class="count-row-head">
+        <span class="count-row-name" th:id="${'name-' + i}" th:text="${r.name}">Basmati rice, 10 kg bag</span>
+        <span th:replace="~{shiporder/parts :: countRef(${r})}"></span>
+    </div>
+    <div class="count-row-controls">
+        <label class="visually-hidden" th:for="${'q-' + i}" th:text="#{order.count.input.label(${r.name})}">What arrived of
+            Basmati rice, 10 kg bag</label>
+        <span class="input-group count-qty">
+            <input th:replace="~{layout/parts :: quantityInput(id=${'q-' + i}, name='quantity', value=${typed}, rule=${rule},
+                    cls='', invalid=${err}, kept=${ref}, describedBy=${'name-' + i + ' diff-' + i + (err ? ' error-' + i : '')})}">
+            <span class="input-group-text" th:text="${r.unit}">bags</span>
+        </span>
+        <button type="submit" class="btn btn-primary count-confirm" data-count-button th:attr="aria-describedby=${'name-' + i}"
+                th:text="${typed != null and !#strings.isEmpty(typed) and (ref == null or typed != r.text(ref))} ? #{order.count.confirmValue(${typed})}
+                        : (${ref != null} ? #{order.count.arrived(${r.text(ref)})} : #{order.count.confirm})">12 arrived</button>
+    </div>
+    <p class="count-diff" th:id="${'diff-' + i}" data-count-diff aria-live="polite"></p>
+    <p th:if="${err}" class="invalid-feedback d-block mb-0" th:id="${'error-' + i}" th:text="${rowError.message()}">Use whole
+        numbers for bags.</p>
+    <th:block th:if="${noteUrl != null}">
+        <a class="count-note-link" th:href="@{${noteUrl + (#strings.contains(noteUrl, '?') ? '&' : '?') + 'note=' + r.key + '#' + r.anchor}}"
+           data-count-note-open th:hidden="${noteOpen}" th:attr="aria-describedby=${'name-' + i}"
+           th:text="#{order.count.addNote}">Add a note</a>
+        <div class="count-note" data-count-note th:hidden="${!noteOpen}">
+            <label class="visually-hidden" th:for="${'note-' + i}" th:text="#{order.count.note.row(${r.name})}">Note on
+                Basmati rice (optional)</label>
+            <input type="text" class="form-control" name="note" th:id="${'note-' + i}" th:value="${r.note}"
+                   th:maxlength="${noteMax ?: 200}" autocomplete="off" th:placeholder="#{order.count.note.placeholder}">
+        </div>
+    </th:block>
+</form>
+
+<!-- P63, the tiles of a count's summary: how many as the invoice (or as ordered) and how many different.
+     sameKey / sameOrderedKey: the wording of the first tile (the cook's "same as the invoice", the Master's "arrived
+     as invoiced"). Use: <div th:replace="~{shiporder/parts :: countTiles(${sheet}, 'order.count.tile.same', 'order.count.tile.sameOrdered')}"></div> -->
+<div th:fragment="countTiles(sheet, sameKey, sameOrderedKey)" class="count-tiles">
+    <p class="count-tile is-same">
+        <span class="count-tile-num num" th:text="${sheet.sameTotal}">37</span>
+        <span th:text="${#messages.msg(sheet.invoiceRead ? sameKey : sameOrderedKey)}">same as the invoice</span>
+    </p>
+    <p class="count-tile" th:classappend="${sheet.differentTotal > 0} ? 'is-different'">
+        <span class="count-tile-num num" th:text="${sheet.differentTotal}">3</span>
+        <span th:text="#{order.count.tile.different}">different</span>
+    </p>
+</div>
+
 </body>
 </html>

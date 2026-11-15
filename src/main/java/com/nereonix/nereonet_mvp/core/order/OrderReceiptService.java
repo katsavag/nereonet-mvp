@@ -57,6 +57,9 @@ import jakarta.persistence.LockModeType;
  * P62: the pages of the supplier's invoice, photographed on "Photograph the invoice" by the Chief cook or the Master,
  * are staged receipt files too (stageInvoicePage, removeInvoicePage): numbered 1, 2, ... without gaps, at most
  * MAX_INVOICE_PAGES, counting against MAX_FILES. Removing or replacing a page drops the invoice lines read from it.
+ * P63: a count sent to the Master is approved in one step (approveCount): the count's rows (CountSheet) are the
+ * receipt, in the item's unit; invoice lines matched to a vessel item not on the order become lines added on receipt;
+ * each line keeps what the invoice said and the office's marks (P64).
  */
 @Service
 public class OrderReceiptService {
@@ -87,13 +90,16 @@ public class OrderReceiptService {
     private final EntityManager entityManager;
     private final DeliveryInvoiceRepository invoiceRepository;
     private final DeliveryInvoiceLineRepository invoiceLineRepository;
+    private final InvoiceMatchService matchService;
+    private final ShipOrderLineRepository orderLineRepository;
 
     public OrderReceiptService(OrderReceiptFileRepository fileRepository, UserRepository userRepository,
                                LibraryFileStorage fileStorage, AuditService auditService,
                                NotificationService notificationService, MessageSource messageSource,
                                StockService stockService, EntityManager entityManager,
                                DeliveryInvoiceRepository invoiceRepository,
-                               DeliveryInvoiceLineRepository invoiceLineRepository) {
+                               DeliveryInvoiceLineRepository invoiceLineRepository,
+                               InvoiceMatchService matchService, ShipOrderLineRepository orderLineRepository) {
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
@@ -104,6 +110,8 @@ public class OrderReceiptService {
         this.entityManager = entityManager;
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineRepository = invoiceLineRepository;
+        this.matchService = matchService;
+        this.orderLineRepository = orderLineRepository;
     }
 
     /** What a change of the receipt did. */
@@ -120,7 +128,9 @@ public class OrderReceiptService {
         // P62, stageInvoicePage: the invoice already has MAX_INVOICE_PAGES pages.
         TOO_MANY_PAGES,
         // P62, stageInvoicePage and removeInvoicePage: its pages are being read; nothing changed.
-        READING
+        READING,
+        // P63, approveCount: no count of the Chief cook waits for the Master; nothing changed.
+        NO_COUNT
     }
 
     /** True for a received quantity: zero or more, at most 3 decimals and 9 whole digits. */
@@ -386,6 +396,92 @@ public class OrderReceiptService {
         if (receiptFiles.isEmpty()) {
             return Result.NO_FILE;
         }
+        close(order, master, receipt, receiptFiles);
+        return Result.DONE;
+    }
+
+    /**
+     * P63, Approve: the Master approves the Chief cook's count sent to them in one step, as confirmReceipt: what
+     * arrived of each row is the Master's change or the cook's count (a row not counted: nothing arrived), in the
+     * item's unit, with the cook's note; receivedAt (P51's rules), by default when the cook sent the count. An
+     * invoice line matched to a vessel item not on the order becomes a line added on receipt (ordered 0). Each line
+     * keeps for the office what the invoice said (invoicedQuantity, invoiceLine) and the marks "match to review" and
+     * "conversion to review"; the uncertain matches the cook confirmed are learned for the supplier (P64 may correct
+     * them). Then CLOSED, stocked and notified as confirmReceipt. NOT_CONFIRMED, NO_COUNT, NO_FILE: nothing changed.
+     */
+    @Transactional
+    public Result approveCount(User master, Long orderId, Instant receivedAt) {
+        ShipOrder order = lockOrder(master, orderId, false);
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return Result.NOT_CONFIRMED;
+        }
+        if (order.getDeliveryCountStatus() != DeliveryCountStatus.SENT_TO_MASTER) {
+            return Result.NO_COUNT;
+        }
+        Instant when = receivedAt != null ? receivedAt : order.getCountSentAt();
+        checkReceivedAt(order, when);
+        List<OrderReceiptFile> receiptFiles = fileRepository.findAllByOrderIdOrderByIdAsc(orderId);
+        if (receiptFiles.isEmpty()) {
+            return Result.NO_FILE;
+        }
+        CountSheet sheet = matchService.sheet(order);
+        Map<Long, LineReceipt> lines = new java.util.HashMap<>();
+        Map<Long, ShipOrderLine> added = new java.util.HashMap<>();
+        for (CountSheet.Row row : sheet.getRows()) {
+            BigDecimal received = row.getResultItem() == null ? BigDecimal.ZERO : row.getResultItem();
+            ShipOrderLine line = row.getOrderLine();
+            if (line == null) {
+                // An item not on the order: one line per item, added on receipt.
+                line = added.computeIfAbsent(row.getItem().getId(), itemId -> {
+                    ShipOrderLine created = new ShipOrderLine();
+                    created.setOrder(order);
+                    created.setItem(row.getItem());
+                    created.setQuantity(BigDecimal.ZERO);
+                    created.setAddedOnReceipt(true);
+                    order.getLines().add(orderLineRepository.save(created));
+                    return created;
+                });
+                row.getExtra().setOrderLine(line);
+                line.setCountedQuantity(add(line.getCountedQuantity(), row.getCountedItem()));
+            }
+            LineReceipt before = lines.get(line.getId());
+            String note = row.getNote();
+            if (before != null) {
+                received = received.add(before.received());
+                note = before.note() == null ? note : note == null ? before.note() : before.note() + "; " + note;
+            }
+            lines.put(line.getId(), new LineReceipt(received, note == null || note.length() <= ShipOrderLine.NOTE_MAX_LENGTH
+                    ? note : note.substring(0, ShipOrderLine.NOTE_MAX_LENGTH)));
+            // For the office (P64): the invoice's quantity in the item's unit, its line, the marks.
+            BigDecimal invoiced = row.getSource() == CountSheet.Source.INVOICE ? row.toItem(row.getInvoiced()) : null;
+            line.setInvoicedQuantity(before == null ? invoiced : add(line.getInvoicedQuantity(), invoiced));
+            if (line.getInvoiceLine() == null && !row.getInvoiceLines().isEmpty()) {
+                line.setInvoiceLine(row.getInvoiceLines().getFirst());
+            }
+            line.setMatchToReview(line.isMatchToReview() || row.isMatchToReview());
+            line.setConversionToReview(line.isConversionToReview() || row.isConversionToReview());
+            // An uncertain match the cook confirmed is learned for the supplier.
+            if (row.hasCount() && order.getCountedBy() != null) {
+                for (DeliveryInvoiceLine invoiceLine : row.getInvoiceLines()) {
+                    if (invoiceLine.getMatch() == InvoiceMatch.CHECK) {
+                        matchService.learn(order, invoiceLine, row.getItem(), InvoiceMatcher.learned(
+                                invoiceLine.getDescription(), invoiceLine.getUnit(), row.getItem().getUnit(),
+                                invoiceLine.getPackFactor()), order.getCountedBy());
+                    }
+                }
+            }
+        }
+        close(order, master, new Receipt(when, lines), receiptFiles);
+        return Result.DONE;
+    }
+
+    private static BigDecimal add(BigDecimal a, BigDecimal b) {
+        return a == null ? b : b == null ? a : a.add(b);
+    }
+
+    // The receipt confirmed: the lines' received quantities and notes, CLOSED, the count approved, the store, the
+    // audit entry and the notifications (confirmReceipt, approveCount).
+    private void close(ShipOrder order, User master, Receipt receipt, List<OrderReceiptFile> receiptFiles) {
         int shortLines = 0;
         for (ShipOrderLine line : order.getLines()) {
             if (line.isRemoved()) {
@@ -447,8 +543,12 @@ public class OrderReceiptService {
             for (User cook : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, Role.CHIEF_COOK)) {
                 notificationService.notify(cook, NotificationType.ORDER, ship.getName(), stockText, "/ship/stores");
             }
+        } else if (countedBy != null && order.getCountedBy().isEnabled()) {
+            // P63: the cook hears his count was approved even when nothing went into the store.
+            notificationService.notify(order.getCountedBy(), NotificationType.ORDER, ship.getName(),
+                    messageSource.getMessage("order.notification.countApproved", new Object[] {order.getId()},
+                            Locale.ENGLISH), "/ship/orders/" + order.getId());
         }
-        return Result.DONE;
     }
 
     /** What markShortageHandled did. */

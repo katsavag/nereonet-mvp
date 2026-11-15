@@ -17,7 +17,7 @@
 <span th:fragment="quantity(quantity, unit)" class="stores-qty"><span class="num"
         th:text="${quantity.stripTrailingZeros().toPlainString()}">12.5</span> <span th:text="${unit}">kg</span></span>
 
-<!-- Count by voice (P57; P61 also on the Chief cook's delivery count): hidden until js/stores-voice.js shows it, so
+<!-- Count by voice (P57): hidden until js/stores-voice.js shows it, so
      without JavaScript there is no recording and counting by hand works as before. "Enable microphone" asks for the
      microphone once (the browser's prompt would otherwise break the first hold); "Hold to speak" records while held
      (pointer or Space/Enter) and sends on release to action, with the form's CSRF token. The texts the script shows

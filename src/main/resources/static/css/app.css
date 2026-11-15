@@ -6891,37 +6891,72 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .ship-requirements-choice[hidden] { display: none; }
 .ship-requirements-choice > legend { font-size: inherit; margin-bottom: .25rem; }
 
-/* ---- The delivery count (P61) ---------------------------------------------------------------------------------
-     - .count-line: one line of the Chief cook's count, phone first: the item and "Ordered 25 kg" on top, then
-       Received with its unit and All arrived side by side (wrapping), the hint, what voice heard, and the note.
-     - .count-heard: "Heard: “five kilos of tomatoes”" under the quantity; .is-low adds the warning colour (the words
-       say Low confidence too).
-     - .receipt-counted: "Counted: 48 kg" under the Master's received quantity, and .receipt-changed "Changed from 48"
-       in bold (words, not colour alone).
+/* ---- The delivery count (P61, P63) ----------------------------------------------------------------------------
+     - .count-tabs: To do and Done (the ship tabs' look, as plain links).
+     - .count-row: one row, phone first: the name and its reference on one line (wrapping), then the input with its
+       unit and the one button side by side, both at least 48px high (P60), the difference in words (.count-diff,
+       hidden while empty) and Add a note. The button takes the rest of the line.
+     - .count-finish: Finish and what is left, at the bottom.
+     - .count-tiles: the two tiles of a summary (same / different); .is-different repeats the warning colour on the
+       number (the words say it).
+     - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
+     - .receipt-changed-line: the Master's "Changed from 23", in words and bold.
      - .master-card-note: the line under the Master's Deliveries card label. */
-.count-line { display: grid; gap: var(--nn-space-2); padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); }
-.count-line-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--nn-space-1) var(--nn-space-3); }
-.count-line-qty { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
-.count-line-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); }
-.count-line-controls .receipt-qty { width: 10rem; }
-.count-all { min-height: var(--nn-touch-target); }
-.count-heard { margin: var(--nn-space-1) 0 0; font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
-.count-heard.is-low { color: var(--nn-warning-text); font-weight: 600; }
-.count-delivery-meta { color: var(--nn-text-secondary); }
-.count-actions { flex-wrap: wrap; }
-.count-approval .count-note, .count-returned q { white-space: pre-line; }
+.count-tabs { margin-bottom: var(--nn-space-4); }
+.count-empty { color: var(--nn-text-secondary); }
+.count-row { padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); scroll-margin-top: 5rem; }
+.count-row-form { display: grid; gap: var(--nn-space-2); }
+.count-row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nn-space-1) var(--nn-space-3); }
+.count-row-name { font-weight: 600; }
+.count-ref, .count-done-value { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
+.count-row-controls { display: flex; align-items: stretch; gap: var(--nn-space-2); }
+.count-qty { width: 9.5rem; flex: 0 0 auto; flex-wrap: nowrap; }
+.count-qty .form-control, .count-qty .input-group-text, .count-confirm { min-height: 48px; }
+.count-qty .form-control { font-size: 1.125rem; text-align: end; min-width: 0; }
+.count-confirm { flex: 1 1 auto; font-weight: 600; white-space: nowrap; }
+.count-diff { margin: 0; font-size: var(--nn-font-sm); font-weight: 600; color: var(--nn-warning-text); }
+.count-diff:empty { display: none; }
+.count-note-link, .count-change { font-size: var(--nn-font-sm); }
+.count-note-link[hidden], .count-note[hidden] { display: none; }
+.count-row-note, .count-note, .count-returned q { white-space: pre-line; }
+.count-row-note { color: var(--nn-text-secondary); }
+.count-choose { margin-top: var(--nn-space-2); min-height: var(--nn-touch-target); }
+.count-finish { margin: var(--nn-space-4) 0; padding: var(--nn-space-4); border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
+.count-finish-button, .count-send-button, .approve-button { width: 100%; min-height: 48px; }
+.count-invoice { color: var(--nn-text-secondary); }
+.count-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
+.count-tile { display: flex; flex-direction: column; margin: 0; padding: var(--nn-space-3) var(--nn-space-4);
+    border: 1px solid var(--nn-border); border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
+.count-tile-num { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.count-tile.is-different .count-tile-num { color: var(--nn-warning-text); }
+.count-different, .count-all, .approve-invoice { margin-bottom: var(--nn-space-4); }
+.count-different-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nn-space-1) var(--nn-space-3);
+    scroll-margin-top: 5rem; }
+.count-different-line > .count-row-form { flex-basis: 100%; }
+.count-different-what { color: var(--nn-text-secondary); }
+.count-different-line > .count-change { margin-left: auto; }
+.count-send-form, .approve-form { margin-top: var(--nn-space-4); }
+.count-send-hint, .approve-hint { margin: var(--nn-space-2) 0 var(--nn-space-4); color: var(--nn-text-secondary); }
+.count-send-note > summary, .approve-date > summary { cursor: pointer; color: var(--bs-link-color); margin-bottom: var(--nn-space-3); }
+.approve-by { color: var(--nn-text-secondary); }
+.approve-links { display: flex; flex-wrap: wrap; gap: var(--nn-space-2); }
+.approve-page-photo img { display: block; max-width: 100%; height: auto; border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-control); }
+.count-choose-find { display: flex; gap: var(--nn-space-2); margin-bottom: var(--nn-space-4); }
+.count-choose-group { margin-bottom: var(--nn-space-4); }
+.count-choice { display: flex; align-items: center; min-height: var(--nn-touch-target); }
+.count-choice .form-check-label { display: flex; flex-wrap: wrap; gap: 0 var(--nn-space-2); padding-left: var(--nn-space-1); }
+.count-left-list { padding-left: 1.25rem; }
 .count-return > summary { list-style: none; display: inline-flex; align-items: center; }
 .count-return > summary::-webkit-details-marker { display: none; }
-.receipt-counted { margin: var(--nn-space-1) 0 0; font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
-.receipt-changed { margin-left: var(--nn-space-2); color: var(--nn-warning-text); }
 .receipt-changed-line { color: var(--nn-warning-text); font-size: var(--nn-font-sm); }
-.review-diffs { padding-left: 1.25rem; }
 .order-progress-count { margin-top: var(--nn-space-1); }
 .master-card-note { display: block; margin-top: var(--nn-space-1); font-size: var(--nn-font-sm); font-weight: 400;
     color: var(--nn-text-secondary); }
-@media (min-width: 768px) {
-    .count-line { grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 1.4fr) minmax(12rem, 1fr); align-items: start; }
-    .count-line-head { flex-direction: column; }
+@media (min-width: 576px) {
+    .count-finish-button, .count-send-button, .approve-button { width: auto; min-width: 14rem; }
+    .count-confirm { flex: 0 0 auto; min-width: 10rem; }
 }
 
 /* ---- Photograph the invoice (P62) -----------------------------------------------------------------------------

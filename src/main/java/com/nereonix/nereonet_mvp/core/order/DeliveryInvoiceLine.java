@@ -2,15 +2,20 @@ package com.nereonix.nereonet_mvp.core.order;
 
 import java.math.BigDecimal;
 
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import com.nereonix.nereonet_mvp.core.item.Item;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +24,11 @@ import lombok.Setter;
  * (InvoiceChecks: a recovered one is flagged corrected); readQuantity, readUnitPrice and readAmount what the page
  * gave (null: unreadable), rawText the row as the OCR wrote it. A line whose quantity was not read (quantityNotRead)
  * has no quantity: the count shows "Invoice: not read" (P63).
+ * P63: the line's match to the order (InvoiceMatchService): the order line or, for an item of the vessel not on the
+ * order, the item; how the invoice's unit converts to the item's (packFactor: one invoice unit is this many of the
+ * item's unit; null when it cannot be worked out); and, for a line matched to an item not on the order, the cook's
+ * count and the Master's change, in the item's unit. CHECK is the office's "match to review" (P64),
+ * conversionToReview its "conversion to review".
  */
 @Entity
 @Getter
@@ -82,6 +92,56 @@ public class DeliveryInvoiceLine {
     private boolean quantityNotRead;
 
     private Double confidence;
+
+    // ---- P63: the match ----------------------------------------------------------------------------------------------
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private InvoiceMatch match;
+
+    // The order line it is (MATCHED, CHECK, LEARNED, CHOSEN); null for an item not on the order, PICK, NOT_ORDERED.
+    @ManyToOne
+    private ShipOrderLine orderLine;
+
+    // The item it is: the order line's, or a vessel item not on the order. Null for PICK and NOT_ORDERED.
+    @ManyToOne
+    private Item item;
+
+    @Column(precision = 15, scale = 6)
+    private BigDecimal packFactor;
+
+    // The invoice's unit when it differs from the item's: the pack ("10 kg", null for another unit of the same
+    // measure) and its name, one and many ("bag", "bags").
+    @Column(length = 40)
+    private String pack;
+
+    @Column(length = 30)
+    private String packUnitOne;
+
+    @Column(length = 30)
+    private String packUnitMany;
+
+    // The factor was worked out from the description for the first time: the office reviews it (P64).
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean conversionToReview;
+
+    // An item not on the order: what the cook counted (the item's unit, 0: nothing arrived), his note, and the
+    // Master's change of it (null: as counted).
+    @Column(precision = 12, scale = 3)
+    private BigDecimal countedQuantity;
+
+    @Column(length = ShipOrderLine.NOTE_MAX_LENGTH)
+    private String countNote;
+
+    @Column(precision = 12, scale = 3)
+    private BigDecimal approvedQuantity;
+
+    /** P63: the invoice's quantity in the item's unit; null when not read or not convertible. */
+    public BigDecimal getItemQuantity() {
+        return quantity == null || packFactor == null ? null
+                : quantity.multiply(packFactor).setScale(3, java.math.RoundingMode.HALF_UP).stripTrailingZeros();
+    }
 
     public boolean isFlagged() {
         return corrected || needsCheck || quantityNotRead;

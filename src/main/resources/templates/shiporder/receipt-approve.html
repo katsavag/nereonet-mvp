@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.approve.title}, ~{::main})}">
+<body>
+<!-- "Approve the delivery" (P63): the Master's one short page when the Chief cook's count waits (it replaces P51's
+     receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
+     cook's note, and Change: that one row's input, shiporder/parts :: countRow; a changed row says "Changed from 23"),
+     Show all (every row, read only, Change per row) and the invoice's photos, the cook's note for the Master. Approve
+     (large: P51's confirm in one step; the time received is when the cook sent the count, Change date opens P51's
+     date and time field) and Send back to cook (P61, a note required). No prices, no invoice checks, no uncertain
+     matches or conversions here: those are kept for the office (P64). Everything works without JavaScript.
+     English only. Model: order, sheet (CountSheet), change (the row open), all, showInvoice, rowError
+     (DeliveryCountController.RowError), approveError (a message key), pages (the invoice's), hasFiles, receivedAt,
+     receivedAtMin, receivedAtMax, countNoteMax. -->
+<main class="count-page approve-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.approve.title}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <p class="approve-by" th:text="#{order.approve.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
+            ${@dates.dateTime(order.countSentAt)})}">Counted by Demo Cook, Chief cook · 14 Nov 2026, 11:40 UTC</p>
+
+    <div th:if="${approveError != null}" class="alert alert-danger" role="alert">
+        <span th:text="#{${approveError}}">Photograph the invoice first.</span>
+        <a th:if="${approveError == 'order.approve.noFile'}" th:href="@{/ship/orders/{id}/invoice(id=${order.id})}"
+           th:text="#{order.invoice.photograph}">Photograph the invoice</a>
+    </div>
+
+    <div th:replace="~{shiporder/parts :: countTiles(${sheet}, 'order.approve.tile.same', 'order.approve.tile.sameOrdered')}"></div>
+
+    <section th:if="${sheet.differentTotal > 0}" class="count-different" aria-labelledby="approveDifferentTitle">
+        <h2 class="h5 fw-bold" id="approveDifferentTitle" th:text="#{order.count.different.heading(${sheet.differentTotal})}">The 3
+            that are different</h2>
+        <ul class="list-group count-different-list">
+            <li th:each="r : ${sheet.different}" class="list-group-item count-different-line" th:id="${all ? null : r.anchor}">
+                <th:block th:if="${!all and change == r.key}">
+                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, null)}"></form>
+                </th:block>
+                <th:block th:unless="${!all and change == r.key}">
+                    <th:block th:replace="~{::approveLine(${r}, '')}"></th:block>
+                </th:block>
+            </li>
+            <li th:each="l : ${sheet.picks}" class="list-group-item count-different-line">
+                <span class="count-row-name" th:text="${l.description}">CHEESE 2KG</span>
+                <span class="count-different-what" th:text="#{order.approve.notChosen}">On the invoice, not found on the order</span>
+            </li>
+        </ul>
+    </section>
+    <p th:if="${sheet.differentTotal == 0}" class="approve-none"
+       th:text="${sheet.invoiceRead} ? #{order.approve.none} : #{order.approve.noneOrdered}">Everything arrived as invoiced.</p>
+
+    <p class="approve-links">
+        <a th:href="@{${baseUrl + '?all#approveAllTitle'}}" th:text="#{order.approve.showAll(${sheet.rows.size()})}">Show all 40</a>
+        <th:block th:unless="${pages.isEmpty()}">
+            <span aria-hidden="true">·</span>
+            <a th:href="@{${baseUrl + '?invoice#approveInvoiceTitle'}}" th:text="#{order.approve.invoice(${pages.size()})}">Invoice · 2 pages</a>
+        </th:block>
+    </p>
+
+    <!-- Show all: every row, read only, Change per row. -->
+    <section th:if="${all}" class="count-all" aria-labelledby="approveAllTitle">
+        <h2 class="h5 fw-bold" id="approveAllTitle" th:text="#{order.approve.all.heading(${sheet.rows.size()})}">All 40</h2>
+        <ul class="list-group">
+            <li th:each="r : ${sheet.rows}" class="list-group-item count-different-line" th:id="${r.anchor}">
+                <th:block th:if="${change == r.key}">
+                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, 'all')}"></form>
+                </th:block>
+                <th:block th:unless="${change == r.key}">
+                    <th:block th:replace="~{::approveLine(${r}, 'all&')}"></th:block>
+                </th:block>
+            </li>
+        </ul>
+    </section>
+
+    <!-- The invoice's photos. -->
+    <section th:if="${showInvoice and !pages.isEmpty()}" class="approve-invoice" aria-labelledby="approveInvoiceTitle">
+        <h2 class="h5 fw-bold" id="approveInvoiceTitle" th:text="#{order.approve.invoice(${pages.size()})}">Invoice · 2 pages</h2>
+        <figure th:each="p : ${pages}" class="approve-page-photo">
+            <a th:href="@{${baseUrl + '/files/' + p.id}}" target="_blank" rel="noopener">
+                <img th:if="${p.fileContentType == 'image/jpeg' or p.fileContentType == 'image/png' or p.fileContentType == 'image/webp'}"
+                     th:src="@{${baseUrl + '/files/' + p.id}}" loading="lazy" th:alt="#{order.invoice.page(${p.invoicePage})}">
+                <span th:unless="${p.fileContentType == 'image/jpeg' or p.fileContentType == 'image/png' or p.fileContentType == 'image/webp'}"
+                      th:text="#{order.invoice.page(${p.invoicePage})}">Page 1</span>
+            </a>
+            <figcaption class="small text-body-secondary" th:text="#{order.invoice.page(${p.invoicePage})}">Page 1</figcaption>
+        </figure>
+    </section>
+
+    <th:block th:if="${order.countNote != null}">
+        <h2 class="h6 fw-semibold mt-3" th:text="#{order.approve.cookNote}">Note from the Chief cook</h2>
+        <q class="d-block mb-3 count-note" th:text="${order.countNote}">Frozen meat came in two deliveries.</q>
+    </th:block>
+
+    <form method="post" th:action="@{${baseUrl + '/approve'}}" class="approve-form" novalidate>
+        <details class="approve-date" th:open="${approveError != null and #strings.startsWith(approveError, 'order.receipt.error.receivedAt')}">
+            <summary th:text="#{order.approve.changeDate}">Change date</summary>
+            <label for="receivedAt" class="form-label mt-2" th:text="#{order.receipt.receivedAt}">Date and time received (UTC)</label>
+            <input type="datetime-local" id="receivedAt" name="receivedAt" class="form-control receipt-when"
+                   th:value="${receivedAt}" th:min="${receivedAtMin}" th:max="${receivedAtMax}" aria-describedby="receivedAtHint">
+            <div id="receivedAtHint" class="form-text" th:text="#{order.receipt.receivedAt.hint}">In UTC, as every time in the app.</div>
+        </details>
+        <button type="submit" class="btn btn-primary approve-button" th:text="#{order.approve.approve}">Approve</button>
+    </form>
+    <p class="approve-hint" th:text="#{order.approve.hint}">Approving updates the stock and tells the office. It cannot be
+        changed afterwards.</p>
+
+    <!-- P61: Send back to cook, with a note. -->
+    <details class="count-return" id="countTitle">
+        <summary class="btn btn-outline-secondary" th:text="#{order.count.return.action}">Send back to cook</summary>
+        <form method="post" th:action="@{${baseUrl + '/return'}}" class="mt-3" novalidate>
+            <label for="returnNote" class="form-label" th:text="#{order.count.return.note}">What should the Chief cook check?</label>
+            <textarea id="returnNote" name="returnNote" class="form-control" rows="2" required
+                      th:maxlength="${countNoteMax}" aria-describedby="returnNoteHint"></textarea>
+            <div id="returnNoteHint" class="form-text" th:text="#{order.count.return.hint}">For example: Recount the
+                frozen meat.</div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" th:text="#{order.count.return.submit}">Send back to cook</button>
+            </div>
+        </form>
+    </details>
+    <script th:src="@{/js/count.js}" defer></script>
+</main>
+
+<!-- One row in short: the name, what arrived, the cook's note, "Changed from 23", and Change. query: '' or 'all&'. -->
+<th:block th:fragment="approveLine(r, query)">
+    <span class="count-row-name" th:id="${'line-' + r.key}" th:text="${r.name}">Tomatoes</span>
+    <span class="count-different-what"><th:block th:replace="~{shiporder/parts :: countResult(${r})}"></th:block></span>
+    <q th:if="${r.note != null}" class="small count-row-note" th:text="${r.note}">2 kg rotten, sent back</q>
+    <strong th:if="${r.changed}" class="receipt-changed-line"
+            th:text="${r.counted != null} ? #{order.approve.changedFrom(${r.text(r.counted)})} : #{order.approve.changedFromNone}">Changed from 23</strong>
+    <a class="count-change" th:href="@{${baseUrl + '?' + query + 'change=' + r.key + '#' + r.anchor}}"
+       th:attr="aria-describedby=${'line-' + r.key}" th:text="#{order.count.change}">Change</a>
+</th:block>
+</body>
+</html>

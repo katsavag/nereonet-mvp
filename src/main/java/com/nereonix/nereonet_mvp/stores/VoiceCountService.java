@@ -203,24 +203,6 @@ public class VoiceCountService {
     public record Heard(String transcript, Extraction extraction) {
     }
 
-    /**
-     * P61: a recording against any list of items (the delivery count: the order's lines' items), the same two steps
-     * as propose: the text (the item names as key terms), then CountExtractor over those items. Nothing checked
-     * beyond the extractor's own checks, nothing saved. The caller checks who may record. Not in a transaction.
-     * VoiceCountException: NOT_CONFIGURED, NO_AUDIO, NO_ITEMS (an empty list), TIMEOUT, PROVIDER_ERROR,
-     * NOTHING_UNDERSTOOD (no text).
-     */
-    public Heard listen(User user, byte[] audio, String contentType, List<CountExtractor.Item> items) {
-        if (user == null || !user.isEnabled() || user.getShip() == null) {
-            throw new AccessDeniedException("Only a member of a vessel's crew records a count");
-        }
-        checkReady(audio, contentType);
-        if (items.isEmpty()) {
-            throw new VoiceCountException(Failure.NO_ITEMS);
-        }
-        return listen(audio, contentType, items);
-    }
-
     private Heard listen(byte[] audio, String contentType, List<CountExtractor.Item> items) {
         try {
             String transcript = speech.transcribe(audio, contentType,

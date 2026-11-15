@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.choose.title}, ~{::main})}">
+<body>
+<!-- "Choose the product" (P63): what an invoice line nothing was found for is. A short list: the order's lines nothing
+     is matched to yet, then the vessel's other items, then Not ordered (never stocked, it goes to the office). One
+     radio list and Choose, without JavaScript; Find narrows the list by name (?q=). The product chosen is remembered
+     for this supplier's description. English only. Model: order, line (DeliveryInvoiceLine), q,
+     choices (InvoiceMatchService.Choices). -->
+<main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.choose.title}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.count.heading}, '/ship/orders/' + ${order.id} + '/count')}"></li>
+        </th:block>
+    </header>
+
+    <p class="count-choose-line">
+        <span class="text-body-secondary" th:text="#{order.count.choose.onInvoice}">On the invoice:</span>
+        <strong th:text="${line.description}">BASMATI RICE 10KG</strong>
+        <span th:if="${line.quantity != null}" class="num"
+              th:text="${'· ' + line.quantity.stripTrailingZeros().toPlainString() + ' ' + (line.unit ?: '')}">· 12 BAG</span>
+    </p>
+
+    <form method="get" th:action="@{${baseUrl + '/choose/' + line.id}}" class="count-choose-find" role="search">
+        <label for="q" class="visually-hidden" th:text="#{order.count.choose.search}">Find an item</label>
+        <input type="search" id="q" name="q" class="form-control" th:value="${q}" th:placeholder="#{order.count.choose.search}" autocomplete="off">
+        <button type="submit" class="btn btn-outline-secondary" th:text="#{order.count.choose.find}">Find</button>
+    </form>
+
+    <form method="post" th:action="@{${baseUrl + '/choose/' + line.id}}" class="count-choose-form">
+        <fieldset th:unless="${choices.orderLines().isEmpty()}" class="count-choose-group">
+            <legend class="h6 fw-semibold" th:text="#{order.count.choose.orderLines}">On this order</legend>
+            <div th:each="l : ${choices.orderLines()}" class="form-check count-choice">
+                <input class="form-check-input" type="radio" name="choice" th:id="${'o' + l.id}" th:value="${'o' + l.id}">
+                <label class="form-check-label" th:for="${'o' + l.id}">
+                    <span th:text="${l.item.name}">Basmati rice</span>
+                    <span class="text-body-secondary small" th:text="#{order.count.ref.ordered(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.item.unit})}">Ordered: 120 kg</span>
+                </label>
+            </div>
+        </fieldset>
+        <fieldset th:unless="${choices.items().isEmpty()}" class="count-choose-group">
+            <legend class="h6 fw-semibold" th:text="#{order.count.choose.items}">Other items of the vessel</legend>
+            <div th:each="item : ${choices.items()}" class="form-check count-choice">
+                <input class="form-check-input" type="radio" name="choice" th:id="${'i' + item.id}" th:value="${'i' + item.id}">
+                <label class="form-check-label" th:for="${'i' + item.id}">
+                    <span th:text="${item.name}">Rice flour</span>
+                    <span class="text-body-secondary small" th:text="${item.unit}">kg</span>
+                </label>
+            </div>
+        </fieldset>
+        <p th:if="${choices.orderLines().isEmpty() and choices.items().isEmpty()}" class="text-body-secondary"
+           th:text="#{order.count.choose.empty}">No item has that name.</p>
+        <fieldset class="count-choose-group">
+            <legend class="visually-hidden" th:text="#{order.count.choose.none}">Not ordered</legend>
+            <div class="form-check count-choice">
+                <input class="form-check-input" type="radio" name="choice" id="none" value="none">
+                <label class="form-check-label" for="none">
+                    <span th:text="#{order.count.choose.none}">Not ordered</span>
+                    <span class="text-body-secondary small" th:text="#{order.count.notOrdered.hint}">Not stocked: it goes to the office.</span>
+                </label>
+            </div>
+        </fieldset>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" th:text="#{order.count.choose.save}">Choose</button>
+            <a class="btn btn-ghost" th:href="@{${baseUrl}}" th:text="#{order.receipt.cancel}">Cancel</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

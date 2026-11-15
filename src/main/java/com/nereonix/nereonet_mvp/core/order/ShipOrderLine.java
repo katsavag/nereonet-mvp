@@ -82,6 +82,33 @@ public class ShipOrderLine {
     @Column(length = NOTE_MAX_LENGTH)
     private String countNote;
 
+    // P63: the Master's change of the cook's count before approving it (the item's unit; null: as counted). Cleared
+    // when the count is sent back.
+    @Column(precision = 12, scale = 3)
+    private BigDecimal approvedQuantity;
+
+    // P63, kept with the receipt for the office (P64): what the invoice said of this line in the item's unit (null:
+    // not on the invoice, not read or not convertible), the invoice line it came from, and the marks.
+    @Column(precision = 12, scale = 3)
+    private BigDecimal invoicedQuantity;
+
+    @ManyToOne
+    private DeliveryInvoiceLine invoiceLine;
+
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean matchToReview;
+
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean conversionToReview;
+
+    // P63: not ordered, it arrived with the invoice (a vessel item the invoice was matched to): added on approval with
+    // quantity 0.
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean addedOnReceipt;
+
     /** How much less arrived than was ordered (P51); null when the line was not received short. */
     public BigDecimal getShortBy() {
         if (removed || receivedQuantity == null || receivedQuantity.compareTo(quantity) >= 0) {
@@ -92,7 +119,7 @@ public class ShipOrderLine {
 
     /** The quantity the ship sent: originalQuantity, or the quantity for a line the office never touched. */
     public BigDecimal getSentQuantity() {
-        return addedByOffice ? null : originalQuantity != null ? originalQuantity : quantity;
+        return addedByOffice || addedOnReceipt ? null : originalQuantity != null ? originalQuantity : quantity;
     }
 
     /** The office changed the quantity: the line is still there and differs from what the ship sent. */

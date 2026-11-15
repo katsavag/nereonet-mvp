@@ -6,10 +6,8 @@
      received. The form carries the lines and the time in hidden fields: "Confirm receipt" posts them to /confirm, which
      closes the order and notifies the office; "Back to edit" to /edit, the form with the values. Item names are not
      links: leaving would lose the review. data-draft-for: once confirmed, js/save.js removes the form's draft (P15).
-     P61: with the Chief cook's count (countToApprove) a Counted column, and two lists before the lines: what differs
-     from the order (orderDiffs) and what the Master changed in the cook's count (countDiffs), in words.
-     English only. Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), shortLines, files,
-     countToApprove, orderDiffs, countDiffs. -->
+     English only. Model: order, form (ReceiptForm), rows (OrderReceiptController.LineRow), shortLines, files.
+     (P63: a count of the Chief cook is approved on its own page, receipt-approve.html.) -->
 <main class="form-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.review.title}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.review.hint})}">
@@ -28,27 +26,6 @@
             <span th:replace="~{layout/parts :: statusIcon('warning', #{order.receipt.review.shortLines(${shortLines})}, 'alert')}"></span>
         </p>
 
-        <!-- P61: the differences, against the order and against the Chief cook's count. -->
-        <section th:if="${countToApprove}" class="card" aria-labelledby="reviewDiffsTitle">
-            <div class="card-body">
-                <h2 class="h5 fw-bold mb-3" id="reviewDiffsTitle" th:text="#{order.receipt.review.diffs}">Differences</h2>
-                <h3 class="h6 fw-semibold" th:text="#{order.receipt.review.diffs.order}">Against the order</h3>
-                <p th:if="${orderDiffs.isEmpty()}" th:text="#{order.receipt.review.diffs.orderNone}">Everything as ordered.</p>
-                <ul th:unless="${orderDiffs.isEmpty()}" class="review-diffs" data-diffs="order">
-                    <li th:each="r : ${orderDiffs}" th:text="#{order.receipt.review.diffs.orderLine(${r.line.item.name},
-                            ${r.line.quantity.stripTrailingZeros().toPlainString()}, ${r.received().stripTrailingZeros().toPlainString()},
-                            ${r.line.item.unit})}">Basmati rice: ordered 25 kg, received 20 kg</li>
-                </ul>
-                <h3 class="h6 fw-semibold" th:text="#{order.receipt.review.diffs.count}">Against the Chief cook's count</h3>
-                <p th:if="${countDiffs.isEmpty()}" class="mb-0" th:text="#{order.receipt.review.diffs.countNone}">As he counted.</p>
-                <ul th:unless="${countDiffs.isEmpty()}" class="review-diffs mb-0" data-diffs="count">
-                    <li th:each="r : ${countDiffs}" th:text="#{order.receipt.review.diffs.countLine(${r.line.item.name},
-                            ${r.counted().stripTrailingZeros().toPlainString()}, ${r.received().stripTrailingZeros().toPlainString()},
-                            ${r.line.item.unit})}">Basmati rice: counted 48 kg, you entered 45 kg</li>
-                </ul>
-            </div>
-        </section>
-
         <section class="card" aria-labelledby="reviewLinesTitle">
             <div class="card-header py-3">
                 <h2 class="h5 fw-bold mb-0" id="reviewLinesTitle" th:text="#{order.receipt.lines}">Items</h2>
@@ -59,7 +36,6 @@
                     <tr class="small text-body-secondary">
                         <th scope="col" th:text="#{item.name}">Name</th>
                         <th scope="col" class="text-end" th:text="#{order.receipt.ordered}">Ordered</th>
-                        <th th:if="${countToApprove}" scope="col" class="text-end" th:text="#{order.receipt.countedColumn}">Counted</th>
                         <th scope="col" class="text-end" th:text="#{order.receipt.received}">Received</th>
                     </tr>
                     </thead>
@@ -71,15 +47,10 @@
                                 <span th:replace="~{layout/parts :: statusIcon('warning', ${r.form.notDelivered} ? #{order.receipt.notDelivered}
                                         : #{order.receipt.shortBy(${r.shortBy().stripTrailingZeros().toPlainString()}, ${line.item.unit})}, 'alert')}"></span>
                             </p>
-                            <p th:if="${r.changedFromCount()}" class="receipt-changed-line mb-0">
-                                <strong th:text="#{order.receipt.changedFrom(${r.counted().stripTrailingZeros().toPlainString()})}">Changed from 48</strong>
-                            </p>
                             <q th:if="${r.form.note != null and !r.form.note.isEmpty()}" class="d-block small receipt-note" th:text="${r.form.note}">Two bags torn</q>
                         </td>
                         <td class="text-end font-monospace text-nowrap" th:attr="data-label=#{order.receipt.ordered}"
                             th:text="${line.quantity.stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">25 kg</td>
-                        <td th:if="${countToApprove}" class="text-end font-monospace text-nowrap" th:attr="data-label=#{order.receipt.countedColumn}"
-                            th:text="${r.counted() != null} ? ${r.counted().stripTrailingZeros().toPlainString() + ' ' + line.item.unit} : ''">48 kg</td>
                         <td class="text-end font-monospace text-nowrap fw-semibold" th:attr="data-label=#{order.receipt.received}"
                             th:text="${r.received().stripTrailingZeros().toPlainString() + ' ' + line.item.unit}">20 kg</td>
                     </tr>

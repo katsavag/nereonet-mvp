@@ -2,6 +2,9 @@ package com.nereonix.nereonet_mvp.shiporder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -32,7 +35,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateFileStorage;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
+import com.nereonix.nereonet_mvp.core.order.CountSheet;
 import com.nereonix.nereonet_mvp.core.order.DeliveryCountService;
+import com.nereonix.nereonet_mvp.core.order.InvoiceMatchService;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.LineReceipt;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService.Receipt;
@@ -58,6 +63,15 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * form with "too large", the files sent before kept). With JavaScript each file goes alone first, photos made smaller,
  * with a progress bar, so a dropped connection loses one file at most. The form keeps a draft (P15), and the files
  * uploaded wait on the order, so nothing typed or sent is lost.
+ * P63: when the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead (one short page,
+ * shiporder/receipt-approve.html) and the P51 form's posts lead back to it:
+ * <pre>
+ *   GET  /ship/orders/{id}/receipt?change=o12       that one row's input (?all: in the full list)
+ *   GET  /ship/orders/{id}/receipt?all              Show all: every row, read only, Change per row
+ *   GET  /ship/orders/{id}/receipt?invoice          the invoice's photos
+ *   POST /ship/orders/{id}/receipt/change           key, quantity (the row's unit): "Changed from 23"
+ *   POST /ship/orders/{id}/receipt/approve          Approve: receivedAt optional (Change date), else when it was sent
+ * </pre>
  */
 @Controller
 public class OrderReceiptController {
@@ -68,13 +82,16 @@ public class OrderReceiptController {
     private final OrderReceiptService receiptService;
     private final DeliveryCountService countService;
     private final QuantityRules quantityRules;
+    private final InvoiceMatchService matchService;
 
     public OrderReceiptController(ShipOrderPageService pageService, OrderReceiptService receiptService,
-                                  DeliveryCountService countService, QuantityRules quantityRules) {
+                                  DeliveryCountService countService, QuantityRules quantityRules,
+                                  InvoiceMatchService matchService) {
         this.pageService = pageService;
         this.receiptService = receiptService;
         this.countService = countService;
         this.quantityRules = quantityRules;
+        this.matchService = matchService;
     }
 
     /**
@@ -114,13 +131,100 @@ public class OrderReceiptController {
     }
 
     @GetMapping(BASE)
-    public String form(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model,
+    public String form(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                       @RequestParam(required = false) String change, @RequestParam(required = false) String all,
+                       @RequestParam(required = false) String invoice, Model model,
                        RedirectAttributes redirectAttributes) {
-        ShipOrder order = pageService.order(currentUser.getUsername(), id);
+        String email = currentUser.getUsername();
+        ShipOrder order = pageService.order(email, id);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return notConfirmed(order, redirectAttributes);
         }
+        if (order.isCountToApprove()) {
+            countService.prepare(pageService.master(email), id);
+            return showApproval(pageService.order(email, id), change, all != null, invoice != null, null, null, model);
+        }
         return showForm(order, ReceiptForm.of(order), model);
+    }
+
+    /** P63, Change on the approval: one row's number, in the row's unit; back to the approval at that row. */
+    @PostMapping(BASE + "/change")
+    public String change(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                         @RequestParam(required = false) String key, @RequestParam(required = false) String quantity,
+                         @RequestParam(required = false) String all, Model model,
+                         RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = pageService.order(email, id);
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return notConfirmed(order, redirectAttributes);
+        }
+        if (!order.isCountToApprove()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.return.nothing");
+            return "redirect:/ship/orders/" + id + "/receipt";
+        }
+        CountSheet.Row row = matchService.sheet(order).row(key == null ? "" : key);
+        if (row == null) {
+            return "redirect:/ship/orders/" + id + "/receipt";
+        }
+        QuantityRules.Check check = quantity == null || quantity.isBlank()
+                ? new QuantityRules.Check(null, "quantity.error.required", null)
+                : CountQuantities.read(quantityRules, row, quantity);
+        if (!check.ok()) {
+            return showApproval(order, key, all != null, false,
+                    new DeliveryCountController.RowError(key, quantity,
+                            pageService.message(check.code(), check.args())), null, model);
+        }
+        countService.change(pageService.master(email), id, key, check.value());
+        return "redirect:/ship/orders/" + id + "/receipt" + (all != null ? "?all" : "") + "#" + row.getAnchor();
+    }
+
+    /**
+     * P63, Approve: P51's confirm in one step. The time received is when the cook sent the count unless Change date
+     * gave another (P51's rules). Back to the order, or to the approval with what is wrong.
+     */
+    @PostMapping(BASE + "/approve")
+    public String approve(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                          @RequestParam(required = false) String receivedAt, Model model,
+                          RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = pageService.order(email, id);
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return notConfirmed(order, redirectAttributes);
+        }
+        if (!order.isCountToApprove()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.return.nothing");
+            return "redirect:/ship/orders/" + id + "/receipt";
+        }
+        Instant when = null;
+        if (receivedAt != null && !receivedAt.isBlank()) {
+            try {
+                when = LocalDateTime.parse(receivedAt.strip()).toInstant(ZoneOffset.UTC);
+            } catch (DateTimeParseException e) {
+                return showApproval(order, null, false, false, null, "order.receipt.error.receivedAtRequired", model);
+            }
+            if (!OrderReceiptService.isPossibleReceivedAt(order, when)) {
+                return showApproval(order, null, false, false, null, when.isAfter(Instant.now())
+                        ? "order.receipt.error.receivedAtFuture" : "order.receipt.error.receivedAtBeforeSent", model);
+            }
+        }
+        Result result = receiptService.approveCount(pageService.master(email), id, when);
+        return switch (result) {
+            case DONE -> {
+                redirectAttributes.addFlashAttribute("successMessage", "order.approve.done");
+                yield "redirect:/ship/orders/" + id;
+            }
+            case NO_FILE -> showApproval(order, null, false, false, null, "order.approve.noFile", model);
+            case NO_COUNT -> {
+                redirectAttributes.addFlashAttribute("errorMessage", "order.count.return.nothing");
+                yield "redirect:/ship/orders/" + id + "/receipt";
+            }
+            default -> notConfirmed(order, redirectAttributes);
+        };
+    }
+
+    @GetMapping({BASE + "/change", BASE + "/approve"})
+    public String toApproval(@PathVariable Long id) {
+        return "redirect:/ship/orders/" + id + "/receipt";
     }
 
     // Review: removes the files ticked, uploads the files chosen (each checked: PDF, JPEG or PNG, at most 10 MB), then
@@ -133,6 +237,10 @@ public class OrderReceiptController {
         ShipOrder order = pageService.order(email, id);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return notConfirmed(order, redirectAttributes);
+        }
+        if (order.isCountToApprove()) {
+            // P63: the cook's count is approved on its own page.
+            return "redirect:/ship/orders/" + id + "/receipt";
         }
         User master = pageService.master(email);
         if (form.getRemoveFileIds() != null && !form.getRemoveFileIds().isEmpty()) {
@@ -166,6 +274,9 @@ public class OrderReceiptController {
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return notConfirmed(order, redirectAttributes);
         }
+        if (order.isCountToApprove()) {
+            return "redirect:/ship/orders/" + id + "/receipt";
+        }
         return showForm(order, form, model);
     }
 
@@ -178,6 +289,9 @@ public class OrderReceiptController {
         ShipOrder order = pageService.order(email, id);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return notConfirmed(order, redirectAttributes);
+        }
+        if (order.isCountToApprove()) {
+            return "redirect:/ship/orders/" + id + "/receipt";
         }
         check(form, order, bindingResult);
         if (bindingResult.hasErrors()) {
@@ -267,24 +381,6 @@ public class OrderReceiptController {
             return received == null || received.compareTo(line.getQuantity()) >= 0 ? null
                     : line.getQuantity().subtract(received);
         }
-
-        /** P61: what the Chief cook counted, while his count waits for the Master; null otherwise. */
-        public BigDecimal counted() {
-            return line.getOrder().isCountToApprove() ? line.getCountedQuantity() : null;
-        }
-
-        /** P61: the Master's quantity differs from the cook's count ("Changed from 48"). */
-        public boolean changedFromCount() {
-            BigDecimal counted = counted();
-            BigDecimal received = received();
-            return counted != null && received != null && received.compareTo(counted) != 0;
-        }
-
-        /** P61: what arrived differs from what was ordered (short or more). */
-        public boolean differsFromOrder() {
-            BigDecimal received = received();
-            return received != null && received.compareTo(line.getQuantity()) != 0;
-        }
     }
 
     // Checks the lines (exactly the order's lines not removed, each with a quantity of zero or more and a short note)
@@ -342,9 +438,6 @@ public class OrderReceiptController {
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         // P60: the receipt time's min, when the order was sent.
         model.addAttribute("receivedAtMin", ReceiptForm.minFor(order));
-        // P61: the Chief cook's count waiting for the Master (prefilled by ReceiptForm.of), and Send back to cook.
-        model.addAttribute("countToApprove", order.isCountToApprove());
-        model.addAttribute("countNoteMax", ShipOrder.COUNT_NOTE_MAX_LENGTH);
         return "shiporder/receipt";
     }
 
@@ -355,11 +448,28 @@ public class OrderReceiptController {
         model.addAttribute("rows", rows);
         model.addAttribute("shortLines", rows.stream().filter(row -> row.shortBy() != null).count());
         model.addAttribute("files", receiptService.files(order.getId()));
-        // P61: the differences against the order and against the Chief cook's count.
-        model.addAttribute("countToApprove", order.isCountToApprove());
-        model.addAttribute("orderDiffs", rows.stream().filter(LineRow::differsFromOrder).toList());
-        model.addAttribute("countDiffs", rows.stream().filter(LineRow::changedFromCount).toList());
         return "shiporder/receipt-review";
+    }
+
+    // P63, "Approve the delivery": the cook's count in short, the differences, one row open to change (change), every
+    // row (all) or the invoice's photos (invoice); error: a message key for the date or the files.
+    private String showApproval(ShipOrder order, String change, boolean all, boolean invoice,
+                                DeliveryCountController.RowError rowError, String error, Model model) {
+        CountSheet sheet = matchService.sheet(order);
+        model.addAttribute("order", order);
+        model.addAttribute("sheet", sheet);
+        model.addAttribute("change", change);
+        model.addAttribute("all", all || (change != null && sheet.row(change) != null && !sheet.row(change).isDifferent()));
+        model.addAttribute("showInvoice", invoice);
+        model.addAttribute("rowError", rowError);
+        model.addAttribute("approveError", error);
+        model.addAttribute("pages", receiptService.invoicePages(order.getId()));
+        model.addAttribute("hasFiles", !receiptService.files(order.getId()).isEmpty());
+        model.addAttribute("receivedAt", ReceiptForm.inputValue(order.getCountSentAt()));
+        model.addAttribute("receivedAtMin", ReceiptForm.minFor(order));
+        model.addAttribute("receivedAtMax", new ReceiptForm().getReceivedAtMax());
+        model.addAttribute("countNoteMax", ShipOrder.COUNT_NOTE_MAX_LENGTH);
+        return "shiporder/receipt-approve";
     }
 
     // The form's lines with the order's, by category and item name (the form's order, which is the order's).

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.send.title}, ~{::main})}">
+<body>
+<!-- The cook sends the count (P63), one short page: "All 40 counted" (or "34 of 40 counted"), two tiles (same as the
+     invoice, different), then the ones that are different, one line each ("23 of 25 kg arrived", "Not counted") with
+     Change (back to that row). Send to Master (large), what happens next, and Add a note for the Master (optional;
+     a details element, so it opens without JavaScript). Nothing else.
+     Once sent (readOnly) the same summary without Change or Send: "Sent to the Master on ..., waiting for approval".
+     English only. Model: order, sheet (CountSheet), readOnly, countNoteMax; noteError and noteValue after a note too
+     long. -->
+<main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=${sheet.toDoTotal == 0} ? #{order.count.send.all(${sheet.total})}
+            : #{order.count.send.some(${sheet.countedTotal}, ${sheet.total})}, crumbs=~{::pageCrumbs}, eyebrow=#{order.number(${order.id})})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <p th:if="${readOnly}" class="count-sent" th:with="sentOn=#{order.count.sentOn(${@dates.dateTime(order.countSentAt)})}">
+        <span th:replace="~{layout/parts :: statusIcon('info', ${sentOn}, 'clock')}"></span>
+    </p>
+
+    <div th:replace="~{shiporder/parts :: countTiles(${sheet}, 'order.count.tile.same', 'order.count.tile.sameOrdered')}"></div>
+
+    <section th:if="${sheet.differentTotal > 0}" class="count-different" aria-labelledby="countDifferentTitle">
+        <h2 class="h5 fw-bold" id="countDifferentTitle" th:text="#{order.count.different.heading(${sheet.differentTotal})}">The 3
+            that are different</h2>
+        <ul class="list-group count-different-list">
+            <li th:each="r : ${sheet.different}" class="list-group-item count-different-line">
+                <span class="count-row-name" th:id="${'diff-' + r.key}" th:text="${r.name}">Tomatoes</span>
+                <span class="count-different-what"><th:block th:replace="~{shiporder/parts :: countResult(${r})}"></th:block></span>
+                <q th:if="${r.note != null}" class="small count-row-note" th:text="${r.note}">2 kg rotten</q>
+                <a th:unless="${readOnly}" class="count-change"
+                   th:href="@{${r.hasCount()} ? ${baseUrl + '?tab=done&change=' + r.key + '#' + r.anchor} : ${baseUrl + '#' + r.anchor}}"
+                   th:attr="aria-describedby=${'diff-' + r.key}" th:text="#{order.count.change}">Change</a>
+            </li>
+            <li th:each="l : ${sheet.picks}" class="list-group-item count-different-line">
+                <span class="count-row-name" th:id="${'diffPick-' + l.id}" th:text="${l.description}">CHEESE 2KG</span>
+                <span class="count-different-what" th:text="#{order.count.line.choose}">Not counted: choose the product</span>
+                <a th:unless="${readOnly}" class="count-change" th:href="@{${baseUrl + '/choose/' + l.id}}"
+                   th:attr="aria-describedby=${'diffPick-' + l.id}" th:text="#{order.count.change}">Change</a>
+            </li>
+        </ul>
+    </section>
+
+    <th:block th:if="${readOnly}">
+        <th:block th:if="${order.countNote != null}">
+            <h2 class="h6 fw-semibold" th:text="#{order.count.note}">Note for the Master</h2>
+            <q class="d-block mb-3 count-note" th:text="${order.countNote}">Frozen meat came in two deliveries.</q>
+        </th:block>
+        <p><a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}(id=${order.id})}" th:text="#{order.progress.open}">Open order</a></p>
+    </th:block>
+
+    <form th:unless="${readOnly}" method="post" th:action="@{${baseUrl + '/send'}}" class="count-send-form" novalidate>
+        <button type="submit" class="btn btn-primary count-send-button" th:text="#{order.count.send}">Send to Master</button>
+        <p class="count-send-hint" th:text="#{order.count.send.hint}">The Master checks it. Then the stock is updated.</p>
+        <details class="count-send-note" th:open="${noteError != null or order.countNote != null}">
+            <summary th:text="#{order.count.note.add}">Add a note for the Master</summary>
+            <label for="note" class="form-label mt-2" th:text="#{order.count.note}">Note for the Master</label>
+            <textarea id="note" name="note" class="form-control" rows="3" th:maxlength="${countNoteMax}"
+                      th:classappend="${noteError != null} ? 'is-invalid'"
+                      th:attr="aria-describedby=${noteError != null} ? 'noteError' : null"
+                      th:text="${noteValue != null} ? ${noteValue} : ${order.countNote}"
+                      th:placeholder="#{order.count.note.example}"></textarea>
+            <div th:if="${noteError != null}" id="noteError" class="invalid-feedback"
+                 th:text="#{order.count.error.noteTooLong(${countNoteMax})}">The note is too long.</div>
+        </details>
+    </form>
+</main>
+</body>
+</html>
