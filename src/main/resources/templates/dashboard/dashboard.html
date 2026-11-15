@@ -293,8 +293,33 @@
                     </div>
                 </th:block>
 
+                <!-- c0. Order received with a read invoice (P64): until an office user marks it matched on the order
+                     page ("3 lines differ", or "All lines agree: confirm"). Compare opens the comparison card. -->
+                <th:block th:if="${type == 'ORDER_INVOICE'}" th:with="url=@{/office/orders/{id}(id=${item.id})} + '#compare'">
+                    <div class="attention-text">
+                        <div class="attention-meta">
+                            <th:block th:if="${item.diffLines > 0}"><span th:replace="~{layout/parts :: statusIcon('warning', #{dashboard.item.invoiceDiffer(${item.diffLines})}, 'alert')}"></span></th:block>
+                            <th:block th:unless="${item.diffLines > 0}"><span th:replace="~{layout/parts :: statusIcon('info', #{dashboard.item.invoiceAgree}, 'check')}"></span></th:block>
+                            <span class="attention-kind" th:text="#{dashboard.kind.invoice}">Invoice to match</span>
+                        </div>
+                        <a class="attention-title" th:id="${titleId}" th:href="${url}"
+                           th:text="#{dashboard.item.invoice(${item.id})}">Order #12 · invoice to match</a>
+                        <p class="attention-context">
+                            <span class="attention-ship" th:text="${item.ship.name}">MV Demo</span>
+                            <th:block th:if="${item.receivedAt != null}">
+                                · <span th:text="#{dashboard.item.received}">received</span>
+                                <time th:replace="~{layout/parts :: localTime(${item.receivedAt})}"></time>
+                            </th:block>
+                        </p>
+                    </div>
+                    <div class="attention-action">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="${url}" th:attr="aria-describedby=${titleId}"
+                           th:text="#{dashboard.action.compare}">Compare</a>
+                    </div>
+                </th:block>
+
                 <!-- c1. Order received on board with lines short (P51): until an office user marks the shortage
-                     handled on the order page. -->
+                     handled on the order page. P64: only orders without a read invoice. -->
                 <th:block th:if="${type == 'ORDER_SHORTAGE'}" th:with="url=@{/office/orders/{id}(id=${item.id})}">
                     <div class="attention-text">
                         <div class="attention-meta">

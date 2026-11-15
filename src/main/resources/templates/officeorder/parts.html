@@ -21,5 +21,15 @@
     <span th:unless="${order.exportedAt != null}" class="text-body-secondary" th:text="#{officeorder.exported.no}">Not yet</span>
 </th:block>
 
+<!-- P64: where the office stands with the order's invoice: Matched (ok), "3 differ" (warning), To confirm (info: all
+     lines agree, not marked matched yet), or None (no read invoice, or not received yet).
+     Use: <th:block th:replace="~{officeorder/parts :: invoiceBadge(${order})}"></th:block> -->
+<th:block th:fragment="invoiceBadge(order)">
+    <th:block th:if="${order.invoiceStatus != null and order.invoiceStatus.name() == 'MATCHED'}"><span th:replace="~{layout/parts :: status('ok', #{officeorder.invoice.matched})}">Matched</span></th:block>
+    <th:block th:if="${order.invoiceToMatch and order.invoiceDiffLines > 0}"><span th:replace="~{layout/parts :: status('warning', #{officeorder.invoice.differ(${order.invoiceDiffLines})})}">3 differ</span></th:block>
+    <th:block th:if="${order.invoiceToMatch and order.invoiceDiffLines == 0}"><span th:replace="~{layout/parts :: status('info', #{officeorder.invoice.toConfirm})}">To confirm</span></th:block>
+    <span th:if="${order.invoiceStatus == null}" class="text-body-secondary" th:text="#{officeorder.invoice.none}">None</span>
+</th:block>
+
 </body>
 </html>

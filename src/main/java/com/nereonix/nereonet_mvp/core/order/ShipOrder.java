@@ -134,6 +134,23 @@ public class ShipOrder {
 
     private Instant countReturnedAt;
 
+    // P64: the office's comparison of order, delivery and invoice, for an order received with a read invoice (null:
+    // none, the P51 shortage flow applies). invoiceDiffLines: the lines that differ (InvoiceComparison), kept up to
+    // date by InvoiceComparisonService for the Overview and the list; who marked it matched, and when.
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private InvoiceMatchStatus invoiceStatus;
+
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private int invoiceDiffLines;
+
+    private Instant invoiceMatchedAt;
+
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User invoiceMatchedBy;
+
     // Last export by the office. Null until exported.
     private Instant exportedAt;
 
@@ -159,8 +176,16 @@ public class ShipOrder {
         return deliveryCount == DeliveryCountStatus.APPROVED;
     }
 
-    /** Received with lines short, and no office user has marked them handled yet (P51). */
+    /**
+     * Received with lines short, and no office user has marked them handled yet (P51). P64: an order with a read
+     * invoice is handled by matching the invoice instead.
+     */
     public boolean isShortageOpen() {
-        return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null;
+        return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null && invoiceStatus == null;
+    }
+
+    /** P64: received with a read invoice the office has not marked matched yet. */
+    public boolean isInvoiceToMatch() {
+        return status == ShipOrderStatus.CLOSED && invoiceStatus == InvoiceMatchStatus.TO_MATCH;
     }
 }

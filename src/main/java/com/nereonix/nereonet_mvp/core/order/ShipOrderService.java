@@ -67,7 +67,8 @@ public class ShipOrderService {
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at");
+            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at",
+            "invoiced_quantity", "invoice_unit", "invoice_unit_price", "invoice_amount", "difference");
 
     // "12" or "#12": an order number in the office's search.
     private static final Pattern ORDER_NUMBER = Pattern.compile("#?(\\d{1,18})");
@@ -83,12 +84,16 @@ public class ShipOrderService {
     private final EntityManager entityManager;
     private final ListQueries listQueries;
     private final OfficeOrderEditService editService;
+    private final DeliveryInvoiceRepository invoiceRepository;
+    private final DeliveryInvoiceLineRepository invoiceLineRepository;
 
     public ShipOrderService(ShipOrderRepository orderRepository, ShipOrderLineRepository lineRepository,
                             RequestLineRepository requestLineRepository, UserRepository userRepository,
                             AuditService auditService, NotificationService notificationService,
                             MessageSource messageSource, Dates dates, EntityManager entityManager,
-                            ListQueries listQueries, OfficeOrderEditService editService) {
+                            ListQueries listQueries, OfficeOrderEditService editService,
+                            DeliveryInvoiceRepository invoiceRepository,
+                            DeliveryInvoiceLineRepository invoiceLineRepository) {
         this.orderRepository = orderRepository;
         this.lineRepository = lineRepository;
         this.requestLineRepository = requestLineRepository;
@@ -100,6 +105,8 @@ public class ShipOrderService {
         this.entityManager = entityManager;
         this.listQueries = listQueries;
         this.editService = editService;
+        this.invoiceRepository = invoiceRepository;
+        this.invoiceLineRepository = invoiceLineRepository;
     }
 
     /**
@@ -264,10 +271,12 @@ public class ShipOrderService {
     /**
      * One page of the orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN), newest sent first, paginated
      * in the database. shipId and status null mean every ship and every one of those statuses; notExported keeps
-     * those never exported. The search is an order number ("12" or "#12"), or the ship's name or IMO number.
+     * those never exported; invoiceDiffer (P64) those received whose invoice is not matched yet and has lines that
+     * differ. The search is an order number ("12" or "#12"), or the ship's name or IMO number.
      */
     @Transactional(readOnly = true)
-    public Page<ShipOrder> findSent(Long shipId, ShipOrderStatus status, boolean notExported, ListQuery list) {
+    public Page<ShipOrder> findSent(Long shipId, ShipOrderStatus status, boolean notExported, boolean invoiceDiffer,
+                                    ListQuery list) {
         return listQueries.page(ShipOrder.class, list, (root, cb) -> {
             List<Predicate> where = new ArrayList<>();
             where.add(status != null && SENT_TO_OFFICE.contains(status) ? cb.equal(root.get("status"), status)
@@ -277,6 +286,11 @@ public class ShipOrderService {
             }
             if (notExported) {
                 where.add(cb.isNull(root.get("exportedAt")));
+            }
+            if (invoiceDiffer) {
+                where.add(cb.equal(root.get("status"), ShipOrderStatus.CLOSED));
+                where.add(cb.equal(root.get("invoiceStatus"), InvoiceMatchStatus.TO_MATCH));
+                where.add(cb.greaterThan(root.get("invoiceDiffLines"), 0));
             }
             String q = list.getContains();
             if (q != null) {
@@ -401,7 +415,10 @@ public class ShipOrderService {
      * delivery_pending, received); quantity is what to deliver (0 for a line the office removed, P50), sent_quantity
      * what the ship sent (empty for a line the office added), office_change changed, removed, added or empty,
      * office_note the office's note; received_quantity what arrived on board and received_at when (P51, empty until
-     * the Master confirmed receipt); order_id and the quantities are numbers, sent_at and received_at a date and
+     * the Master confirmed receipt); P64, for an order received with a read invoice: invoiced_quantity (the item's
+     * unit), invoice_unit, invoice_unit_price and invoice_amount (the invoice's), difference (received minus invoiced),
+     * and a row per invoice line not ordered (office_change not_ordered, quantity 0, the invoice's unit); order_id and
+     * the quantities are numbers, sent_at and received_at a date and
      * time (UTC), needed_by and delivery_date dates. Sets exportedAt now on each of them (an order can be exported
      * again) and records "Orders exported". Empty when none of the ids is such an order.
      * AccessDeniedException when the user is not an enabled office user.
@@ -418,7 +435,9 @@ public class ShipOrderService {
         XlsExport sheet = XlsExport.sheet("Orders", EXPORT_HEADER);
         int lineCount = 0;
         for (ShipOrder order : orders) {
+            InvoiceComparison comparison = comparison(order);
             for (ShipOrderLine line : byCategoryAndName(order.getLines())) {
+                InvoiceComparison.Row row = comparison == null || line.isRemoved() ? null : comparison.row("o" + line.getId());
                 sheet.row(Arrays.asList(
                         order.getShip().getImoNumber(),
                         order.getShip().getName(),
@@ -437,8 +456,30 @@ public class ShipOrderService {
                         officeChange(line),
                         line.getChangeNote(),
                         line.getReceivedQuantity(),
-                        order.getReceivedAt()));
+                        order.getReceivedAt(),
+                        row == null ? null : row.getInvoiced(),
+                        row == null || !row.isOnInvoice() ? null : row.getInvoiceLines().getFirst().getUnit(),
+                        row == null ? null : row.getUnitPrice(),
+                        row == null ? null : row.getAmount(),
+                        difference(row)));
                 lineCount++;
+            }
+            // P64: the invoice's lines linked to no order line (not ordered), in the invoice's unit.
+            if (comparison != null) {
+                for (InvoiceComparison.Row row : comparison.getRows()) {
+                    if (row.getOrderLine() != null) {
+                        continue;
+                    }
+                    DeliveryInvoiceLine invoiceLine = row.getInvoiceLines().getFirst();
+                    sheet.row(Arrays.asList(
+                            order.getShip().getImoNumber(), order.getShip().getName(), order.getId(),
+                            exportStatus(order.getStatus()), order.getSentAt().truncatedTo(ChronoUnit.SECONDS),
+                            order.getRequestedPort(), order.getNeededBy(), order.getConfirmedPort(),
+                            order.getDeliveryDate(), null, row.getName(), row.getUnit(), BigDecimal.ZERO, null,
+                            "not_ordered", null, null, order.getReceivedAt(), row.getInvoiced(), invoiceLine.getUnit(),
+                            row.getUnitPrice(), row.getAmount(), difference(row)));
+                    lineCount++;
+                }
             }
             order.setExportedAt(now);
         }
@@ -450,6 +491,31 @@ public class ShipOrderService {
                         + (lineCount == 1 ? " line, ids " : " lines, ids ")
                         + orders.stream().map(order -> order.getId().toString()).toList(), officeUser);
         return Optional.of(sheet.file("ship-orders-" + LocalDate.ofInstant(now, ZoneOffset.UTC)));
+    }
+
+    // P64: the comparison of a received order with a read invoice (no quotes, no decisions: the numbers only), or null.
+    private InvoiceComparison comparison(ShipOrder order) {
+        if (order.getStatus() != ShipOrderStatus.CLOSED) {
+            return null;
+        }
+        DeliveryInvoice invoice = invoiceRepository.findByOrderId(order.getId()).orElse(null);
+        if (invoice == null) {
+            return null;
+        }
+        List<DeliveryInvoiceLine> lines = invoiceLineRepository.findAllByInvoiceIdOrderByPageAscIdAsc(invoice.getId());
+        return InvoiceComparison.applies(order, invoice, lines)
+                ? InvoiceComparison.of(order, invoice, lines, java.util.Map.of(), null, java.util.Map.of()) : null;
+    }
+
+    // P64, the difference column: received minus invoiced (nothing invoiced: 0), in the row's unit; empty without an
+    // invoice or when its quantity was not read.
+    private static BigDecimal difference(InvoiceComparison.Row row) {
+        if (row == null || (row.isOnInvoice() && row.getInvoiced() == null)) {
+            return null;
+        }
+        BigDecimal received = row.getReceived() == null ? BigDecimal.ZERO : row.getReceived();
+        BigDecimal invoiced = row.getInvoiced() == null ? BigDecimal.ZERO : row.getInvoiced();
+        return received.subtract(invoiced);
     }
 
     /** The status column of the export: the office's words, pending (P49), delivery_pending and received (P51). */

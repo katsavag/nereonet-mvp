@@ -28,6 +28,18 @@ public class Money {
         return price(currency, amount, LocaleContextHolder.getLocale());
     }
 
+    /** P64: "EUR 1,240.50", or "1,240.50" when the currency is not known (an invoice without a quote). */
+    public String amount(String currency, BigDecimal amount) {
+        String text = total(currency == null ? "" : currency, amount);
+        return currency == null ? text.strip() : text;
+    }
+
+    /** P64: "EUR 2.40", or "2.40" when the currency is not known. */
+    public String unitPrice(String currency, BigDecimal amount) {
+        String text = price(currency == null ? "" : currency, amount);
+        return currency == null ? text.strip() : text;
+    }
+
     /** A quantity without needless zeros, "2.5", "1,200" in the page language. */
     public String quantity(BigDecimal amount) {
         return quantity(amount, LocaleContextHolder.getLocale());

@@ -653,6 +653,8 @@ class MessageKeysTest {
             "order.approve.done",
             "order.approve.noFile",
             "order.notification.countApproved",
+            // P64: to the Chief cook when the office changed a match or a conversion after receipt.
+            "order.notification.countAgain",
             "order.notification.counted",
             "order.notification.countReturned",
             "order.receipt.files.byCook",

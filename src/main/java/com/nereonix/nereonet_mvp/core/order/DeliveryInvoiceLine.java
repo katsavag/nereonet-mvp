@@ -137,6 +137,24 @@ public class DeliveryInvoiceLine {
     @Column(precision = 12, scale = 3)
     private BigDecimal approvedQuantity;
 
+    // ---- P64: the office's correction of a line read wrong ------------------------------------------------------------
+    // The values as read stay in readQuantity, readUnitPrice, readAmount; the description as read in descriptionRead
+    // (null while the description was never changed). Who changed the line last, and when.
+
+    @Column(length = DESCRIPTION_MAX_LENGTH)
+    private String descriptionRead;
+
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private com.nereonix.nereonet_mvp.core.user.User officeChangedBy;
+
+    private java.time.Instant officeChangedAt;
+
+    /** P64: the office corrected this line. */
+    public boolean isChangedByOffice() {
+        return officeChangedAt != null;
+    }
+
     /** P63: the invoice's quantity in the item's unit; null when not read or not convertible. */
     public BigDecimal getItemQuantity() {
         return quantity == null || packFactor == null ? null

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<!-- P64: "Order, delivery and invoice", the card of the office's order page (officeorder/detail.html) for an order
+     received with a read invoice (InvoiceComparison). Summary first: all agree or "3 of 40 lines differ", the invoice
+     (supplier, number, date, net, total), the lines by category, the ordered value at the quoted prices, the invoiced
+     total and the value of the differences, and View invoice. Then To review (only when there is something: the
+     invoice's checks that failed, a different order reference, lines read with a flag, matches and conversions to
+     review; each Correct or Change), the lines that differ (Ordered, Received, Invoiced with the invoice's own unit in
+     small text, the differences in words, the prices against the quote, the notes, the money at stake, and Accept with
+     a note), the lines that agree folded, and Mark as matched. Office pages only: never on a ship page.
+     Model: order, comparison (InvoiceComparison), acceptNoteMax.
+     Use: <section th:replace="~{officeorder/compare :: card}"></section> -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section th:fragment="card" id="compare" class="card mb-4 compare" aria-labelledby="compareTitle"
+         th:with="c=${comparison}, cur=${comparison.currency}, editable=${order.invoiceToMatch},
+                  base=${'/office/orders/' + order.id + '/invoice'}">
+    <div class="card-header d-flex justify-content-between align-items-center gap-2 py-3">
+        <h2 class="h5 fw-bold mb-0" id="compareTitle" th:text="#{officeorder.compare.heading}">Order, delivery and invoice</h2>
+        <th:block th:replace="~{officeorder/parts :: invoiceBadge(${order})}"></th:block>
+    </div>
+
+    <!-- Summary -->
+    <div class="card-body">
+        <p class="compare-status mb-3">
+            <th:block th:if="${c.differentTotal == 0}"><span th:replace="~{layout/parts :: statusIcon('ok', #{officeorder.compare.statusAgree(${c.total})}, 'check')}"></span></th:block>
+            <th:block th:if="${c.differentTotal > 0}"><span th:replace="~{layout/parts :: statusIcon('warning', #{officeorder.compare.statusDiffer(${c.differentTotal}, ${c.total})}, 'alert')}"></span></th:block>
+        </p>
+        <div class="compare-summary">
+            <dl class="compare-facts mb-0">
+                <dt th:text="#{officeorder.compare.supplier}">Supplier</dt>
+                <dd th:text="${c.invoice.supplierName} ?: #{officeorder.compare.notRead}">Kestrel Ship Supply S.A.</dd>
+                <dt th:text="#{officeorder.compare.invoiceNumber}">Invoice number</dt>
+                <dd th:text="${c.invoice.invoiceNumber} ?: #{officeorder.compare.notRead}">A-4471</dd>
+                <dt th:text="#{officeorder.compare.invoiceDate}">Invoice date</dt>
+                <dd>
+                    <th:block th:if="${c.invoice.invoiceDate != null}"><time th:replace="~{layout/parts :: localDate(${c.invoice.invoiceDate})}"></time></th:block>
+                    <th:block th:if="${c.invoice.invoiceDate == null}" th:text="#{officeorder.compare.notRead}">Not read</th:block>
+                </dd>
+                <dt th:text="#{officeorder.compare.net}">Net</dt>
+                <dd class="font-monospace" th:text="${c.invoice.net != null} ? ${@money.amount(cur, c.invoice.net)} : #{officeorder.compare.notRead}">1,759.50</dd>
+                <dt th:text="#{officeorder.compare.total}">Total</dt>
+                <dd class="font-monospace" th:text="${c.invoice.total != null} ? ${@money.amount(cur, c.invoice.total)} : #{officeorder.compare.notRead}">2,181.78</dd>
+            </dl>
+            <div>
+                <h3 class="h6 fw-semibold" th:text="#{officeorder.compare.byCategory}">By category</h3>
+                <ul class="compare-categories list-unstyled mb-0">
+                    <li th:each="cat : ${c.categories}"
+                        th:with="label=${cat.category() != null} ? #{${cat.category().labelKey()}} : #{officeorder.compare.notOrderedCategory}">
+                        <th:block th:if="${cat.differ() == 0}" th:text="#{officeorder.compare.categoryAgree(${label}, ${cat.lines()})}">Provisions: 24 lines, all agree</th:block>
+                        <th:block th:if="${cat.differ() > 0}" th:text="#{officeorder.compare.categoryDiffer(${label}, ${cat.lines()}, ${cat.differ()})}">Provisions: 16 lines, 3 differ</th:block>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <dl class="compare-totals">
+            <div>
+                <dt th:text="#{officeorder.compare.orderedValue}">Ordered value (quoted prices)</dt>
+                <dd class="font-monospace" th:text="${c.orderedValue != null} ? ${@money.amount(cur, c.orderedValue)} : #{officeorder.compare.orderedValueNone}">1,700.00</dd>
+            </div>
+            <div>
+                <dt th:text="#{officeorder.compare.invoicedTotal}">Invoiced total</dt>
+                <dd class="font-monospace" th:text="${c.invoicedTotal != null} ? ${@money.amount(cur, c.invoicedTotal)} : #{officeorder.compare.notRead}">2,181.78</dd>
+            </div>
+            <div>
+                <dt th:text="#{officeorder.compare.differencesValue}">Value of the differences</dt>
+                <dd class="font-monospace" th:text="${@money.amount(cur, c.differencesValue)}">42.10</dd>
+            </div>
+        </dl>
+        <a class="btn btn-outline-secondary" th:href="@{${base}}">
+            <svg th:replace="~{layout/parts :: icon('external')}"></svg>
+            <span th:text="#{officeorder.compare.viewInvoice}">View invoice</span>
+        </a>
+    </div>
+
+    <!-- To review: what the vessel was deliberately not asked about. Each Correct or Change. -->
+    <div th:unless="${c.review.isEmpty()}" class="card-body border-top" aria-labelledby="reviewTitle">
+        <h3 class="h6 fw-semibold" id="reviewTitle" th:text="#{officeorder.compare.review.heading}">To review</h3>
+        <p class="small text-body-secondary" th:text="#{officeorder.compare.review.hint}">The vessel was not asked about
+            these.</p>
+        <ul class="compare-review list-unstyled mb-0">
+            <li th:each="r : ${c.review}" class="compare-review-item" th:id="${'review-' + r.key().hashCode()}"
+                th:classappend="${r.resolved()} ? 'is-resolved'" th:with="l=${r.line()}">
+                <div class="compare-review-text">
+                    <th:block th:switch="${r.kind().name()}">
+                        <span th:case="'CHECK'" th:text="${r.text()}">Page 1: the lines add up to 1,759.50, the page says 1,773.70</span>
+                        <span th:case="'REFERENCE'">[[#{officeorder.compare.review.reference}]]: [[${r.text()}]]</span>
+                        <span th:case="'LINE'">
+                            <th:block th:text="${l.lineNumber != null} ? #{officeorder.compare.review.line(${l.page}, ${l.lineNumber}, ${l.description})}
+                                    : #{officeorder.compare.review.lineNoNumber(${l.page}, ${l.description})}">Page 1, line 12: FISH FILLET HAKE</th:block>
+                            <span class="compare-flags"><th:block th:replace="~{officeorder/compare :: flags(${l})}"></th:block></span>
+                        </span>
+                        <span th:case="'MATCH'" th:text="#{officeorder.compare.review.match(${l.description},
+                                ${l.item != null} ? ${l.item.name} : #{officeorder.compare.match.notOrdered})}">Match to review: FISH FILLET HAKE → Fish fillets</span>
+                        <span th:case="'CONVERSION'" th:text="#{officeorder.compare.review.conversion(${l.description}, ${l.unit} ?: '',
+                                ${@money.quantity(l.packFactor)}, ${l.item.unit})}">Conversion to review: RICE 10KG, BAG → × 10 kg</span>
+                    </th:block>
+                    <p th:if="${r.resolved()}" class="small text-body-secondary mb-0"
+                       th:with="who=${r.decision().decidedBy} ? ${r.decision().decidedBy.fullName} : #{audit.deletedUser}">
+                        <th:block th:text="${r.decision().kind.name() == 'CHANGED'} ? #{officeorder.compare.changedBy(${who})} : #{officeorder.compare.confirmedBy(${who})}">Correct: Jane Office</th:block>
+                        · <time th:replace="~{layout/parts :: localTime(${r.decision().decidedAt})}"></time>
+                        <th:block th:if="${r.decision().kind.name() == 'CHANGED' and (r.kind().name() == 'MATCH' or r.kind().name() == 'CONVERSION')}">
+                            <br><span class="text-warning-emphasis" th:text="#{officeorder.compare.stockNote}">The store was updated with the old match. Ask the vessel to count these items.</span>
+                        </th:block>
+                    </p>
+                </div>
+                <div th:if="${editable and !r.resolved()}" class="compare-review-actions">
+                    <form method="post" th:action="@{${base + '/confirm'}}">
+                        <input type="hidden" name="key" th:value="${r.key()}">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{officeorder.compare.correct}">Correct</button>
+                    </form>
+                    <a th:if="${r.kind().name() == 'MATCH'}" class="btn btn-ghost btn-sm"
+                       th:href="@{${base + '/lines/' + l.id + '/match'}}" th:text="#{officeorder.compare.change}">Change</a>
+                    <a th:if="${r.kind().name() == 'LINE'}" class="btn btn-ghost btn-sm"
+                       th:href="@{${base}(page=${l.page})} + '#line-' + ${l.id}" th:text="#{officeorder.compare.change}">Change</a>
+                    <details th:if="${r.kind().name() == 'CONVERSION'}" class="compare-change">
+                        <summary class="btn btn-ghost btn-sm" th:text="#{officeorder.compare.change}">Change</summary>
+                        <form method="post" class="compare-inline-form" th:action="@{${base + '/lines/' + l.id + '/factor'}}">
+                            <label class="form-label small" th:for="${'factor-' + l.id}"
+                                   th:text="#{officeorder.compare.factor.label(${l.packUnitOne} ?: ${l.unit}, ${l.item.unit})}">1 bag is how many kg</label>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm" name="factor"
+                                   th:id="${'factor-' + l.id}" th:value="${@money.quantity(l.packFactor)}" maxlength="16" required>
+                            <button type="submit" class="btn btn-primary btn-sm" th:text="#{officeorder.compare.factor.save}">Save</button>
+                        </form>
+                    </details>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- The lines that differ. -->
+    <div th:unless="${c.different.isEmpty()}" class="card-body border-top">
+        <h3 class="h6 fw-semibold" th:text="#{officeorder.compare.differ.heading}">Lines that differ</h3>
+        <article th:each="row : ${c.different}" class="compare-row" th:id="${'diff-' + row.key}"
+                 th:with="unit=${row.unit}">
+            <header class="compare-row-head">
+                <h4 class="h6 fw-semibold mb-0 text-break" th:text="${row.name}">Basmati rice</h4>
+                <span th:if="${row.stake != null}" class="compare-stake">
+                    <span class="small text-body-secondary" th:text="#{officeorder.compare.atStake}">At stake</span>
+                    <span class="font-monospace fw-semibold" th:text="${@money.amount(cur, row.stake)}">18.50</span>
+                </span>
+            </header>
+            <dl class="compare-numbers">
+                <div>
+                    <dt th:text="#{officeorder.compare.ordered}">Ordered</dt>
+                    <dd><th:block th:if="${row.ordered != null}"><span class="font-monospace" th:text="${@money.quantity(row.ordered)}">120</span> [[${unit}]]</th:block><th:block th:if="${row.ordered == null}">—</th:block></dd>
+                </div>
+                <div>
+                    <dt th:text="#{officeorder.compare.received}">Received</dt>
+                    <dd><th:block th:if="${row.received != null}"><span class="font-monospace" th:text="${@money.quantity(row.received)}">110</span> [[${unit}]]</th:block><th:block th:if="${row.received == null}">—</th:block></dd>
+                </div>
+                <div>
+                    <dt th:text="#{officeorder.compare.invoiced}">Invoiced</dt>
+                    <dd>
+                        <th:block th:if="${row.invoiced != null}"><span class="font-monospace" th:text="${@money.quantity(row.invoiced)}">120</span> [[${unit}]]</th:block>
+                        <th:block th:if="${row.invoiced == null}" th:text="${row.onInvoice} ? #{officeorder.compare.notRead} : #{officeorder.compare.notOnInvoice}">—</th:block>
+                        <span th:if="${row.invoiceText != null}" class="d-block small text-body-secondary" th:text="${row.invoiceText}">12 bags × 10 kg</span>
+                    </dd>
+                </div>
+            </dl>
+            <ul class="compare-diffs">
+                <li th:each="d : ${row.diffs}" th:with="amountText=${d.amount() == null} ? '' : (${d.kind().price()} ? ${@money.unitPrice(null, d.amount())} : ${@money.quantity(d.amount()) + ' ' + unit})"
+                    th:text="${d.kind().price()} ? #{${d.kind().labelKey()}(${amountText}, ${unit})} : #{${d.kind().labelKey()}(${amountText})}">Received 10 kg less than invoiced: a credit to claim</li>
+            </ul>
+            <p th:if="${row.unitPrice != null or row.amount != null or row.quoted != null}" class="compare-prices small mb-2">
+                <th:block th:if="${row.unitPrice != null}">
+                    [[#{officeorder.compare.unitPrice}]]: <span class="font-monospace" th:text="${@money.unitPrice(cur, row.unitPrice)}">18.50</span>
+                    <th:block th:if="${row.invoiceLines[0].packUnitOne != null}" th:text="#{officeorder.compare.per(${row.invoiceLines[0].packUnitOne})}">per bag</th:block>
+                </th:block>
+                <th:block th:if="${row.amount != null}">
+                    · [[#{officeorder.compare.amount}]]: <span class="font-monospace" th:text="${@money.amount(cur, row.amount)}">222.00</span>
+                </th:block>
+                <th:block th:if="${row.quoted != null}">
+                    · [[#{officeorder.compare.quoted}]]: <span class="font-monospace" th:text="${@money.unitPrice(cur, row.quoted)}">1.80</span>
+                    [[#{officeorder.compare.per(${unit})}]]
+                </th:block>
+            </p>
+            <p th:if="${row.cookNote != null}" class="small mb-1 order-note"><span class="fw-semibold" th:text="#{officeorder.compare.cookNote}">Chief cook</span>: [[${row.cookNote}]]</p>
+            <p th:if="${row.masterNote != null}" class="small mb-1 order-note"><span class="fw-semibold" th:text="#{officeorder.compare.masterNote}">Master</span>: [[${row.masterNote}]]</p>
+            <!-- Decision: accepted (with its note), or Accept with a required note. -->
+            <div th:if="${row.accepted}" class="compare-decision"
+                 th:with="who=${row.decision.decidedBy} ? ${row.decision.decidedBy.fullName} : #{audit.deletedUser}">
+                <span th:replace="~{layout/parts :: statusIcon('ok', #{officeorder.compare.acceptedBy(${who})}, 'check')}"></span>
+                <time th:replace="~{layout/parts :: localTime(${row.decision.decidedAt})}"></time>
+                <p class="mb-0 order-note" th:text="${row.decision.note}">Credit note requested from the supplier</p>
+            </div>
+            <form th:if="${editable and !row.accepted}" method="post" class="compare-accept" novalidate
+                  th:action="@{${base + '/accept'}}">
+                <input type="hidden" name="key" th:value="${row.key}">
+                <label class="form-label small" th:for="${'accept-' + row.key}" th:text="#{officeorder.compare.accept.note}">Note</label>
+                <input type="text" class="form-control form-control-sm" name="note" th:id="${'accept-' + row.key}"
+                       th:maxlength="${acceptNoteMax}" autocomplete="off" required
+                       th:placeholder="#{officeorder.compare.accept.placeholder}">
+                <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{officeorder.compare.accept}">Accept</button>
+            </form>
+            <p th:if="${editable and row.onInvoice}" class="small mb-0 mt-2">
+                <a th:href="@{${base + '/lines/' + row.invoiceLines[0].id + '/match'}}" th:text="#{officeorder.compare.changeProduct}">Change the product</a>
+            </p>
+        </article>
+    </div>
+
+    <!-- The lines that agree, folded. -->
+    <details th:unless="${c.agreeing.isEmpty()}" class="card-body border-top compare-agree">
+        <summary th:text="#{officeorder.compare.agree.show(${c.agreeing.size()})}">37 lines agree: show</summary>
+        <div class="table-responsive mt-2">
+            <table class="table data-table data-table-stack align-middle mb-0">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{item.name}">Name</th>
+                    <th scope="col" class="text-end" th:text="#{officeorder.compare.ordered}">Ordered</th>
+                    <th scope="col" class="text-end" th:text="#{officeorder.compare.received}">Received</th>
+                    <th scope="col" class="text-end" th:text="#{officeorder.compare.invoiced}">Invoiced</th>
+                    <th scope="col" class="text-end" th:text="#{officeorder.compare.unitPrice}">Unit price</th>
+                    <th scope="col" class="text-end" th:text="#{officeorder.compare.amount}">Amount</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${c.agreeing}">
+                    <td class="cell-primary" th:text="${row.name}">Eggs</td>
+                    <td class="text-end" th:attr="data-label=#{officeorder.compare.ordered}"><span class="font-monospace" th:text="${@money.quantity(row.ordered)}">30</span> [[${row.unit}]]</td>
+                    <td class="text-end" th:attr="data-label=#{officeorder.compare.received}"><span class="font-monospace" th:text="${@money.quantity(row.received)}">30</span> [[${row.unit}]]</td>
+                    <td class="text-end" th:attr="data-label=#{officeorder.compare.invoiced}">
+                        <th:block th:if="${row.invoiced != null}"><span class="font-monospace" th:text="${@money.quantity(row.invoiced)}">30</span> [[${row.unit}]]</th:block>
+                        <span th:if="${row.invoiceText != null}" class="d-block small text-body-secondary" th:text="${row.invoiceText}">3 trays × 10 pcs</span>
+                    </td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{officeorder.compare.unitPrice}" th:text="${@money.unitPrice(cur, row.unitPrice)}">0.25</td>
+                    <td class="text-end font-monospace" th:attr="data-label=#{officeorder.compare.amount}" th:text="${@money.amount(cur, row.amount)}">7.50</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <!-- Close it: matched (who and when), or Mark as matched once nothing is left to decide. -->
+    <div class="card-body border-top compare-close">
+        <p th:if="${c.matched}" class="mb-0"
+           th:with="who=${order.invoiceMatchedBy} ? ${order.invoiceMatchedBy.fullName} : #{audit.deletedUser}">
+            <span th:replace="~{layout/parts :: statusIcon('ok', #{officeorder.compare.matchedBy(${who})}, 'check')}"></span>
+            <time th:replace="~{layout/parts :: localTime(${order.invoiceMatchedAt})}"></time>
+        </p>
+        <form th:if="${editable}" method="post" th:action="@{${base + '/matched'}}" class="compare-match-form">
+            <p class="small text-body-secondary mb-2" th:if="${c.canMatch}" th:text="#{officeorder.compare.matchHint}">When nothing
+                differs, or you have dealt with each difference, mark it matched.</p>
+            <p class="small text-body-secondary mb-2" th:unless="${c.canMatch}" id="matchLeft"
+               th:text="#{officeorder.compare.openLeftHint(${c.openTotal})}">2 points are left to decide.</p>
+            <button type="submit" class="btn btn-primary" th:disabled="${!c.canMatch}"
+                    th:attr="aria-describedby=${c.canMatch} ? null : 'matchLeft'"
+                    th:text="#{officeorder.compare.markMatched}">Mark as matched</button>
+        </form>
+    </div>
+</section>
+
+<!-- The flags of an invoice line in words: corrected, hard to read, quantity not read, changed by the office. -->
+<th:block th:fragment="flags(l)">
+    <span th:if="${l.corrected}" class="badge status-badge status-info" th:text="#{officeorder.compare.flag.corrected}">corrected</span>
+    <span th:if="${l.needsCheck}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.check}">hard to read</span>
+    <span th:if="${l.quantityNotRead}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.quantityNotRead}">quantity not read</span>
+    <span th:if="${l.changedByOffice}" class="badge status-badge status-neutral" th:text="#{officeorder.compare.flag.office}">changed by the office</span>
+</th:block>
+
+</body>
+</html>

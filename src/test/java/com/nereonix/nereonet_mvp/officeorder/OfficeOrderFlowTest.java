@@ -69,7 +69,8 @@ class OfficeOrderFlowTest {
     // The export's columns: a file format.
     private static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
-            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at");
+            "quantity", "sent_quantity", "office_change", "office_note", "received_quantity", "received_at",
+            "invoiced_quantity", "invoice_unit", "invoice_unit_price", "invoice_amount", "difference");
     private static final Instant SENT_AT = Instant.parse("2026-11-10T09:30:15.123Z");
     private static final LocalDate NEEDED_BY = LocalDate.of(2026, 11, 25);
 
@@ -163,8 +164,10 @@ class OfficeOrderFlowTest {
                 LocalDateTime.of(2026, 11, 10, 9, 30, 15), "Rotterdam", NEEDED_BY, "Antwerp", LocalDate.of(2026, 11, 20));
         assertThat(sheet.header()).isEqualTo(EXPORT_HEADER);
         assertThat(sheet.body()).containsExactly(
-                concat(common, "Provisions", "Basmati rice", "kg", 25.0, 25.0, null, null, null, null),
-                concat(common, "Personal items", "Shower gel", "pcs", 2.5, 2.5, null, null, null, null));
+                concat(common, "Provisions", "Basmati rice", "kg", 25.0, 25.0, null, null, null, null,
+                        null, null, null, null, null),
+                concat(common, "Personal items", "Shower gel", "pcs", 2.5, 2.5, null, null, null, null,
+                        null, null, null, null, null));
         assertThat(order.getExportedAt()).isNotNull();
         assertThat(audit("ORDERS_EXPORTED")).singleElement().satisfies(e -> {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");

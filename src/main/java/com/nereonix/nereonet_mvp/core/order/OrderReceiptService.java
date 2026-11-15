@@ -60,6 +60,8 @@ import jakarta.persistence.LockModeType;
  * P63: a count sent to the Master is approved in one step (approveCount): the count's rows (CountSheet) are the
  * receipt, in the item's unit; invoice lines matched to a vessel item not on the order become lines added on receipt;
  * each line keeps what the invoice said and the office's marks (P64).
+ * P64: an order received with a read invoice is TO_MATCH for the office (InvoiceComparisonService.refresh): matching it
+ * replaces markShortageHandled, which stays for the orders without one.
  */
 @Service
 public class OrderReceiptService {
@@ -92,6 +94,7 @@ public class OrderReceiptService {
     private final DeliveryInvoiceLineRepository invoiceLineRepository;
     private final InvoiceMatchService matchService;
     private final ShipOrderLineRepository orderLineRepository;
+    private final InvoiceComparisonService comparisonService;
 
     public OrderReceiptService(OrderReceiptFileRepository fileRepository, UserRepository userRepository,
                                LibraryFileStorage fileStorage, AuditService auditService,
@@ -99,7 +102,8 @@ public class OrderReceiptService {
                                StockService stockService, EntityManager entityManager,
                                DeliveryInvoiceRepository invoiceRepository,
                                DeliveryInvoiceLineRepository invoiceLineRepository,
-                               InvoiceMatchService matchService, ShipOrderLineRepository orderLineRepository) {
+                               InvoiceMatchService matchService, ShipOrderLineRepository orderLineRepository,
+                               InvoiceComparisonService comparisonService) {
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
@@ -112,6 +116,7 @@ public class OrderReceiptService {
         this.invoiceLineRepository = invoiceLineRepository;
         this.matchService = matchService;
         this.orderLineRepository = orderLineRepository;
+        this.comparisonService = comparisonService;
     }
 
     /** What a change of the receipt did. */
@@ -396,6 +401,8 @@ public class OrderReceiptService {
         if (receiptFiles.isEmpty()) {
             return Result.NO_FILE;
         }
+        // P64: an invoice read but never matched (no count): matched now, so the office can compare it.
+        matchService.ensureMatched(order);
         close(order, master, receipt, receiptFiles);
         return Result.DONE;
     }
@@ -506,6 +513,8 @@ public class OrderReceiptService {
         order.setReceiptConfirmedAt(Instant.now());
         order.setShortLines(shortLines);
         order.setStatus(ShipOrderStatus.CLOSED);
+        // P64: received with a read invoice: the office compares order, delivery and invoice (TO_MATCH).
+        comparisonService.refresh(order);
         // P61: a count sent to the Master is approved by confirming; a draft the cook never sent is left as it was.
         String countedBy = null;
         if (order.getDeliveryCountStatus() == DeliveryCountStatus.SENT_TO_MASTER) {

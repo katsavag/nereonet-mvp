@@ -7,7 +7,8 @@
      page stays as it is. Without JavaScript everything still submits; there is no select-all and no selection count,
      and the button is never disabled (nothing checked: back with a message). A row opens its order (data-row-href);
      its number stays the link for the keyboard and without the script. Model: list (ListQuery), orders (Page of
-     ShipOrder), ships, shipId, status, statuses, exported. -->
+     ShipOrder), ships, shipId, status, statuses, exported, invoice (P64: "differ" while filtered to the received orders
+     whose invoice has lines that differ). P64: the Invoice column, "Matched", "3 differ", "To confirm" or "None". -->
 <main>
     <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.list.heading}, count=${orders.totalElements},
             subtitle=#{officeorder.list.hint}, actions=${orders.isEmpty()} ? null : ~{::pageActions})}">
@@ -39,6 +40,14 @@
                 <select id="filterExported" name="exported" class="form-select">
                     <option value="" th:text="#{officeorder.filter.exported.all}">All</option>
                     <option value="no" th:selected="${exported == 'no'}" th:text="#{officeorder.filter.exported.no}">Not exported yet</option>
+                </select>
+            </div>
+            <!-- P64: received orders whose invoice has lines that differ, not matched yet. -->
+            <div class="filter-field">
+                <label for="filterInvoice" class="form-label" th:text="#{officeorder.filter.invoice}">Invoice</label>
+                <select id="filterInvoice" name="invoice" class="form-select">
+                    <option value="" th:text="#{officeorder.filter.invoice.all}">All</option>
+                    <option value="differ" th:selected="${invoice == 'differ'}" th:text="#{officeorder.filter.invoice.differ}">Lines differ</option>
                 </select>
             </div>
         </th:block>
@@ -82,6 +91,7 @@
                         <th scope="col" th:text="#{officeorder.neededBy}">Needed by</th>
                         <th scope="col" th:text="#{officeorder.status}">Status</th>
                         <th scope="col" th:text="#{officeorder.exported}">Exported</th>
+                        <th scope="col" th:text="#{officeorder.invoiceColumn}">Invoice</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -103,6 +113,7 @@
                         <td th:attr="data-label=#{officeorder.neededBy}"><time th:replace="~{layout/parts :: localDate(${o.neededBy})}"></time></td>
                         <td th:attr="data-label=#{officeorder.status}"><span th:replace="~{officeorder/parts :: statusBadge(${o.status})}"></span></td>
                         <td th:attr="data-label=#{officeorder.exported}"><th:block th:replace="~{officeorder/parts :: exported(${o})}"></th:block></td>
+                        <td th:attr="data-label=#{officeorder.invoiceColumn}"><th:block th:replace="~{officeorder/parts :: invoiceBadge(${o})}"></th:block></td>
                     </tr>
                     </tbody>
                 </table>

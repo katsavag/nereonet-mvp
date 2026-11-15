@@ -137,7 +137,8 @@ public class DashboardService {
 
     /** One row of the "Needs attention" card. */
     public sealed interface AttentionItem
-            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, ShortageItem, RfqItem, InvitationItem,
+            permits CertificateItem, DocumentsItem, VettingItem, SireItem, OrderItem, InvoiceItem, ShortageItem, RfqItem,
+            InvitationItem,
             AnnouncementItem,
             LibraryAttentionItem {
 
@@ -283,6 +284,25 @@ public class DashboardService {
 
         public long sortKey() {
             return sentAt == null ? Long.MIN_VALUE : sentAt.getEpochSecond();
+        }
+    }
+
+    /**
+     * An order received with a read invoice (P64), until an office user marks it matched: diffLines lines differ (0:
+     * all agree, to confirm). Most differences first, then the oldest received.
+     */
+    public record InvoiceItem(Long id, FleetShip ship, Instant receivedAt, int diffLines) implements AttentionItem {
+
+        public AttentionType type() {
+            return AttentionType.ORDER_INVOICE;
+        }
+
+        public Set<Long> shipIds() {
+            return Set.of(ship.id());
+        }
+
+        public long sortKey() {
+            return -diffLines * 10_000_000_000L + (receivedAt == null ? 0 : receivedAt.getEpochSecond());
         }
     }
 
@@ -570,7 +590,11 @@ public class DashboardService {
             if (o.notExported()) {
                 all.add(new OrderItem(o.id(), shipsById.get(o.shipId()), o.sentBy(), o.rank(), o.sentAt(), o.lines()));
             }
-            // P51: received short, until the office marks the shortage handled.
+            // P64: received with a read invoice, until the office marks it matched.
+            if (o.invoiceToMatch()) {
+                all.add(new InvoiceItem(o.id(), shipsById.get(o.shipId()), o.receivedAt(), o.invoiceDiffLines()));
+            }
+            // P51: received short, until the office marks the shortage handled (without a read invoice only).
             if (o.shortageOpen()) {
                 all.add(new ShortageItem(o.id(), shipsById.get(o.shipId()), o.receivedAt(), o.shortLines()));
             }

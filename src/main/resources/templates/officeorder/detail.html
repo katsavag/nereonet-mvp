@@ -13,8 +13,9 @@
      delivery". The office never closes an order: the Master confirms receipt on board (P51). Then "Receipt on board":
      received when and by whom, the delivery receipt's files (Open in a new tab, P22; Download), per line ordered vs
      received with shortages marked ("Short by 5 kg"), and while lines are short and not handled, "Shortage handled"
-     with a note (required).
-     Model: order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
+     with a note (required). P64: received with a read invoice, the card "Order, delivery and invoice"
+     (officeorder/compare :: card) under the order details replaces "Shortage handled".
+     Model: comparison (InvoiceComparison or null), acceptNoteMax, order (ShipOrder), groups (OfficeOrderController.LineGroup), canConfirm, confirmForm (ConfirmOrderForm),
      editable, editPending, noteMax, received, receiptFiles, shortageNoteMax, and while editable hasItems (the vessel
      has active items), itemGroups (OfficeOrderController.ItemGroup: the active items not on the order) and
      onOrderGroups (OfficeOrderController.LineGroup: the lines not removed).
@@ -93,6 +94,9 @@
         </dl>
     </div>
 
+    <!-- P64: order, delivery and invoice side by side, for an order received with a read invoice. -->
+    <th:block th:if="${comparison != null}"><section th:replace="~{officeorder/compare :: card}"></section></th:block>
+
     <!-- P51: the receipt on board, once the Master confirmed it. -->
     <section th:if="${received}" class="card mb-4" aria-labelledby="receiptTitle">
         <div class="card-header py-3">
@@ -129,8 +133,9 @@
                 </li>
             </ul>
         </div>
-        <!-- Lines short: "Shortage handled" with a note, or who handled it and the note. -->
-        <div th:if="${order.shortLines > 0}" class="card-body border-top">
+        <!-- Lines short: "Shortage handled" with a note, or who handled it and the note. P64: not for an order with a
+             read invoice, where a shortage is one of the differences of "Order, delivery and invoice". -->
+        <div th:if="${order.shortLines > 0 and comparison == null}" class="card-body border-top">
             <h3 class="h6 fw-semibold" th:text="#{officeorder.shortage.heading}">Shortage</h3>
             <th:block th:if="${order.shortageHandledAt != null}">
                 <p class="mb-1">

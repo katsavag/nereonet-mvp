@@ -7005,3 +7005,78 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     .invoice-pages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .invoice-add-controls { max-width: 36rem; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Order, delivery and invoice (P64, office only): officeorder/compare.html, invoice.html, invoice-match.html.
+     - .compare-summary: the invoice's facts and By category, stacked on phones, side by side from 768px;
+       .compare-totals the three amounts in a row of tiles.
+     - .compare-review-item: one point to review, its text then Correct / Change; .is-resolved muted.
+     - .compare-row: one line that differs, its numbers (.compare-numbers: Ordered, Received, Invoiced, three columns),
+       the differences in words, the prices, the notes and Accept (.compare-accept: the note and the button in a row
+       from 576px).
+     - .invoice-view: View invoice, the photo then the lines on phones, side by side from 992px (the photo sticky).
+   --------------------------------------------------------------------------------------------------------------- */
+.compare-summary { display: grid; gap: var(--nn-space-3); margin-bottom: var(--nn-space-3); }
+.compare-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--nn-space-1) var(--nn-space-3); }
+.compare-facts dt { font-weight: 600; }
+.compare-facts dd { margin: 0; overflow-wrap: anywhere; }
+.compare-categories > li + li { margin-top: var(--nn-space-1); }
+.compare-totals { display: grid; gap: var(--nn-space-2); margin: 0 0 var(--nn-space-3); }
+.compare-totals > div { padding: var(--nn-space-2) var(--nn-space-3); border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-control); background-color: var(--nn-page); }
+.compare-totals dt { font-size: .875rem; font-weight: 400; color: var(--nn-text-secondary); }
+.compare-totals dd { margin: 0; font-weight: 700; font-size: 1.125rem; }
+.compare-review-item { display: flex; flex-direction: column; gap: var(--nn-space-2); padding: var(--nn-space-3) 0;
+    border-top: 1px solid var(--nn-divider); }
+.compare-review-item:first-child { border-top: 0; padding-top: 0; }
+.compare-review-item.is-resolved .compare-review-text > span { color: var(--nn-text-secondary); }
+.compare-review-text { min-width: 0; overflow-wrap: anywhere; }
+.compare-flags { display: inline-flex; flex-wrap: wrap; gap: var(--nn-space-1); margin-left: var(--nn-space-1); }
+.compare-review-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--nn-space-2); }
+.compare-change > summary { list-style: none; }
+.compare-change > summary::-webkit-details-marker { display: none; }
+.compare-inline-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--nn-space-2); margin-top: var(--nn-space-2); }
+.compare-inline-form .form-label { flex-basis: 100%; margin-bottom: 0; }
+.compare-inline-form .form-control { width: 8rem; }
+.compare-row { padding: var(--nn-space-3) 0; border-top: 1px solid var(--nn-divider); }
+.compare-row:first-of-type { border-top: 0; padding-top: 0; }
+.compare-row-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline;
+    gap: var(--nn-space-2); margin-bottom: var(--nn-space-2); }
+.compare-stake { display: inline-flex; align-items: baseline; gap: var(--nn-space-1); }
+.compare-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--nn-space-2); margin: 0 0 var(--nn-space-2); }
+.compare-numbers dt { font-size: .8125rem; font-weight: 400; color: var(--nn-text-secondary); }
+.compare-numbers dd { margin: 0; overflow-wrap: anywhere; }
+.compare-diffs { margin: 0 0 var(--nn-space-2); padding-left: 1.25rem; color: var(--nn-warning-text); font-weight: 600; }
+.compare-decision { margin-top: var(--nn-space-2); }
+.compare-accept { display: grid; gap: var(--nn-space-1); margin-top: var(--nn-space-2); max-width: 40rem; }
+.compare-accept .form-label { margin-bottom: 0; }
+.compare-agree > summary { cursor: pointer; font-weight: 600; color: var(--nn-blue); min-height: var(--nn-touch-target);
+    display: flex; align-items: center; }
+.invoice-pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); }
+.invoice-view { display: grid; gap: var(--nn-space-3); }
+.invoice-photo-link { display: block; text-decoration: none; }
+.invoice-photo-link img { display: block; width: 100%; height: auto; border: 1px solid var(--nn-border);
+    border-radius: var(--nn-radius-control); background-color: var(--nn-head-bg); }
+.invoice-photo-link > span { display: inline-block; margin-top: var(--nn-space-1); }
+.invoice-line { padding: var(--nn-space-2) 0; border-top: 1px solid var(--nn-divider); scroll-margin-top: 5rem; }
+.invoice-line:first-child { border-top: 0; }
+.invoice-line:target { background-color: var(--nn-warning-bg); }
+.invoice-line-head { display: flex; gap: var(--nn-space-2); align-items: baseline; }
+.invoice-line-no { flex: 0 0 auto; min-width: 2ch; color: var(--nn-text-secondary); }
+.invoice-correct > summary { list-style: none; }
+.invoice-correct > summary::-webkit-details-marker { display: none; }
+.invoice-correct-form { margin-top: var(--nn-space-2); }
+@media (min-width: 576px) {
+    .compare-accept { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+    .compare-accept .form-label { grid-column: 1 / -1; }
+    .compare-review-item { flex-direction: row; justify-content: space-between; align-items: flex-start; }
+    .compare-review-actions { flex: 0 0 auto; justify-content: flex-end; }
+}
+@media (min-width: 768px) {
+    .compare-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .compare-totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 992px) {
+    .invoice-view { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+    .invoice-photo { position: sticky; top: var(--nn-space-3); }
+}

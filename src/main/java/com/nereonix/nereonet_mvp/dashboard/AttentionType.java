@@ -26,6 +26,11 @@ public enum AttentionType {
     CERTIFICATE_EXPIRING(Group.CERTIFICATES),
     /** An order a ship has sent (P36) that the office has never exported. */
     ORDER_NOT_EXPORTED(Group.ORDERS),
+    /**
+     * An order received on board with a read invoice (P64) the office has not marked matched: order, delivery and
+     * invoice to compare. Most differences first. It replaces ORDER_SHORTAGE for those orders.
+     */
+    ORDER_INVOICE(Group.ORDERS),
     /** An order received on board with lines short (P51) that no office user has marked "Shortage handled". */
     ORDER_SHORTAGE(Group.ORDERS),
     /** An open request for quotes (P44) with quotes from at least two suppliers: ready to compare and award. */

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{officeorder.invoice.title(${order.id})}, ~{::main})}">
+<body>
+<!-- P64, View invoice: the photographed pages of a received order's invoice, one at a time ("Page 1 of 2", Previous
+     and Next; the image opens full size in a new tab to zoom), beside what was read from that page: its lines with the
+     flags in words (corrected, hard to read, quantity not read, changed by the office), the value as read where the
+     office changed one, and the P62 checks of the page (and of the whole invoice). While the invoice is not matched
+     the office corrects a line read wrong (Correct this line: quantity, unit price, amount, description; an empty
+     field keeps the value). Side by side from 992px; on phones the photo is above the lines.
+     Model: order, comparison, page, pageCount, pageFile (OrderReceiptFile or null), lines, checks, editable,
+     descriptionMax. -->
+<main th:with="base=${'/office/orders/' + order.id + '/invoice'}, cur=${comparison.currency}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{officeorder.invoice.title(${order.id})}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${order.ship}, actions=null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{nav.orders}, '/office/orders')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{officeorder.number(${order.id})}, ${'/office/orders/' + order.id})}"></li>
+        </th:block>
+    </header>
+
+    <nav class="invoice-pager mb-3" th:attr="aria-label=#{officeorder.invoice.pages}">
+        <a th:if="${page > 1}" class="btn btn-outline-secondary btn-sm" th:href="@{${base}(page=${page - 1})}"
+           th:text="#{officeorder.invoice.previous}">Previous page</a>
+        <span class="fw-semibold" aria-current="page" th:text="#{officeorder.invoice.page(${page}, ${pageCount})}">Page 1 of 2</span>
+        <a th:if="${page < pageCount}" class="btn btn-outline-secondary btn-sm" th:href="@{${base}(page=${page + 1})}"
+           th:text="#{officeorder.invoice.next}">Next page</a>
+        <a class="btn btn-ghost btn-sm ms-auto" th:href="@{/office/orders/{id}(id=${order.id})} + '#compare'"
+           th:text="#{officeorder.invoice.back}">Back to the order</a>
+    </nav>
+
+    <div class="invoice-view">
+        <!-- The photo: opened full size in a new tab to zoom. -->
+        <section class="card invoice-photo" aria-labelledby="photoTitle">
+            <div class="card-body">
+                <h2 class="h6 fw-semibold" id="photoTitle" th:text="#{officeorder.invoice.photo(${page})}">Photo of page 1</h2>
+                <th:block th:if="${pageFile != null}" th:with="fileUrl=${'/office/orders/' + order.id + '/receipt/' + pageFile.id}">
+                    <a th:if="${pageFile.image}" th:href="@{${fileUrl}}" target="_blank" rel="noopener" class="invoice-photo-link">
+                        <img th:src="@{${fileUrl}}" th:alt="#{officeorder.invoice.photo(${page})}" loading="lazy">
+                        <span class="small" th:text="#{officeorder.invoice.openImage}">Open the page full size</span>
+                    </a>
+                    <a th:unless="${pageFile.image}" class="btn btn-outline-secondary" th:href="@{${fileUrl}}" target="_blank"
+                       rel="noopener" th:text="#{officeorder.invoice.openPdf}">Open the PDF</a>
+                </th:block>
+                <p th:if="${pageFile == null}" class="text-body-secondary mb-0" th:text="#{officeorder.invoice.noPhoto}">No photo of this page.</p>
+            </div>
+        </section>
+
+        <!-- What was read from this page, and its checks. -->
+        <section class="card invoice-read" aria-labelledby="readTitle">
+            <div class="card-body">
+                <h2 class="h6 fw-semibold" id="readTitle" th:text="#{officeorder.invoice.read}">What was read</h2>
+                <div class="invoice-checks mb-3">
+                    <h3 class="small fw-semibold mb-1" th:text="#{officeorder.invoice.checks}">Checks</h3>
+                    <ul th:unless="${checks.isEmpty()}" class="small mb-0">
+                        <li th:each="note : ${checks}" th:text="${note}">Page 1: the lines add up to 1,759.50, the page says 1,773.70</li>
+                    </ul>
+                    <p th:if="${checks.isEmpty()}" class="small text-body-secondary mb-0" th:text="#{officeorder.invoice.checksOk}">The checks of this page passed.</p>
+                </div>
+                <p th:if="${lines.isEmpty()}" class="text-body-secondary mb-0" th:text="#{officeorder.invoice.noLines}">No lines were read from this page.</p>
+                <ol th:unless="${lines.isEmpty()}" class="invoice-lines list-unstyled mb-0">
+                    <li th:each="l : ${lines}" class="invoice-line" th:id="${'line-' + l.id}">
+                        <div class="invoice-line-head">
+                            <span class="invoice-line-no font-monospace" th:text="${l.lineNumber}">12</span>
+                            <span class="fw-semibold text-break" th:text="${l.description}">FISH FILLET HAKE</span>
+                        </div>
+                        <p class="small mb-1">
+                            <span class="font-monospace" th:text="${l.quantity != null} ? ${@money.quantity(l.quantity)} : #{officeorder.compare.notRead}">12</span>
+                            [[${l.unit}]] ·
+                            <span class="font-monospace" th:text="${l.unitPrice != null} ? ${@money.unitPrice(cur, l.unitPrice)} : #{officeorder.compare.notRead}">18.50</span> ·
+                            <span class="font-monospace" th:text="${l.amount != null} ? ${@money.amount(cur, l.amount)} : #{officeorder.compare.notRead}">222.00</span>
+                        </p>
+                        <p class="small mb-1 text-body-secondary"
+                           th:text="${l.item != null} ? #{officeorder.invoice.matchedTo(${l.item.name})} : #{officeorder.invoice.notMatched}">Matched to Basmati rice</p>
+                        <p class="mb-1"><th:block th:replace="~{officeorder/compare :: flags(${l})}"></th:block></p>
+                        <!-- The office changed it: what was read, and who. -->
+                        <p th:if="${l.changedByOffice}" class="small text-body-secondary mb-1">
+                            <th:block th:text="#{officeorder.invoice.asRead(${(l.descriptionRead ?: l.description) + ' · '
+                                    + (l.readQuantity != null ? @money.quantity(l.readQuantity) : '?') + ' · '
+                                    + (l.readUnitPrice != null ? @money.unitPrice(cur, l.readUnitPrice) : '?') + ' · '
+                                    + (l.readAmount != null ? @money.amount(cur, l.readAmount) : '?')})}">As read: ...</th:block>
+                            · <th:block th:text="#{officeorder.invoice.changedBy(${l.officeChangedBy} ? ${l.officeChangedBy.fullName} : #{audit.deletedUser})}">Changed by Jane Office</th:block>
+                            <time th:replace="~{layout/parts :: localTime(${l.officeChangedAt})}"></time>
+                        </p>
+                        <details th:if="${editable}" class="invoice-correct">
+                            <summary class="btn btn-ghost btn-sm" th:text="#{officeorder.invoice.correct}">Correct this line</summary>
+                            <form method="post" class="invoice-correct-form" novalidate th:action="@{${base + '/lines/' + l.id}}">
+                                <p class="small text-body-secondary mb-2" th:text="#{officeorder.invoice.correct.hint}">Leave a field empty to keep it.</p>
+                                <div class="form-grid">
+                                    <div class="field-half">
+                                        <label class="form-label" th:for="${'q-' + l.id}" th:text="#{officeorder.invoice.quantity}">Quantity</label>
+                                        <input type="text" inputmode="decimal" class="form-control" name="quantity" maxlength="16"
+                                               th:id="${'q-' + l.id}" th:placeholder="${l.quantity != null} ? ${l.quantity.stripTrailingZeros().toPlainString()} : ''">
+                                    </div>
+                                    <div class="field-half">
+                                        <label class="form-label" th:for="${'p-' + l.id}" th:text="#{officeorder.invoice.unitPrice}">Unit price</label>
+                                        <input type="text" inputmode="decimal" class="form-control" name="unitPrice" maxlength="16"
+                                               th:id="${'p-' + l.id}" th:placeholder="${l.unitPrice != null} ? ${l.unitPrice.stripTrailingZeros().toPlainString()} : ''">
+                                    </div>
+                                    <div class="field-half">
+                                        <label class="form-label" th:for="${'a-' + l.id}" th:text="#{officeorder.invoice.amount}">Amount</label>
+                                        <input type="text" inputmode="decimal" class="form-control" name="amount" maxlength="16"
+                                               th:id="${'a-' + l.id}" th:placeholder="${l.amount != null} ? ${l.amount.stripTrailingZeros().toPlainString()} : ''">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" th:for="${'d-' + l.id}" th:text="#{officeorder.invoice.description}">Description</label>
+                                        <input type="text" class="form-control" name="description" th:maxlength="${descriptionMax}"
+                                               th:id="${'d-' + l.id}" th:placeholder="${l.description}">
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-sm" th:text="#{officeorder.invoice.correct.save}">Save</button>
+                                </div>
+                            </form>
+                        </details>
+                    </li>
+                </ol>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>

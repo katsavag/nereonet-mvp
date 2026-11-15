@@ -35,6 +35,8 @@ import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.list.ListSort;
+import com.nereonix.nereonet_mvp.core.order.InvoiceComparisonService;
+import com.nereonix.nereonet_mvp.core.order.InvoiceDecision;
 import com.nereonix.nereonet_mvp.core.order.OfficeOrderEditService;
 import com.nereonix.nereonet_mvp.core.order.OfficeOrderEditService.Edit;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
@@ -54,7 +56,8 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 // The orders the ships have sent, as the office sees them (P36): the list, one order, scheduling its delivery (port
 // and date; "confirming" until P51) and changing it until the Master confirms receipt, and the export (an Excel
 // workbook since P39). P51: a received order shows the receipt (its files, ordered vs received per line) and, when
-// lines were short, "Shortage handled" with a note. The logic is ShipOrderService's. While an order is SENT
+// lines were short, "Shortage handled" with a note. P64: received with a read invoice, the card "Order, delivery and
+// invoice" (InvoiceComparisonService; its actions in OfficeInvoiceController) replaces "Shortage handled". The logic is ShipOrderService's. While an order is SENT
 // the office can change its lines (P50: quantity, remove, add an item; OfficeOrderEditService), each a plain POST form.
 // /office/** is limited to OFFICE_USER in SecurityConfig. An OPEN order (still being put together on board) is a 404.
 @Controller
@@ -67,6 +70,10 @@ public class OfficeOrderController {
 
     // The "Export status" filter's value for "Not exported yet" (?exported=no), as the Overview links to it.
     static final String NOT_EXPORTED = "no";
+
+    // P64: the "Invoice" filter's value for "Lines differ" (?invoice=differ): received, the invoice not matched yet,
+    // with lines that differ.
+    static final String INVOICE_DIFFER = "differ";
 
     /** One category's lines, by item name. */
     public record LineGroup(ItemCategory category, List<ShipOrderLine> lines) {
@@ -85,12 +92,13 @@ public class OfficeOrderController {
     private final ConfirmPages confirmPages;
     private final OrderReceiptService receiptService;
     private final QuantityRules quantityRules;
+    private final InvoiceComparisonService comparisonService;
 
     public OfficeOrderController(ShipOrderService orderService, ShipRepository shipRepository,
                                  UserRepository userRepository, RfqService rfqService,
                                  OfficeOrderEditService editService, ItemRepository itemRepository,
                                  ConfirmPages confirmPages, OrderReceiptService receiptService,
-                                 QuantityRules quantityRules) {
+                                 QuantityRules quantityRules, InvoiceComparisonService comparisonService) {
         this.orderService = orderService;
         this.shipRepository = shipRepository;
         this.userRepository = userRepository;
@@ -100,18 +108,22 @@ public class OfficeOrderController {
         this.confirmPages = confirmPages;
         this.receiptService = receiptService;
         this.quantityRules = quantityRules;
+        this.comparisonService = comparisonService;
     }
 
-    // shipId, status (sent, confirmed, closed) and exported=no (not exported yet) filter the list; anything else in
-    // status or exported filters nothing. listRequest: search and page (P19).
+    // shipId, status (sent, confirmed, closed), exported=no (not exported yet) and invoice=differ (P64: the invoice's
+    // lines differ, not matched yet) filter the list; anything else in status, exported or invoice filters nothing.
+    // listRequest: search and page (P19).
     @GetMapping(LIST)
     public String list(@RequestParam(required = false) Long shipId,
                        @RequestParam(required = false) String status,
                        @RequestParam(required = false) String exported,
+                       @RequestParam(required = false) String invoice,
                        @ModelAttribute ListRequest listRequest, Model model) {
         List<Ship> ships = shipRepository.findAllByOrderByNameAsc();
         ShipOrderStatus chosen = status(status);
         boolean notExported = NOT_EXPORTED.equals(exported);
+        boolean invoiceDiffer = INVOICE_DIFFER.equals(invoice);
         ListQuery list = ListQuery.of(LIST, listRequest, SORTS).filterShip(shipId, ships);
         if (chosen != null) {
             list.filterKey("status", param(chosen), "officeorder.filter.status", "officeorder.status." + chosen.name());
@@ -119,13 +131,17 @@ public class OfficeOrderController {
         if (notExported) {
             list.filterKey("exported", NOT_EXPORTED, "officeorder.filter.exported", "officeorder.filter.exported.no");
         }
+        if (invoiceDiffer) {
+            list.filterKey("invoice", INVOICE_DIFFER, "officeorder.filter.invoice", "officeorder.filter.invoice.differ");
+        }
         model.addAttribute("list", list);
-        model.addAttribute("orders", orderService.findSent(shipId, chosen, notExported, list));
+        model.addAttribute("orders", orderService.findSent(shipId, chosen, notExported, invoiceDiffer, list));
         model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
         model.addAttribute("status", chosen == null ? null : param(chosen));
         model.addAttribute("statuses", ShipOrderService.SENT_TO_OFFICE);
         model.addAttribute("exported", notExported ? NOT_EXPORTED : null);
+        model.addAttribute("invoice", invoiceDiffer ? INVOICE_DIFFER : null);
         return "officeorder/list";
     }
 
@@ -363,6 +379,9 @@ public class OfficeOrderController {
         model.addAttribute("received", received);
         model.addAttribute("receiptFiles", received ? receiptService.files(order.getId()) : List.of());
         model.addAttribute("shortageNoteMax", ShipOrder.NOTE_MAX_LENGTH);
+        // P64: order, delivery and invoice side by side, for an order received with a read invoice (null otherwise).
+        model.addAttribute("comparison", received ? comparisonService.comparison(order).orElse(null) : null);
+        model.addAttribute("acceptNoteMax", InvoiceDecision.NOTE_MAX_LENGTH);
         // P50: the lines can be changed while SENT; "Done editing" while the ship has not been told about a change.
         boolean editable = OfficeOrderEditService.isEditable(order);
         model.addAttribute("editable", editable);
