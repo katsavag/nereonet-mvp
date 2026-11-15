@@ -390,7 +390,7 @@ class ShipOrderFlowTest {
         assertThat(progress).doesNotContain("Order #" + received.getId(), "Piraeus");
         assertThat(card(progress, sooner)).contains("Order #" + sooner.getId(), "Delivery scheduled", "1 item",
                         "Delivery: Antwerp, " + DAY.format(today.plusDays(5)),
-                        "href=\"/ship/orders/" + sooner.getId() + "/receipt\"", ">Confirm receipt<",
+                        "href=\"/ship/orders/" + sooner.getId() + "/invoice\"", ">Confirm receipt<",
                         "aria-label=\"Confirm receipt of order #" + sooner.getId() + "\"",
                         "href=\"/ship/orders/" + sooner.getId() + "\"", ">Open order<",
                         "aria-label=\"Open order #" + sooner.getId() + "\"")

@@ -37,3 +37,6 @@ app:
   mistral:
     api-key: ""
     fake: true
+  # P62: the invoice's pages are read at once, in the request (and the test's transaction), by FakeInvoiceReader.
+  invoice:
+    read-in-background: false

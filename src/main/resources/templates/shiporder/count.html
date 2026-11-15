@@ -13,7 +13,9 @@
      matching lines in place ("Heard: five kilos of tomatoes"), nothing saved until Save draft or Send.
      A count sent back by the Master shows the Master's note on top; a count sent shows what was sent, read only.
      English only. Model: order, form (DeliveryCountForm), groups (DeliveryCountController.RowGroup), editable, files
-     (his own photos), maxFiles, maxFileSize, noteMax, countNoteMax, voiceEnabled. -->
+     (his own photos), maxFiles, maxFileSize, noteMax, countNoteMax, voiceEnabled.
+     P62: files leaves out the invoice's pages (photographed, retaken and removed on "Photograph the invoice"); the
+     photos card says how many there are (invoicePages) and links there. -->
 <main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=${editable} ? #{order.count.hint} : null)}">
@@ -159,6 +161,12 @@
                 <div class="card-body p-3 p-md-4">
                     <h2 class="h5 fw-bold" id="countFilesTitle">[[#{order.count.files}]] <span th:replace="~{layout/parts :: optional}"></span></h2>
                     <p class="small text-body-secondary" th:text="#{order.count.files.hint}">They go to the Master with the count, as the delivery receipt.</p>
+                    <!-- P62: the invoice's pages, photographed on their own page (Retake and Remove there). -->
+                    <p class="mb-2">
+                        <span th:if="${invoicePages > 0}" th:text="#{order.invoice.photographed(${invoicePages})}">Invoice: 2 pages photographed</span>
+                        <span th:if="${invoicePages > 0}" aria-hidden="true">·</span>
+                        <a th:href="@{/ship/orders/{id}/invoice(id=${order.id})}" th:text="#{order.invoice.photograph}">Photograph the invoice</a>
+                    </p>
                     <th:block th:unless="${files.isEmpty()}">
                         <h3 class="h6 fw-semibold mt-3" th:text="#{order.receipt.files.uploaded}">Already uploaded</h3>
                         <ul class="receipt-files list-unstyled">

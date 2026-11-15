@@ -6923,3 +6923,50 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
     .count-line { grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 1.4fr) minmax(12rem, 1fr); align-items: start; }
     .count-line-head { flex-direction: column; }
 }
+
+/* ---- Photograph the invoice (P62) -----------------------------------------------------------------------------
+     - .invoice-pages: the pages so far, one card each, phone first (one column; two from 576px, three from 992px):
+       the thumbnail on the left (.invoice-thumb: the photo, or "PDF"), "Page 1", a note when the page needs the
+       ship (.invoice-page-note.is-warning: hard to read, could not be read) and Retake / Remove.
+     - .invoice-pick: a label styled as a button around a real file input (works without the script: the input is
+       only visually hidden; once a file is chosen without the script, the label says so with a tick and Upload sends
+       it). .invoice-pick-main: Take a photo and Choose a file, full width on phones, at least the touch target.
+     - .invoice-progress: "Sending page 2: 60%" with its bar; .is-failed in the danger text colour with Try again.
+     - .invoice-reading-bar: the indeterminate bar under "Reading page 1 of 2". */
+.invoice-pages { display: grid; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
+.invoice-page-card { display: flex; flex-direction: row; gap: var(--nn-space-3); padding: var(--nn-space-3); }
+.invoice-thumb { flex: 0 0 5.5rem; display: flex; align-items: center; justify-content: center; aspect-ratio: 3 / 4;
+    align-self: flex-start; overflow: hidden; border: 1px solid var(--nn-border); border-radius: var(--nn-radius-control);
+    background-color: var(--nn-head-bg); }
+.invoice-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.invoice-thumb-pdf { font-weight: 700; color: var(--nn-text-secondary); }
+.invoice-page-body { flex: 1 1 auto; min-width: 0; }
+.invoice-page-note { margin: var(--nn-space-2) 0; }
+.invoice-page-note.is-warning > p:first-child { color: var(--nn-warning-text); }
+.invoice-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); margin-top: var(--nn-space-2); }
+.invoice-upload { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2); }
+.invoice-pick { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--nn-space-1);
+    min-height: var(--nn-touch-target); cursor: pointer; }
+.invoice-pick > input[type=file] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.invoice-pick:focus-within { outline: var(--nn-focus-width) solid var(--nn-focus-color); outline-offset: var(--nn-focus-offset); }
+.invoice-pick:has(> input:valid)::after { content: "\2713"; font-weight: 700; }   /* a file chosen (no script) */
+.invoice-add { margin-bottom: var(--nn-space-4); }
+.invoice-add-controls { display: grid; gap: var(--nn-space-3); }
+.invoice-pick-main { width: 100%; }
+.invoice-progress { margin-bottom: var(--nn-space-4); }
+.invoice-progress > progress { width: 100%; height: .5rem; accent-color: var(--nn-ok); }
+.invoice-progress.is-failed > p { color: var(--nn-danger-text); font-weight: 600; }
+.invoice-progress > button { margin-top: var(--nn-space-2); }
+.invoice-progress[hidden] { display: none; }
+.invoice-actions { flex-wrap: wrap; }
+.invoice-notice p { white-space: pre-line; }
+.invoice-reading-bar { width: 100%; height: .5rem; accent-color: var(--nn-ok); }
+@media (min-width: 576px) {
+    .invoice-pages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .invoice-add-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 992px) {
+    .invoice-pages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .invoice-add-controls { max-width: 36rem; }
+}

@@ -46,6 +46,9 @@ public class SecurityConfig {
                                 .hasAnyRole("MASTER", "CHIEF_COOK")
                         // P61: the Chief cook counts a delivery (GET and POST, with its photos and voice).
                         .requestMatchers("/ship/orders/*/count", "/ship/orders/*/count/**").hasRole("CHIEF_COOK")
+                        // P62: the Chief cook or the Master photographs the delivery's invoice.
+                        .requestMatchers("/ship/orders/*/invoice", "/ship/orders/*/invoice/**")
+                                .hasAnyRole("MASTER", "CHIEF_COOK")
                         .requestMatchers("/ship/order", "/ship/order/**", "/ship/orders", "/ship/orders/**")
                                 .hasRole("MASTER")
                         // The Chief cook's store (P52).

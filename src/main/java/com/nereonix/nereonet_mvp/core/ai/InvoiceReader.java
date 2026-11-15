@@ -1,0 +1,40 @@
+package com.nereonix.nereonet_mvp.core.ai;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.nereonix.nereonet_mvp.core.ai.InvoiceReading.PageResult;
+
+/**
+ * Reads the photographed pages of a supplier's invoice into invoice lines (P62), called by the server only
+ * (core/order/InvoiceReadingService). MistralInvoiceReader is the real one; FakeInvoiceReader answers in dev
+ * (app.mistral.fake) and in the tests, as CountExtractor / FakeCountExtractor do. Only the page images are sent
+ * anywhere: never a name of the crew, the order or anything else.
+ */
+public interface InvoiceReader {
+
+    /** One photographed page: its number on board (1, 2, ...), the file's bytes and its content type (image/jpeg,
+     *  image/png, image/webp, image/heic or application/pdf). */
+    record Page(int number, byte[] content, String contentType) {
+    }
+
+    /**
+     * What one page says: its table's lines and what its text says (supplier, invoice number, totals...). Never
+     * null; a page without a table is a PageReading with tableFound false. InvoiceReadingException when the provider
+     * fails, takes longer than its timeout or is not configured.
+     */
+    PageReading readPage(Page page);
+
+    /** Every page in turn; a page that fails is a PageResult with its failure, the others keep their lines. */
+    default InvoiceReading read(List<Page> pages) {
+        List<PageResult> results = new ArrayList<>();
+        for (Page page : pages) {
+            try {
+                results.add(new PageResult(page.number(), readPage(page), null));
+            } catch (InvoiceReadingException e) {
+                results.add(new PageResult(page.number(), null, e.reason()));
+            }
+        }
+        return new InvoiceReading(List.copyOf(results));
+    }
+}

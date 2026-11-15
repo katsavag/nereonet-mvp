@@ -54,10 +54,10 @@
                 </div>
                 <div class="order-progress-actions">
                     <a th:if="${canManage and p.toReceive()}" class="btn btn-primary"
-                       th:href="@{/ship/orders/{id}/receipt(id=${o.id})}"
+                       th:href="${p.invoiceFirstForMaster()} ? @{/ship/orders/{id}/invoice(id=${o.id})} : @{/ship/orders/{id}/receipt(id=${o.id})}"
                        th:attr="aria-label=#{order.progress.receipt.label(${o.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
                     <a th:if="${canCount and p.toCount()}" class="btn btn-primary"
-                       th:href="@{/ship/orders/{id}/count(id=${o.id})}"
+                       th:href="${p.invoiceFirstForCook()} ? @{/ship/orders/{id}/invoice(id=${o.id})} : @{/ship/orders/{id}/count(id=${o.id})}"
                        th:attr="aria-label=#{order.progress.count.label(${o.id})}" th:text="#{order.count.action}">Count delivery</a>
                     <a th:if="${canCount and p.toReceive() and !p.toCount()}" class="btn btn-outline-secondary"
                        th:href="@{/ship/orders/{id}/count(id=${o.id})}"

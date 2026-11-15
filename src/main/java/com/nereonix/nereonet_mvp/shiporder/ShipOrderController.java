@@ -123,6 +123,10 @@ public class ShipOrderController {
         model.addAttribute(CAN_MANAGE, canManage);
         // P61: the Chief cook counts the delivery of a CONFIRMED order.
         model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
+        // P62: Confirm receipt and Count delivery open "Photograph the invoice" first, until a page is photographed.
+        boolean photographed = pageService.invoicePhotographed(id);
+        model.addAttribute("invoiceFirstForMaster", ShipOrderPageService.invoiceFirstForMaster(view.order(), photographed));
+        model.addAttribute("invoiceFirstForCook", ShipOrderPageService.invoiceFirstForCook(view.order(), photographed));
         // P51: once received, the receipt's files; the Master's only (P55).
         model.addAttribute("receiptFiles", canManage && view.order().getStatus() == ShipOrderStatus.CLOSED
                 ? receiptService.files(id) : List.of());

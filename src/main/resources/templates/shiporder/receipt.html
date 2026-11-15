@@ -16,7 +16,9 @@
      P61: when the Chief cook's count waits for the Master (countToApprove), a card on top with who counted, when and
      the cook's note, and Send back to cook (a note, required); the lines open with the cook's quantities and notes,
      each with "Counted: 48 kg" and, once the Master changes it, "Changed from 48" (in words; js/receipt.js updates it
-     as they type, the server on Back to edit). countNoteMax: the return note's limit. -->
+     as they type, the server on Back to edit). countNoteMax: the return note's limit.
+     P62: the invoice's pages (photographed on "Photograph the invoice", linked above the files) are listed as
+     "Page 1 · Photograph the invoice" among the files. -->
 <main th:with="baseUrl=${'/ship/orders/' + order.id + '/receipt'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.receipt.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.hint})}">
@@ -136,6 +138,9 @@
         <section class="card form-box mb-4" aria-labelledby="receiptFilesTitle">
             <div class="card-body p-3 p-md-4">
                 <h2 class="h5 fw-bold" id="receiptFilesTitle" th:text="#{order.receipt.files}">Delivery receipt</h2>
+                <!-- P62: the invoice's pages are receipt files too; photographed (or again) on their own page. -->
+                <p class="mb-2"><a th:href="@{/ship/orders/{id}/invoice(id=${order.id})}" th:text="#{order.invoice.photograph}">Photograph
+                    the invoice</a></p>
 
                 <!-- Uploaded before (a Review that came back, or Back to edit): kept unless ticked. -->
                 <th:block th:unless="${files.isEmpty()}">
@@ -143,7 +148,7 @@
                     <ul class="receipt-files list-unstyled">
                         <li th:each="f : ${files}" class="receipt-file">
                             <a th:href="@{${baseUrl + '/files/' + f.id}}" target="_blank" rel="noopener" class="text-break"
-                               th:text="${f.fileName}">receipt.jpg</a>
+                               th:text="${f.invoicePage != null} ? #{order.invoice.page(${f.invoicePage})} + ' · ' + #{order.invoice.title} : ${f.fileName}">receipt.jpg</a>
                             <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
                             <span th:if="${f.uploadedBy != null and f.uploadedBy.role.name() == 'CHIEF_COOK'}"
                                   class="small text-body-secondary" th:text="#{order.receipt.files.byCook}">from the Chief cook</span>

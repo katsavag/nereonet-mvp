@@ -145,7 +145,22 @@ app:
     # Mistral Small 4 (March 2026), pinned: a -latest alias may change behaviour without notice.
     model: ${MISTRAL_MODEL:mistral-small-2603}
     timeout: ${MISTRAL_TIMEOUT:30s}
+    # P62: reading the photographed delivery invoice with Mistral OCR (only the page images are sent). OCR 4.1 (July
+    # 2026), pinned: mistral-ocr-latest and mistral-ocr-4 are aliases that move. One page per call, this long at most.
+    ocr-model: ${MISTRAL_OCR_MODEL:mistral-ocr-4-1}
+    ocr-timeout: ${MISTRAL_OCR_TIMEOUT:60s}
     fake: ${MISTRAL_FAKE:false}
+  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks). Off while Mistral is off
+  # (no key and not fake): the photos are still kept as the receipt's files, nothing is read.
+  invoice:
+    # A line whose OCR block is less sure than this is flagged "check" (for the office).
+    min-confidence: ${INVOICE_MIN_CONFIDENCE:0.85}
+    # Read the pages in the background while the progress page reloads itself (false in the tests: at once).
+    read-in-background: true
+    # A reading not finished after this long (the server restarted meanwhile) is given up: its pages "timed out".
+    reading-stalled-after: ${INVOICE_READING_STALLED_AFTER:15m}
+    # Where the fake reader (app.mistral.fake) finds the synthetic sample invoice A-4471.
+    sample-dir: ${INVOICE_SAMPLE_DIR:samples/invoice}
   # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
   # by hand; the app never connects to OCIMF.
   sire:

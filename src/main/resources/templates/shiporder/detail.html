@@ -9,6 +9,8 @@
      one line says only the Master can change or send the order.
      P61: the Chief cook (canCount) has Count delivery while the delivery is scheduled (View count once sent); a count
      waiting for the Master says so; once received, who counted it.
+     P62: until a page of the invoice is photographed, Confirm receipt (without a count to approve) and Count
+     delivery (nothing counted yet) open "Photograph the invoice" first (invoiceFirstForMaster, invoiceFirstForCook).
      English only. Model: view (ShipOrderPageService.OrderView), canManage, canCount (boolean), receiptFiles (OrderReceiptFile,
      once received, the Master's only). -->
 <main th:with="order=${view.order}">
@@ -19,10 +21,10 @@
             <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
         </th:block>
         <th:block th:fragment="pageActions">
-            <a th:if="${canManage}" class="btn btn-primary" th:href="@{/ship/orders/{id}/receipt(id=${order.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
+            <a th:if="${canManage}" class="btn btn-primary" th:href="${invoiceFirstForMaster} ? @{/ship/orders/{id}/invoice(id=${order.id})} : @{/ship/orders/{id}/receipt(id=${order.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>
             <!-- P61: the Chief cook counts the delivery (View count once sent to the Master). -->
             <a th:if="${canCount}" class="btn" th:classappend="${order.deliveryCountStatus.editable()} ? 'btn-primary' : 'btn-outline-secondary'"
-               th:href="@{/ship/orders/{id}/count(id=${order.id})}"
+               th:href="${invoiceFirstForCook} ? @{/ship/orders/{id}/invoice(id=${order.id})} : @{/ship/orders/{id}/count(id=${order.id})}"
                th:text="${order.deliveryCountStatus.editable()} ? #{order.count.action} : #{order.count.view}">Count delivery</a>
         </th:block>
     </header>

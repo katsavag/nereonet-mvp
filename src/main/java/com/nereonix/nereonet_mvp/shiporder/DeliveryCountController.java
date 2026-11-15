@@ -374,6 +374,8 @@ public class DeliveryCountController {
         model.addAttribute("groups", groups);
         model.addAttribute("editable", order.getDeliveryCountStatus().editable());
         model.addAttribute("files", ownFiles(order, cook));
+        // P62: the invoice's pages are not among his photos here (they have their own page).
+        model.addAttribute("invoicePages", receiptService.invoicePages(order.getId()).size());
         model.addAttribute("otherFiles", receiptService.files(order.getId()).size() - ownFiles(order, cook).size());
         model.addAttribute("maxFiles", OrderReceiptService.MAX_FILES);
         model.addAttribute("maxFileSize", CertificateFileStorage.MAX_FILE_SIZE);
@@ -385,6 +387,7 @@ public class DeliveryCountController {
 
     private List<OrderReceiptFile> ownFiles(ShipOrder order, User cook) {
         return receiptService.files(order.getId()).stream()
+                .filter(f -> !f.isInvoicePage())
                 .filter(f -> f.getUploadedBy() != null && f.getUploadedBy().getId().equals(cook.getId()))
                 .toList();
     }

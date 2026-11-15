@@ -130,9 +130,10 @@ class DeliveryCountFlowTest {
     @Test
     void theCookCountsTheMasterSendsItBackThenApprovesIt() throws Exception {
         long id = order.getId();
-        // Count delivery: on the cook's Orders in progress and the order page; never for the Master.
-        assertThat(as(cook, get("/ship/order"))).contains("href=\"/ship/orders/" + id + "/count\"", "Count delivery");
-        assertThat(as(cook, get("/ship/orders/{id}", id))).contains("href=\"/ship/orders/" + id + "/count\"",
+        // Count delivery: on the cook's Orders in progress and the order page, the invoice's photos first (P62); never for
+        // the Master.
+        assertThat(as(cook, get("/ship/order"))).contains("href=\"/ship/orders/" + id + "/invoice\"", "Count delivery");
+        assertThat(as(cook, get("/ship/orders/{id}", id))).contains("href=\"/ship/orders/" + id + "/invoice\"",
                 "When the delivery arrives, count it");
         assertThat(as(master, get("/ship/order"))).doesNotContain("Count delivery").contains("Confirm receipt");
 

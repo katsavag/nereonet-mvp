@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.invoice.title}, ~{::main})}">
+<body>
+<!-- "Photograph the invoice" (P62), the Chief cook's (Count delivery) or the Master's (Confirm receipt), phone first:
+     the supplier's invoice, page by page, before the count. One short line of help, no step bar.
+     Two real form controls, each in its own form, working without JavaScript: Take a photo (accept image/*,
+     capture=environment: the rear camera on phones, a file picker on a PC) and Choose a file (images or a PDF; on
+     Android the camera hides the gallery, so both are needed). One page per upload: js/invoice.js sends each photo as
+     soon as it is chosen (made smaller first: at most 2000 px, JPEG 0.8), with "Sending page 2: 60%" and Try again;
+     without it the Upload button sends it and the page comes back. The pages so far as thumbnails, each with Retake
+     (replaces that page) and Remove; up to maxPages. Done: start counting reads them (the progress page), Count
+     without the invoice goes straight on (next: the cook's count, the Master's receipt).
+     After a reading, only what the ship can act on: a page hard to read (Retake, Continue anyway), a page that could
+     not be read (Read again, Retake), nothing read at all (Read again later), a clearly different order reference
+     (Continue). English only.
+     Model: order, pages (InvoiceController.PageRow), notReadNow, otherOrderReference, maxPages, canAdd, maxFileSize,
+     next, fileTooLarge. -->
+<main class="invoice-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/invoice'}"
+      th:data-sending="#{order.invoice.sending('{n}', '{percent}')}" th:data-preparing="#{order.invoice.preparing('{n}')}"
+      th:data-failed="#{order.invoice.failed}" th:data-too-large="#{order.invoice.fileTooLarge}"
+      th:data-max-size="${maxFileSize}" data-invoice>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.invoice.heading}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})}, subtitle=#{order.invoice.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+
+    <div th:if="${fileTooLarge}" class="alert alert-danger" role="alert" th:text="#{order.invoice.fileTooLarge}">That file is
+        larger than 10 MB.</div>
+
+    <!-- Nothing could be read now (no network to the reader): the photos are kept, read again later. -->
+    <div th:if="${notReadNow}" class="alert alert-warning invoice-notice" role="alert">
+        <p class="mb-2" th:text="#{order.invoice.notReadNow}">The invoice could not be read now. Count without it, the photos
+            are kept.</p>
+        <form th:action="@{${baseUrl + '/read'}}" method="post">
+            <input type="hidden" name="again" value="true">
+            <button type="submit" class="btn btn-outline-secondary" th:text="#{order.invoice.readAgain}">Read again</button>
+        </form>
+    </div>
+
+    <!-- The invoice names another order. -->
+    <div th:if="${otherOrderReference != null}" class="alert alert-warning invoice-notice" role="alert">
+        <p class="mb-2" th:text="#{order.invoice.otherOrder(${otherOrderReference})}">This invoice says order SR-000052.
+            Check it is the right invoice.</p>
+        <a class="btn btn-outline-secondary" th:href="@{${next}}" th:text="#{order.invoice.continue}">Continue</a>
+    </div>
+
+    <ol th:unless="${pages.isEmpty()}" class="invoice-pages list-unstyled">
+        <li th:each="p : ${pages}" class="invoice-page-card card"
+            th:with="pageName=#{order.invoice.page(${p.number})}, fileUrl=${baseUrl + '/pages/' + p.file.id}">
+            <a class="invoice-thumb" th:href="@{${fileUrl}}" target="_blank" rel="noopener">
+                <img th:if="${p.file.image}" th:src="@{${fileUrl}}" th:alt="${pageName}" loading="lazy" decoding="async">
+                <span th:unless="${p.file.image}" class="invoice-thumb-pdf" th:text="#{order.invoice.pdf}">PDF</span>
+            </a>
+            <div class="invoice-page-body">
+                <p class="fw-semibold mb-1" th:text="${pageName}">Page 1</p>
+                <!-- Read, but hard to read: retake it. -->
+                <div th:if="${p.hard}" class="invoice-page-note is-warning" role="note">
+                    <p class="fw-semibold mb-1" th:text="#{order.invoice.hard(${p.number})}">Page 2 is hard to read</p>
+                    <p class="small mb-2" th:text="#{order.invoice.hard.hint}">This page is hard to read: retake it flat, in
+                        good light, with the whole page in the picture.</p>
+                    <a class="btn btn-ghost btn-sm" th:href="@{${next}}" th:text="#{order.invoice.continueAnyway}">Continue anyway</a>
+                </div>
+                <!-- Could not be read (the reader's failure): read it again, or retake it. -->
+                <div th:if="${p.failed and !notReadNow}" class="invoice-page-note is-warning" role="note">
+                    <p class="fw-semibold mb-2" th:text="#{order.invoice.pageFailed(${p.number})}">Page 2 could not be read</p>
+                    <form th:action="@{${fileUrl + '/read'}}" method="post">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{order.invoice.readAgain}">Read again</button>
+                    </form>
+                </div>
+                <div class="invoice-page-actions">
+                    <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="replace" th:value="${p.file.id}">
+                        <label class="btn btn-outline-secondary btn-sm invoice-pick">
+                            <span th:text="#{order.invoice.retake}">Retake</span>
+                            <span class="visually-hidden" th:text="${pageName}">Page 1</span>
+                            <input type="file" name="file" accept="image/*" capture="environment" required
+                                   class="invoice-file" th:data-page="${p.number}">
+                        </label>
+                        <button type="submit" class="btn btn-primary btn-sm" data-invoice-upload th:text="#{order.invoice.upload}">Upload</button>
+                    </form>
+                    <form th:action="@{${fileUrl + '/remove'}}" method="post">
+                        <button type="submit" class="btn btn-ghost btn-sm">
+                            <span th:text="#{order.invoice.remove}">Remove</span>
+                            <span class="visually-hidden" th:text="${pageName}">Page 1</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </li>
+    </ol>
+
+    <section th:if="${canAdd}" class="invoice-add" aria-labelledby="invoiceAddTitle">
+        <h2 th:unless="${pages.isEmpty()}" class="h6 fw-semibold" id="invoiceAddTitle" th:text="#{order.invoice.addPage}">Add page</h2>
+        <h2 th:if="${pages.isEmpty()}" class="visually-hidden" id="invoiceAddTitle" th:text="#{order.invoice.addPage}">Add page</h2>
+        <div class="invoice-add-controls">
+            <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
+                <label class="btn btn-primary invoice-pick invoice-pick-main">
+                    <span th:text="#{order.invoice.takePhoto}">Take a photo</span>
+                    <input type="file" name="file" accept="image/*" capture="environment" required class="invoice-file"
+                           th:data-page="${pages.size() + 1}">
+                </label>
+                <button type="submit" class="btn btn-outline-primary" data-invoice-upload th:text="#{order.invoice.upload}">Upload</button>
+            </form>
+            <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
+                <label class="btn btn-outline-secondary invoice-pick invoice-pick-main">
+                    <span th:text="#{order.invoice.chooseFile}">Choose a file</span>
+                    <input type="file" name="file" accept="image/*,application/pdf" required class="invoice-file"
+                           th:data-page="${pages.size() + 1}">
+                </label>
+                <button type="submit" class="btn btn-outline-primary" data-invoice-upload th:text="#{order.invoice.upload}">Upload</button>
+            </form>
+        </div>
+    </section>
+    <p th:unless="${canAdd}" class="small text-body-secondary" th:text="#{order.invoice.maxPages(${maxPages})}">That is 6
+        pages, the most one invoice can have.</p>
+
+    <!-- js/invoice.js: "Sending page 2: 60%", or why it failed with Try again. -->
+    <div class="invoice-progress" data-invoice-progress hidden>
+        <progress max="100" value="0"></progress>
+        <p class="mb-0" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-invoice-retry hidden
+                th:text="#{order.invoice.tryAgain}">Try again</button>
+    </div>
+
+    <div class="form-actions invoice-actions">
+        <form th:unless="${pages.isEmpty()}" th:action="@{${baseUrl + '/read'}}" method="post">
+            <button type="submit" class="btn btn-primary" th:text="#{order.invoice.done}">Done: start counting</button>
+        </form>
+        <a class="btn btn-ghost" th:href="@{${next}}" th:text="#{order.invoice.without}">Count without the invoice</a>
+    </div>
+    <script th:src="@{/js/invoice.js}" defer></script>
+</main>
+</body>
+</html>

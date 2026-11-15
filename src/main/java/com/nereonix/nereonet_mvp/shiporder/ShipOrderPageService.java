@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
+import com.nereonix.nereonet_mvp.core.order.DeliveryCountStatus;
+import com.nereonix.nereonet_mvp.core.order.OrderReceiptFileRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderRepository;
@@ -85,7 +87,7 @@ public class ShipOrderPageService {
      * An order in progress on Vessel order (P59): SENT or CONFIRMED, with its number of items (lines the office did not
      * remove). overdue: CONFIRMED and its delivery date (UTC) has passed without a receipt.
      */
-    public record InProgress(ShipOrder order, int itemCount, boolean overdue) {
+    public record InProgress(ShipOrder order, int itemCount, boolean overdue, boolean invoicePhotographed) {
         public boolean toReceive() {
             return order.getStatus() == ShipOrderStatus.CONFIRMED;
         }
@@ -94,6 +96,16 @@ public class ShipOrderPageService {
         public boolean toCount() {
             return toReceive() && order.getDeliveryCountStatus().editable();
         }
+
+        /** P62: Confirm receipt opens "Photograph the invoice" first (no page yet, no count of the cook to approve). */
+        public boolean invoiceFirstForMaster() {
+            return ShipOrderPageService.invoiceFirstForMaster(order, invoicePhotographed);
+        }
+
+        /** P62: Count delivery opens "Photograph the invoice" first (no page yet, the count not started). */
+        public boolean invoiceFirstForCook() {
+            return ShipOrderPageService.invoiceFirstForCook(order, invoicePhotographed);
+        }
     }
 
     private final UserRepository userRepository;
@@ -101,15 +113,51 @@ public class ShipOrderPageService {
     private final RequestLineRepository requestLineRepository;
     private final ShipOrderService shipOrderService;
     private final MessageSource messageSource;
+    private final OrderReceiptFileRepository receiptFileRepository;
 
     public ShipOrderPageService(UserRepository userRepository, ShipOrderRepository orderRepository,
                                 RequestLineRepository requestLineRepository, ShipOrderService shipOrderService,
-                                MessageSource messageSource) {
+                                MessageSource messageSource, OrderReceiptFileRepository receiptFileRepository) {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.requestLineRepository = requestLineRepository;
         this.shipOrderService = shipOrderService;
         this.messageSource = messageSource;
+        this.receiptFileRepository = receiptFileRepository;
+    }
+
+    /** P62: the Master's Confirm receipt goes to "Photograph the invoice" first. */
+    public static boolean invoiceFirstForMaster(ShipOrder order, boolean invoicePhotographed) {
+        return order.getStatus() == ShipOrderStatus.CONFIRMED && !order.isCountToApprove() && !invoicePhotographed;
+    }
+
+    /** P62: the Chief cook's Count delivery goes to "Photograph the invoice" first. */
+    public static boolean invoiceFirstForCook(ShipOrder order, boolean invoicePhotographed) {
+        return order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryCountStatus() == DeliveryCountStatus.NONE
+                && !invoicePhotographed;
+    }
+
+    /** P62: a page of the order's invoice was photographed. */
+    @Transactional(readOnly = true)
+    public boolean invoicePhotographed(Long orderId) {
+        return receiptFileRepository.countByOrderIdAndInvoicePageNotNull(orderId) > 0;
+    }
+
+    /**
+     * P62: one order of the ship, for "Photograph the invoice": the vessel's enabled Master or Chief cook; 404 for
+     * another ship's or an OPEN one. AccessDeniedException for anyone else.
+     */
+    @Transactional(readOnly = true)
+    public ShipOrder invoiceOrder(String email, Long id) {
+        Ship ship = ship(reader(email));
+        return orderRepository.findByIdAndShipId(id, ship.getId())
+                .filter(found -> found.getStatus() != ShipOrderStatus.OPEN)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** P62: the enabled Master or Chief cook with this email. AccessDeniedException for anyone else. */
+    User crew(String email) {
+        return reader(email);
     }
 
     /** The ship's OPEN order with its lines; an empty view when there is none. The Master or the Chief cook. */
@@ -132,7 +180,9 @@ public class ShipOrderPageService {
                 .sorted(MOST_URGENT_FIRST)
                 .map(order -> new InProgress(order, (int) order.getLines().stream().filter(l -> !l.isRemoved()).count(),
                         order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryDate() != null
-                                && order.getDeliveryDate().isBefore(today)))
+                                && order.getDeliveryDate().isBefore(today),
+                        order.getStatus() == ShipOrderStatus.CONFIRMED
+                                && receiptFileRepository.countByOrderIdAndInvoicePageNotNull(order.getId()) > 0))
                 .toList();
     }
 

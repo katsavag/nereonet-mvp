@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.invoice.reading.title}, ~{::main})}">
+<body>
+<!-- Reading the invoice (P62): "Reading page 1 of 2", never a spinner without text. The page reloads itself (meta
+     refresh; the server sends it on once the reading is done: to the count, or back to the photo page when a page
+     needs the ship's attention); js/invoice.js asks the status every 2 seconds meanwhile and updates the text, so the
+     page changes as soon as it can. English only. Model: order, text, statusUrl. -->
+<main class="invoice-reading" th:data-status-url="@{${statusUrl}}" data-invoice-reading>
+    <meta http-equiv="refresh" content="4">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.invoice.reading.title}, crumbs=~{::pageCrumbs},
+            eyebrow=#{order.number(${order.id})}, subtitle=null)}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
+        </th:block>
+    </header>
+    <div class="card form-box">
+        <div class="card-body p-3 p-md-4">
+            <p class="h5 fw-semibold mb-3" role="status" aria-live="polite" data-reading-text th:text="${text}">Reading page 1
+                of 2</p>
+            <progress class="invoice-reading-bar" th:attr="aria-label=${text}"></progress>
+            <p class="small text-body-secondary mt-3 mb-0" th:text="#{order.invoice.reading.hint}">The photos are kept whatever
+                happens. This page updates by itself.</p>
+        </div>
+    </div>
+    <script th:src="@{/js/invoice.js}" defer></script>
+</main>
+</body>
+</html>

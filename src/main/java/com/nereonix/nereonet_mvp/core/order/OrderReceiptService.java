@@ -54,12 +54,25 @@ import jakarta.persistence.LockModeType;
  * P61: the vessel's Chief cook may count the delivery first (DeliveryCountService) and add photos of the delivery note
  * (stageFile, removeFiles: his own files, while his count is not with the Master); they are the Master's staged files.
  * Confirming receipt of a count sent to the Master approves it: the cook is the receipt's "counted by".
+ * P62: the pages of the supplier's invoice, photographed on "Photograph the invoice" by the Chief cook or the Master,
+ * are staged receipt files too (stageInvoicePage, removeInvoicePage): numbered 1, 2, ... without gaps, at most
+ * MAX_INVOICE_PAGES, counting against MAX_FILES. Removing or replacing a page drops the invoice lines read from it.
  */
 @Service
 public class OrderReceiptService {
 
     /** A receipt has at most this many files. */
     public static final int MAX_FILES = 10;
+
+    /** P62: an invoice has at most this many pages. */
+    public static final int MAX_INVOICE_PAGES = 6;
+
+    // P62: the kinds of file an invoice page may be, by their first bytes.
+    private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+    private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G'};
+    private static final byte[] PDF = {'%', 'P', 'D', 'F'};
+    private static final List<String> HEIC_BRANDS = List.of("heic", "heix", "hevc", "hevx", "heim", "heis", "mif1",
+            "msf1");
 
     /** The receipt time may be this far ahead of the server's clock (a ship's clock a little fast). */
     static final Duration CLOCK_SLACK = Duration.ofMinutes(5);
@@ -72,11 +85,15 @@ public class OrderReceiptService {
     private final MessageSource messageSource;
     private final StockService stockService;
     private final EntityManager entityManager;
+    private final DeliveryInvoiceRepository invoiceRepository;
+    private final DeliveryInvoiceLineRepository invoiceLineRepository;
 
     public OrderReceiptService(OrderReceiptFileRepository fileRepository, UserRepository userRepository,
                                LibraryFileStorage fileStorage, AuditService auditService,
                                NotificationService notificationService, MessageSource messageSource,
-                               StockService stockService, EntityManager entityManager) {
+                               StockService stockService, EntityManager entityManager,
+                               DeliveryInvoiceRepository invoiceRepository,
+                               DeliveryInvoiceLineRepository invoiceLineRepository) {
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
@@ -85,6 +102,8 @@ public class OrderReceiptService {
         this.messageSource = messageSource;
         this.stockService = stockService;
         this.entityManager = entityManager;
+        this.invoiceRepository = invoiceRepository;
+        this.invoiceLineRepository = invoiceLineRepository;
     }
 
     /** What a change of the receipt did. */
@@ -97,7 +116,11 @@ public class OrderReceiptService {
         // confirmReceipt: no file uploaded.
         NO_FILE,
         // P61, stageFile and removeFiles by the Chief cook: his count is with the Master (or approved). Nothing changed.
-        COUNT_SENT
+        COUNT_SENT,
+        // P62, stageInvoicePage: the invoice already has MAX_INVOICE_PAGES pages.
+        TOO_MANY_PAGES,
+        // P62, stageInvoicePage and removeInvoicePage: its pages are being read; nothing changed.
+        READING
     }
 
     /** True for a received quantity: zero or more, at most 3 decimals and 9 whole digits. */
@@ -131,6 +154,155 @@ public class OrderReceiptService {
         if (fileRepository.countByOrderId(orderId) >= MAX_FILES) {
             return Result.TOO_MANY_FILES;
         }
+        save(order, uploader, file, contentType, null);
+        return Result.DONE;
+    }
+
+    /**
+     * P62: one photographed page of the supplier's invoice (already checked: invoicePageContentType, at most 10 MB),
+     * staged like stageFile's files, by the vessel's enabled Chief cook (while his count is not with the Master) or
+     * Master. A new page is numbered after the others; replacing (replaceFileId, Retake) keeps that page's number and
+     * drops the old file and the lines read from it. The page waits to be read (WAITING).
+     * NOT_CONFIRMED, COUNT_SENT, READING (its pages are being read), TOO_MANY_PAGES, TOO_MANY_FILES: nothing saved.
+     * 404 for an order of another ship or a replaceFileId that is not one of its invoice pages.
+     */
+    @Transactional
+    public Result stageInvoicePage(User user, Long orderId, MultipartFile file, String contentType, Long replaceFileId) {
+        ShipOrder order = lockOrder(user, orderId, true);
+        Result refused = invoicePagesLocked(order, user);
+        if (refused != null) {
+            return refused;
+        }
+        Integer page;
+        if (replaceFileId != null) {
+            OrderReceiptFile old = invoicePage(orderId, replaceFileId);
+            page = old.getInvoicePage();
+            dropInvoiceLines(orderId, page);
+            fileRepository.delete(old);
+            fileStorage.deleteLater(old.getStoragePath());
+            fileRepository.flush();
+        } else {
+            long pages = fileRepository.countByOrderIdAndInvoicePageNotNull(orderId);
+            if (pages >= MAX_INVOICE_PAGES) {
+                return Result.TOO_MANY_PAGES;
+            }
+            if (fileRepository.countByOrderId(orderId) >= MAX_FILES) {
+                return Result.TOO_MANY_FILES;
+            }
+            page = (int) pages + 1;
+        }
+        save(order, user, file, contentType, page);
+        return Result.DONE;
+    }
+
+    /**
+     * P62: removes one page of the invoice (Remove on "Photograph the invoice"); the pages after it move up and so do
+     * their lines; the lines read from it are dropped. The same rules as stageInvoicePage.
+     */
+    @Transactional
+    public Result removeInvoicePage(User user, Long orderId, Long fileId) {
+        ShipOrder order = lockOrder(user, orderId, true);
+        Result refused = invoicePagesLocked(order, user);
+        if (refused != null) {
+            return refused;
+        }
+        OrderReceiptFile page = invoicePage(orderId, fileId);
+        fileRepository.delete(page);
+        fileStorage.deleteLater(page.getStoragePath());
+        pageRemoved(orderId, page.getInvoicePage());
+        return Result.DONE;
+    }
+
+    /** P62: the invoice's pages, by page number. */
+    @Transactional(readOnly = true)
+    public List<OrderReceiptFile> invoicePages(Long orderId) {
+        return fileRepository.findAllByOrderIdAndInvoicePageNotNullOrderByInvoicePageAsc(orderId);
+    }
+
+    /**
+     * P62: the content type of a file an invoice page may be, by its first bytes: image/jpeg, image/png, image/webp,
+     * image/heic (HEIC and HEIF, as iPhones take them) or application/pdf; null for anything else. (Phones do not
+     * always give the file a name with an extension, so only the content decides.)
+     */
+    public static String invoicePageContentType(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        byte[] head;
+        try (InputStream in = file.getInputStream()) {
+            head = in.readNBytes(12);
+        } catch (IOException e) {
+            return null;
+        }
+        if (startsWith(head, JPEG)) {
+            return "image/jpeg";
+        }
+        if (startsWith(head, PNG)) {
+            return "image/png";
+        }
+        if (startsWith(head, PDF)) {
+            return "application/pdf";
+        }
+        if (head.length == 12 && new String(head, 0, 4, StandardCharsets.ISO_8859_1).equals("RIFF")
+                && new String(head, 8, 4, StandardCharsets.ISO_8859_1).equals("WEBP")) {
+            return "image/webp";
+        }
+        if (head.length == 12 && new String(head, 4, 4, StandardCharsets.ISO_8859_1).equals("ftyp")
+                && HEIC_BRANDS.contains(new String(head, 8, 4, StandardCharsets.ISO_8859_1))) {
+            return "image/heic";
+        }
+        return null;
+    }
+
+    private static boolean startsWith(byte[] head, byte[] signature) {
+        if (head.length < signature.length) {
+            return false;
+        }
+        for (int i = 0; i < signature.length; i++) {
+            if (head[i] != signature[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Why the invoice's pages cannot change now; null when they can.
+    private Result invoicePagesLocked(ShipOrder order, User user) {
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return Result.NOT_CONFIRMED;
+        }
+        if (user.getRole() == Role.CHIEF_COOK && !order.getDeliveryCountStatus().editable()) {
+            return Result.COUNT_SENT;
+        }
+        boolean reading = invoiceRepository.findByOrderId(order.getId())
+                .filter(invoice -> invoice.getStatus() == DeliveryInvoiceStatus.READING).isPresent();
+        return reading ? Result.READING : null;
+    }
+
+    private OrderReceiptFile invoicePage(Long orderId, Long fileId) {
+        return fileRepository.findByIdAndOrderId(fileId, orderId).filter(OrderReceiptFile::isInvoicePage)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    // A page gone: the lines read from it are dropped, the pages after it (files and lines) move up by one.
+    private void pageRemoved(Long orderId, int page) {
+        dropInvoiceLines(orderId, page);
+        fileRepository.flush();
+        for (OrderReceiptFile later : fileRepository.findAllByOrderIdAndInvoicePageNotNullOrderByInvoicePageAsc(orderId)) {
+            if (later.getInvoicePage() > page) {
+                later.setInvoicePage(later.getInvoicePage() - 1);
+            }
+        }
+        invoiceRepository.findByOrderId(orderId)
+                .ifPresent(invoice -> invoiceLineRepository.movePagesUp(invoice.getId(), page));
+    }
+
+    private void dropInvoiceLines(Long orderId, int page) {
+        invoiceRepository.findByOrderId(orderId).ifPresent(invoice ->
+                invoiceLineRepository.deleteAll(invoiceLineRepository.findAllByInvoiceIdAndPage(invoice.getId(), page)));
+    }
+
+    private void save(ShipOrder order, User uploader, MultipartFile file, String contentType, Integer invoicePage) {
         OrderReceiptFile receiptFile = new OrderReceiptFile();
         receiptFile.setOrder(order);
         String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().strip();
@@ -144,8 +316,11 @@ public class OrderReceiptService {
         }
         receiptFile.setUploadedBy(uploader);
         receiptFile.setUploadedAt(Instant.now());
+        if (invoicePage != null) {
+            receiptFile.setInvoicePage(invoicePage);
+            receiptFile.setInvoicePageStatus(InvoicePageStatus.WAITING);
+        }
         fileRepository.save(receiptFile);
-        return Result.DONE;
     }
 
     /**
@@ -171,6 +346,10 @@ public class OrderReceiptService {
                     .ifPresent(receiptFile -> {
                 fileRepository.delete(receiptFile);
                 fileStorage.deleteLater(receiptFile.getStoragePath());
+                // P62: an invoice page removed with the receipt's files.
+                if (receiptFile.isInvoicePage()) {
+                    pageRemoved(orderId, receiptFile.getInvoicePage());
+                }
             });
         }
         return Result.DONE;

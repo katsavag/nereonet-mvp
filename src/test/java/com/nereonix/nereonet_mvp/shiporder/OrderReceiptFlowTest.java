@@ -139,9 +139,9 @@ class OrderReceiptFlowTest {
 
     @Test
     void theMasterConfirmsReceiptWithTheDeliveryReceiptAndTheOfficeSeesIt() throws Exception {
-        // The order page: Confirm receipt, the one primary action.
+        // The order page: Confirm receipt, the one primary action; the invoice's photos first (P62).
         assertThat(asMaster(get("/ship/orders/{id}", order.getId()))).contains("Delivery scheduled",
-                "href=\"/ship/orders/" + order.getId() + "/receipt\">Confirm receipt</a>");
+                "href=\"/ship/orders/" + order.getId() + "/invoice\">Confirm receipt</a>");
 
         // The form: every line, received prefilled with what was ordered; now (UTC) as the time.
         String form = asMaster(get("/ship/orders/{id}/receipt", order.getId()));

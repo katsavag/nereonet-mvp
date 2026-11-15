@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.core.ai;
 
 import java.time.Duration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,10 @@ import org.springframework.stereotype.Component;
  *   model     default mistral-small-2603 (Mistral Small 4, pinned rather than the -latest alias, as Mistral advises,
  *             so the behaviour never changes unnoticed)
  *   timeout   how long one answer may take, default 30s
+ *   ocr-model default mistral-ocr-4-1 (P62: OCR 4.1, July 2026, pinned; mistral-ocr-latest and mistral-ocr-4 are
+ *             aliases that move), for reading invoice pages (MistralInvoiceReader); tables, blocks and block
+ *             confidence scores need OCR 4 or newer
+ *   ocr-timeout how long reading one invoice page may take, default 60s
  *   fake      true: FakeCountExtractor answers instead of Mistral (dev screens and tests), with no key needed.
  */
 @Component
@@ -20,24 +25,38 @@ public class MistralSettings {
 
     public static final String DEFAULT_BASE_URL = "https://api.mistral.ai";
     public static final String DEFAULT_MODEL = "mistral-small-2603";
+    public static final String DEFAULT_OCR_MODEL = "mistral-ocr-4-1";
 
     private final String baseUrl;
     private final String apiKey;
     private final String model;
     private final Duration timeout;
     private final boolean fake;
+    private final String ocrModel;
+    private final Duration ocrTimeout;
 
+    /** The settings without OCR ones (the defaults): the P57 tests. */
+    public MistralSettings(String baseUrl, String apiKey, String model, Duration timeout, boolean fake) {
+        this(baseUrl, apiKey, model, timeout, fake, DEFAULT_OCR_MODEL, Duration.ofSeconds(60));
+    }
+
+    @Autowired
     public MistralSettings(@Value("${app.mistral.base-url:" + DEFAULT_BASE_URL + "}") String baseUrl,
                            @Value("${app.mistral.api-key:}") String apiKey,
                            @Value("${app.mistral.model:" + DEFAULT_MODEL + "}") String model,
                            @Value("${app.mistral.timeout:30s}") Duration timeout,
-                           @Value("${app.mistral.fake:false}") boolean fake) {
+                           @Value("${app.mistral.fake:false}") boolean fake,
+                           @Value("${app.mistral.ocr-model:" + DEFAULT_OCR_MODEL + "}") String ocrModel,
+                           @Value("${app.mistral.ocr-timeout:60s}") Duration ocrTimeout) {
         String url = baseUrl == null || baseUrl.isBlank() ? DEFAULT_BASE_URL : baseUrl.strip();
         this.baseUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
         this.apiKey = apiKey == null ? "" : apiKey.strip();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.strip();
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(30) : timeout;
         this.fake = fake;
+        this.ocrModel = ocrModel == null || ocrModel.isBlank() ? DEFAULT_OCR_MODEL : ocrModel.strip();
+        this.ocrTimeout = ocrTimeout == null || ocrTimeout.isNegative() || ocrTimeout.isZero() ? Duration.ofSeconds(60)
+                : ocrTimeout;
     }
 
     /** A key is set, or the fake answers. */
@@ -61,6 +80,14 @@ public class MistralSettings {
         return timeout;
     }
 
+    public String ocrModel() {
+        return ocrModel;
+    }
+
+    public Duration ocrTimeout() {
+        return ocrTimeout;
+    }
+
     public boolean fake() {
         return fake;
     }
@@ -69,6 +96,6 @@ public class MistralSettings {
     @Override
     public String toString() {
         return "MistralSettings[baseUrl=" + baseUrl + ", model=" + model + ", key "
-                + (apiKey.isEmpty() ? "not set" : "set") + ", timeout=" + timeout + (fake ? ", fake" : "") + "]";
+                + (apiKey.isEmpty() ? "not set" : "set") + ", timeout=" + timeout + ", ocrModel=" + ocrModel + ", ocrTimeout=" + ocrTimeout + (fake ? ", fake" : "") + "]";
     }
 }
