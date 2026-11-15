@@ -30,3 +30,10 @@ app:
   vesselapi:
     api-key: ""
     fake: false
+  # P57: never the real AssemblyAI or Mistral in tests, even with a key in the environment or .env: both fakes answer.
+  assemblyai:
+    api-key: ""
+    fake: true
+  mistral:
+    api-key: ""
+    fake: true

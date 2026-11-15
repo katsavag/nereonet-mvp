@@ -10,7 +10,9 @@
        with the error and the value sent (flash countSaved / countError, StoresController).
      - Offline or the connection dropped: the row says it was not saved (data-not-sent) and keeps the value typed.
      data-autosave: js/save.js does not ask "leave this page?" for these forms, everything changed is already stored.
-     English only. Model: stores (StoresService.Stores), countSaved (an item id) or countError (CountError). -->
+     P57: Count by voice above the items (js/stores-voice.js), and a link to a voice count waiting for review.
+     English only. Model: stores (StoresService.Stores), countSaved (an item id) or countError (CountError),
+     voiceEnabled, voicePending. -->
 <main class="stores-count" th:with="s=${stores}" data-count-page
       th:attr="data-not-sent=#{stores.count.notSent}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.count.title}, crumbs=~{::pageCrumbs},
@@ -19,6 +21,50 @@
             <li th:replace="~{layout/parts :: crumb(#{stores.title}, '/ship/stores')}"></li>
         </th:block>
     </header>
+
+    <!-- P57: a voice count waiting in the session for its review (VoiceCountController). -->
+    <p th:if="${voicePending}" class="alert alert-info voice-pending" role="status">
+        <span th:text="#{stores.voice.pending}">A voice count is waiting for your review.</span>
+        <a class="alert-link" th:href="@{/ship/stores/count/voice}" th:text="#{stores.voice.pendingLink}">Review it</a>
+    </p>
+
+    <!-- P57, Count by voice: only when both providers are configured (or faked) and there is something to count.
+         Hidden until js/stores-voice.js shows it: without JavaScript there is no recording, and counting by hand below
+         works as before. "Enable microphone" asks for the microphone once (the browser's prompt would otherwise break
+         the first hold); "Hold to speak" records while held (pointer or Space/Enter) and sends on release, with
+         the form's CSRF token. The texts the script shows are in data-* attributes. -->
+    <section th:if="${voiceEnabled and s.total > 0}" class="card mb-4 voice-card" data-voice hidden
+             aria-labelledby="voiceHeading"
+             th:attr="data-release=#{stores.voice.release}, data-hold=#{stores.voice.hold},
+                      data-recording=#{stores.voice.recording}, data-processing=#{stores.voice.processing},
+                      data-too-short=#{stores.voice.tooShort}, data-not-sent=#{stores.voice.notSent},
+                      data-off-unsupported=#{stores.voice.off.unsupported},
+                      data-off-insecure=#{stores.voice.off.insecure}, data-off-denied=#{stores.voice.off.denied},
+                      data-off-no-device=#{stores.voice.off.noDevice}">
+        <div class="card-body">
+            <h2 class="h5 fw-bold" id="voiceHeading" th:text="#{stores.voice.heading}">Count by voice</h2>
+            <p class="text-body-secondary small" th:text="#{stores.voice.hint}">Hold the button and say what you count.</p>
+            <form method="post" enctype="multipart/form-data" data-voice-form
+                  th:action="@{/ship/stores/count/voice}"></form>
+            <div class="voice-controls">
+                <button type="button" class="btn btn-outline-secondary voice-enable" data-voice-enable
+                        aria-describedby="voiceEnableHint" th:text="#{stores.voice.enable}">Enable microphone</button>
+                <span class="voice-enable-hint small text-body-secondary" id="voiceEnableHint" data-voice-enable-hint
+                      th:text="#{stores.voice.enableHint}">The browser asks for the microphone once.</span>
+                <button type="button" class="btn btn-primary voice-hold" data-voice-hold disabled
+                        aria-describedby="voiceStatus voiceLimit">
+                    <span class="voice-dot" aria-hidden="true"></span>
+                    <span data-voice-label th:text="#{stores.voice.hold}">Hold to speak</span>
+                    <span class="voice-timer num" data-voice-timer hidden>0:00</span>
+                </button>
+            </div>
+            <p class="voice-status" id="voiceStatus" role="status" aria-live="polite" data-voice-status></p>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-voice-retry hidden
+                    th:text="#{stores.voice.retry}">Try again</button>
+            <p class="voice-limit small text-body-secondary mb-0" id="voiceLimit" th:text="#{stores.voice.limit}">
+                A recording stops by itself after 2 minutes.</p>
+        </div>
+    </section>
 
     <div th:if="${s.total == 0}" class="card">
         <div th:replace="~{layout/parts :: emptyState(icon='stores', title=#{stores.empty.title},
@@ -63,6 +109,7 @@
         Every change is saved as you go. Leave this page whenever you like.</p>
 
     <script th:src="@{/js/stores-count.js}" defer></script>
+    <script th:if="${voiceEnabled and s.total > 0}" th:src="@{/js/stores-voice.js}" defer></script>
 </main>
 </body>
 </html>

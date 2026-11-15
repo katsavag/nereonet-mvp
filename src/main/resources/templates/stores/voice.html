@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.voice.review.title}, ~{::main})}">
+<body>
+<!-- What we heard (P57), the review of a voice count, the Chief cook only. Nothing here has touched the stock yet.
+     - What you said: the text as transcribed.
+     - Counted items: one row per item heard, its counted quantity (editable), what the store expects, the words it came
+       from and the confidence (High, Medium, Low; Low rows highlighted). Remove leaves a row out.
+     - Not matched: each phrase no item was found for, with Count as (an item of the store, or Don't count) and a
+       quantity.
+     - Confirm saves every row kept and every phrase given an item through StockService.count ("Voice count"), all or
+       none; Discard throws the count away. Errors come back next to their row, what was typed kept.
+     English only. Model: ship, proposal (VoiceCountService.Proposal), form (VoiceReviewForm), items (the store's
+     levels, for Count as), rowErrors and extraErrors (index: message key), reviewError (text or null). -->
+<main class="stores-voice">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.voice.review.title}, crumbs=~{::pageCrumbs},
+            eyebrowShip=${ship}, subtitle=#{stores.voice.review.hint})}">
+        <th:block th:fragment="pageCrumbs">
+            <li th:replace="~{layout/parts :: crumb(#{stores.title}, '/ship/stores')}"></li>
+            <li th:replace="~{layout/parts :: crumb(#{stores.count.title}, '/ship/stores/count')}"></li>
+        </th:block>
+    </header>
+
+    <div th:if="${reviewError != null}" class="alert alert-danger" role="alert" th:text="${reviewError}">
+        Basmati rice is counted twice. Remove one of them.</div>
+
+    <section class="card mb-4" aria-labelledby="voiceTranscript">
+        <div class="card-body">
+            <h2 class="h6 fw-bold" id="voiceTranscript" th:text="#{stores.voice.review.transcript}">What you said</h2>
+            <blockquote class="voice-transcript mb-0" th:text="${proposal.transcript}">Five kilos of tomatoes...</blockquote>
+        </div>
+    </section>
+
+    <form id="voiceConfirm" method="post" novalidate th:action="@{/ship/stores/count/voice/confirm}" th:object="${form}">
+        <section class="card mb-4" aria-labelledby="voiceLines">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                <h2 class="h5 fw-bold mb-0" id="voiceLines" th:text="#{stores.voice.review.lines}">Counted items</h2>
+                <span class="font-monospace small text-body-secondary" th:text="${proposal.lines.size()}">3</span>
+            </div>
+            <p th:if="${proposal.lines.isEmpty()}" class="card-body text-body-secondary mb-0"
+               th:text="#{stores.voice.review.noLines}">No item was recognised for certain.</p>
+            <ul th:unless="${proposal.lines.isEmpty()}" class="list-group list-group-flush">
+                <li th:each="line, it : ${proposal.lines}" class="list-group-item voice-row" data-voice-row
+                    th:with="i=${it.index}, error=${rowErrors.get(it.index)}, low=${line.confidence.name() == 'LOW'},
+                             tone=${line.confidence.name() == 'HIGH' ? 'ok' : (line.confidence.name() == 'LOW' ? 'warning' : 'neutral')}"
+                    th:classappend="${low} ? 'is-low'">
+                    <div class="voice-row-head">
+                        <span class="voice-row-name" th:id="${'voice-row-' + i}" th:text="${line.name}">Tomatoes</span>
+                        <span class="voice-confidence">
+                            <span class="visually-hidden" th:text="#{stores.voice.review.confidence} + ':'">Confidence:</span>
+                            <span th:replace="~{layout/parts :: status(${tone}, #{${line.confidence.labelKey()}})}"></span>
+                        </span>
+                    </div>
+                    <p class="voice-row-words mb-0">
+                        <span class="text-body-secondary" th:text="#{stores.voice.review.words}">From the words</span>
+                        <q th:text="${line.words}">five kilos of tomatoes</q>
+                    </p>
+                    <div class="voice-row-fields">
+                        <label class="voice-field-label" th:for="${'row-' + i + '-quantity'}"
+                               th:text="#{stores.voice.review.counted}">Counted</label>
+                        <input type="number" inputmode="decimal" min="0" step="any" autocomplete="off"
+                               class="form-control form-control-sm font-monospace voice-qty"
+                               th:id="${'row-' + i + '-quantity'}" th:name="${'rows[' + i + '].quantity'}"
+                               th:value="${form.rows[i].quantity}" th:classappend="${error != null} ? 'is-invalid'"
+                               th:attr="aria-invalid=${error != null} ? 'true' : null,
+                                       aria-describedby=${'voice-row-' + i + ' row-' + i + '-error'}">
+                        <span class="voice-unit" th:text="${line.unit}">kg</span>
+                        <span class="voice-expected">
+                            <span class="text-body-secondary" th:text="#{stores.voice.review.expected}">Store expects</span>
+                            <span class="num" th:text="${line.expected.stripTrailingZeros().toPlainString()}">12</span>
+                            <span th:text="${line.unit}">kg</span>
+                        </span>
+                        <label class="voice-remove">
+                            <input type="checkbox" class="form-check-input" value="true"
+                                   th:name="${'rows[' + i + '].removed'}" th:checked="${form.rows[i].removed}"
+                                   th:attr="aria-describedby=${'voice-row-' + i}">
+                            <span th:text="#{stores.voice.review.remove}">Remove</span>
+                        </label>
+                    </div>
+                    <p th:if="${error != null}" class="voice-error" th:id="${'row-' + i + '-error'}" th:text="#{${error}}">
+                        Enter a quantity of zero or more, with at most 3 decimals.</p>
+                </li>
+            </ul>
+        </section>
+
+        <section th:unless="${proposal.unmatched.isEmpty()}" class="card mb-4" aria-labelledby="voiceUnmatched">
+            <div class="card-header bg-transparent py-3">
+                <h2 class="h5 fw-bold mb-1" id="voiceUnmatched" th:text="#{stores.voice.review.unmatched}">Not matched</h2>
+                <p class="small text-body-secondary mb-0" th:text="#{stores.voice.review.unmatchedHint}">
+                    Pick an item and a quantity to count a phrase, or leave it as Don't count.</p>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li th:each="phrase, it : ${proposal.unmatched}" class="list-group-item voice-row" data-voice-extra
+                    th:with="j=${it.index}, error=${extraErrors.get(it.index)}">
+                    <p class="voice-row-words mb-0"><q th:id="${'extra-' + j}" th:text="${phrase}">three cans of herring</q></p>
+                    <div class="voice-row-fields">
+                        <label class="voice-field-label" th:for="${'extra-' + j + '-item'}"
+                               th:text="#{stores.voice.extra.item}">Count as</label>
+                        <select class="form-select form-select-sm voice-item" th:id="${'extra-' + j + '-item'}"
+                                th:name="${'extras[' + j + '].itemId'}"
+                                th:classappend="${error == 'stores.voice.extra.itemError'} ? 'is-invalid'"
+                                th:attr="aria-describedby=${'extra-' + j + ' extra-' + j + '-error'}">
+                            <option value="" th:text="#{stores.voice.extra.drop}">Don't count</option>
+                            <option th:each="l : ${items}" th:value="${l.item.id}"
+                                    th:selected="${form.extras[j].itemId == l.item.id}"
+                                    th:text="${l.item.name + ' (' + l.item.unit + ')'}">Salt (kg)</option>
+                        </select>
+                        <label class="voice-field-label" th:for="${'extra-' + j + '-quantity'}"
+                               th:text="#{stores.voice.extra.quantity}">Quantity</label>
+                        <input type="number" inputmode="decimal" min="0" step="any" autocomplete="off"
+                               class="form-control form-control-sm font-monospace voice-qty"
+                               th:id="${'extra-' + j + '-quantity'}" th:name="${'extras[' + j + '].quantity'}"
+                               th:value="${form.extras[j].quantity}"
+                               th:classappend="${error == 'stores.count.error'} ? 'is-invalid'"
+                               th:attr="aria-invalid=${error == 'stores.count.error'} ? 'true' : null,
+                                       aria-describedby=${'extra-' + j + ' extra-' + j + '-error'}">
+                    </div>
+                    <p th:if="${error != null}" class="voice-error" th:id="${'extra-' + j + '-error'}" th:text="#{${error}}">
+                        Pick an item from the list.</p>
+                </li>
+            </ul>
+        </section>
+    </form>
+
+    <form id="voiceDiscard" method="post" th:action="@{/ship/stores/count/voice/discard}"></form>
+
+    <div class="voice-actions">
+        <button type="submit" form="voiceConfirm" class="btn btn-primary" th:text="#{stores.voice.confirm}">Confirm</button>
+        <button type="submit" form="voiceDiscard" class="btn btn-outline-secondary" th:text="#{stores.voice.discard}">Discard</button>
+    </div>
+</main>
+</body>
+</html>

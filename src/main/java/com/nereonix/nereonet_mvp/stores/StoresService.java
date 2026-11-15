@@ -162,7 +162,14 @@ public class StoresService {
         return new History(ship, stockService.history(ship, type, from, to, page));
     }
 
-    private Ship ship(String email) {
+    /** Every active provisions item of the cook's vessel, by name, with its stock (P57: the items a phrase heard by
+     *  voice can be counted as). */
+    @Transactional(readOnly = true)
+    public List<Level> levels(String email) {
+        return stockService.levels(ship(email));
+    }
+
+    Ship ship(String email) {
         User cook = userRepository.findByEmail(email).orElseThrow();
         if (cook.getShip() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);

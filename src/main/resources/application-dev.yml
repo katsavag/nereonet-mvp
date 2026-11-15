@@ -25,3 +25,8 @@ app:
     office-password: office123
   library:
     storage-dir: ./data/library
+  # P57: counting by voice without keys (built-in rules instead of AssemblyAI and Mistral).
+  assemblyai:
+    fake: true
+  mistral:
+    fake: true

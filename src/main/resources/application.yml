@@ -115,6 +115,25 @@ app:
     base-url: ${VESSELAPI_BASE_URL:https://api.vesselapi.com/v1}
     api-key: ${VESSELAPI_API_KEY:}
     fake: ${VESSELAPI_FAKE:false}
+  # Optional (P57): counting the Chief cook's store by voice. AssemblyAI turns the recording into text; Mistral turns
+  # the text into count lines (only the text and the vessel's provisions: id, name, unit). Off while either key is
+  # empty: the Count page then has no microphone and the app never calls either. The keys come from the environment or
+  # the local .env; never put them in a checked-in file. fake: true answers with built-in rules instead (dev screens;
+  # core/speech/FakeSpeechClient, core/ai/FakeCountExtractor). Durations as 60s, 2m.
+  assemblyai:
+    base-url: ${ASSEMBLYAI_BASE_URL:https://api.assemblyai.com}
+    api-key: ${ASSEMBLYAI_API_KEY:}
+    # From the upload to the text, for one recording.
+    timeout: ${ASSEMBLYAI_TIMEOUT:60s}
+    language-code: ${ASSEMBLYAI_LANGUAGE_CODE:en}
+    fake: ${ASSEMBLYAI_FAKE:false}
+  mistral:
+    base-url: ${MISTRAL_BASE_URL:https://api.mistral.ai}
+    api-key: ${MISTRAL_API_KEY:}
+    # Mistral Small 4 (March 2026), pinned: a -latest alias may change behaviour without notice.
+    model: ${MISTRAL_MODEL:mistral-small-2603}
+    timeout: ${MISTRAL_TIMEOUT:30s}
+    fake: ${MISTRAL_FAKE:false}
   # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
   # by hand; the app never connects to OCIMF.
   sire:

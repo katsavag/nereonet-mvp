@@ -29,8 +29,11 @@ import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.stock.StockService.Level;
 import com.nereonix.nereonet_mvp.core.stock.StockStatus;
 
+import jakarta.servlet.http.HttpSession;
+
 // The Chief cook's store (P52): the stock of their own ship's provisions, and one item with its history. P53: counting
-// by hand (/ship/stores/count, each row saved on its own) and the ship's history (/ship/stores/history).
+// by hand (/ship/stores/count, each row saved on its own) and the ship's history (/ship/stores/history). P57: counting
+// by voice from the Count page (VoiceCountController).
 // SecurityConfig limits /ship/stores/** to CHIEF_COOK (the Master and crew members get 403). English only, as every
 // crew screen.
 @Controller
@@ -52,10 +55,13 @@ public class StoresController {
     }
 
     private final StoresService storesService;
+    private final VoiceCountService voiceCountService;
     private final MessageSource messageSource;
 
-    public StoresController(StoresService storesService, MessageSource messageSource) {
+    public StoresController(StoresService storesService, VoiceCountService voiceCountService,
+                            MessageSource messageSource) {
         this.storesService = storesService;
+        this.voiceCountService = voiceCountService;
         this.messageSource = messageSource;
     }
 
@@ -86,9 +92,13 @@ public class StoresController {
 
     // P53: every active provisions item by place, each with its expected quantity in its own small form. Flash
     // attributes after a row's form was posted without JavaScript: countSaved (the item's id) or countError.
+    // P57: voiceEnabled (both providers configured: the Count by voice card) and voicePending (a proposal waits in the
+    // session for its review).
     @GetMapping(PATH + "/count")
-    public String countPage(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
+    public String countPage(@AuthenticationPrincipal CurrentUser currentUser, HttpSession session, Model model) {
         model.addAttribute("stores", storesService.load(currentUser.getUsername(), null, null));
+        model.addAttribute("voiceEnabled", voiceCountService.configured());
+        model.addAttribute("voicePending", session.getAttribute(VoiceCountController.SESSION_KEY) != null);
         return "stores/count";
     }
 
@@ -170,7 +180,7 @@ public class StoresController {
     }
 
     // "6", "2.5" or "2,5"; null for anything else.
-    private static BigDecimal parse(String quantity) {
+    static BigDecimal parse(String quantity) {
         if (quantity == null || quantity.isBlank()) {
             return null;
         }

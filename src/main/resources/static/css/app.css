@@ -6460,6 +6460,75 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .stores-count-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
 .stores-count-error[hidden] { display: none; }
 
+/* Counting by voice (P57): the Count by voice card of stores/count.html (js/stores-voice.js) and the review,
+   stores/voice.html.
+     - .voice-hold: press and hold. Never the long-press menu, a text selection or a scroll while held (touch-action,
+       user-select, -webkit-touch-callout). Tall and wide enough for a thumb. .is-recording: the danger colour, a
+       pulsing dot and the timer; .voice-card.is-busy: processing.
+     - .voice-status: one line under the button; data-tone (set by the script) gives it its colour.
+     - .voice-row.is-low: a row the extractor was not sure of, with the warning colour on its left edge. */
+.voice-card[hidden],
+.voice-enable[hidden],
+.voice-enable-hint[hidden],
+.voice-timer[hidden],
+[data-voice-retry][hidden] { display: none; }
+.voice-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-3); }
+.voice-hold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--nn-space-2);
+    min-height: 4rem;
+    min-width: 14rem;
+    font-weight: 600;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+.voice-hold.is-recording,
+.voice-hold.is-recording:hover,
+.voice-hold.is-recording:focus {
+    background-color: var(--nn-danger);
+    border-color: var(--nn-danger);
+    color: #fff;
+}
+.voice-dot { width: .75rem; height: .75rem; border-radius: 50%; background: currentColor; opacity: .6; }
+.is-recording .voice-dot { opacity: 1; animation: voice-pulse 1s ease-in-out infinite; }
+@keyframes voice-pulse { 50% { transform: scale(1.5); opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .is-recording .voice-dot { animation: none; } }
+.voice-timer { font-variant-numeric: tabular-nums; }
+.voice-card.is-busy .voice-hold { cursor: progress; }
+.voice-status { min-height: 1.5rem; margin: var(--nn-space-3) 0 var(--nn-space-2); font-size: var(--nn-font-sm); }
+.voice-status[data-tone="recording"] { color: var(--nn-danger-text); font-weight: 600; }
+.voice-status[data-tone="error"] { color: var(--nn-danger-text); }
+.voice-status[data-tone="warning"],
+.voice-status[data-tone="hint"] { color: var(--nn-warning-text); }
+.voice-status[data-tone="busy"] { color: var(--nn-text-secondary); }
+.voice-limit { margin-top: var(--nn-space-2); }
+@media (max-width: 575.98px) {
+    .voice-hold { width: 100%; }
+}
+
+.voice-transcript { font-size: var(--nn-font-body); color: var(--nn-text); }
+.voice-row { display: flex; flex-direction: column; gap: var(--nn-space-2); }
+.voice-row.is-low { border-left: 4px solid var(--nn-warning-border); background: var(--nn-warning-bg); }
+.voice-row:has(.voice-remove input:checked) .voice-row-head,
+.voice-row:has(.voice-remove input:checked) .voice-row-words { text-decoration: line-through; opacity: .6; }
+.voice-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
+.voice-row-name { font-weight: 600; }
+.voice-row-words { font-size: var(--nn-font-sm); }
+.voice-row-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
+.voice-field-label { font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
+.voice-qty { width: 8rem; min-height: 2.75rem; text-align: end; }
+.voice-item { width: auto; max-width: 100%; min-height: 2.75rem; }
+.voice-unit { min-width: 2rem; color: var(--nn-text-secondary); }
+.voice-expected { font-size: var(--nn-font-sm); }
+.voice-remove { display: inline-flex; align-items: center; gap: var(--nn-space-2); min-height: var(--nn-touch-target);
+    margin-left: auto; cursor: pointer; }
+.voice-error { margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
+.voice-actions { display: flex; flex-wrap: wrap; gap: var(--nn-space-3); }
+
 
 /* ---------------------------------------------------------------------------------------------------------------
    Requests (P54): the Chief cook's and crew's requests to the Master, shiprequest/list.html (its rows are
