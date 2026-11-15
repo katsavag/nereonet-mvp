@@ -195,6 +195,26 @@
             <div id="editFlagHint" class="form-text" th:text="#{ship.flagHint}">Country of registry.</div>
         </div>
     </div>
+    <!-- P58: what happens to the vessel's required documents when its type changes: kept (the default) or reset to the
+         new type's defaults. With js/forms.js shown only while the type differs from the saved one
+         (data-changed-from, data-initial-value; the ships list's pop-up sets it from the Edit entry); without it always
+         shown, and ignored while the type stays the same. -->
+    <fieldset class="ship-requirements-choice" data-changed-from="editType"
+              th:data-initial-value="${editShip != null and editShip.type != null} ? ${editShip.type} : ''"
+              aria-describedby="editRequirementsHint">
+        <legend class="form-label" th:text="#{ship.requirements.legend}">Required documents if the type changes</legend>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" id="editRequirementsKeep" name="resetRequirements" value="false"
+                   th:checked="${!editForm.resetRequirements}">
+            <label class="form-check-label" for="editRequirementsKeep" th:text="#{ship.requirements.keep}">Keep this vessel's required documents</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" id="editRequirementsReset" name="resetRequirements" value="true"
+                   th:checked="${editForm.resetRequirements}">
+            <label class="form-check-label" for="editRequirementsReset" th:text="#{ship.requirements.reset}">Reset them to the new type's defaults</label>
+        </div>
+        <div id="editRequirementsHint" class="form-text" th:text="#{ship.requirements.hint}">Used only when you change the type.</div>
+    </fieldset>
     <!-- P45: Refresh from VesselAPI, a submit button with its own action, so it works without JavaScript; it shows the
          Edit page with the Saved / VesselAPI table. Hidden, with a note, while VesselAPI is not configured. -->
     <th:block th:if="${editShip != null}">

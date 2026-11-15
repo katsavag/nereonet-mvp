@@ -56,6 +56,9 @@
     --nn-divider: rgba(var(--nn-navy-rgb), .12);  /* rows and lines inside a surface */
     --nn-shadow: 0 1px 2px rgba(var(--nn-navy-rgb), .06);
     --nn-hover: #f7f4ee;             /* hovered row of an action list */
+    /* P58: card headers and table header rows, one step darker than the page (1.21:1 next to the surface);
+       --nn-text on it 13.3:1, secondary text 6.0:1, the blue 7.5:1. A 1px --nn-divider line under it. */
+    --nn-head-bg: #ece7dc;
 
     /* Status pairs: subtle background + text (text contrast 6.7:1 or more), a solid colour for borders,
        solid badges and red text, and a subtle border. */
@@ -624,7 +627,7 @@ fieldset:disabled button.btn {
    --------------------------------------------------------------------------------------------------------------- */
 .card {
     --bs-card-bg: var(--nn-surface);
-    --bs-card-cap-bg: transparent;
+    --bs-card-cap-bg: var(--nn-head-bg);   /* P58: headers read as headers */
     --bs-card-border-color: var(--nn-border);
     --bs-card-border-radius: var(--nn-radius-card);
     --bs-card-inner-border-radius: calc(var(--nn-radius-card) - 1px);
@@ -632,6 +635,12 @@ fieldset:disabled button.btn {
     --bs-card-spacer-y: var(--nn-card-padding);
     --bs-card-cap-padding-x: var(--nn-card-padding);
     box-shadow: var(--nn-shadow);
+}
+/* P58: the header surface, the same on every card (office and crew): --nn-head-bg with a 1px divider under it; the
+   title keeps its weight in the text colour. */
+.card > .card-header {
+    color: var(--nn-text);
+    border-bottom: 1px solid var(--nn-divider);
 }
 /* Form cards use "p-3 p-md-4" in the templates; keep them on the card padding so header and body line up. */
 .card > .card-body.p-3 { padding: var(--nn-card-padding) !important; }
@@ -661,6 +670,18 @@ fieldset:disabled button.btn {
 /* Table text is 14px throughout; "small" in a cell must not shrink it further. */
 .table .small,
 .table small { font-size: inherit; }
+/* P58: header rows on the header surface (--nn-head-bg, as card headers), every table; the cells' own 1px
+   --nn-divider bottom border is the line under it. Sticky header rows and sticky first columns keep it, so rows
+   never show through. */
+.table > thead > tr > * {
+    --bs-table-bg: var(--nn-head-bg);
+    background-color: var(--nn-head-bg);
+}
+.req-grid > thead .req-grid-type,
+.cert-matrix > thead .cert-matrix-person,
+.import-table > thead .import-col-row,
+.import-table > thead .import-col-name,
+.rfq-compare > thead .rfq-compare-item { background-color: var(--nn-head-bg); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Lists: one table style for every office list (.data-table on the table).
@@ -668,7 +689,7 @@ fieldset:disabled button.btn {
        so card title, column headers and first-column text share one left edge;
      - every body row is at least 52px high, with or without actions (a 32px row button fits without growing it);
        keep each cell on one line so all rows of a table have the same height;
-     - header cells 12px, 600, secondary text colour, uppercase, letter-spacing .04em;
+     - header cells 12px, 600, text colour on the header surface (P58; secondary before), uppercase, letter-spacing .04em;
      - hover background on rows; .num cells (counts, quantities) right-aligned with tabular figures;
      - .cell-primary: the record's name, linking to its page; the only bold cell in the row;
      - .cell-status: the status badge (layout/parts :: status);
@@ -697,11 +718,18 @@ fieldset:disabled button.btn {
     letter-spacing: .04em;
     text-transform: uppercase;
     white-space: nowrap;
-    color: var(--nn-text-secondary);
+    color: var(--nn-text);   /* P58: the text colour on the header surface (secondary before) */
 }
 .data-table > tbody > tr.text-body-secondary > * { --bs-table-color-type: var(--nn-text-secondary); }
 .data-table > tbody > tr:hover > * { --bs-table-bg-state: var(--nn-hover); }
 .data-table .num { text-align: right; }
+/* P58: a short code (a currency such as EUR), not an amount: centred under a centred header, tabular figures, on
+   one line. Never .num, which right-aligns amounts. The stacked phone rows keep their label and value layout. */
+.code-cell {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
 
 .data-table .cell-primary { font-weight: 600; }
 .data-table .cell-primary > a { text-decoration: none; }
@@ -1417,7 +1445,6 @@ fieldset:disabled button.btn {
     justify-content: space-between;
     gap: var(--nn-space-1) var(--nn-space-3);
     padding-block: var(--nn-space-3);
-    background-color: transparent;
 }
 .overview-card-title {
     margin: 0;
@@ -1812,6 +1839,20 @@ fieldset:disabled button.btn {
 .confirm-dialog .modal-body p { overflow-wrap: anywhere; }
 /* P50: the optional note of a dialog that asks for one (removing an order line). */
 .confirm-dialog-note { margin-top: var(--nn-space-3); }
+/* P58: what will change, listed under the body (resetting a vessel's required documents); the page scrolls it when
+   long. */
+.confirm-dialog-items,
+.confirm-page-items {
+    margin: var(--nn-space-3) 0 0;
+    padding-left: 1.25rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+.confirm-dialog-items > li + li,
+.confirm-page-items > li + li { margin-top: var(--nn-space-1); }
+.confirm-page-items { margin-bottom: var(--nn-space-5); }
+.confirm-page .confirm-page-body:has(+ .confirm-page-items) { margin-bottom: 0; }
 
 .confirm-form { display: contents; }
 
@@ -3866,8 +3907,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Crew home page (P26): shiphome/home.html.
-     - .home-sign-out: Sign out, in the page header's actions next to the name (shared PCs; the "Not Demo Cook?" text
-       went in P43).
+     - P58: no Sign out on this page any more (the sidebar and More have it); .home-sign-out and .from-md went.
      - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
        home page), card-title size.
      - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
@@ -3876,18 +3916,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-read-card-height: 3.5rem;   /* 56px */
-}
-
-.home-sign-out {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-/* .from-md (P39): shown from 768px only, without JavaScript. Crew Home's Sign out: on phones Sign out is under More,
-   so the header keeps the name. A page header's actions holding only such a block take no room. */
-@media (max-width: 767.98px) {
-    .from-md,
-    .page-actions:has(> .from-md:only-child) { display: none; }
 }
 
 .home-section + .home-section { margin-top: var(--nn-section-gap); }
@@ -5698,8 +5726,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        sideways), with a divider on its right edge. Rank names are turned upright (.req-grid-rank-label, read bottom
        to top) so the columns stay one checkbox wide; each department starts with a divider (.req-grid-group-start).
        Each cell's label (.req-cell) fills the cell, at least the touch target (40px, 44px on phones) in both
-       directions; a rank already required on all vessels shows a muted tick (.req-cell-inherited) and says so to
-       screen readers. A row just added (.is-added) has the primary tint.
+       directions. A row just added (.is-added) has the primary tint. P58: one grid per vessel, so no inherited ticks.
+     - P58 .requirement-grid-header: the title and "Based on the defaults for Bulk carrier." on the left, "Reset to
+       Bulk carrier defaults" on the right (under them on phones), the hint below; Changed is a neutral badge.
      - .requirement-actions: Save and its hint, under the grid. .requirement-add: Add a document type, under the card.
      - .requirement-card-*, .requirement-row-*: the office crew member page's Required documents card: type, note and
        expiry on the left, the state badge, then Open and Add certificate, wrapping under the text on phones.
@@ -5709,7 +5738,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        edge (the badge says it in words); .cert-row-contact: "Contact the office to add it."
      - .documents-missing-link: crew Home and the Master's home, "2 required documents missing": one link in the
        danger pair with the warning triangle and a chevron, at least 44px high.
-   Text pairs: names 15:1, hints and the inherited tick 6.6:1 on the surface; badges and the danger pair as everywhere.
+   Text pairs: names 15:1, hints 6.6:1 on the surface (6.0:1 on the header surface); badges and the danger pair as
+   everywhere.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-req-type-width: 14rem;
@@ -5727,8 +5757,23 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .requirements-page > .info-note { margin-bottom: var(--nn-space-4); }
 
 .requirement-grid-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4);
     padding-block: var(--nn-space-3);
-    background-color: transparent;
+}
+.requirement-grid-title { min-width: 0; }
+.requirement-grid-header > .requirement-grid-hint { flex-basis: 100%; }
+.requirement-defaults-note {
+    margin: var(--nn-space-1) 0 0;
+    font-size: var(--nn-font-sm);
+    font-weight: 500;
+}
+.requirement-reset { flex-shrink: 0; }
+@media (max-width: 575.98px) {
+    .requirement-reset { width: 100%; }
 }
 .requirement-grid-hint {
     margin: var(--nn-space-1) 0 0;
@@ -5800,11 +5845,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 label.req-cell { cursor: pointer; }
 label.req-cell:hover { background-color: var(--nn-hover); }
 .req-cell > .form-check-input { margin: 0; }
-.req-cell-inherited { color: var(--nn-text-secondary); }
-.req-cell-inherited > svg {
-    width: 16px;
-    height: 16px;
-}
 .req-grid .req-grid-optional { border-left: 1px solid var(--nn-divider); }
 .req-grid .req-grid-note { min-width: var(--nn-req-note-width); }
 /* position: relative contains the visually hidden labels of the Note column and the caption: without it they take
@@ -5826,13 +5866,7 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     color: var(--nn-text-secondary);
 }
 
-/* P43: the row toggle before the type's name, the Delete row icon button at the row's end, and the note under the
-   grid's title naming the vessels the chosen grid applies to. */
-.requirement-selection-note {
-    margin: var(--nn-space-2) 0 0;
-    font-size: var(--nn-font-sm);
-    font-weight: 500;
-}
+/* P43: the row toggle before the type's name, and the Delete row icon button at the row's end. */
 .req-row-all {
     display: inline-flex;
     align-items: center;
@@ -6572,3 +6606,67 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .request-pick-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
 .request-new-lines { margin-top: var(--nn-space-4); border-top: 1px solid var(--nn-border); }
 .request-new-lines > .request-pick-row { padding-inline: 0; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Date range (P58): layout/parts :: dateRange, in the GET filter form of a history or log page (the store history
+   first, stores/history.html).
+     - .date-range-presets: the quick choices, Last 30 / 60 / 90 days, a .view-switch of links (the current one in the
+       primary pair, semibold, with a tick from 768px), on one line at every width: below 768px the group is as wide
+       as the form, three equal links with less padding (the tick hidden, the primary pair still marks the current
+       one), so it fits 360px; each link a 44px target.
+     - .date-range-row: From and To in two equal columns at every width (360px too: the date fields may shrink);
+       the form's buttons (.date-range-actions) on the same row from 768px, under them on phones.
+   --------------------------------------------------------------------------------------------------------------- */
+.date-range { margin-top: var(--nn-space-3); }
+.date-range-presets {
+    display: flex;
+    max-width: 100%;
+    margin-bottom: var(--nn-space-3);
+}
+.date-range-presets > .view-switch-link {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 var(--nn-space-1);
+    white-space: nowrap;
+}
+.date-range-presets > .view-switch-link > svg { display: none; }
+@media (min-width: 768px) {
+    .date-range-presets { display: inline-flex; }
+    .date-range-presets > .view-switch-link { flex: 0 0 auto; padding: 0 var(--nn-space-4); }
+    .date-range-presets > .view-switch-link[aria-current] > svg { display: inline-block; }
+}
+.date-range-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--nn-space-3);
+    align-items: start;
+}
+.date-range-field { min-width: 0; }
+.date-range-field > .form-control { min-width: 0; width: 100%; }
+.date-range-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+}
+@media (min-width: 768px) {
+    .date-range-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+    /* Level with the fields under their labels (one line of label and its margin), also when an error shows. */
+    .date-range-actions {
+        grid-column: auto;
+        flex-wrap: nowrap;
+        margin-top: calc(var(--nn-font-body) * 1.5 + .5rem);
+    }
+}
+
+/* The store history's Type above the range: as wide as one date column from 768px. */
+.stores-log-type { max-width: 100%; }
+@media (min-width: 768px) {
+    .stores-log-type { max-width: 20rem; }
+}
+
+/* P58: the vessel form's choice for the required documents when the type changes (ship/parts :: editFields). */
+.ship-requirements-choice { margin-bottom: 1rem; }
+.ship-requirements-choice[hidden] { display: none; }
+.ship-requirements-choice > legend { font-size: inherit; margin-bottom: .25rem; }

@@ -765,10 +765,9 @@ Requirements: Java 25, Docker.
    PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeService`, `templates/shiphome/home.html`
    (it replaces the placeholder `login/ship.html`).
    - **Header**: the ship's name and IMO number as the eyebrow, the person's name as the heading and their rank under
-     it (the role when no rank is set), and before the name their profile photo or initials (P31, see 20). Next to
-     the name, from 768 px: "Not Demo Cook?" and **Sign out**, one tap from Home, so
-     the next person on a shared PC sees whose session it is. Below 768 px they are not repeated there (P39): Sign
-     out is under **More** in the tab bar (20).
+     it (the role when no rank is set), and before the name their profile photo or initials (P31, see 20). P58: Home
+     has no sign-out line of its own at any width: **Sign out** is in the sidebar user block from 768 px and under
+     **More** in the tab bar on phones (20).
    - **To read**: the Required library items of the person's ship that they have not acknowledged in the current
      version and the news they have not opened yet (P27, P39, see 19), together, oldest first, with their number
      after the heading. Each is a full-width card (at least 56 px) with the type icon (the announcements icon for an
@@ -1099,6 +1098,9 @@ Requirements: Java 25, Docker.
    (`ShipRightShipStatus`, `RightShipReport`, `VettingService`, `RightShipView`, `RightShipSyncService`,
    `RightShipClient`) and `vetting/` (`VettingController`, `RightShipForm`, `RightShipReportForm`); templates in
    `templates/vetting/`, styles in `app.css` section "Vetting (P40)".
+   P58: in Greek the Safety Score is "Δείκτης ασφάλειας πλοίου" everywhere ("Δείκτης ασφάλειας πλοίου RightShip",
+   "Χωρίς δείκτη ασφάλειας πλοίου"), "Δείκτης ασφάλειας" where space is tight (the badges, the Overview's column); English
+   unchanged (`MessageKeysTest`).
    - **Vetting** in the sidebar (Operations, after Certificates; a shield with a tick), with the number of active
      vessels whose RightShip inspection has expired or expires within 60 days, or (P41) whose SIRE 2.0 needs attention
      (comments overdue or due within 3 days, report no longer current or ending within 60 days, an observation past
@@ -1208,44 +1210,67 @@ Requirements: Java 25, Docker.
        date (linking to its row), both before the Safety Score.
      - Tests: `vetting/SireFlowTest`.
 
-26. Required documents (P42, office users only): which certificates and documents each rank needs, on all vessels or
-   on one vessel type, and who is missing what. `core/requirement/` (`DocumentRequirement`,
+26. Required documents (P42, office users only; P58: per vessel): which certificates and documents each rank needs on
+   each vessel, and who is missing what. `core/requirement/` (`DocumentRequirement`,
    `DocumentRequirementRepository`) and `requirement/` (`RequirementController`, `RequirementService`,
-   `RequirementGrid`, `RequirementGridForm`, `RequirementRules`, `RequirementState`, `RequiredDocument`, `Compliance`,
-   `ComplianceService`, `ComplianceExport`, `StarterRequirements`); template `templates/requirement/grid.html`, the
+   `RequirementGrid`, `RequirementGridForm`, `RequirementSelection`, `RequirementRules`, `RequirementState`,
+   `RequiredDocument`, `Compliance`, `ComplianceService`, `ComplianceExport`, `StarterRequirements`,
+   `VesselRequirementsMigration`); template `templates/requirement/grid.html`, the
    shared fragments in `crew/parts.html` (`documentsSummary`, `documentState`, `requiredDocumentsCard`,
    `documentsMissingLink`, `myMissingDocuments`); styles in `app.css` section "Required documents (P42)". This is the
    company's own list: the page says it does not state what any regulation requires; flag-state and charterer rules
    are not checked, and the crew cannot upload documents themselves.
    - **Required documents** in the sidebar (Administration, after Office users; a document with a checklist),
      `/office/requirements`: a grid with the certificate types as rows and the ranks as columns, by department
-     (names turned upright), then **Optional** and **Note** (up to 200 characters). **Vessel type or vessel** (P43,
-     one combined filter; **Vessel type** before): a select with two groups, the vessel types (All vessels first,
-     then Bulk carrier, Tanker, …) and the active vessels; choosing a vessel (`?key=ship-12`) shows the grid of its
-     type, with a line saying so ("Rules for Tanker, which apply to MV Demo and MV Other"; a vessel without a type
-     shows the rules for all vessels). With JavaScript (`js/requirements.js`) the select becomes a search box with
-     the same options ("Type a vessel type or a vessel name"), an ARIA combobox; without it the plain select and its
-     **Show** button. On a type's grid a rank already required on all vessels is a grey tick, not a checkbox. A plain
-     form of checkboxes, so it saves without JavaScript (**Save for Tanker**); the first column stays put while the
-     grid scrolls sideways inside its card (also on phones; the page itself never does). P43: each row starts with
-     an **All ranks** checkbox ("Select all ranks for Passport"): ticked, saving requires the type of every rank the
-     row can take (those inherited from all vessels stay grey); with JavaScript it ticks and unticks the row at once
-     and follows the row's boxes. Each row ends with a **Delete row** trash icon (a confirmation, see "confirmations
-     (P10)": "Remove Passport? Removes Passport from the requirements on Tanker vessels only. All vessels and the
-     other vessel types keep theirs."; `POST /office/requirements/delete`, without JavaScript a confirmation page),
-     which removes the row's own requirement for the chosen type, recorded as "Required documents changed"
-     ("TANKER: Passport removed"); a row that only inherits from all vessels has nothing to remove and says so.
-     **Add a document type** adds a row at the top to tick. Rows: the starter template's types, then every other
-     type required or held, A to Z. Saving a type's grid changes only what was posted; a row without ranks, note or
-     Optional is removed. Recorded as "Required documents changed" ("TANKER: Tanker Endorsement removed",
-     "All vessels: Passport +COOK").
-   - **Starter template**: on first start with no requirements, the app adds a suggestion (marked **Suggestion**, with
-     a notice to review it): STCW Basic Safety Training, Medical Fitness Certificate, Seaman's Book, Passport and
-     Security Awareness for every rank; Certificate of Competency, Flag State Endorsement, Advanced Fire Fighting and
-     Medical First Aid for the Master, deck officers, engineers and ETO; GMDSS Operator for the Master and deck
-     officers; Tanker Endorsement for every rank on tankers. Saving a vessel type's grid confirms its rows. Added once
-     (recorded as "Required documents starter template added"), so a template the office cleared stays clear;
-     `app.requirements.starter-template: false` turns it off (tests).
+     (names turned upright), then **Optional** and **Note** (up to 200 characters). P58: every vessel has its own
+     rules (`document_requirement.ship_id`), so the **Vessel** filter lists only the active vessels, A to Z, each with
+     its type ("ALDER · Bulk carrier"); the first is shown by default, another with `?vessel=12` (an unknown or
+     inactive vessel: the first, with "That vessel is not active, so nothing was changed."). With JavaScript
+     (`js/requirements.js`) the select becomes a search box ("Type a vessel name"), an ARIA combobox; without it the
+     plain select and its **Show** button. Without any vessel the page says "No vessels yet" and links to **New
+     vessel**. Above the grid: "Required on ALDER", "Based on the defaults for Bulk carrier." and **Reset to Bulk
+     carrier defaults**. A plain form of checkboxes, so it saves without JavaScript; the first column stays put while
+     the grid scrolls sideways inside its card (also on phones; the page itself never does). P43: each row starts with
+     an **All ranks** checkbox ("Select all ranks for Passport"): ticked, saving requires the type for every rank of
+     this vessel; with JavaScript it ticks and unticks the row at once and follows the row's boxes. Each row ends
+     with a **Delete row** trash icon ("Remove Passport from ALDER's requirements"; a confirmation, see
+     "confirmations (P10)": "Remove Passport? Removes Passport from ALDER's requirements. The other vessels keep
+     theirs."; `POST /office/requirements/delete`, without JavaScript a confirmation page), recorded as "Required
+     documents changed" ("ALDER: Passport removed"); a row the vessel does not have says there is nothing to remove.
+     **Add a document type** adds a row at the top to tick. Rows: the vessel's defaults, then every other type
+     required or held, A to Z. Saving changes only what was posted, on the shown vessel only; a row without ranks,
+     note or Optional is removed. Recorded as "Required documents changed" ("ALDER: Tanker Endorsement removed",
+     "ALDER: Passport +COOK").
+   - **Defaults by vessel type** (`StarterRequirements.defaults(type)`, the P42 starter template): STCW Basic Safety
+     Training, Medical Fitness Certificate, Seaman's Book, Passport and Security Awareness for every rank;
+     Certificate of Competency, Flag State Endorsement, Advanced Fire Fighting and Medical First Aid for the Master,
+     deck officers, engineers and ETO; GMDSS Operator for the Master and deck officers; Tanker Endorsement for every
+     rank on tankers. A vessel without a type has the general defaults (all but Tanker Endorsement).
+     - A **new vessel** gets a copy of its type's defaults when it is created (`ShipService.create`, always, also
+       with the starter template switched off), each row marked **Suggestion** with a notice to review it; saving
+       the vessel's grid confirms them.
+     - A row that differs from the defaults (other ranks, Optional, a note, or a type the defaults do not have) is
+       marked **Changed** (a neutral badge).
+     - **Reset to Bulk carrier defaults** (`GET`/`POST /office/requirements/reset?vessel=12`, a confirmation, P10,
+       listing every change: "Passport is added back", "Tanker Endorsement is removed", "Seaman's Book goes back to
+       the default ranks, not optional and without a note"; "ALDER already has these defaults. Nothing will change."
+       when there is none) replaces the vessel's rows with its type's defaults (confirmed, not suggestions);
+       recorded as "Required documents reset to defaults" ("ALDER: reset to the BULK_CARRIER defaults: Passport
+       restored").
+     - **Vessel type changes** (Edit vessel): the form asks "Required documents if the type changes", **Keep this
+       vessel's required documents** (the default) or **Reset them to the new type's defaults**; with JavaScript the
+       question shows only while the type differs from the saved one (`data-changed-from`, `js/forms.js`).
+     - Starter template on first start: with no requirements yet and vessels present, every vessel gets its type's
+       defaults as suggestions, once (recorded as "Required documents starter template added"), so a template the
+       office cleared stays clear; `app.requirements.starter-template: false` turns it off (tests).
+   - **Migration from vessel types** (`VesselRequirementsMigration`, on startup, before the starter template, in one
+     transaction): the rows saved before P58 had a vessel type (or none: all vessels) and no vessel. Each vessel,
+     active or not, gets its own copy of the rules that applied to it, its type's and the all-vessels ones, merged
+     per document type as compliance merged them: the ranks for which any was required (or, if none was, the
+     optional ranks, still optional), the type's note before the all-vessels one, a suggestion only when every row
+     was one. A vessel that already has a row of that type keeps its own. Then the old rows are deleted, so it runs
+     once and no seafarer's compliance changes. Recorded as "Required documents moved to vessels" ("11 rules by
+     vessel type copied to 4 vessels as 41 rows"). The old `ship_type` column stays, unused.
    - **States**, worked out on every read, nothing derived stored: the certificate of that type (same type ignoring
      case and surrounding spaces) that expires last; **Valid**, **Expires in 12 days** (within 30), **Expired**
      (counts as missing), **Missing**. A certificate whose expiry is beyond the P39 plausible range (30 years) is ignored. An optional
@@ -1324,7 +1349,8 @@ Requirements: Java 25, Docker.
    "Suppliers and quotes (P44)".
    - **Suppliers** in the sidebar (Operations, after Orders; a truck; `/office/suppliers`): name, contact email,
      ports served (free text, "Piraeus, Perama"), currency (three letters, EUR by default), website, active. The
-     list (P19): search name, email or port, filter Active / Inactive, sort by name or currency, 10 per page; with
+     list (P19): search name, email or port, filter Active / Inactive, sort by name or currency (P58: the Currency
+     column is centred, `.code-cell`), 10 per page; with
      none yet, the empty state with **Add supplier** (P25). **Add supplier** and **Edit** share one form; a name
      already used (any case) is refused. An inactive supplier stays on old requests but cannot be asked again.
      Audit: "Supplier added", "Supplier changed". The dev data adds **VANOS (Piraeus)** (`https://www.vanos.gr/`,
@@ -1526,7 +1552,13 @@ Requirements: Java 25, Docker.
      - **History** (a button on Stores) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
        page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
        difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
-       (both included; not a date: its error under the field, nothing filtered). One query with the item and who
+       (both included; not a date: its error under the field, nothing filtered). P58: the dates use the shared
+       date range (`layout/parts :: dateRange(bean, presets, actions)`, `core/list/DatePreset`, CSS "Date range
+       (P58)"): quick choices **Last 30 days**, **Last 60 days**, **Last 90 days** as segmented links (From = today
+       minus N, To = today, UTC; they keep the type and work without JavaScript), the one matching the filter marked
+       with `aria-current` and a tick; From and To side by side at every width (also 360 px), **Filter** and
+       **Clear** on the same row from 768 px and under them on phones. Typing a date removes the mark (`js/forms.js`,
+       `[data-date-range]`). One query with the item and who
        (`StockMovementRepository.findOnShip`). Plain on purpose: it will be redesigned.
      - An item's history has a **Difference** column: counted minus expected for a count ("-3"), a dash for a
        delivery. The summary's **Last count** is the date of the latest count.
@@ -1782,6 +1814,10 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
   top of the file lists the scales:
   - surfaces, three levels: page `#f4f1ea`, surface `#fffdf8` (cards, modals, tables, list groups, menus),
     field `#ffffff` (inputs, selects, checkboxes, radios; border at least 3:1 against the surface);
+  - header surface (P58), `--nn-head-bg` `#ece7dc`: card headers (Bootstrap `--bs-card-cap-bg`, with a 1 px
+    `--nn-divider` line under them and the title in `--nn-text`) and table headers (`.table > thead`, also when
+    sticky), a visible step from the surface (1.21:1) with text at 13.3:1, secondary text 6.0:1 and links 7.5:1.
+    Card headers no longer use `bg-transparent` (`DesignTokensTest`);
   - one blue, the brand navy `--nn-blue`, for primary buttons, outline buttons, links, checked boxes and the focus
     ring (a 2 px ring with a 2 px gap on every focusable element; white on navy backgrounds);
   - status pairs (subtle background + text, contrast at least 4.5:1) for ok, warning, danger and info, used by
@@ -1806,7 +1842,9 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     the first and last cell start and end on the card padding, so the card title, the column headers and the
     first column share one left edge. Every row is at least 52 px high, with or without actions, and every cell
     stays on one line so all rows have the same height. Header cells are 12 px, 600, secondary colour, uppercase,
-    letter-spacing 0.04em. Rows get a hover background; counts (`.num`) are right-aligned. The record's name
+    letter-spacing 0.04em, in `--nn-text` on the header surface (P58). Rows get a hover background; counts (`.num`)
+    are right-aligned; short codes such as a currency (`.code-cell`, P58) are centred, tabular and on one line,
+    header included (`layout/parts :: sortHeaderCell(list, key, label, cellClass)`). The record's name
     (`.cell-primary`) links to its page and is the only bold cell; a ship's name opens its ship page (P08). The record
     count sits after the page title, muted ("Crew · 84", see the page header below); on the tabs of the ship page it is
     on the tab instead; list cards have no header of their own. Email addresses never break: they are cut with an ellipsis and the

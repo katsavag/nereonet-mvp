@@ -49,12 +49,13 @@ public class PeopleQueries {
     private static final String RANK_ROLE = rankCase(rank -> "'" + rank.role().name() + "'", "null");
 
     // Required documents (P42), the rules of requirement/RequirementRules in SQL, for user u on ship s: the required
-    // (not optional) types whose ranks include u's rank, on all vessels or s's type; none without a rank or a ship.
+    // (not optional) types of u's vessel (P58; of all vessels or s's type before) whose ranks include u's rank; none
+    // without a rank or a ship.
     // A type is held by a certificate of the same type (lower case, trimmed) expiring from today to the P39 limit.
     private static final String REQUIRED_TYPES = " from document_requirement r"
             + " join document_requirement_rank rr on rr.requirement_id = r.id"
             + " where rr.rank = u.rank and u.ship_id is not null and r.optional = false"
-            + " and (r.ship_type is null or r.ship_type = s.type)";
+            + " and r.ship_id = u.ship_id";
     private static final String REQUIRED_COUNT =
             "(select count(distinct lower(trim(r.certificate_type)))" + REQUIRED_TYPES + ")";
     private static final String MISSING_COUNT = "(select count(distinct lower(trim(r.certificate_type)))"

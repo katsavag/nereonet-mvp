@@ -24,6 +24,7 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.dashboard.DashboardService;
+import com.nereonix.nereonet_mvp.requirement.RequirementService;
 
 @Service
 public class ShipService {
@@ -37,11 +38,14 @@ public class ShipService {
     private final LibraryItemRepository libraryItemRepository;
     private final ItemRepository itemRepository;
     private final AnnouncementRepository announcementRepository;
+    private final RequirementService requirementService;
 
     public ShipService(ShipRepository shipRepository, AuditService auditService, DashboardService dashboardService,
                        UserRepository userRepository, InvitationRepository invitationRepository,
                        CertificateRepository certificateRepository, LibraryItemRepository libraryItemRepository,
-                       ItemRepository itemRepository, AnnouncementRepository announcementRepository) {
+                       ItemRepository itemRepository, AnnouncementRepository announcementRepository,
+                       RequirementService requirementService) {
+        this.requirementService = requirementService;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
         this.dashboardService = dashboardService;
@@ -91,7 +95,8 @@ public class ShipService {
 
     /**
      * Saves a new, active ship. imoNumber may be "IMO 9074729" or "9074729"; only the digits are stored.
-     * Throws ImoNumberAlreadyExistsException if a ship with that IMO number exists.
+     * Throws ImoNumberAlreadyExistsException if a ship with that IMO number exists. P58: the vessel starts with the
+     * required documents of its type's defaults (StarterRequirements), as suggestions to review.
      */
     @Transactional
     public Ship create(String imoNumber, String name, ShipType type, String flag) {
@@ -109,15 +114,21 @@ public class ShipService {
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
         auditService.record("SHIP_CREATED", ship, describe(ship));
+        requirementService.startWithDefaults(ship);
         return ship;
     }
 
-    // Everything except the IMO number, which never changes.
+    // Everything except the IMO number, which never changes. P58: when the type changes and resetRequirements is
+    // set, the vessel's required documents become the new type's defaults (REQUIREMENTS_RESET); otherwise they stay.
     @Transactional
-    public void update(Long id, String name, ShipType type, String flag) {
+    public void update(Long id, String name, ShipType type, String flag, boolean resetRequirements) {
         Ship ship = get(id);
+        ShipType before = ship.getType();
         apply(ship, name, type, flag);
         auditService.record("SHIP_UPDATED", ship, describe(ship));
+        if (resetRequirements && before != ship.getType()) {
+            requirementService.reset(ship);
+        }
     }
 
     @Transactional

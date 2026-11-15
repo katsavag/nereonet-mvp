@@ -18,10 +18,10 @@ import com.nereonix.nereonet_mvp.core.user.User;
 /**
  * The office's required documents (P42), loaded once per page, and how they apply to one seafarer:
  * <ul>
- *   <li>a requirement applies to a person with a rank on a vessel when its ranks include the rank and its vessel type
- *   is "all vessels" or the vessel's type. Without a rank or a vessel nothing applies;</li>
- *   <li>rows of the same type (the all-vessels row and the vessel type's) are one document: required when any of them
- *   is, optional only when all are; the vessel type's note before the all-vessels one;</li>
+ *   <li>a requirement applies to a person with a rank on a vessel when it is that vessel's (P58: each vessel has its
+ *   own; by vessel type before) and its ranks include the rank. Without a rank or a vessel nothing applies;</li>
+ *   <li>rows of the same type on one vessel (RequirementService keeps one) are one document: required when any of
+ *   them is, optional only when all are; the first note;</li>
  *   <li>a document is held by the certificate of the same type (P20: equal after strip() and toLowerCase) that expires
  *   last. A certificate whose expiry date is past the P39 limit (more than CertificateForm.EXPIRES_YEARS years ahead,
  *   a typing slip from before P39) does not count: the document is Missing until the date is corrected.</li>
@@ -56,7 +56,7 @@ public final class RequirementRules {
         }
         Map<String, Applicable> byType = new LinkedHashMap<>();
         for (DocumentRequirement r : requirements) {
-            if (!r.appliesTo(rank) || (r.getShipType() != null && r.getShipType() != ship.getType())) {
+            if (!r.appliesTo(rank) || !r.isFor(ship)) {
                 continue;
             }
             String key = CertificateTypes.sameTypeKey(r.getCertificateType());
@@ -64,9 +64,7 @@ public final class RequirementRules {
             if (before == null) {
                 byType.put(key, new Applicable(key, r.getCertificateType(), r.isOptional(), r.getNote()));
             } else {
-                // The vessel type's own note wins over the all-vessels one.
-                String note = r.getShipType() != null && r.getNote() != null ? r.getNote()
-                        : before.note() != null ? before.note() : r.getNote();
+                String note = before.note() != null ? before.note() : r.getNote();
                 byType.put(key, new Applicable(key, before.type(), before.optional() && r.isOptional(), note));
             }
         }

@@ -26,7 +26,7 @@
     <!-- Read by vessel (P28): every target ship (also one that had nobody on board) and every ship of the
          recipients, by name, with the total when there is more than one. The two lists below are grouped the same way. -->
     <section id="perShip" class="card mb-4" aria-labelledby="perShipTitle">
-        <div class="card-header bg-transparent py-3">
+        <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="perShipTitle" th:text="#{announcement.perShip.heading}">Read by vessel</h2>
         </div>
         <div class="table-responsive">
@@ -64,7 +64,7 @@
     <div class="card-grid">
         <!-- Read -->
         <div id="acknowledged" class="card">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
                 <h2 class="h5 fw-bold mb-0" th:text="#{announcement.acknowledged}">Read</h2>
                 <span class="font-monospace small text-body-secondary" th:text="${recipients.acknowledged.size()}">0</span>
             </div>
@@ -94,7 +94,7 @@
     
         <!-- Not read yet -->
         <div id="pending" class="card">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
                 <h2 class="h5 fw-bold mb-0" th:text="#{announcement.pending}">Not read yet</h2>
                 <span class="font-monospace small text-body-secondary" th:text="${recipients.pending.size()}">0</span>
             </div>

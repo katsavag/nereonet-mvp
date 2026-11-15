@@ -33,6 +33,10 @@ public class EditShipForm {
     // P45: the flag chosen when VesselAPI's country and country code disagree (an ISO code); empty keeps the saved one.
     private String flagChoice;
 
+    // P58: when the type changes, whether the vessel's required documents become the new type's defaults (true) or
+    // stay as they are (false, the default). Ignored while the type stays the same.
+    private boolean resetRequirements;
+
     /** Filled from the ship; the flag as its code ("GR"). */
     static EditShipForm of(Ship ship) {
         EditShipForm form = new EditShipForm();
@@ -64,4 +68,7 @@ public class EditShipForm {
 
     public String getFlagChoice() { return flagChoice; }
     public void setFlagChoice(String flagChoice) { this.flagChoice = flagChoice; }
+
+    public boolean isResetRequirements() { return resetRequirements; }
+    public void setResetRequirements(boolean resetRequirements) { this.resetRequirements = resetRequirements; }
 }

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,6 +39,7 @@ import com.nereonix.nereonet_mvp.core.audit.AuditEntry;
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.certificate.Certificate;
 import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
+import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirement;
 import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirementRepository;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -52,7 +54,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * P42: required documents per rank and vessel type. The grid (starter template, ticking, adding a type, a note too
+ * P42: required documents per rank; P58: per vessel, each starting with its type's defaults (a new vessel, the
+ * filter of vessels only, Changed, Reset, a type change, the migration from rules by vessel type). The grid (starter template, ticking, adding a type, a note too
  * long, the audit entry), a seafarer with all, some and none of their documents, the Chief Officer on a tanker without
  * a Tanker Endorsement shown Missing on the office's page, the Crew list, the vessel's matrix, the Overview and their
  * own My profile and Home (and no longer once it is unticked), the Missing documents filter, the export holding the
@@ -69,6 +72,8 @@ class RequirementsFlowTest {
             Pattern.compile("(?s)class=\"documents-summary\">.*?</svg>\\s*<span>([^<]*)</span>");
     private static final Pattern CARD_ROW = Pattern.compile(
             "(?s)<li class=\"list-group-item requirement-row\">.*?<span>([^<]*)</span>.*?status-badge-icon[^>]*>.*?</svg>\\s*<span>([^<]*)</span>");
+    // An apostrophe as Thymeleaf writes it in text and attributes.
+    private static final String APOS = "&#39;";
     private static final Pattern CHIP_OR_NAME = Pattern.compile("(?s)<td class=\"cell-primary\">\\s*<a [^>]*>([^<]*)</a>");
 
     @Autowired MockMvc mockMvc;
@@ -78,6 +83,8 @@ class RequirementsFlowTest {
     @Autowired AuditRepository auditRepository;
     @Autowired DocumentRequirementRepository requirementRepository;
     @Autowired StarterRequirements starterRequirements;
+    @Autowired RequirementService requirementService;
+    @Autowired VesselRequirementsMigration migration;
     @Autowired EntityManager entityManager;
     @Autowired EntityManagerFactory entityManagerFactory;
 
@@ -89,16 +96,17 @@ class RequirementsFlowTest {
     private User nora;
     private User rex;
 
-    // The starter template, then:
+    // The two vessels, then the starter template (each vessel gets its type's defaults):
     //   MV Tanker (TANKER): Olga Chief, Chief Officer: all 10 of her documents valid but the Tanker Endorsement (10 of 11).
     //                       Carl Cook, Cook: Passport valid, Medical expiring in 10 days, STCW expired (2 of 6).
     //                       Rex Norank: no rank (none apply; Rank needs review).
     //   MV Bulk (BULK_CARRIER): Bob Bosun, Bosun: all five valid (5 of 5). Nora New, Able Seaman: none (0 of 5).
     @BeforeEach
     void fleet() {
-        assertThat(starterRequirements.seed()).isTrue();
         tanker = ship("MV Tanker", "9100001", ShipType.TANKER);
         bulk = ship("MV Bulk", "9100002", ShipType.BULK_CARRIER);
+        assertThat(starterRequirements.seed()).isTrue();
+        assertThat(requirementRepository.findAll()).hasSize(11 + 10).allMatch(DocumentRequirement::isSuggestion);
         olga = crew(tanker, "Olga Chief", Rank.CHIEF_OFFICER);
         carl = crew(tanker, "Carl Cook", Rank.COOK);
         rex = userService.createUser("rex.norank@example.com", "Rex Norank", "secret123", Role.CREW_MEMBER, tanker, null);
@@ -128,9 +136,10 @@ class RequirementsFlowTest {
         assertThat(rows.getFirst()).containsExactly("Tanker Endorsement", "Missing");
         assertThat(rows.subList(1, 11)).allSatisfy(r -> assertThat(r[1]).isEqualTo("Valid"));
         assertThat(summary(page)).isEqualTo("10 of 11");
+        // P58: "Change what is required" opens her vessel's grid.
         assertThat(page).contains("/office/crew/" + olga.getId() + "/certificates/new?type=Tanker%20Endorsement&amp;returnTo=/office/crew/"
                 + olga.getId() + "/edit", "aria-label=\"Add certificate: Tanker Endorsement\"",
-                "href=\"/office/requirements?vesselType=TANKER\"");
+                "href=\"/office/requirements?vessel=" + tanker.getId() + "\"");
 
         // The Crew list, the vessel's matrix, the Overview.
         assertThat(listSummary(html(get("/office/crew")), "Olga Chief")).isEqualTo("10 of 11");
@@ -147,12 +156,12 @@ class RequirementsFlowTest {
         String home = html(get("/ship").with(user(new CurrentUser(olga))));
         assertThat(home).contains("href=\"/ship/profile#myCertificatesTitle\"", "1 required document missing");
 
-        // Untick: Tanker Endorsement no longer required of anyone on tankers.
-        mockMvc.perform(post("/office/requirements").param("vesselType", "TANKER")
+        // Untick on MV Tanker: Tanker Endorsement no longer required of anyone on board.
+        mockMvc.perform(post("/office/requirements").param("vessel", tanker.getId().toString())
                         .param("rows[0].type", "Tanker Endorsement").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"))
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + tanker.getId()))
                 .andExpect(flash().attribute("successMessage", "requirement.saved"));
-        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("TANKER: Tanker Endorsement removed");
+        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("MV Tanker: Tanker Endorsement removed");
 
         page = html(get("/office/crew/{id}/edit", olga.getId()));
         assertThat(summary(page)).isEqualTo("10 of 10");
@@ -166,157 +175,289 @@ class RequirementsFlowTest {
     }
 
     @Test
-    void theGridShowsTheStarterTemplateAndSavesWhatIsTicked() throws Exception {
+    void theGridShowsTheVesselsDefaultsAndSavesWhatIsTicked() throws Exception {
+        // Without a choice: the first vessel by name, MV Bulk, with the Bulk carrier defaults as suggestions.
         String grid = html(get("/office/requirements"));
         assertThat(grid).contains("Starter template: a suggestion to review", "<span class=\"badge status-badge status-info\">Suggestion</span>",
-                "It does not say what any regulation requires", "<form action=\"/office/requirements\" method=\"post\"");
-        // Passport for every rank; GMDSS for the Master and the deck officers only.
+                "It does not say what any regulation requires", "<form action=\"/office/requirements\" method=\"post\"",
+                "Required on MV Bulk", "Based on the defaults for Bulk carrier.", "Save for MV Bulk",
+                "<input type=\"hidden\" name=\"vessel\" value=\"" + bulk.getId() + "\">")
+                .doesNotContain("status-neutral\">Changed</span>");
+        // Passport for every rank; GMDSS for the Master and the deck officers only; no Tanker Endorsement on a bulker.
         assertThat(checked(grid, "Passport", Rank.COOK)).isTrue();
         assertThat(checked(grid, "GMDSS Operator", Rank.SECOND_OFFICER)).isTrue();
         assertThat(checked(grid, "GMDSS Operator", Rank.SECOND_ENGINEER)).isFalse();
+        assertThat(checked(grid, "Tanker Endorsement", Rank.COOK)).isFalse();
 
-        // A vessel type's grid: All vessels' ticks are grey ticks, said in words; its own are checkboxes.
-        String tankers = html(get("/office/requirements").param("vesselType", "TANKER"));
-        assertThat(tankers).contains("Required on Tanker vessels", "Passport, Cook: required on all vessels", "Save for Tanker");
+        // The tanker's grid: its own defaults, Tanker Endorsement included.
+        String tankers = html(get("/office/requirements").param("vessel", tanker.getId().toString()));
+        assertThat(tankers).contains("Required on MV Tanker", "Based on the defaults for Tanker.", "Save for MV Tanker");
         assertThat(checked(tankers, "Tanker Endorsement", Rank.COOK)).isTrue();
 
-        // Add a document type: it shows first, marked New; tick, note, save.
-        String added = html(get("/office/requirements").param("add", "Yellow Fever Certificate"));
+        // Add a document type on MV Tanker: it shows first, marked New; tick, note, save.
+        String added = html(get("/office/requirements").param("vessel", tanker.getId().toString())
+                .param("add", "Yellow Fever Certificate"));
         assertThat(added).containsSubsequence("<tbody>", "Yellow Fever Certificate", "New", "Passport");
-        mockMvc.perform(post("/office/requirements").param("vesselType", "all")
+        mockMvc.perform(post("/office/requirements").param("vessel", tanker.getId().toString())
                         .param("rows[0].type", "Yellow Fever Certificate").param("rows[0].ranks", "COOK", "BOSUN")
                         .param("rows[0].note", "Needed for West African ports").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=all"));
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + tanker.getId()));
         assertThat(audit("REQUIREMENTS_UPDATED")).singleElement().asString()
-                .startsWith("All vessels: Yellow Fever Certificate added").contains("+COOK", "+BOSUN");
-        grid = html(get("/office/requirements"));
-        assertThat(checked(grid, "Yellow Fever Certificate", Rank.COOK)).isTrue();
-        assertThat(checked(grid, "Yellow Fever Certificate", Rank.MASTER)).isFalse();
-        // Saving All vessels confirms its suggestions; the tanker row stays one until Tanker is saved.
-        assertThat(requirementRepository.findAll()).filteredOn(r -> r.isSuggestion())
-                .extracting(r -> r.getCertificateType()).containsExactly("Tanker Endorsement");
+                .startsWith("MV Tanker: Yellow Fever Certificate added").contains("+COOK", "+BOSUN");
+        tankers = html(get("/office/requirements").param("vessel", tanker.getId().toString()));
+        assertThat(checked(tankers, "Yellow Fever Certificate", Rank.COOK)).isTrue();
+        assertThat(checked(tankers, "Yellow Fever Certificate", Rank.MASTER)).isFalse();
+        // Beyond the defaults: marked Changed; the tanker's rows are no longer suggestions, the bulker's still are.
+        assertThat(typeCell(tankers, "Yellow Fever Certificate")).contains("status-neutral\">Changed</span>");
+        assertThat(typeCell(tankers, "Passport")).doesNotContain("Changed");
+        assertThat(requirementRepository.findAll()).filteredOn(DocumentRequirement::isSuggestion)
+                .hasSize(10).allMatch(r -> r.isFor(bulk));
+        assertThat(checked(html(get("/office/requirements")), "Yellow Fever Certificate", Rank.COOK)).isFalse();
         // The cook now needs it, with the office's note.
         assertThat(html(get("/office/crew/{id}/edit", carl.getId())))
                 .contains("Yellow Fever Certificate", "Needed for West African ports");
         assertThat(summary(html(get("/office/crew/{id}/edit", carl.getId())))).isEqualTo("2 of 7");
 
         // A note too long: the grid again, with the error, and nothing saved.
-        String tooLong = html(post("/office/requirements").param("vesselType", "all")
+        String tooLong = html(post("/office/requirements").param("vessel", bulk.getId().toString())
                 .param("rows[0].type", "Passport").param("rows[0].ranks", "MASTER")
                 .param("rows[0].note", "x".repeat(201)).with(csrf()));
-        assertThat(tooLong).contains("Not saved: check the highlighted notes.", "Up to 200 characters.", "is-invalid");
+        assertThat(tooLong).contains("Not saved: check the highlighted notes.", "Up to 200 characters.", "is-invalid",
+                "Required on MV Bulk");
         assertThat(audit("REQUIREMENTS_UPDATED")).hasSize(1);
 
         // Saving without a change only confirms: still recorded while a suggestion is reviewed, then not at all.
-        mockMvc.perform(post("/office/requirements").param("vesselType", "TANKER")
-                        .param("rows[0].type", "Tanker Endorsement").param("rows[0].ranks", Arrays.stream(Rank.values())
+        mockMvc.perform(post("/office/requirements").param("vessel", bulk.getId().toString())
+                        .param("rows[0].type", "Passport").param("rows[0].ranks", Arrays.stream(Rank.values())
                                 .map(Rank::name).toArray(String[]::new)).with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"));
-        assertThat(audit("REQUIREMENTS_UPDATED")).contains("TANKER: reviewed, no changes");
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + bulk.getId()));
+        assertThat(audit("REQUIREMENTS_UPDATED")).contains("MV Bulk: reviewed, no changes");
         assertThat(html(get("/office/requirements"))).doesNotContain("Starter template");
+        // A post for an unknown vessel changes nothing.
+        mockMvc.perform(post("/office/requirements").param("vessel", "999999")
+                        .param("rows[0].type", "Passport").with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements"))
+                .andExpect(flash().attribute("errorMessage", "requirement.error.noVessel"));
     }
 
-    // P43: the row toggle, the combined filter and Delete row.
+    // P43: the row toggle; P58: it acts on the shown vessel only.
     @Test
-    void theRowToggleTicksEveryRankAlsoWithoutJavaScript() throws Exception {
+    void theRowToggleTicksEveryRankOfThisVesselAlsoWithoutJavaScript() throws Exception {
         String grid = html(get("/office/requirements"));
         // Each row starts with "Select all ranks for <type>", a checkbox the server applies too; no placeholder on
         // the note field.
         assertThat(grid).contains("aria-label=\"Select all ranks for Passport\"", "name=\"rows[0].all\"", "data-row-all",
                         "data-row-rank", "data-requirement-row")
-                .doesNotContain("placeholder=", "For example: needed before joining");
+                .doesNotContain("placeholder=", "For example: needed before joining", "req-cell-inherited");
         assertThat(checked(grid, "GMDSS Operator", Rank.COOK)).isFalse();
 
-        mockMvc.perform(post("/office/requirements").param("vesselType", "all")
+        mockMvc.perform(post("/office/requirements").param("vessel", bulk.getId().toString())
                         .param("rows[0].type", "GMDSS Operator").param("rows[0].all", "true").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=all"));
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + bulk.getId()));
         grid = html(get("/office/requirements"));
         for (Rank rank : Rank.values()) {
             assertThat(checked(grid, "GMDSS Operator", rank)).as(rank.name()).isTrue();
         }
-        assertThat(audit("REQUIREMENTS_UPDATED")).singleElement().asString().startsWith("All vessels: GMDSS Operator +")
+        assertThat(audit("REQUIREMENTS_UPDATED")).singleElement().asString().startsWith("MV Bulk: GMDSS Operator +")
                 .contains("+COOK", "+WIPER").doesNotContain("+MASTER");
-
-        // On a vessel type's grid the toggle takes every rank but those already required on all vessels.
-        mockMvc.perform(post("/office/requirements").param("vesselType", "TANKER")
-                        .param("rows[0].type", "Medical First Aid").param("rows[0].all", "true").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"));
-        assertThat(requirementRepository.findAll()).filteredOn(r -> r.getShipType() == ShipType.TANKER
-                        && r.getCertificateType().equals("Medical First Aid"))
-                .singleElement().satisfies(r -> assertThat(r.getRanks()).contains(Rank.COOK, Rank.WIPER)
-                        .doesNotContain(Rank.MASTER, Rank.CHIEF_OFFICER));
+        // The tanker keeps its own.
+        String tankers = html(get("/office/requirements").param("vessel", tanker.getId().toString()));
+        assertThat(checked(tankers, "GMDSS Operator", Rank.COOK)).isFalse();
+        assertThat(checked(tankers, "GMDSS Operator", Rank.MASTER)).isTrue();
     }
 
     @Test
-    void theCombinedFilterOffersVesselTypesAndVesselsAndAVesselShowsItsTypesGrid() throws Exception {
+    void theFilterListsOnlyTheVessels() throws Exception {
+        ship("MV Old", "9100009", ShipType.TANKER).setActive(false);
         String grid = html(get("/office/requirements"));
-        // Without JavaScript: a select with two groups; each option carries its kind for the combobox.
-        assertThat(grid).contains("<optgroup label=\"Vessel types\">", "<optgroup label=\"Vessels\">",
-                "<option value=\"TANKER\" data-kind=\"vessel type\">Tanker</option>",
-                "<option value=\"ship-" + tanker.getId() + "\" data-kind=\"Tanker\">MV Tanker</option>",
-                "<option value=\"ship-" + bulk.getId() + "\" data-kind=\"Bulk carrier\">MV Bulk</option>",
-                "data-requirement-filter", "data-no-results=\"No vessel type or vessel matches.\"");
+        // Without JavaScript: a select of the active vessels, by name, each with its type for the combobox; no vessel
+        // types and no All vessels. The first is shown when none is chosen.
+        assertThat(grid).contains("<label for=\"vessel\" class=\"form-label\">Vessel</label>",
+                        "<select id=\"vessel\" name=\"vessel\" class=\"form-select\"",
+                        "<option value=\"" + tanker.getId() + "\" data-kind=\"Tanker\">MV Tanker</option>",
+                        "data-requirement-filter", "data-no-results=\"No vessel matches.\"")
+                .containsPattern("<option value=\"" + bulk.getId() + "\" data-kind=\"Bulk carrier\"\\s+selected=\"selected\">MV Bulk</option>")
+                .containsSubsequence(">MV Bulk</option>", ">MV Tanker</option>")
+                .doesNotContain("<optgroup", "All vessels", "data-kind=\"vessel type\"", "value=\"TANKER\"", "MV Old");
 
-        // Picking a vessel shows its type's grid, with the vessels of that type named.
-        String byVessel = html(get("/office/requirements").param("vesselType", "ship-" + bulk.getId()));
-        assertThat(byVessel).contains("Required on Bulk carrier vessels",
-                        "Rules for Bulk carrier, which apply to MV Bulk.",
-                        "<option value=\"ship-" + bulk.getId() + "\" data-kind=\"Bulk carrier\" selected=\"selected\">",
-                        "<input type=\"hidden\" name=\"vesselType\" value=\"BULK_CARRIER\">",
-                        "<input type=\"hidden\" name=\"selection\" value=\"ship-" + bulk.getId() + "\">");
-        ship("MV Grain", "9100003", ShipType.BULK_CARRIER);
-        assertThat(html(get("/office/requirements").param("vesselType", "BULK_CARRIER")))
-                .contains("Rules for Bulk carrier, which apply to MV Bulk and MV Grain.",
-                        "<option value=\"BULK_CARRIER\" data-kind=\"vessel type\" selected=\"selected\">");
-        assertThat(html(get("/office/requirements").param("vesselType", "CONTAINER")))
-                .contains("Rules for Container vessel. No active vessel has this type yet.");
-        // Saving from a vessel's grid comes back to that vessel.
-        mockMvc.perform(post("/office/requirements").param("vesselType", "BULK_CARRIER")
-                        .param("selection", "ship-" + bulk.getId())
-                        .param("rows[0].type", "Passport").param("rows[0].ranks", "COOK").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=ship-" + bulk.getId()));
-        // An unknown or inactive vessel: All vessels.
-        assertThat(html(get("/office/requirements").param("vesselType", "ship-999999"))).contains("Required on all vessels");
-        // In Greek the vessel types keep their English names.
-        assertThat(html(get("/office/requirements").param("vesselType", "TANKER").param("lang", "el")))
-                .contains("Tanker", "<optgroup label=\"Τύποι πλοίων\">").doesNotContain("Δεξαμενόπλοιο");
+        // A vessel shows its own grid; an unknown or inactive one the first vessel.
+        assertThat(html(get("/office/requirements").param("vessel", tanker.getId().toString())))
+                .containsPattern("<option value=\"" + tanker.getId() + "\" data-kind=\"Tanker\"\\s+selected=\"selected\">")
+                .contains("<input type=\"hidden\" name=\"vessel\" value=\"" + tanker.getId() + "\">");
+        assertThat(html(get("/office/requirements").param("vessel", "999999"))).contains("Required on MV Bulk");
+        assertThat(html(get("/office/requirements").param("vessel", "TANKER"))).contains("Required on MV Bulk");
+        // A vessel without a type: the general defaults.
+        Ship untyped = ship("MV Plain", "9100010", null);
+        requirementService.startWithDefaults(untyped);
+        assertThat(html(get("/office/requirements").param("vessel", untyped.getId().toString())))
+                .contains("data-kind=\"type not set\"", "Based on the general defaults: this vessel has no type.",
+                        "Reset to the general defaults");
+        // In Greek.
+        assertThat(html(get("/office/requirements").param("lang", "el")))
+                .contains(">Πλοίο</label>", "Απαιτούνται στο MV Bulk", "Με βάση τις προεπιλογές για");
+        // No active vessel at all: an empty state that leads to Add vessel.
+        tanker.setActive(false);
+        bulk.setActive(false);
+        untyped.setActive(false);
+        assertThat(html(get("/office/requirements"))).contains("No vessels yet", "href=\"/office/ships/new\"")
+                .doesNotContain("<table");
     }
 
     @Test
-    void deleteRowAsksFirstAndRemovesTheTypeForTheChosenVesselTypeOnly() throws Exception {
-        String tankers = html(get("/office/requirements").param("vesselType", "TANKER"));
-        // The icon button at the row's end names the row; its confirmation form sits after the grid form.
+    void deleteRowAsksFirstAndRemovesTheTypeFromTheShownVesselOnly() throws Exception {
+        String tankers = html(get("/office/requirements").param("vessel", tanker.getId().toString()));
+        // The icon button at the row's end names the row and the vessel; its confirmation form sits after the grid form.
         int row = tankers.indexOf("<span class=\"req-grid-type-name\">Tanker Endorsement</span>");
         String tr = tankers.substring(row, tankers.indexOf("</tr>", row));
         assertThat(tr).contains("class=\"btn btn-ghost btn-sm req-row-delete\"",
-                "href=\"/office/requirements/delete?type=Tanker%20Endorsement&amp;vesselType=TANKER&amp;selection=TANKER\"",
-                "data-confirm-open", "data-confirm-form=\"reqDelete", "<span class=\"visually-hidden\">Remove Tanker Endorsement from the requirements</span>");
+                "href=\"/office/requirements/delete?type=Tanker%20Endorsement&amp;vessel=" + tanker.getId() + "\"",
+                "data-confirm-open", "data-confirm-form=\"reqDelete",
+                "<span class=\"visually-hidden\">Remove Tanker Endorsement from MV Tanker" + APOS + "s requirements</span>");
         assertThat(tankers).contains("data-confirm-title=\"Remove Tanker Endorsement?\"",
-                "data-confirm-body=\"Removes Tanker Endorsement from the requirements on Tanker vessels only. All vessels and the other vessel types keep theirs.\"",
+                "data-confirm-body=\"Removes Tanker Endorsement from MV Tanker" + APOS + "s requirements. The other vessels keep theirs.\"",
                 "data-confirm-tone=\"danger\"", "<input type=\"hidden\" name=\"type\" value=\"Tanker Endorsement\">");
         // Without the script: the plain confirmation page.
-        assertThat(html(get("/office/requirements/delete").param("type", "Tanker Endorsement").param("vesselType", "TANKER")))
-                .contains("Remove Tanker Endorsement?", "on Tanker vessels only", ">Remove</button>",
-                        "href=\"/office/requirements?vesselType=TANKER\"");
-        // The general rows name all vessels.
-        assertThat(html(get("/office/requirements"))).contains(
-                "data-confirm-body=\"Removes Passport from the requirements on all vessels. Rows of single vessel types keep it.\"");
+        assertThat(html(get("/office/requirements/delete").param("type", "Tanker Endorsement")
+                        .param("vessel", tanker.getId().toString())))
+                .contains("Remove Tanker Endorsement?", "from MV Tanker" + APOS + "s requirements", ">Remove</button>",
+                        "href=\"/office/requirements?vessel=" + tanker.getId() + "\"");
 
-        mockMvc.perform(post("/office/requirements/delete").param("type", "Tanker Endorsement")
-                        .param("vesselType", "TANKER").param("selection", "TANKER").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"))
+        mockMvc.perform(post("/office/requirements/delete").param("type", "Passport")
+                        .param("vessel", tanker.getId().toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + tanker.getId()))
                 .andExpect(flash().attribute("successMessage", "requirement.row.removed"));
-        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("TANKER: Tanker Endorsement removed");
-        assertThat(requirementRepository.findAll()).noneMatch(r -> r.getCertificateType().equals("Tanker Endorsement"));
-        // Olga no longer needs it; the other types' rows are untouched.
-        assertThat(summary(html(get("/office/crew/{id}/edit", olga.getId())))).isEqualTo("10 of 10");
+        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("MV Tanker: Passport removed");
+        // Olga no longer needs a passport; on MV Bulk Bob still does.
+        assertThat(summary(html(get("/office/crew/{id}/edit", olga.getId())))).isEqualTo("9 of 10");
+        assertThat(summary(html(get("/office/crew/{id}/edit", bob.getId())))).isEqualTo("5 of 5");
         assertThat(checked(html(get("/office/requirements")), "Passport", Rank.COOK)).isTrue();
 
-        // Removing a row that has nothing of its own on this vessel type changes nothing.
-        mockMvc.perform(post("/office/requirements/delete").param("type", "Passport").param("vesselType", "TANKER").with(csrf()))
-                .andExpect(redirectedUrl("/office/requirements?vesselType=TANKER"))
+        // Removing a type the vessel does not require changes nothing.
+        mockMvc.perform(post("/office/requirements/delete").param("type", "Tanker Endorsement")
+                        .param("vessel", bulk.getId().toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + bulk.getId()))
                 .andExpect(flash().attribute("errorMessage", "requirement.row.nothing"));
         assertThat(audit("REQUIREMENTS_UPDATED")).hasSize(1);
+    }
+
+    // P58: a new vessel starts with its type's defaults; its changes are its own; Reset brings the defaults back.
+    @Test
+    void eachVesselHasItsOwnRequirementsStartingWithItsTypesDefaults() throws Exception {
+        Ship alder = newVessel("9300001", "ALDER");
+        Ship laurel = newVessel("9400007", "LAUREL");
+        String grid = html(get("/office/requirements").param("vessel", alder.getId().toString()));
+        assertThat(grid).contains("Required on ALDER", "Based on the defaults for Bulk carrier.",
+                        "Reset to Bulk carrier defaults", "status-info\">Suggestion</span>")
+                .doesNotContain("status-neutral\">Changed</span>");
+        assertThat(checked(grid, "Passport", Rank.COOK)).isTrue();
+        assertThat(checked(grid, "Tanker Endorsement", Rank.COOK)).isFalse();
+        // Nothing to reset yet: the confirmation says so.
+        assertThat(grid).contains("data-confirm-body=\"ALDER already has these defaults. Nothing will change.\"");
+
+        // Unticking the cook's passport on ALDER leaves LAUREL as it was.
+        mockMvc.perform(post("/office/requirements").param("vessel", alder.getId().toString())
+                        .param("rows[0].type", "Passport").param("rows[0].ranks", Arrays.stream(Rank.values())
+                                .filter(r -> r != Rank.COOK).map(Rank::name).toArray(String[]::new)).with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + alder.getId()));
+        assertThat(audit("REQUIREMENTS_UPDATED")).containsExactly("ALDER: Passport -COOK");
+        grid = html(get("/office/requirements").param("vessel", alder.getId().toString()));
+        assertThat(checked(grid, "Passport", Rank.COOK)).isFalse();
+        assertThat(typeCell(grid, "Passport")).contains("status-neutral\">Changed</span>");
+        assertThat(typeCell(grid, "Seaman's Book")).doesNotContain("Changed");
+        assertThat(checked(html(get("/office/requirements").param("vessel", laurel.getId().toString())), "Passport",
+                Rank.COOK)).isTrue();
+
+        // Reset: the dialog lists what will change, on ALDER only (the plain page too).
+        String form = grid.substring(grid.indexOf("action=\"/office/requirements/reset\""));
+        assertThat(form.substring(0, form.indexOf("</form>"))).contains(
+                "data-confirm-title=\"Reset ALDER to the Bulk carrier defaults?\"",
+                "data-confirm-body=\"These changes apply to ALDER only. The other vessels keep theirs.\"",
+                "<input type=\"hidden\" name=\"vessel\" value=\"" + alder.getId() + "\">", "data-confirm-items",
+                "<li>Passport goes back to the default ranks, not optional and without a note</li>");
+        assertThat(grid).contains("data-confirm-form=\"reqReset\"",
+                "href=\"/office/requirements/reset?vessel=" + alder.getId() + "\"");
+        assertThat(html(get("/office/requirements/reset").param("vessel", alder.getId().toString())))
+                .contains("Reset ALDER to the Bulk carrier defaults?", "class=\"confirm-page-items\"",
+                        "<li>Passport goes back to the default ranks, not optional and without a note</li>", ">Reset</button>");
+        mockMvc.perform(post("/office/requirements/reset").param("vessel", alder.getId().toString()).with(csrf()))
+                .andExpect(redirectedUrl("/office/requirements?vessel=" + alder.getId()))
+                .andExpect(flash().attribute("successMessage", "requirement.reset.done"));
+        assertThat(audit("REQUIREMENTS_RESET")).containsExactly(
+                "ALDER: reset to the BULK_CARRIER defaults: Passport restored");
+        grid = html(get("/office/requirements").param("vessel", alder.getId().toString()));
+        assertThat(checked(grid, "Passport", Rank.COOK)).isTrue();
+        assertThat(grid).doesNotContain("status-neutral\">Changed</span>");
+    }
+
+    // P58: when a vessel's type changes, the office chooses to keep its requirements (the default) or reset them.
+    @Test
+    void aTypeChangeKeepsTheRequirementsUnlessResetIsChosen() throws Exception {
+        Ship alder = newVessel("9300001", "ALDER");
+        Ship laurel = newVessel("9400007", "LAUREL");
+        // The edit page asks, Keep first and chosen; shown by the script only once the type changes.
+        String edit = html(get("/office/ships/{id}/edit", alder.getId()));
+        assertThat(edit).containsPattern("data-changed-from=\"editType\"\\s+data-initial-value=\"BULK_CARRIER\"")
+                .contains("Required documents if the type changes", "Keep this vessel" + APOS + "s required documents",
+                        "Reset them to the new type" + APOS + "s defaults")
+                .containsPattern("id=\"editRequirementsKeep\" name=\"resetRequirements\" value=\"false\"\\s+checked=\"checked\"");
+
+        mockMvc.perform(post("/office/ships/{id}/edit", alder.getId()).param("name", "ALDER").param("type", "TANKER")
+                        .param("resetRequirements", "false").with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        assertThat(checked(html(get("/office/requirements").param("vessel", alder.getId().toString())),
+                "Tanker Endorsement", Rank.COOK)).isFalse();
+        assertThat(audit("REQUIREMENTS_RESET")).isEmpty();
+
+        mockMvc.perform(post("/office/ships/{id}/edit", laurel.getId()).param("name", "LAUREL").param("type", "TANKER")
+                        .param("resetRequirements", "true").with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        String grid = html(get("/office/requirements").param("vessel", laurel.getId().toString()));
+        assertThat(checked(grid, "Tanker Endorsement", Rank.COOK)).isTrue();
+        assertThat(grid).contains("Based on the defaults for Tanker.").doesNotContain("status-neutral\">Changed</span>");
+        assertThat(audit("REQUIREMENTS_RESET")).containsExactly(
+                "LAUREL: reset to the TANKER defaults: Tanker Endorsement added");
+        // Reset chosen while the type stays the same: nothing happens.
+        mockMvc.perform(post("/office/ships/{id}/edit", alder.getId()).param("name", "ALDER").param("type", "TANKER")
+                        .param("resetRequirements", "true").with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        assertThat(audit("REQUIREMENTS_RESET")).hasSize(1);
+    }
+
+    // P58: the rules by vessel type become each vessel's own, and no seafarer's documents change.
+    @Test
+    void theMigrationGivesEveryVesselTheRulesThatAppliedToIt() throws Exception {
+        requirementRepository.deleteAll();
+        // Before P58: all vessels (null) and per vessel type rows, no vessel. Counted before: Carl (Cook, tanker):
+        // Passport and Tanker Endorsement required, Yellow Fever optional for him; Olga (Chief Officer, tanker): Tanker
+        // Endorsement and Yellow Fever; Bob (Bosun, bulker): Passport; Nora (Able Seaman, bulker): nothing.
+        legacy("Passport", null, false, null, Rank.COOK, Rank.BOSUN);
+        legacy("Yellow Fever Certificate", null, true, "For West Africa", Rank.COOK);
+        legacy("Tanker Endorsement", ShipType.TANKER, false, "Before joining", Rank.COOK, Rank.CHIEF_OFFICER);
+        legacy("Yellow Fever Certificate", ShipType.TANKER, false, null, Rank.CHIEF_OFFICER);
+        legacy("Ship Security Officer", ShipType.CONTAINER, false, null, Rank.CHIEF_OFFICER);
+
+        assertThat(migration.migrate()).isEqualTo(5);
+        assertThat(requirementRepository.findAll()).allMatch(r -> r.getShip() != null && r.getShipType() == null);
+        assertThat(audit("REQUIREMENTS_MIGRATED")).containsExactly("5 rules by vessel type copied to 2 vessels as 5 rows");
+        // Each seafarer's count is as before.
+        String list = html(get("/office/crew"));
+        assertThat(listSummary(list, "Carl Cook")).isEqualTo("1 of 2");
+        assertThat(listSummary(list, "Olga Chief")).isEqualTo("0 of 2");
+        assertThat(listSummary(list, "Bob Bosun")).isEqualTo("1 of 1");
+        assertThat(listSummary(list, "Nora New")).isNull();
+        // The tanker's note is kept; the bulker has only the all-vessels rows, Yellow Fever optional.
+        assertThat(html(get("/office/crew/{id}/edit", carl.getId()))).contains("Before joining");
+        String bulkGrid = html(get("/office/requirements").param("vessel", bulk.getId().toString()));
+        assertThat(checked(bulkGrid, "Passport", Rank.BOSUN)).isTrue();
+        assertThat(checked(bulkGrid, "Yellow Fever Certificate", Rank.COOK)).isTrue();
+        assertThat(checked(bulkGrid, "Tanker Endorsement", Rank.COOK)).isFalse();
+        assertThat(checked(bulkGrid, "Ship Security Officer", Rank.CHIEF_OFFICER)).isFalse();
+        assertThat(requirementRepository.findAll()).filteredOn(r -> r.isFor(bulk)
+                        && r.getCertificateType().equals("Yellow Fever Certificate"))
+                .singleElement().satisfies(r -> assertThat(r.isOptional()).isTrue());
+        // It runs once.
+        assertThat(migration.migrate()).isZero();
+        assertThat(audit("REQUIREMENTS_MIGRATED")).hasSize(1);
     }
 
     @Test
@@ -479,11 +620,34 @@ class RequirementsFlowTest {
         String tr = grid.substring(row, grid.indexOf("</tr>", row));
         Matcher m = Pattern.compile("<input [^>]*name=\"rows\\[\\d+\\]\\.ranks\" value=\"" + rank.name() + "\"([^>]*)>")
                 .matcher(tr);
-        if (!m.find()) {
-            // No checkbox: the grey tick of a rank already required on all vessels.
-            return tr.contains("req-cell-inherited");
-        }
+        assertThat(m.find()).as(type + ", " + rank).isTrue();
         return m.group(1).contains("checked");
+    }
+
+    // The first cell of a type's row: its name and badges.
+    private static String typeCell(String grid, String type) {
+        int row = grid.indexOf("<span class=\"req-grid-type-name\">" + HtmlUtils.htmlEscape(type) + "</span>");
+        assertThat(row).as(type + " row").isPositive();
+        return grid.substring(row, grid.indexOf("</th>", row));
+    }
+
+    // A Bulk carrier added through Add vessel (P58: it starts with the Bulk carrier defaults).
+    private Ship newVessel(String imo, String name) throws Exception {
+        mockMvc.perform(post("/office/ships/new").param("imoNumber", imo).param("name", name)
+                        .param("type", "BULK_CARRIER").with(csrf()))
+                .andExpect(redirectedUrl("/office/ships"));
+        return shipRepository.findByImoNumber(imo).orElseThrow();
+    }
+
+    // A requirement saved before P58: by vessel type (null: all vessels), on no vessel.
+    private void legacy(String type, ShipType shipType, boolean optional, String note, Rank... ranks) {
+        DocumentRequirement r = new DocumentRequirement();
+        r.setCertificateType(type);
+        r.setShipType(shipType);
+        r.setRanks(EnumSet.of(ranks[0], ranks));
+        r.setOptional(optional);
+        r.setNote(note);
+        requirementRepository.save(r);
     }
 
     private static List<String> names(String html) {

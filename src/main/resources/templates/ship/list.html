@@ -138,6 +138,13 @@
             form.querySelector('#editImo').textContent = button.dataset.imo;
             form.querySelector('#editName').value = button.dataset.name;
             form.querySelector('#editType').value = button.dataset.type ?? '';
+            // P58: the required documents choice compares with this vessel's type, and starts on Keep.
+            const requirements = form.querySelector('[data-changed-from]');
+            if (requirements) {
+                requirements.dataset.initialValue = button.dataset.type ?? '';
+                form.querySelector('#editRequirementsKeep').checked = true;
+                form.querySelector('#editType').dispatchEvent(new Event('change'));
+            }
             form.querySelector('#editFlag').value = button.dataset.flag ?? '';
             form.querySelector('#editFlag').dispatchEvent(new Event('input', {bubbles: true})); // the country name next to it
             form.querySelector('#editName').dispatchEvent(new Event('input')); // update the counter

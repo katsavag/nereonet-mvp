@@ -85,7 +85,7 @@
 
     <!-- P51: the receipt on board, once the Master confirmed it. -->
     <section th:if="${received}" class="card mb-4" aria-labelledby="receiptTitle">
-        <div class="card-header bg-transparent py-3">
+        <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="receiptTitle" th:text="#{officeorder.receipt.heading}">Receipt on board</h2>
         </div>
         <div class="card-body">
@@ -146,7 +146,7 @@
 
     <!-- P44: the order's requests for quotes, newest first. -->
     <section th:unless="${rfqs.isEmpty()}" class="card mb-4" aria-labelledby="rfqsTitle">
-        <div class="card-header bg-transparent py-3">
+        <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="rfqsTitle" th:text="#{rfq.list.heading}">Requests for quotes</h2>
         </div>
         <div class="table-responsive">
@@ -188,7 +188,7 @@
     <!-- The lines by category. While editable each line has its quantity and an optional note (Save) and Remove. -->
     <section th:each="g, it : ${groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
              th:attr="aria-labelledby=${groupId}">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+        <div class="card-header d-flex justify-content-between align-items-center py-3">
             <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
             <span class="font-monospace small text-body-secondary" th:text="${g.lines.?[!removed].size()}">3</span>
         </div>

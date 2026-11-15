@@ -14,31 +14,23 @@
         </th:block>
     </header>
 
+    <!-- P58: the Type, then the shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and
+         To, which sit side by side at every width; Filter and Clear on their row from 768px, under them on phones. -->
     <form method="get" th:action="@{/ship/stores/history}" class="card card-body mb-4 stores-log-filter" novalidate>
-        <div class="row g-3 align-items-end">
-            <div class="col-sm-4">
-                <label for="type" class="form-label" th:text="#{stores.history.type}">Type</label>
-                <select id="type" name="type" class="form-select">
-                    <option value="" th:text="#{stores.filter.all}">All</option>
-                    <option th:each="t : ${types}"
-                            th:value="${t.name()}" th:selected="${filter.movementType() == t}"
-                            th:text="#{${t.labelKey()}}">Count</option>
-                </select>
-            </div>
-            <div class="col-sm-3">
-                <label for="from" class="form-label" th:text="#{audit.filter.from}">From (UTC)</label>
-                <input type="date" th:field="${filter.from}" class="form-control" th:errorclass="is-invalid">
-                <div class="invalid-feedback" th:errors="${filter.from}"></div>
-            </div>
-            <div class="col-sm-3">
-                <label for="to" class="form-label" th:text="#{audit.filter.to}">To (UTC)</label>
-                <input type="date" th:field="${filter.to}" class="form-control" th:errorclass="is-invalid">
-                <div class="invalid-feedback" th:errors="${filter.to}"></div>
-            </div>
-            <div class="col-sm-2 d-flex gap-2">
+        <div class="stores-log-type">
+            <label for="type" class="form-label" th:text="#{stores.history.type}">Type</label>
+            <select id="type" name="type" class="form-select">
+                <option value="" th:text="#{stores.filter.all}">All</option>
+                <option th:each="t : ${types}"
+                        th:value="${t.name()}" th:selected="${filter.movementType() == t}"
+                        th:text="#{${t.labelKey()}}">Count</option>
+            </select>
+        </div>
+        <div th:replace="~{layout/parts :: dateRange('filter', ${datePresets}, ~{::rangeActions})}">
+            <th:block th:fragment="rangeActions">
                 <button type="submit" class="btn btn-primary" th:text="#{stores.log.filter}">Filter</button>
                 <a class="btn btn-outline-secondary" th:href="@{/ship/stores/history}" th:text="#{stores.log.clear}">Clear</a>
-            </div>
+            </th:block>
         </div>
     </form>
 

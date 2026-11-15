@@ -451,6 +451,8 @@
                   itself a form, where a form cannot sit); trigger=false then leaves the trigger out
        note       the label of an optional note the dialog asks for and posts as "note" (P50: "Note (optional)"; noteMax its
                   length), or null for none. The plain confirmation page asks for it too (ConfirmPages.note)
+       changeList P58: what will change, a list of lines shown as a list under the body (resetting a vessel's required
+                  documents), or null for none. The plain confirmation page lists them too (ConfirmPages.items)
      Use: <form th:replace="~{layout/parts :: confirmForm(action=..., label=#{ship.deactivate}, linkClass='...',
                 title=#{ship.deactivate.confirm.title(${s.name})}, body=#{...}, confirm=#{ship.deactivate}, tone='neutral')}"></form> -->
 <form th:fragment="confirmForm" class="confirm-form" method="post" th:action="@{${action}}" th:id="${id}"
@@ -460,6 +462,9 @@
     <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
     <input th:if="${note != null}" type="hidden" name="note" value="">
     <input th:each="f : ${fields}" type="hidden" th:name="${f.key}" th:value="${f.value}">
+    <ul th:if="${changeList != null and !changeList.isEmpty()}" hidden data-confirm-items>
+        <li th:each="line : ${changeList}" th:text="${line}">Passport goes back to the defaults</li>
+    </ul>
     <a th:unless="${trigger == false}" th:class="${linkClass}"
        th:with="query=${fields == null or fields.isEmpty()} ? null : ${#strings.listJoin(fields.entrySet().![#uris.escapeQueryParam(key) + '=' + #uris.escapeQueryParam(value)], '&')}"
        th:href="${tab != null} ? @{${action}(tab=${tab})} : (${query != null} ? @{${action}} + '?' + ${query} : @{${action}})"
@@ -493,6 +498,8 @@
         </div>
         <div class="modal-body">
             <p class="mb-0" id="confirmDialogBody"></p>
+            <!-- P58: what will change (the form's hidden ul[data-confirm-items]), as a list. -->
+            <ul class="confirm-dialog-items" data-confirm-items-list hidden></ul>
             <!-- P50: shown for a form with data-confirm-note; its text is posted as the form's "note". -->
             <div class="confirm-dialog-note" data-confirm-note-box hidden>
                 <label for="confirmDialogNote" class="form-label" data-confirm-note-label></label>
@@ -678,6 +685,42 @@
     <th:block th:replace="${views}"></th:block>
 </nav>
 
+<!-- A date range for a history or log page (P58), inside the page's GET filter form: quick choices above, then From
+     and To side by side (two equal columns at every width, also at 360px) with the form's buttons on the same row from
+     768px and under them on phones.
+     The quick choices ("Last 30 days", "Last 60 days", "Last 90 days") are a segmented group of plain links
+     (core/list/DatePreset: From = today minus N days, To = today, UTC; the page's other filters kept), so they work
+     without JavaScript. The one the page shows has aria-current="true" and the selected look with a tick, not colour
+     alone; typing a date clears the mark (js/forms.js, [data-date-range]). Dates are UTC days, both included.
+       bean     the name of the form's model attribute, as text ('filter'): its from and to are the fields (with
+                their errors under them)
+       presets  the quick choices, a List<DatePreset>
+       actions  the form's buttons, ~{::rangeActions}
+     Use: <div th:replace="~{layout/parts :: dateRange('filter', ${datePresets}, ~{::rangeActions})}">
+              <th:block th:fragment="rangeActions"><button type="submit" ...>Filter</button></th:block></div> -->
+<div th:fragment="dateRange(bean, presets, actions)" class="date-range" data-date-range>
+    <nav class="view-switch date-range-presets" th:attr="aria-label=#{dateRange.presets}">
+        <a th:each="p : ${presets}" class="view-switch-link" th:href="@{${p.url()}}"
+           th:aria-current="${p.current()} ? 'true'" data-date-preset>
+            <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+            <span th:text="#{dateRange.last(${p.days()})}">Last 30 days</span>
+        </a>
+    </nav>
+    <div class="date-range-row">
+        <div class="date-range-field">
+            <label for="from" class="form-label" th:text="#{dateRange.from}">From (UTC)</label>
+            <input type="date" th:field="${__${bean}__.from}" class="form-control" th:errorclass="is-invalid">
+            <div class="invalid-feedback" th:errors="${__${bean}__.from}"></div>
+        </div>
+        <div class="date-range-field">
+            <label for="to" class="form-label" th:text="#{dateRange.to}">To (UTC)</label>
+            <input type="date" th:field="${__${bean}__.to}" class="form-control" th:errorclass="is-invalid">
+            <div class="invalid-feedback" th:errors="${__${bean}__.to}"></div>
+        </div>
+        <div class="date-range-actions" th:insert="${actions}"></div>
+    </div>
+</div>
+
 <!-- Lists (P19): search, filters, sort and pages, the same on every office list. The state is a
      core/list/ListQuery, model attribute "list": it builds every link below, all in the URL, so a list can be
      reloaded, bookmarked and linked to. The rows are one Spring Page, queried in the database. The pattern: app.css,
@@ -741,8 +784,12 @@
 <!-- A column header that sorts: a link that sorts by this column (page 1), and again the other way round; the
      sorted column has aria-sort and an arrow up (ascending) or down (descending), the others a quiet up-and-down
      mark. The shape tells the direction, not the colour.
-     Use: <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th> -->
-<th th:fragment="sortHeader(list, key, label)" scope="col" class="sortable"
+     Use: <th th:replace="~{layout/parts :: sortHeader(${list}, 'name', #{user.fullName})}"></th>
+     sortHeaderCell: the same with classes for the cell, as its column's cells have them (P58: 'code-cell' for a
+     centred short code such as a currency):
+          <th th:replace="~{layout/parts :: sortHeaderCell(${list}, 'currency', #{supplier.currency}, 'code-cell')}"></th> -->
+<th th:fragment="sortHeader(list, key, label)" th:replace="~{layout/parts :: sortHeaderCell(${list}, ${key}, ${label}, null)}"></th>
+<th th:fragment="sortHeaderCell(list, key, label, cellClass)" scope="col" class="sortable" th:classappend="${cellClass}"
     th:with="ariaSort=${list.ariaSort(key)}, url=${list.sortUrl(key)}" th:attr="aria-sort=${ariaSort}">
     <a class="sort-link" th:href="@{${url}}">
         <span th:text="${label}">Full name</span>

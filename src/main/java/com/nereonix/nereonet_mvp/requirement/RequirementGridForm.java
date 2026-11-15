@@ -14,16 +14,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * The grid of one vessel type as posted (P42): a plain form, so it saves without JavaScript. One row per certificate
+ * The grid of one vessel as posted (P42; P58: per vessel, by its id in "vessel"): a plain form, so it saves without JavaScript. One row per certificate
  * type: rows[i].type (hidden), rows[i].ranks (a checkbox per rank, its value the Rank), rows[i].optional and
  * rows[i].note. An unticked checkbox sends nothing, so ranks is empty and optional false unless sent.
  */
 public class RequirementGridForm {
 
-    private String vesselType;
-
-    // What the combined filter had chosen (P43): a vessel type or a vessel ("ship-12"), so Save comes back to it.
-    private String selection;
+    // P58: the id of the vessel whose grid this is; Save comes back to it.
+    private String vessel;
 
     @Valid
     private List<RowForm> rows = new ArrayList<>();
@@ -60,11 +58,8 @@ public class RequirementGridForm {
         public void setNote(String note) { this.note = note == null || note.isBlank() ? null : note.strip(); }
     }
 
-    public String getVesselType() { return vesselType; }
-    public void setVesselType(String vesselType) { this.vesselType = vesselType; }
-
-    public String getSelection() { return selection; }
-    public void setSelection(String selection) { this.selection = selection; }
+    public String getVessel() { return vessel; }
+    public void setVessel(String vessel) { this.vessel = vessel; }
 
     public List<RowForm> getRows() { return rows; }
     public void setRows(List<RowForm> rows) { this.rows = rows; }

@@ -413,6 +413,42 @@ class StoresFlowTest {
         assertThat(page("/ship/stores/history?from=nonsense", cook)).contains("is-invalid", "56 movements");
     }
 
+    // P58: the shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and To. Each choice is
+    // a plain link (so it works without JavaScript) that keeps the type and sets From = today minus N days, To = today
+    // (UTC); the one shown is marked; dates typed by hand match none.
+    @Test
+    void theHistoryHasFromAndToOnOneRowAndQuickChoices() throws Exception {
+        LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+        for (int daysAgo : List.of(10, 45, 75, 120)) {
+            movementRepository.save(StockMovement.of(rice, StockMovementType.COUNT, BigDecimal.ONE, BigDecimal.TWO, cook,
+                    today.minusDays(daysAgo).atTime(12, 0).toInstant(java.time.ZoneOffset.UTC), null, null));
+        }
+        String all = page("/ship/stores/history", cook);
+        assertThat(all).containsSubsequence("data-date-range", "class=\"view-switch date-range-presets\"",
+                        "aria-label=\"Quick dates\"", "Last 30 days", "Last 60 days", "Last 90 days",
+                        "class=\"date-range-row\"", "<label for=\"from\" class=\"form-label\">From (UTC)</label>",
+                        "type=\"date\"", "<label for=\"to\" class=\"form-label\">To (UTC)</label>",
+                        "class=\"date-range-actions\"", ">Filter</button>", ">Clear</a>")
+                .contains("href=\"/ship/stores/history?from=" + today.minusDays(60) + "&amp;to=" + today + "\"")
+                .doesNotContain("aria-current=\"true\"");
+        assertThat(rows(all)).isEqualTo(4);
+
+        String sixty = page("/ship/stores/history?from=" + today.minusDays(60) + "&to=" + today, cook);
+        assertThat(rows(sixty)).isEqualTo(2);
+        assertThat(sixty).containsPattern("href=\"/ship/stores/history\\?from=" + today.minusDays(60) + "&amp;to="
+                        + today + "\"\\s+aria-current=\"true\"")
+                .contains("value=\"" + today.minusDays(60) + "\"", "value=\"" + today + "\"");
+        assertThat(sixty.split("aria-current=\"true\"", -1)).hasSize(2);
+        assertThat(rows(page("/ship/stores/history?from=" + today.minusDays(30) + "&to=" + today, cook))).isEqualTo(1);
+        assertThat(rows(page("/ship/stores/history?from=" + today.minusDays(90) + "&to=" + today, cook))).isEqualTo(3);
+        // The type is kept by the quick choices.
+        assertThat(page("/ship/stores/history?type=COUNT", cook))
+                .contains("href=\"/ship/stores/history?type=COUNT&amp;from=" + today.minusDays(30) + "&amp;to=" + today + "\"");
+        // Dates typed by hand: no choice is marked.
+        assertThat(page("/ship/stores/history?from=" + today.minusDays(59) + "&to=" + today, cook))
+                .doesNotContain("aria-current=\"true\"");
+    }
+
     private static int rows(String html) {
         return html.split("data-movement", -1).length - 1;
     }

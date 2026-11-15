@@ -10,6 +10,12 @@
 //  - [data-shown-for]: a field shown only while the select with that id has the value data-shown-value (the item
 //    form's Place, for Provisions). Without this script the field stays visible.
 //  - input[data-input-filter]: digits or letters only, as typed or pasted (P46, see below).
+//  - [data-changed-from]: a field shown only while the select with that id has another value than data-initial-value,
+//    the one it had when the page loaded (P58: on the vessel form, what to do with the required documents when the
+//    type changes).
+//    Without this script the field stays visible.
+//  - [data-date-range] (P58, layout/parts :: dateRange): typing a date of the range clears the mark of the quick
+//    choice (aria-current), since the dates are no longer that choice.
 (function () {
     'use strict';
 
@@ -204,5 +210,21 @@
         const update = () => { field.hidden = select.value !== field.dataset.shownValue; };
         select.addEventListener('change', update);
         update(); // a value kept by the browser after going back
+    });
+
+    document.querySelectorAll('[data-changed-from]').forEach(field => {
+        const select = document.getElementById(field.dataset.changedFrom);
+        if (!select) {
+            return;
+        }
+        const update = () => { field.hidden = select.value === field.dataset.initialValue; };
+        select.addEventListener('change', update);
+        update();
+    });
+
+    document.querySelectorAll('[data-date-range]').forEach(range => {
+        const unmark = () => range.querySelectorAll('[data-date-preset][aria-current]')
+            .forEach(link => link.removeAttribute('aria-current'));
+        range.querySelectorAll('input[type="date"]').forEach(input => input.addEventListener('input', unmark));
     });
 })();

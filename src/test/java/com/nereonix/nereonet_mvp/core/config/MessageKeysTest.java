@@ -527,6 +527,27 @@ class MessageKeysTest {
     }
 
     @Test
+    // P58: in Greek the Safety Score is "Δείκτης ασφάλειας πλοίου" ("Δείκτης ασφάλειας" where space is tight), never
+    // the English name in any case; never typed in capitals (table headers are uppercase through CSS). English keeps
+    // RightShip's name.
+    void greekSaysDeiktisAsfaleiasNotSafetyScore() throws IOException {
+        Properties greek = properties(GREEK);
+        Map<String, String> english = new TreeMap<>();
+        for (String key : greek.stringPropertyNames()) {
+            String value = greek.getProperty(key);
+            if (value.toLowerCase(Locale.ROOT).contains("safety score")) {
+                english.put(key, value);
+            }
+            assertThat(value).as(key).doesNotContain("ΔΕΙΚΤΗΣ", "ΑΣΦΑΛΕΙΑΣ");
+        }
+        assertThat(english).as("Greek texts that still say Safety Score").isEmpty();
+        assertThat(greek.getProperty("vetting.score")).isEqualTo("Δείκτης ασφάλειας πλοίου");
+        assertThat(greek.getProperty("vetting.score.title")).isEqualTo("Δείκτης ασφάλειας πλοίου RightShip");
+        assertThat(greek.getProperty("vetting.score.sanctioned")).isEqualTo("Χωρίς δείκτη ασφάλειας πλοίου");
+        assertThat(properties(ENGLISH).getProperty("vetting.score")).isEqualTo("Safety Score");
+    }
+
+    @Test
     void everyOfficeKeyIsInGreek() throws IOException {
         Set<String> missing = new TreeSet<>(keys(ENGLISH));
         missing.removeAll(keys(GREEK));

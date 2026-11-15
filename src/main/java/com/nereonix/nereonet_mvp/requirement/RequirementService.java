@@ -1,10 +1,10 @@
 package com.nereonix.nereonet_mvp.requirement;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,23 +25,21 @@ import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirement;
 import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirementRepository;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
-import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The office's Required documents page (P42): the grid of one vessel type, and saving it.
- * Rows: every type with a requirement on any vessel type, the starter types (CertificateTypes.STARTER) and the types
- * of the certificates on record, one row per type (P20 matching), the starter types first in their order, then the
- * others by name. A type the office asks to add (?add=) is shown first until saved.
- * Saving a vessel type replaces its rows: a row with ranks, a note or Optional is kept, any other row of that type
- * is deleted; every row of that vessel type stops being a suggestion. Recorded as REQUIREMENTS_UPDATED with what
- * changed.
+ * The office's Required documents page (P42): the grid of one vessel (P58; of one vessel type before), and saving it.
+ * Rows: every type with a requirement on any vessel, the starter types (CertificateTypes.STARTER) and the types of the
+ * certificates on record, one row per type (P20 matching), the starter types first in their order, then the others by
+ * name. A type the office asks to add (?add=) is shown first until saved.
+ * Each vessel has its own requirements, starting with the defaults of its type (StarterRequirements.defaults, copied
+ * by startWithDefaults when the vessel is created); saving, Delete row and "Reset to Bulk carrier defaults" change
+ * that vessel only. Saving replaces the vessel's rows: a row with ranks, a note or Optional is kept, any other row is
+ * deleted; every row of the vessel stops being a suggestion. Recorded as REQUIREMENTS_UPDATED ("ALDER: Passport
+ * +COOK") or REQUIREMENTS_RESET, on the vessel.
  */
 @Service
 public class RequirementService {
-
-    /** The URL value for All vessels. */
-    public static final String ALL = "all";
 
     private final DocumentRequirementRepository requirementRepository;
     private final CertificateRepository certificateRepository;
@@ -59,99 +57,91 @@ public class RequirementService {
         this.messageSource = messageSource;
     }
 
-    /** The vessel type of a URL value: null (All vessels) for "all", nothing or anything unknown. */
-    public static ShipType vesselType(String key) {
-        return key == null ? null
-                : Arrays.stream(ShipType.values()).filter(t -> t.name().equals(key)).findFirst().orElse(null);
-    }
-
     /**
-     * What the combined filter chose (P43): a vessel type ("all", "TANKER"), or an active vessel ("ship-12"), whose
-     * type's grid is shown; anything unknown is All vessels. One query: the active vessels, which are also the
-     * filter's options after the types. The options name each vessel's type in the given language.
+     * What the vessel filter chose (P58: active vessels only): the vessel with this id, else the first by name (none
+     * without active vessels). One query: the active vessels, which are also the filter's options, each named with
+     * its type in the given language ("ALDER · Bulk carrier").
      */
     @Transactional(readOnly = true)
-    public RequirementSelection select(String key, Locale locale) {
+    public RequirementSelection select(String vessel, Locale locale) {
         List<Ship> active = shipRepository.findAllByActiveTrueOrderByNameAsc();
-        Ship ship = null;
-        if (key != null && key.startsWith("ship-")) {
-            try {
-                long id = Long.parseLong(key.substring("ship-".length()));
-                ship = active.stream().filter(s -> s.getId().equals(id)).findFirst().orElse(null);
-            } catch (NumberFormatException e) {
-                ship = null;
-            }
-        }
-        ShipType type = ship != null ? ship.getType() : vesselType(key);
-        String chosen = ship != null ? RequirementSelection.shipKey(ship) : key(type);
-        List<Ship> vessels = active.stream().filter(s -> s.getType() == type).toList();
-
-        List<RequirementSelection.Option> options = new ArrayList<>();
-        String typeKind = messageSource.getMessage("requirement.filter.kind.type", null, locale);
-        options.add(new RequirementSelection.Option(ALL, messageSource.getMessage("requirement.vessel.all", null, locale),
-                typeKind, false));
-        for (ShipType t : ShipType.values()) {
-            options.add(new RequirementSelection.Option(t.name(),
-                    messageSource.getMessage("ship.type." + t.name(), null, locale), typeKind, false));
-        }
-        for (Ship s : active) {
-            String kind = s.getType() == null ? messageSource.getMessage("requirement.filter.noType", null, locale)
-                    : messageSource.getMessage("ship.type." + s.getType().name(), null, locale);
-            options.add(new RequirementSelection.Option(RequirementSelection.shipKey(s), s.getName(), kind, true));
-        }
-        return new RequirementSelection(chosen, type, ship, vessels, options);
+        Long id = parseId(vessel);
+        Ship ship = active.stream().filter(s -> s.getId().equals(id)).findFirst()
+                .orElse(active.isEmpty() ? null : active.getFirst());
+        List<RequirementSelection.Option> options = active.stream().map(s -> new RequirementSelection.Option(
+                String.valueOf(s.getId()), s.getName(), s.getType() == null
+                        ? messageSource.getMessage("requirement.filter.noType", null, locale)
+                        : messageSource.getMessage("ship.type." + s.getType().name(), null, locale))).toList();
+        return new RequirementSelection(ship, options);
     }
 
-    /** A message in the request's language (the vessel type's name in a confirmation). */
-    public String label(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    /** An active vessel by its id as posted, or null (unknown, inactive or not a number). */
+    @Transactional(readOnly = true)
+    public Ship activeVessel(String vessel) {
+        Long id = parseId(vessel);
+        return id == null ? null : shipRepository.findById(id).filter(Ship::isActive).orElse(null);
+    }
+
+    private static Long parseId(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.strip());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** A message in the request's language. */
+    public String label(String key, Object... args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
+    }
+
+    /** The name of the vessel's defaults in the request's language: its type ("Bulk carrier"), or null without one. */
+    public String defaultsName(Ship ship) {
+        return ship == null || ship.getType() == null ? null : label("ship.type." + ship.getType().name());
     }
 
     /**
-     * Removes the certificate type's requirement of one vessel type (null: All vessels) only (P43): the other vessel
-     * types keep theirs. Recorded as "Required documents changed" ("TANKER: Tanker Endorsement removed"). Returns
-     * false when there was none to remove.
+     * Removes the certificate type's requirement from one vessel only (P43; P58: the shown vessel). Recorded as
+     * "Required documents changed" ("ALDER: Tanker Endorsement removed"). Returns false when there was none.
      */
     @Transactional
-    public boolean delete(ShipType vesselType, String certificateType) {
-        if (certificateType == null || certificateType.isBlank()) {
+    public boolean delete(Ship ship, String certificateType) {
+        if (ship == null || certificateType == null || certificateType.isBlank()) {
             return false;
         }
-        String key = CertificateTypes.sameTypeKey(certificateType);
-        DocumentRequirement saved = byKey(requirementRepository.findAllWithRanks(), vesselType).get(key);
+        DocumentRequirement saved = byKey(own(ship)).get(CertificateTypes.sameTypeKey(certificateType));
         if (saved == null) {
             return false;
         }
         requirementRepository.delete(saved);
-        String scope = vesselType == null ? "All vessels" : vesselType.name();
-        auditService.record("REQUIREMENTS_UPDATED", null, scope + ": " + saved.getCertificateType() + " removed");
+        auditService.record("REQUIREMENTS_UPDATED", ship, ship.getName() + ": " + saved.getCertificateType() + " removed");
         return true;
     }
 
-    public static String key(ShipType vesselType) {
-        return vesselType == null ? ALL : vesselType.name();
-    }
-
     /**
-     * The grid of one vessel type (null: All vessels). add: a type to show as a new row (blank: none); when it is a
-     * type already on the grid, that row is marked instead.
+     * The grid of one vessel. add: a type to show as a new row (blank: none); when it is a type already on the grid,
+     * that row is marked instead.
      */
     @Transactional(readOnly = true)
-    public RequirementGrid grid(ShipType vesselType, String add) {
-        return grid(vesselType, add, null);
+    public RequirementGrid grid(Ship ship, String add) {
+        return grid(ship, add, null);
     }
 
     /** The grid as posted (a note too long): the posted ticks, notes and Optional over the saved ones. */
     @Transactional(readOnly = true)
-    public RequirementGrid grid(ShipType vesselType, RequirementGridForm posted) {
-        return grid(vesselType, null, posted);
+    public RequirementGrid grid(Ship ship, RequirementGridForm posted) {
+        return grid(ship, null, posted);
     }
 
-    private RequirementGrid grid(ShipType vesselType, String add, RequirementGridForm posted) {
+    private RequirementGrid grid(Ship ship, String add, RequirementGridForm posted) {
         List<DocumentRequirement> all = requirementRepository.findAllWithRanks();
         List<CertificateRepository.TypeCount> used = certificateRepository.countByType();
-        Map<String, DocumentRequirement> own = byKey(all, vesselType);
-        Map<String, DocumentRequirement> general = vesselType == null ? Map.of() : byKey(all, null);
+        List<DocumentRequirement> mine = all.stream().filter(r -> r.isFor(ship)).toList();
+        Map<String, DocumentRequirement> own = byKey(mine);
+        Map<String, StarterRequirements.Default> defaults = defaults(ship);
 
         Map<String, String> types = types(all, used);
         String addKey = null;
@@ -170,24 +160,32 @@ public class RequirementService {
         for (Map.Entry<String, String> type : types.entrySet()) {
             String key = type.getKey();
             DocumentRequirement saved = own.get(key);
-            DocumentRequirement inherited = general.get(key);
             RequirementGridForm.RowForm form = sent.get(key);
             Set<Rank> ranks = form != null ? EnumSet.copyOf(withNone(form.getRanks()))
                     : saved != null ? EnumSet.copyOf(withNone(saved.getRanks())) : EnumSet.noneOf(Rank.class);
-            rows.add(new RequirementGrid.Row(type.getValue(), ranks,
-                    inherited == null ? Set.of() : EnumSet.copyOf(withNone(inherited.getRanks())),
-                    form != null ? form.isOptional() : saved != null && saved.isOptional(),
-                    form != null ? form.getNote() : saved == null ? null : saved.getNote(),
-                    saved != null && saved.isSuggestion(), key.equals(addKey) && saved == null));
+            boolean optional = form != null ? form.isOptional() : saved != null && saved.isOptional();
+            String note = form != null ? form.getNote() : saved == null ? null : saved.getNote();
+            rows.add(new RequirementGrid.Row(type.getValue(), ranks, optional, note,
+                    saved != null && saved.isSuggestion(), key.equals(addKey) && saved == null,
+                    differs(ranks, optional, note, defaults.get(key))));
         }
         // The row just asked for comes first, so it is in view.
         rows.sort(Comparator.comparing(row -> !row.added()));
-        boolean suggestions = all.stream().anyMatch(DocumentRequirement::isSuggestion);
-        return new RequirementGrid(vesselType, Rank.groups(), rows, suggestions);
+        boolean suggestions = mine.stream().anyMatch(DocumentRequirement::isSuggestion);
+        return new RequirementGrid(ship, Rank.groups(), rows, suggestions,
+                ship == null ? List.of() : resetChanges(mine, defaults).stream().map(Change::label).toList());
     }
 
     private static Set<Rank> withNone(Set<Rank> ranks) {
         return ranks.isEmpty() ? EnumSet.noneOf(Rank.class) : ranks;
+    }
+
+    // Whether a row differs from the default of its type (none: any rank, Optional or note differs).
+    private static boolean differs(Set<Rank> ranks, boolean optional, String note, StarterRequirements.Default def) {
+        if (def == null) {
+            return !ranks.isEmpty() || optional || note != null;
+        }
+        return !ranks.equals(def.ranks()) || optional || note != null;
     }
 
     // Every type the grid lists, key to spelling: the starter types in their order, then the others by name. A
@@ -211,20 +209,32 @@ public class RequirementService {
         return ordered;
     }
 
-    private static Map<String, DocumentRequirement> byKey(List<DocumentRequirement> all, ShipType vesselType) {
-        return all.stream().filter(r -> r.getShipType() == vesselType)
-                .collect(Collectors.toMap(r -> CertificateTypes.sameTypeKey(r.getCertificateType()), r -> r,
-                        (a, b) -> a, LinkedHashMap::new));
+    private List<DocumentRequirement> own(Ship ship) {
+        return requirementRepository.findAllByShipIdWithRanks(ship.getId());
+    }
+
+    private static Map<String, DocumentRequirement> byKey(List<DocumentRequirement> rows) {
+        return rows.stream().collect(Collectors.toMap(r -> CertificateTypes.sameTypeKey(r.getCertificateType()),
+                r -> r, (a, b) -> a, LinkedHashMap::new));
+    }
+
+    // The defaults of the vessel's type, by type key, in the template's order.
+    private static Map<String, StarterRequirements.Default> defaults(Ship ship) {
+        Map<String, StarterRequirements.Default> byKey = new LinkedHashMap<>();
+        if (ship != null) {
+            StarterRequirements.defaults(ship.getType())
+                    .forEach(d -> byKey.put(CertificateTypes.sameTypeKey(d.type()), d));
+        }
+        return byKey;
     }
 
     /**
-     * Saves the grid of one vessel type (null: All vessels): what changed, by type, goes to the audit log. Returns
-     * whether anything changed (a review of the starter template counts).
+     * Saves the grid of one vessel: what changed, by type, goes to the audit log ("ALDER: Passport +COOK"). Returns
+     * whether anything changed (a review of the defaults it was given counts).
      */
     @Transactional
-    public boolean save(ShipType vesselType, RequirementGridForm form) {
-        List<DocumentRequirement> all = requirementRepository.findAllWithRanks();
-        Map<String, DocumentRequirement> own = byKey(all, vesselType);
+    public boolean save(Ship ship, RequirementGridForm form) {
+        Map<String, DocumentRequirement> own = byKey(own(ship));
         List<CertificateRepository.TypeCount> used = certificateRepository.countByType();
         List<String> changes = new ArrayList<>();
         boolean reviewed = own.values().stream().anyMatch(DocumentRequirement::isSuggestion);
@@ -235,20 +245,12 @@ public class RequirementService {
                 sent.putIfAbsent(CertificateTypes.sameTypeKey(row.getType()), row);
             }
         }
-        // The row toggle (P43) sent without JavaScript: every rank, less those already required on all vessels on a
-        // vessel type's grid (there they are grey ticks, not checkboxes).
-        Map<String, DocumentRequirement> general = vesselType == null ? Map.of() : byKey(all, null);
         for (Map.Entry<String, RequirementGridForm.RowForm> entry : sent.entrySet()) {
             RequirementGridForm.RowForm row = entry.getValue();
             DocumentRequirement saved = own.get(entry.getKey());
-            Set<Rank> ranks = row.getRanks().isEmpty() ? EnumSet.noneOf(Rank.class) : EnumSet.copyOf(row.getRanks());
-            if (row.isAll()) {
-                ranks = EnumSet.allOf(Rank.class);
-                DocumentRequirement inherited = general.get(entry.getKey());
-                if (inherited != null) {
-                    ranks.removeAll(inherited.getRanks());
-                }
-            }
+            // The row toggle (P43) sent without JavaScript: every rank, on this vessel.
+            Set<Rank> ranks = row.isAll() ? EnumSet.allOf(Rank.class)
+                    : row.getRanks().isEmpty() ? EnumSet.noneOf(Rank.class) : EnumSet.copyOf(row.getRanks());
             boolean keep = !ranks.isEmpty() || row.getNote() != null || row.isOptional();
             if (saved == null && !keep) {
                 continue;
@@ -261,11 +263,11 @@ public class RequirementService {
             if (saved == null) {
                 saved = new DocumentRequirement();
                 saved.setCertificateType(CertificateTypes.canonical(row.getType(), used));
-                saved.setShipType(vesselType);
+                saved.setShip(ship);
                 saved.setRanks(EnumSet.noneOf(Rank.class));
                 changes.add(saved.getCertificateType() + " added");
             }
-            describe(saved, ranks, row, changes);
+            describe(saved, ranks, row.isOptional(), row.getNote(), changes);
             saved.setRanks(ranks);
             saved.setOptional(row.isOptional());
             saved.setNote(row.getNote());
@@ -277,27 +279,119 @@ public class RequirementService {
         if (changes.isEmpty() && !reviewed) {
             return false;
         }
-        String scope = vesselType == null ? "All vessels" : vesselType.name();
-        auditService.record("REQUIREMENTS_UPDATED", null,
-                scope + ": " + (changes.isEmpty() ? "reviewed, no changes" : String.join("; ", changes)));
+        auditService.record("REQUIREMENTS_UPDATED", ship,
+                ship.getName() + ": " + (changes.isEmpty() ? "reviewed, no changes" : String.join("; ", changes)));
         return true;
     }
 
     // "Passport +COOK -WIPER", "Medical First Aid optional", "Passport note changed".
-    private static void describe(DocumentRequirement saved, Set<Rank> ranks, RequirementGridForm.RowForm row,
+    private static void describe(DocumentRequirement saved, Set<Rank> ranks, boolean optional, String note,
                                  List<String> changes) {
         List<String> parts = new ArrayList<>();
         ranks.stream().filter(r -> !saved.getRanks().contains(r)).forEach(r -> parts.add("+" + r.name()));
         saved.getRanks().stream().filter(r -> !ranks.contains(r)).forEach(r -> parts.add("-" + r.name()));
-        if (saved.isOptional() != row.isOptional()) {
-            parts.add(row.isOptional() ? "optional" : "required");
+        if (saved.isOptional() != optional) {
+            parts.add(optional ? "optional" : "required");
         }
-        if (!Objects.equals(saved.getNote(), row.getNote())) {
-            parts.add(row.getNote() == null ? "note removed" : "note \"" + row.getNote() + "\"");
+        if (!Objects.equals(saved.getNote(), note)) {
+            parts.add(note == null ? "note removed" : "note \"" + note + "\"");
         }
         if (!parts.isEmpty()) {
             changes.add(saved.getCertificateType() + " " + String.join(" ", parts));
         }
     }
 
+    // ---------------------------------------------------------------------------------------------------------------
+    // The defaults of the vessel's type (P58)
+
+    /** One difference "Reset to Bulk carrier defaults" undoes: the type and what happens to it. */
+    record Change(String type, Kind kind, String label) {
+
+        enum Kind { ADDED, REMOVED, RESTORED }
+
+        // For the audit log: "Passport restored", "Yellow Fever Certificate removed".
+        String english() {
+            return type + " " + kind.name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    /** What resetting the vessel would change, one line each in the request's language; empty when nothing would. */
+    @Transactional(readOnly = true)
+    public List<String> resetChanges(Ship ship) {
+        return resetChanges(own(ship), defaults(ship)).stream().map(Change::label).toList();
+    }
+
+    // The defaults' types first (in the template's order), then the vessel's other rows by name.
+    private List<Change> resetChanges(List<DocumentRequirement> mine, Map<String, StarterRequirements.Default> defaults) {
+        Map<String, DocumentRequirement> own = byKey(mine);
+        Set<String> keys = new LinkedHashSet<>(defaults.keySet());
+        own.entrySet().stream().sorted(Comparator.comparing(e -> e.getValue().getCertificateType(),
+                String.CASE_INSENSITIVE_ORDER)).forEach(e -> keys.add(e.getKey()));
+        List<Change> changes = new ArrayList<>();
+        for (String key : keys) {
+            DocumentRequirement saved = own.get(key);
+            StarterRequirements.Default def = defaults.get(key);
+            if (saved == null) {
+                changes.add(change(def.type(), Change.Kind.ADDED));
+            } else if (def == null) {
+                changes.add(change(saved.getCertificateType(), Change.Kind.REMOVED));
+            } else if (differs(saved.getRanks(), saved.isOptional(), saved.getNote(), def)) {
+                changes.add(change(saved.getCertificateType(), Change.Kind.RESTORED));
+            }
+        }
+        return changes;
+    }
+
+    private Change change(String type, Change.Kind kind) {
+        return new Change(type, kind,
+                label("requirement.reset.change." + kind.name().toLowerCase(Locale.ROOT), type));
+    }
+
+    /**
+     * Gives a vessel that has no requirement yet the defaults of its type, as suggestions to review (a new vessel,
+     * P58). Returns the number of rows added; none when the vessel has requirements already.
+     */
+    @Transactional
+    public int startWithDefaults(Ship ship) {
+        if (!own(ship).isEmpty()) {
+            return 0;
+        }
+        return copyDefaults(ship, true);
+    }
+
+    private int copyDefaults(Ship ship, boolean suggestion) {
+        List<DocumentRequirement> rows = new ArrayList<>();
+        for (StarterRequirements.Default d : StarterRequirements.defaults(ship.getType())) {
+            DocumentRequirement r = new DocumentRequirement();
+            r.setCertificateType(d.type());
+            r.setShip(ship);
+            r.setRanks(EnumSet.copyOf(d.ranks()));
+            r.setSuggestion(suggestion);
+            rows.add(r);
+        }
+        requirementRepository.saveAll(rows);
+        return rows.size();
+    }
+
+    /**
+     * "Reset to Bulk carrier defaults" (P58): the vessel's requirements become the defaults of its type again (its
+     * other rows, notes and Optional go). Recorded as REQUIREMENTS_RESET on the vessel ("ALDER: reset to the
+     * BULK_CARRIER defaults: Passport restored; Yellow Fever Certificate removed"). Returns false, recording nothing,
+     * when the vessel already had them.
+     */
+    @Transactional
+    public boolean reset(Ship ship) {
+        List<DocumentRequirement> mine = own(ship);
+        List<Change> changes = resetChanges(mine, defaults(ship));
+        if (changes.isEmpty()) {
+            return false;
+        }
+        requirementRepository.deleteAll(mine);
+        requirementRepository.flush();
+        copyDefaults(ship, false);
+        auditService.record("REQUIREMENTS_RESET", ship, ship.getName() + ": reset to the "
+                + (ship.getType() == null ? "general" : ship.getType().name()) + " defaults: "
+                + changes.stream().map(Change::english).collect(Collectors.joining("; ")));
+        return true;
+    }
 }

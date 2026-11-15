@@ -109,13 +109,15 @@ class ShipHomeFlowTest {
     @Test
     void chiefCookSeesWhatToReadUntilAcknowledged() throws Exception {
         String html = home(cook);
-        // Header: name, rank, ship with IMO number; Sign out next to the name, from 768px only (P39: on phones it is
-        // under More, a CSS breakpoint class, no script). P43: no "Not Demo Cook?" text any more.
+        // Header: name, rank, ship with IMO number. P58: no Sign out in the page at any width (no header actions);
+        // the sidebar's user block (from 768px) still signs out, and More does on phones (ProfileFlowTest).
         assertThat(html).contains("<title>Home · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
-                ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>", "<div class=\"home-sign-out from-md\">")
-                .containsPattern("(?s)<div class=\"home-sign-out from-md\">\\s*"
-                        + "<form action=\"/logout\" method=\"post\">.*?>Sign out</button>")
-                .doesNotContain("home-sign-out-name", "Not Demo Cook");
+                ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>")
+                .doesNotContain("home-sign-out", "from-md", "Not Demo Cook", "class=\"page-actions\"");
+        String content = html.substring(html.indexOf("<main"), html.indexOf("</main>"));
+        assertThat(content).doesNotContain("action=\"/logout\"");
+        assertThat(html).containsPattern("(?s)<form action=\"/logout\" method=\"post\">.{0,300}?"
+                + "<button type=\"submit\" class=\"btn btn-outline-light btn-sm text-nowrap sidebar-sign-out\"");
 
         String toRead = section(TO_READ, html);
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy");

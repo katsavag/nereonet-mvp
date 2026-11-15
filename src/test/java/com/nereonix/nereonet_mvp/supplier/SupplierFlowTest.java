@@ -114,6 +114,23 @@ class SupplierFlowTest {
     }
 
     @Test
+    // P58: the currency is a code, not an amount: centred (code-cell) under a centred, still sortable header; never
+    // the right-aligned .num.
+    void theCurrencyColumnIsCentred() throws Exception {
+        supplier("VANOS (Piraeus)", "EUR", true);
+        supplier("Blue Ocean Supply", "USD", true);
+        String html = page("/office/suppliers");
+        assertThat(html).containsPattern("<th scope=\"col\" class=\"sortable code-cell\"[^>]*>\\s*"
+                        + "<a class=\"sort-link\" href=\"[^\"]*sort=currency")
+                .contains("<td class=\"code-cell\" data-label=\"Currency\">EUR</td>",
+                        "<td class=\"code-cell\" data-label=\"Currency\">USD</td>")
+                .doesNotContain("class=\"num\" data-label=\"Currency\"");
+        // The other sortable headers have no cell class.
+        assertThat(html).containsPattern("<th scope=\"col\" class=\"sortable\"[^>]*>\\s*<a class=\"sort-link\" "
+                + "href=\"[^\"]*sort=name");
+    }
+
+    @Test
     void suppliersAreTheOfficesOnlyAndSpeakGreek() throws Exception {
         assertThat(page("/office/suppliers?lang=el")).contains("Προμηθευτές", "Δεν υπάρχουν προμηθευτές ακόμη");
 

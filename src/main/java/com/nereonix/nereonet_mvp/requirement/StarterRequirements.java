@@ -1,6 +1,5 @@
 package com.nereonix.nereonet_mvp.requirement;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -16,23 +15,28 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
-import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirement;
 import com.nereonix.nereonet_mvp.core.requirement.DocumentRequirementRepository;
+import com.nereonix.nereonet_mvp.core.ship.Ship;
+import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.ship.ShipType;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The starter template of required documents (P42), added once on startup: a suggestion for the office to review,
- * never a statement of what any regulation requires. Every row is marked as a suggestion until the office saves its
- * vessel type. Added when there is no requirement yet and it was never added before (the audit entry
- * REQUIREMENTS_SEEDED), so a template the office cleared stays clear. app.requirements.starter-template=false (the
- * tests) leaves it out; RequirementsFlowTest adds it with seed().
+ * The starter template of required documents (P42), a suggestion for the office to review, never a statement of what
+ * any regulation requires. P58: it is the defaults of each vessel type (defaults(type)): every vessel starts with
+ * the defaults of its type, copied when it is created (RequirementService.startWithDefaults) and marked as a
+ * suggestion until the office saves that vessel's grid; "Reset to Bulk carrier defaults" copies them again. There is
+ * no screen to edit the defaults.
+ * On startup, when there is no requirement at all, the template was never added (the audit entry REQUIREMENTS_SEEDED)
+ * and there are vessels, every vessel gets the defaults of its type, so a template the office cleared stays clear.
+ * Runs after the dev data (DevData, @Order(2)), which adds the demo vessels, and after VesselRequirementsMigration.
+ * app.requirements.starter-template=false (the tests) leaves this startup step out; RequirementsFlowTest calls seed().
  * The rows: STCW Basic Safety Training, Medical Fitness Certificate, Seaman's Book, Passport and Security Awareness for
  * every rank; Certificate of Competency and Flag State Endorsement for officers and engineers (OFFICERS); GMDSS Operator
  * for the Master and the deck officers; Advanced Fire Fighting and Medical First Aid for officers (OFFICERS); Tanker
  * Endorsement for every rank on tankers.
  */
-@Order(1)
+@Order(3)
 @Component
 public class StarterRequirements implements ApplicationRunner {
 
@@ -47,6 +51,11 @@ public class StarterRequirements implements ApplicationRunner {
     static final Set<Rank> DECK_OFFICERS = EnumSet.of(Rank.MASTER, Rank.CHIEF_OFFICER, Rank.SECOND_OFFICER,
             Rank.THIRD_OFFICER);
 
+    /** One default requirement: the certificate type and the ranks that need it (required, no note). */
+    public record Default(String type, Set<Rank> ranks) {
+    }
+
+    // shipType null: the default of every vessel type, and of vessels without a type.
     private record Row(String type, ShipType shipType, Set<Rank> ranks) {
     }
 
@@ -64,17 +73,33 @@ public class StarterRequirements implements ApplicationRunner {
             new Row("Tanker Endorsement", ShipType.TANKER, EnumSet.allOf(Rank.class)));
 
     private final DocumentRequirementRepository requirementRepository;
+    private final ShipRepository shipRepository;
+    private final RequirementService requirementService;
     private final AuditRepository auditRepository;
     private final AuditService auditService;
     private final boolean enabled;
 
-    public StarterRequirements(DocumentRequirementRepository requirementRepository, AuditRepository auditRepository,
+    public StarterRequirements(DocumentRequirementRepository requirementRepository, ShipRepository shipRepository,
+                               RequirementService requirementService, AuditRepository auditRepository,
                                AuditService auditService,
                                @Value("${app.requirements.starter-template:true}") boolean enabled) {
         this.requirementRepository = requirementRepository;
+        this.shipRepository = shipRepository;
+        this.requirementService = requirementService;
         this.auditRepository = auditRepository;
         this.auditService = auditService;
         this.enabled = enabled;
+    }
+
+    /** The defaults of a vessel type (null: a vessel without a type), in the template's order. */
+    public static List<Default> defaults(ShipType type) {
+        return ROWS.stream().filter(r -> r.shipType() == null || r.shipType() == type)
+                .map(r -> new Default(r.type(), EnumSet.copyOf(r.ranks()))).toList();
+    }
+
+    /** The certificate types of the template, every vessel type, in its order (the grid lists them first). */
+    public static List<String> types() {
+        return ROWS.stream().map(Row::type).toList();
     }
 
     @Override
@@ -84,24 +109,26 @@ public class StarterRequirements implements ApplicationRunner {
         }
     }
 
-    /** Adds the starter template unless a requirement exists or it was added before. Returns whether it was added. */
+    /**
+     * Gives every vessel the defaults of its type, unless a requirement exists, the template was added before or
+     * there is no vessel yet. Returns whether it was added.
+     */
     @Transactional
     public boolean seed() {
         if (requirementRepository.count() > 0 || auditRepository.existsByAction(SEEDED)) {
             return false;
         }
-        List<DocumentRequirement> rows = new ArrayList<>();
-        for (Row row : ROWS) {
-            DocumentRequirement r = new DocumentRequirement();
-            r.setCertificateType(row.type());
-            r.setShipType(row.shipType());
-            r.setRanks(EnumSet.copyOf(row.ranks()));
-            r.setSuggestion(true);
-            rows.add(r);
+        List<Ship> vessels = shipRepository.findAllByOrderByNameAsc();
+        if (vessels.isEmpty()) {
+            return false;
         }
-        requirementRepository.saveAll(rows);
-        auditService.record(SEEDED, null, rows.size() + " suggested requirements", null);
-        log.info("Added the starter template of required documents ({} rows, to be reviewed)", rows.size());
+        int rows = 0;
+        for (Ship vessel : vessels) {
+            rows += requirementService.startWithDefaults(vessel);
+        }
+        auditService.record(SEEDED, null, rows + " suggested requirements on " + vessels.size() + " vessels", null);
+        log.info("Added the starter template of required documents ({} rows on {} vessels, to be reviewed)", rows,
+                vessels.size());
         return true;
     }
 }

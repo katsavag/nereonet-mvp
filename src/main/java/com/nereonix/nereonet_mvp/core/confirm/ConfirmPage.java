@@ -21,10 +21,12 @@ import java.util.Map;
  * @param crumbs       the breadcrumbs above the heading (the heading itself is added by the page header)
  * @param note         an optional text field the action is posted with (P50: the office's note on removing an order
  *                     line), or null for none
+ * @param items        P58: what will change, one line each, listed under the body (empty for none): resetting a
+ *                     vessel's required documents to its type's defaults
  */
 public record ConfirmPage(String title, String body, String confirmLabel, String dismissLabel, Tone tone,
                           String action, Map<String, String> fields, String cancelUrl, List<Crumb> crumbs,
-                          NoteField note) {
+                          NoteField note, List<String> items) {
 
     /** An optional text field: its label ("Note (optional)" is the label plus the optional mark), name and length. */
     public record NoteField(String label, String name, int maxLength) {

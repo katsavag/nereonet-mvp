@@ -93,7 +93,7 @@
      c: the person's Compliance; member: the user; today: the UTC date. -->
 <section th:fragment="requiredDocumentsCard(c)" class="card form-box mt-4" id="requiredDocuments"
          aria-labelledby="requiredDocumentsTitle">
-    <div class="card-header bg-transparent requirement-card-header py-3">
+    <div class="card-header requirement-card-header py-3">
         <h2 class="h5 fw-bold mb-0" id="requiredDocumentsTitle" th:text="#{requirement.card.heading}">Required documents</h2>
         <th:block th:if="${c.required() > 0}"><span th:replace="~{crew/parts :: documentsSummary(${c})}"></span></th:block>
     </div>
@@ -132,7 +132,7 @@
         </ul>
     </th:block>
     <p class="requirement-card-foot">
-        <a th:href="@{/office/requirements(vesselType=${member.ship != null and member.ship.type != null} ? ${member.ship.type} : 'all')}"
+        <a th:href="${member.ship != null} ? @{/office/requirements(vessel=${member.ship.id})} : @{/office/requirements}"
            th:text="#{requirement.card.manage}">Change what is required</a>
     </p>
 </section>

@@ -21,6 +21,10 @@
                 <input th:each="f : ${confirm.fields}" type="hidden" th:name="${f.key}" th:value="${f.value}">
                 <p class="confirm-page-body" th:text="${confirm.body}">No new crew can be invited to MV Demo until it
                     is activated again.</p>
+                <!-- P58: what will change, when the action lists it (resetting a vessel's required documents). -->
+                <ul th:if="${!confirm.items.isEmpty()}" class="confirm-page-items">
+                    <li th:each="line : ${confirm.items}" th:text="${line}">Passport goes back to the defaults</li>
+                </ul>
                 <!-- P50: an optional note posted with the action (removing an order line). -->
                 <div th:if="${confirm.note != null}" class="mb-3">
                     <label for="confirmNote" class="form-label">[[${confirm.note.label}]] <span th:replace="~{layout/parts :: optional}"></span></label>

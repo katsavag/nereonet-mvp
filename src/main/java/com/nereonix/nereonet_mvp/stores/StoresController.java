@@ -1,6 +1,8 @@
 package com.nereonix.nereonet_mvp.stores;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.nereonix.nereonet_mvp.core.list.DatePreset;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.list.ListSort;
@@ -137,7 +140,8 @@ public class StoresController {
     }
 
     // P53: every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
-    // date or outside the sensible range shows its error under the field and filters nothing.
+    // date or outside the sensible range shows its error under the field and filters nothing. P58: the quick choices
+    // of layout/parts :: dateRange (the last 30, 60 and 90 days, links that keep the type).
     @GetMapping(PATH + "/history")
     public String history(@AuthenticationPrincipal CurrentUser currentUser,
                           @Validated @ModelAttribute("filter") StoresHistoryFilter filter, BindingResult bindingResult,
@@ -155,19 +159,26 @@ public class StoresController {
         int page = history.movements().getNumber();
         model.addAttribute("newerUrl", history.movements().hasPrevious() ? historyUrl(filter, page - 1) : null);
         model.addAttribute("olderUrl", history.movements().hasNext() ? historyUrl(filter, page + 1) : null);
+        model.addAttribute("datePresets", DatePreset.of(DatePreset.LAST_DAYS, LocalDate.now(ZoneOffset.UTC),
+                filter.getFrom(), filter.getTo(),
+                (from, to) -> historyUrl(filter.movementType(), from, to, 0)));
         return "stores/history";
     }
 
     private static String historyUrl(StoresHistoryFilter filter, int page) {
+        return historyUrl(filter.movementType(), filter.getFrom(), filter.getTo(), page);
+    }
+
+    private static String historyUrl(StockMovementType type, LocalDate from, LocalDate to, int page) {
         UriComponentsBuilder url = UriComponentsBuilder.fromPath(PATH + "/history");
-        if (filter.movementType() != null) {
-            url.queryParam("type", filter.movementType().name());
+        if (type != null) {
+            url.queryParam("type", type.name());
         }
-        if (filter.getFrom() != null) {
-            url.queryParam("from", filter.getFrom());
+        if (from != null) {
+            url.queryParam("from", from);
         }
-        if (filter.getTo() != null) {
-            url.queryParam("to", filter.getTo());
+        if (to != null) {
+            url.queryParam("to", to);
         }
         if (page > 0) {
             url.queryParam("page", page);

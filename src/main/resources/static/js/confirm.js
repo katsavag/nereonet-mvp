@@ -11,7 +11,8 @@
 // the dialog; Confirm submits the form. Focus starts on Cancel; Esc, Cancel and the backdrop close the dialog and
 // put focus back where it was. Without this script, or in a browser without <dialog>, the link opens the page, so a
 // confirmForm never submits unconfirmed. A trigger that sits outside its form (P43: a row of a grid that is itself a
-// form) names the form's id in data-confirm-form (layout/parts :: confirmTrigger).
+// form) names the form's id in data-confirm-form (layout/parts :: confirmTrigger). P58: a form may hold a hidden
+// ul[data-confirm-items], what will change; the dialog lists its items under the body.
 // A form that asks only sometimes (P21, exporting requests exported before) has a submit button instead, and
 //   data-confirm-when     a selector: when an element of the form matches it, sending the form opens the dialog
 // Confirm then sends it with confirmed=true. Without this script the server answers such a form with the plain
@@ -28,6 +29,7 @@
     const cancel = dialog.querySelector('[data-confirm-cancel]');
     const ok = dialog.querySelector('[data-confirm-ok]');
     const noteBox = dialog.querySelector('[data-confirm-note-box]');
+    const items = dialog.querySelector('[data-confirm-items-list]');
     const noteField = noteBox && noteBox.querySelector('input');
     let form = null;
     let submitter = null;
@@ -42,6 +44,11 @@
         returnFocus = menu ? menu.querySelector('[data-bs-toggle="dropdown"]') : trigger;
         title.textContent = data.confirmTitle;
         body.textContent = data.confirmBody;
+        if (items) {
+            const lines = target.querySelectorAll('[data-confirm-items] > li');
+            items.replaceChildren(...Array.from(lines, line => line.cloneNode(true)));
+            items.hidden = lines.length === 0;
+        }
         ok.textContent = data.confirmLabel;
         cancel.textContent = data.confirmDismiss || dialog.dataset.cancelLabel;
         ok.className = 'btn ' + (danger ? 'btn-outline-danger' : 'btn-primary');

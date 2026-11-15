@@ -25,7 +25,7 @@
         <div th:replace="~{layout/parts :: importSummary(${itemImport}, ${show})}"></div>
 
         <div class="card mb-3">
-            <p class="card-header bg-transparent small text-body-secondary py-3 mb-0" th:text="#{itemImport.review.hint}">
+            <p class="card-header small text-body-secondary py-3 mb-0" th:text="#{itemImport.review.hint}">
                 Correct the highlighted cells or exclude those rows, then check again.</p>
             <!-- Scrolls sideways inside the card; the row and the name stay in place. -->
             <div class="table-responsive">

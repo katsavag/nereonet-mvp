@@ -19,7 +19,7 @@
 
         <!-- 1. The lines -->
         <section class="card mb-4" id="lines" tabindex="-1" aria-labelledby="quoteLinesTitle">
-            <div class="card-header bg-transparent py-3">
+            <div class="card-header py-3">
                 <h2 class="h5 fw-bold mb-0" id="quoteLinesTitle" th:text="#{rfq.quote.lines}">Prices</h2>
                 <p class="rfq-compare-hint" th:text="#{rfq.quote.lines.hint}">Leave the price empty for an item the supplier does not offer.</p>
                 <p th:if="${#fields.hasErrors('anyLineOffered')}" class="invalid-feedback d-block mb-0" th:errors="*{anyLineOffered}">Enter a price for at least one item.</p>

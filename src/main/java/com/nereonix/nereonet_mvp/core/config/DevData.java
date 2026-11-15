@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,8 +71,11 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 // P41: once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
 // P52: while the demo ship has no stock at all, its provisions get some, counted by the Chief cook two days ago: most
 // OK, two Low and two Out of stock, one without a place (see stockDemo).
+// P58: @Order(2), after VesselRequirementsMigration and before StarterRequirements (3), so the demo vessels get the
+// defaults of their type on a new database.
 @Component
 @Profile("dev")
+@Order(2)
 public class DevData implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DevData.class);

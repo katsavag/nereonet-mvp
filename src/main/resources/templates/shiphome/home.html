@@ -2,24 +2,18 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{home.title}, ~{::main})}">
 <body>
 <!-- The crew home page (P26), for the Chief cook and Crew members (the Master has masterhome/home): what this person is asked to read and whether their certificates are in order, in one
-     phone screen. English only, as every crew screen. Read only except Sign out. No images (but the person's own
+     phone screen. English only, as every crew screen. Read only. No images (but the person's own
      profile photo, P31), no script of its own.
      Phones: one column (To read, My certificates); from 992px To read on the left, the certificates on the right.
-     The header says who is signed in, their rank and ship; on a shared PC Sign out sits next to the name, from
-     768px only (P39, .from-md: on phones Sign out is under More; P43: the "Not Demo Cook?" text went). P31: the
-     person's profile photo (96px version, with its version so a new photo shows at once, P43) or initials before the
-     name. -->
+     The header says who is signed in, their rank and ship. P58: no Sign out on this page at any width; it is in the
+     sidebar (from 768px) and under More (phones). P31: the person's profile photo (96px version, with its version so
+     a new photo shows at once, P43) or initials before the name. -->
 <main class="crew-home" th:with="u=${home.user}, today=${@dates.today()}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${u.fullName}, eyebrowShip=${home.ship},
-            subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}}, actions=~{::pageActions},
+            subtitle=${u.rank != null} ? #{${'rank.' + u.rank}} : #{${'role.' + u.role}},
             media=~{::pageMedia})}">
         <th:block th:fragment="pageMedia">
             <span th:replace="~{layout/parts :: personAvatar(${#authentication.principal.initials}, ${home.photoUrl}, 'lg')}"></span>
-        </th:block>
-        <th:block th:fragment="pageActions">
-            <div class="home-sign-out from-md">
-                <form th:replace="~{layout/parts :: signOut('btn btn-outline-secondary')}"></form>
-            </div>
         </th:block>
     </header>
 

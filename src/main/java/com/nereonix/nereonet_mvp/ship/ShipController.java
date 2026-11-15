@@ -242,7 +242,7 @@ public class ShipController {
             model.addAttribute("editShip", ship);
             return showList(model);
         }
-        shipService.update(id, form.getName(), form.getType(), form.getFlag());
+        shipService.update(id, form.getName(), form.getType(), form.getFlag(), form.isResetRequirements());
         if (lookup != null) {
             if (!taken.isEmpty()) {
                 vesselDataService.recordAccepted(ship, lookup, String.join(", ", taken), false);

@@ -47,7 +47,7 @@
         <section th:each="g : ${p.groups}" class="card mb-4 request-group" data-request-group
                  th:classappend="${g.runningLow} ? 'request-group-low'" th:with="groupId=${'requestGroup' + g.key}"
                  th:attr="aria-labelledby=${groupId}">
-            <div class="card-header bg-transparent py-3">
+            <div class="card-header py-3">
                 <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
                     th:text="${g.runningLow} ? #{request.form.runningLow} : #{${'item.category.' + g.key}}">Provisions</h2>
                 <p th:if="${g.runningLow}" class="small text-body-secondary mb-0 mt-1"
