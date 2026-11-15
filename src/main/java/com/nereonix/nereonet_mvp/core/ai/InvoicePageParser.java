@@ -45,7 +45,9 @@ public final class InvoicePageParser {
     private static final Pattern SEPARATOR_ROW = Pattern.compile("^\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?$");
 
     private static final Pattern INVOICE_NUMBER = Pattern.compile(
-            "(?iu)(?:invoice\\s*(?:no|number|nr|#)\\.?|αρ\\.?\\s*τιμολογιου|αριθμοσ\\s*τιμολογιου)\\s*[:#.]?\\s*"
+            "(?iu)(?:invoice\\s*(?:no|number|nr|#)\\.?|αρ\\.?\\s*τιμολογιου|αριθμοσ\\s*τιμολογιου)"
+                    // A second label after a slash ("Αρ. Τιμολογίου / Invoice No:"), however the OCR read it.
+                    + "(?:\\s*/[^:\\n]{1,25}:)?\\s*[:#.]?\\s*"
                     + "([A-Z0-9Α-Ω][A-Z0-9Α-Ω/\\-]{0,29})");
     private static final Pattern DATE = Pattern.compile(
             "(?iu)(?:date|ημερομηνια|ημ/νια)\\s*[:.]?\\s*(\\d{1,2})[./-](\\d{1,2})[./-](\\d{2,4})");
@@ -191,7 +193,9 @@ public final class InvoicePageParser {
                 || c.contains("product")) {
             return Column.DESCRIPTION;
         }
-        if (c.contains("α/α") || c.contains("a/a") || c.matches("(?:no\\.?|#|line|nr\\.?|s/n|α\\.α\\.?)")) {
+        // "Α/Α No" as the OCR may read it, Greek and Latin letters mixed ("α/a no"): by its last word.
+        if (c.contains("α/α") || c.contains("a/a") || c.matches("(?:no\\.?|#|line|nr\\.?|s/n|α\\.α\\.?)")
+                || c.matches(".*[\\s/](?:no|νο)\\.?")) {
             return Column.NO;
         }
         return null;

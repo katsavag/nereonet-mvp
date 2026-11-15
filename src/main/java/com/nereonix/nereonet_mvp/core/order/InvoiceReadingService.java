@@ -28,7 +28,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReader;
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReadingException;
-import com.nereonix.nereonet_mvp.core.ai.MistralSettings;
 import com.nereonix.nereonet_mvp.core.ai.PageReading;
 import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
@@ -64,7 +63,7 @@ public class InvoiceReadingService {
         STARTED,
         // Every page is read already: on to the count.
         NOTHING_TO_READ,
-        // No reader configured (no key): the photos are kept, on to the count.
+        // No reader configured (no OCR models, or no Mistral key): the photos are kept, on to the count.
         NOT_CONFIGURED,
         NO_PAGES,
         ALREADY_READING,
@@ -78,7 +77,6 @@ public class InvoiceReadingService {
     private final DeliveryInvoiceLineRepository lineRepository;
     private final LibraryFileStorage fileStorage;
     private final InvoiceReader reader;
-    private final MistralSettings mistralSettings;
     private final AuditService auditService;
     private final EntityManager entityManager;
     private final TransactionTemplate transactions;
@@ -89,7 +87,7 @@ public class InvoiceReadingService {
 
     public InvoiceReadingService(OrderReceiptFileRepository fileRepository, DeliveryInvoiceRepository invoiceRepository,
                                  DeliveryInvoiceLineRepository lineRepository, LibraryFileStorage fileStorage,
-                                 InvoiceReader reader, MistralSettings mistralSettings, AuditService auditService,
+                                 InvoiceReader reader, AuditService auditService,
                                  EntityManager entityManager, PlatformTransactionManager transactionManager,
                                  @Qualifier("applicationTaskExecutor") TaskExecutor executor,
                                  @Value("${app.invoice.read-in-background:true}") boolean background,
@@ -100,7 +98,6 @@ public class InvoiceReadingService {
         this.lineRepository = lineRepository;
         this.fileStorage = fileStorage;
         this.reader = reader;
-        this.mistralSettings = mistralSettings;
         this.auditService = auditService;
         this.entityManager = entityManager;
         this.transactions = new TransactionTemplate(transactionManager);
@@ -151,7 +148,7 @@ public class InvoiceReadingService {
             auditService.record("ORDER_INVOICE_PHOTOGRAPHED", order.getShip(), "Order #" + orderId + ", "
                     + pages.size() + (pages.size() == 1 ? " page" : " pages"), user);
         }
-        if (!mistralSettings.configured()) {
+        if (!reader.configured()) {
             return Start.NOT_CONFIGURED;
         }
         int waiting = 0;

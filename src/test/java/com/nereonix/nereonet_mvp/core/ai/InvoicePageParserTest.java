@@ -68,6 +68,23 @@ class InvoicePageParserTest {
     }
 
     @Test
+    void labelsAsTheLocalOcrReadsThemGreekAndLatinLettersMixed() {
+        PageReading reading = InvoicePageParser.parse("""
+                Kestrel Ship Supply S.A.
+                Αρ. Τιμολογίου / Iηνοίce Νο: A-4471 Σελίδα 1 από 2/ Page 1 of 2
+                | Α/A No | Περιγραφή / Description | Ποσ. / Qty | Αξία / Amount |
+                | --- | --- | --- | --- |
+                | 1 | Tomatoes / Ντομάτες | 25,000 | 46,25 |
+                """, List.of(), 0.9);
+
+        assertThat(reading.invoiceNumber()).isEqualTo("A-4471");
+        assertThat(reading.lines()).singleElement().satisfies(line -> {
+            assertThat(line.no()).isEqualTo(1);
+            assertThat(line.quantity()).isEqualByComparingTo("25");
+        });
+    }
+
+    @Test
     void anEnglishInvoiceWithTheTableGivenApart() {
         String markdown = """
                 # Harbour Provisions Ltd

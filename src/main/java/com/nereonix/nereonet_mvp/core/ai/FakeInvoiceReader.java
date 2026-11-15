@@ -57,6 +57,11 @@ public class FakeInvoiceReader implements InvoiceReader {
     private volatile String orderReference;
     private final List<Integer> pagesRead = Collections.synchronizedList(new ArrayList<>());
 
+    @Override
+    public boolean configured() {
+        return true;
+    }
+
     public FakeInvoiceReader(@Value("${app.invoice.sample-dir:samples/invoice}") String sampleDir) {
         this.sampleDir = Path.of(sampleDir);
     }

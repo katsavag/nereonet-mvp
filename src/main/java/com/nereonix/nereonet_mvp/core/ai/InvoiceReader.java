@@ -7,11 +7,15 @@ import com.nereonix.nereonet_mvp.core.ai.InvoiceReading.PageResult;
 
 /**
  * Reads the photographed pages of a supplier's invoice into invoice lines, called by the server only
- * (core/order/InvoiceReadingService). MistralInvoiceReader is the real one; FakeInvoiceReader answers in dev
- * (app.mistral.fake) and in the tests, as CountExtractor / FakeCountExtractor do. Only the page images are sent
- * anywhere: never a name of the crew, the order or anything else.
+ * (core/order/InvoiceReadingService). app.invoice.reader chooses the real one: local (the default, LocalInvoiceReader:
+ * PaddleOCR on the server, nothing leaves it) or mistral (MistralInvoiceReader: Mistral OCR, the page images are sent
+ * to Mistral). FakeInvoiceReader answers instead in dev (app.mistral.fake) and in the tests, as CountExtractor /
+ * FakeCountExtractor do. Only the page images are read: never a name of the crew, the order or anything else.
  */
 public interface InvoiceReader {
+
+    /** Pages can be read: the models are there, or the key is set (or the fake answers). */
+    boolean configured();
 
     /** One photographed page: its number on board (1, 2, ...), the file's bytes and its content type (image/jpeg,
      *  image/png, image/webp, image/heic or application/pdf). */

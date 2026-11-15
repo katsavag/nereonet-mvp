@@ -1,8 +1,8 @@
 # 37. Photographing the delivery invoice
 
 Photographing the delivery invoice and reading it (P62). When a delivery arrives, the vessel's Chief cook (or the
-Master, when no count is waiting for him) photographs the supplier's invoice first; the server reads it with
-Mistral OCR into invoice lines and checks them. The checks are stored for later (P64 shows them to the office); the lines guide the cook's count ([38](38-invoice-guided-count.md)). The
+Master, when no count is waiting for him) photographs the supplier's invoice first; the server reads it into
+invoice lines with its own OCR (P67; Mistral OCR when chosen) and checks them. The checks are stored for later (P64 shows them to the office); the lines guide the cook's count ([38](38-invoice-guided-count.md)). The
 invoice only helps: **Count without the invoice** is always there, and a reading that fails never loses a photo.
 - **Where**: while the order is CONFIRMED and no invoice page is photographed yet, **Count delivery** (the cook,
   36) and **Confirm receipt** (the Master, with no count of the cook to approve) on Orders in progress and on the
@@ -31,7 +31,23 @@ invoice only helps: **Count without the invoice** is always there, and a reading
   kept.") or another order's number on the invoice ("This invoice says order SR-000052. Check it is the right
   invoice."). A reading the server never finished (a restart) is given up after `app.invoice.reading-stalled-after`
   (15 min): its pages "timed out", to read again. While reading, the pages cannot change (409).
-- **Reading a page** (`core/ai/MistralInvoiceReader`, behind `core/ai/InvoiceReader`): `POST /v1/ocr` with
+- **Reading a page on the server** (P67, `core/ai/LocalInvoiceReader`, the default: `app.invoice.reader` `local`):
+  PaddleOCR PP-OCRv5 in ONNX Runtime on the CPU, no key, **nothing leaves the server**. `core/ai/OnnxOcr` finds the
+  boxes of text (the detection model, the page at most `app.ocr.max-side` 1600 px) and reads each (the Greek and
+  English recognition model `el_PP-OCRv5_mobile_rec`, CTC). `core/ai/OcrLayout` writes each word in one alphabet
+  (the model may read "BOX" with a Greek Β), measures the photo's tilt and turns the boxes back, groups them into
+  rows, finds the header row, takes the rows under it with three boxes or more (and description-only rows that go
+  on) as the table, groups the body's boxes into columns where they overlap and puts each column under the header
+  it overlaps most (one column per header first: right-aligned quantities may stick out under the price). The text
+  and the table, as markdown, go through the same `InvoicePageParser` as Mistral's answer. A line's confidence is
+  the lowest of its boxes with a digit (the numbers the checks compare). JPEG and PNG as they are, a PDF at 200 dpi
+  (at most 10 pages); WebP and HEIC cannot be decoded here and fail (PROVIDER_ERROR: **Read again** after a retake
+  as JPEG). A page with no table whose boxes stand taller than wide is turned 90° one way, then the other. One page
+  at a time on the whole server, about 4 s a page on 2 to 4 cores, some 300 MB of memory while the models are
+  loaded (on the first page). There is no chat-model fallback: a page without a table is "hard to read". Logs say
+  how a page ended (lines, time), never its text. The models are files in `app.ocr.model-dir` (`OCR_MODEL_DIR`,
+  default `models/ocr`, gitignored): see [configuration](../configuration.md#local-ocr-models).
+- **Reading a page with Mistral** (`core/ai/MistralInvoiceReader`, `app.invoice.reader` `mistral`): `POST /v1/ocr` with
   `model` `app.mistral.ocr-model` (`mistral-ocr-4-1`, OCR 4.1, July 2026, pinned: `mistral-ocr-latest` and
   `mistral-ocr-4` are aliases that move), `document`
   `{"type": "image_url", "image_url": "data:image/jpeg;base64,..."}` (a PDF: `document_url`), `table_format`
@@ -64,8 +80,10 @@ invoice only helps: **Count without the invoice** is always there, and a reading
 - **Access**: `SecurityConfig` gives `/ship/orders/*/invoice/**` to MASTER and CHIEF_COOK; the vessel's enabled
   Master or Chief cook only, another ship's order is a 404. Not before the delivery is scheduled, not for the cook
   once his count is with the Master, never once the order is CLOSED. Ship screens English only.
-- **Configuration**: the same `MISTRAL_API_KEY` as 34; `MISTRAL_OCR_MODEL` and `MISTRAL_OCR_TIMEOUT` (60s per
-  page). Without a key (and not fake) nothing is read: Done keeps the photos and goes on to the count.
+- **Configuration**: `INVOICE_READER` `local` (default) with `OCR_MODEL_DIR`, `OCR_MAX_SIDE`, `OCR_THREADS`; or
+  `mistral` with the same `MISTRAL_API_KEY` as 34, `MISTRAL_OCR_MODEL` and `MISTRAL_OCR_TIMEOUT` (60s per page).
+  Without the models (local) or the key (mistral), and not fake, nothing is read: Done keeps the photos and goes on
+  to the count.
   `MISTRAL_FAKE=true` (dev, tests) uses `core/ai/FakeInvoiceReader`, which "reads" the synthetic sample invoice in
   `samples/invoice/`: A-4471 of the fictional Kestrel Ship Supply S.A., two pages, 40 lines, Greek number format and
   bilingual headers, as PNG scans and phone-style JPEG photos, with `invoice-A-4471.expected.json` (every line,
@@ -73,7 +91,11 @@ invoice only helps: **Count without the invoice** is always there, and a reading
   third page has no table (hard to read). The tests use its hooks (a failed page, a line lost, a low confidence, a
   value changed, another order's reference).
 - Tests: `core/ai/InvoicePageParserTest` (the sample read back line for line, English and Greek, both number
-  formats, a table given apart, totals, unreadable cells), `core/ai/MistralInvoiceReaderTest` (the request, the
+  formats, a table given apart, totals, unreadable cells, labels with Greek and Latin letters mixed),
+  `core/ai/OcrLayoutTest` (rows, a tilted page, columns, a description going on, one alphabet per word, a line's
+  confidence), `core/ai/OnnxOcrTest` (the characters, CTC decoding, the regions), `core/ai/LocalInvoiceReaderTest`
+  (the real models on the sample: scans, photos, sideways, a PDF; skipped without the models),
+  `core/ai/MistralInvoiceReaderTest` (the request, the
   answer, sideways pages, the chat fallback, errors, nothing secret logged), `core/order/InvoiceChecksTest` (every
   rule), `shiporder/InvoiceFlowTest` (both roles, Retake and Remove, the limits and types, hard, failed and
   unread pages, another order, what is stored, access).

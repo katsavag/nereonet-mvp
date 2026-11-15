@@ -18,6 +18,8 @@
 		<jjwt.version>0.13.0</jjwt.version>
 		<poi.version>5.4.1</poi.version>
 		<commons-csv.version>1.14.1</commons-csv.version>
+		<onnxruntime.version>1.22.0</onnxruntime.version>
+		<pdfbox.version>3.0.5</pdfbox.version>
 	</properties>
 
 	<dependencies>
@@ -75,6 +77,17 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
 			<version>${commons-csv.version}</version>
+		</dependency>
+		<!-- Reading the photographed invoice on the server (core/ai/LocalInvoiceReader): PaddleOCR models in ONNX. -->
+		<dependency>
+			<groupId>com.microsoft.onnxruntime</groupId>
+			<artifactId>onnxruntime</artifactId>
+			<version>${onnxruntime.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>

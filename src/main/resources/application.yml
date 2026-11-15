@@ -156,9 +156,21 @@ app:
     ocr-model: ${MISTRAL_OCR_MODEL:mistral-ocr-4-1}
     ocr-timeout: ${MISTRAL_OCR_TIMEOUT:60s}
     fake: ${MISTRAL_FAKE:false}
-  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks). Off while Mistral is off
-  # (no key and not fake): the photos are still kept as the receipt's files, nothing is read.
+  # P67: the local OCR that reads the photographed delivery invoice on the server (core/ai/LocalInvoiceReader):
+  # PaddleOCR models in ONNX, nothing leaves the server, no key. The models are files, not in the repository
+  # (docs/configuration.md says where to get them): det.onnx, rec.onnx and rec.yml (or dict.txt) in model-dir.
+  ocr:
+    model-dir: ${OCR_MODEL_DIR:models/ocr}
+    # The page is scaled down to this many pixels on its long side to find the text.
+    max-side: ${OCR_MAX_SIDE:1600}
+    # CPU threads one reading uses.
+    threads: ${OCR_THREADS:2}
+  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks). Off while its reader is
+  # off (local: the models are missing; mistral: no key; neither when fake): the photos are still kept as the
+  # receipt's files, nothing is read.
   invoice:
+    # Who reads the pages (P67): local (the OCR above, on the server) or mistral (Mistral OCR, needs MISTRAL_API_KEY).
+    reader: ${INVOICE_READER:local}
     # A line whose OCR block is less sure than this is flagged "check" (for the office).
     min-confidence: ${INVOICE_MIN_CONFIDENCE:0.85}
     # Read the pages in the background while the progress page reloads itself (false in the tests: at once).

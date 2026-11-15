@@ -22,7 +22,7 @@ import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -54,10 +54,10 @@ import tools.jackson.databind.json.JsonMapper;
  *     that page's OCR text into the same lines. Only the OCR text is sent.
  * Only the page is sent: no crew names, no order data. A status other than 2xx, no connection or no answer in
  * app.mistral.ocr-timeout is an InvoiceReadingException. Logs say how a call ended, never the key, the image or the
- * text. Active unless app.mistral.fake is true.
+ * text. Active when app.invoice.reader is mistral and app.mistral.fake is not true.
  */
 @Component
-@ConditionalOnProperty(name = "app.mistral.fake", havingValue = "false", matchIfMissing = true)
+@ConditionalOnExpression("!${app.mistral.fake:false} and '${app.invoice.reader:local}' == 'mistral'")
 public class MistralInvoiceReader implements InvoiceReader {
 
     private static final Logger log = LoggerFactory.getLogger(MistralInvoiceReader.class);
@@ -100,6 +100,11 @@ public class MistralInvoiceReader implements InvoiceReader {
                 HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build());
         factory.setReadTimeout(timeout);
         return RestClient.builder().requestFactory(factory).build();
+    }
+
+    @Override
+    public boolean configured() {
+        return !settings.apiKey().isEmpty();
     }
 
     @Override

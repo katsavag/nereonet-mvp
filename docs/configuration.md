@@ -40,6 +40,10 @@ Set these environment variables:
 | `MISTRAL_TIMEOUT` | optional; default `30s` |
 | `MISTRAL_OCR_MODEL` | optional (P62); default `mistral-ocr-4-1` (OCR 4.1), for reading the delivery invoice (see [37](features/37-invoice-photo.md)) |
 | `MISTRAL_OCR_TIMEOUT` | optional; default `60s` per page |
+| `INVOICE_READER` | optional (P67); who reads the photographed delivery invoice: `local` (default, the OCR on the server, see below) or `mistral` (Mistral OCR, needs `MISTRAL_API_KEY`) (see [37](features/37-invoice-photo.md)) |
+| `OCR_MODEL_DIR` | optional; default `models/ocr` (from the working directory), the folder with the local OCR models; without them invoices are not read |
+| `OCR_MAX_SIDE` | optional; default `1600`, the page is scaled to this many pixels on its long side to find the text |
+| `OCR_THREADS` | optional; default `2`, CPU threads one reading uses |
 | `INVOICE_MIN_CONFIDENCE` | optional; default `0.85`, below it an invoice line is flagged "check" |
 | `INVOICE_READING_STALLED_AFTER` | optional; default `15m`, a reading not finished by then is given up |
 | `INVOICE_SAMPLE_DIR` | optional; default `samples/invoice`, the sample invoice the fake reader reads |
@@ -52,6 +56,30 @@ Set these environment variables:
 | `BOOTSTRAP_OFFICE_EMAIL` | first office user; required only while no office user exists |
 | `BOOTSTRAP_OFFICE_PASSWORD` | first office user; required only while no office user exists |
 | `SUPPORT_CONTACT` | optional free text shown as "Office contact" on the "link is invalid or has expired" page and as "Questions? Contact: …" in the footer of the invitation and password reset emails, e.g. `Crewing department · crewing@example.com · +30 210 000 0000`; not shown when empty |
+
+## Local OCR models
+
+The invoice reader (`INVOICE_READER=local`) needs three files in `OCR_MODEL_DIR` (default `models/ocr`, gitignored).
+They are PaddleOCR's official ONNX exports (Apache 2.0), about 13 MB in all:
+
+| File | Download |
+|---|---|
+| `det.onnx` | `https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx` |
+| `rec.onnx` | `https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx` |
+| `rec.yml` | `https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml` |
+
+```sh
+mkdir -p models/ocr && cd models/ocr
+curl -L -o det.onnx https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx
+curl -L -o rec.onnx https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx
+curl -L -o rec.yml https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml
+```
+
+`rec.yml` holds the recognition model's characters; a `dict.txt` (one character per line) does instead. Another
+recognition model works when its characters come with it. The server needs no GPU: about 4 s a page on 2 to 4 cores
+and some 300 MB of memory. ONNX Runtime is a native library in the jar (Linux, Windows, macOS; x64 and arm64); on
+Windows it needs the Microsoft Visual C++ runtime. Java prints a "restricted method" warning when it loads; start
+the app with `--enable-native-access=ALL-UNNAMED` to silence it.
 
 Outside dev, SMTP login and STARTTLS are required (no plain-text fallback). Keep secrets out of
 checked-in files (`application*.yml`, `docker-compose.yml`) and do not enable `mail.debug` or DEBUG
