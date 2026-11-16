@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,6 +48,11 @@ public class StoresService {
 
     /** The items of one storage place, by name. place: null for the items without one ("Other", always last). */
     public record PlaceGroup(String place, List<Level> levels) {
+
+        /** How many of its items are among these ids: the refused rows of the count's card, which then stays open. */
+        public long countOf(Collection<Long> itemIds) {
+            return levels.stream().filter(level -> itemIds.contains(level.item().getId())).count();
+        }
     }
 
     /**

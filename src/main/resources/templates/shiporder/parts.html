@@ -275,7 +275,7 @@
     <div class="count-row-controls">
         <label class="visually-hidden" th:for="${'q-' + i}" th:text="#{order.count.arrived}">Arrived</label>
         <input th:replace="~{layout/parts :: quantityInput(id=${'q-' + i}, name=${'q-' + i}, value=${value}, rule=${rule},
-                cls='count-qty', invalid=${error != null}, kept=${ref},
+                cls='count-qty', invalid=${error != null}, kept=${ref}, autofocus=${error != null and i == firstError},
                 describedBy=${'name-' + i + ' unit-' + i + ' says-' + i})}">
         <span class="count-unit" th:id="${'unit-' + i}" th:text="${r.unit}">bags</span>
         <input type="checkbox" class="btn-check" th:id="${'none-' + i}" th:name="${'none-' + i}" value="1"

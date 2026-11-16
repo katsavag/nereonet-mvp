@@ -30,6 +30,7 @@
     </header>
 
     <form method="post" th:object="${form}" novalidate class="request-form" data-request-form
+          th:data-fold-store="${'request:' + p.ship.id}"
           th:action="${editing} ? @{/ship/requests/{id}/edit(id=${p.request.id})} : @{/ship/requests/new}">
         <div th:replace="~{layout/parts :: errorSummary(${form}, '')}"></div>
         <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
@@ -148,20 +149,27 @@
     <th:block th:with="units=${p.cook} ? ${@quantityRules.unitsJson('REQUEST')} : null">
         <div th:replace="~{layout/parts :: quantityTexts('REQUEST', ${units})}"></div>
     </th:block>
+    <script th:src="@{/js/fold-cards.js}" defer></script>
     <script th:src="@{/js/request-form.js}" defer></script>
 </main>
-<!-- One group of the form, a card: Running low, Provisions or Personal items (g: ShipRequestService.Group). It is
+<!-- One group of the form, a card that can be closed (layout/parts :: foldCard; js/fold-cards.js remembers which are
+     closed, per vessel): Running low, Provisions or Personal items (g: ShipRequestService.Group). Its header says
+     how many items it has and how many are picked (js/request-form.js as they are typed). It is
      outside <main>, so it shows only where the form puts it. A Running low row always has its stock cell, so the
      quantity fields and the units of the card stand under each other. -->
-<section th:fragment="group(g)" class="card mb-4 request-group" data-request-group
-         th:classappend="${g.runningLow} ? 'request-group-low'" th:with="groupId=${'requestGroup' + g.key}"
-         th:attr="aria-labelledby=${groupId}">
-    <div class="card-header py-3">
-        <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
-            th:text="${g.runningLow} ? #{request.form.runningLow} : #{${'item.category.' + g.key}}">Provisions</h2>
-        <p th:if="${g.runningLow}" class="small text-body-secondary mb-0 mt-1"
-           th:text="#{request.form.runningLow.hint}">Out of stock or low in the store, with what is on board.</p>
-    </div>
+<th:block th:fragment="group(g)" th:with="groupId=${'requestGroup' + g.key}, picked=${form.picked(g.rows)}">
+<details th:replace="~{layout/parts :: foldCard(id=${groupId},
+        title=${g.runningLow} ? #{request.form.runningLow} : #{${'item.category.' + g.key}}, facts=~{::groupFacts},
+        body=~{::groupRows}, key=${g.key}, locked=false,
+        extra=${'mb-4 request-group' + (g.runningLow ? ' request-group-low' : '')})}">
+    <th:block th:fragment="groupFacts">
+        <span class="fold-fact text-meta" th:text="#{fold.items(${g.rows.size()})}">40 items</span>
+        <span class="fold-fact text-meta" data-fold-picked th:hidden="${picked == 0}"
+              th:data-text="#{request.form.fold.picked('{n}')}" th:text="#{request.form.fold.picked(${picked})}">3 picked</span>
+        <span th:if="${g.runningLow}" class="fold-hint text-meta"
+              th:text="#{request.form.runningLow.hint}">Out of stock or low in the store, with what is on board.</span>
+    </th:block>
+    <th:block th:fragment="groupRows">
     <ul class="list-group list-group-flush">
         <li th:each="row : ${g.rows}" class="list-group-item request-pick-row" data-request-row
             th:with="i=${row.index}, field=${'lines[' + row.index + '].quantity'}, unitId=${'unit' + row.index}"
@@ -187,6 +195,8 @@
                th:errors="*{lines[__${i}__].quantity}">Enter a quantity above zero.</p>
         </li>
     </ul>
-</section>
+    </th:block>
+</details>
+</th:block>
 </body>
 </html>

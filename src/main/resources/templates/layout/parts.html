@@ -386,7 +386,8 @@
 <!-- 16px icon before the label of a page header action, in the style of the sidebar icons.
      name: 'plus' (add), 'upload' (import), 'download' (export, a library file), 'check' (the current view of a
      viewSwitch), 'external' (opens in a new tab: a library PDF; say so in visually hidden text too),
-     'paperclip' (a certificate's file), 'trash' (Delete row), 'snooze' (a snoozed alert), 'mic' (Count by voice).
+     'paperclip' (a certificate's file), 'trash' (Delete row), 'snooze' (a snoozed alert), 'mic' (Count by voice),
+     'chevron' (points right; foldCard turns it down while the card is open).
      Use: <svg th:replace="~{layout/parts :: icon('plus')}"></svg><span th:text="#{...}">Add ship</span> -->
 <svg th:fragment="icon(name)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -400,6 +401,7 @@
     <th:block th:if="${name == 'trash'}"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></th:block>
     <th:block th:if="${name == 'snooze'}"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 3 2.5 5.5M19 3l2.5 2.5"/></th:block>
     <th:block th:if="${name == 'mic'}"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></th:block>
+    <path th:if="${name == 'chevron'}" d="m9 5 7 7-7 7"/>
 </svg>
 
 <!-- The "more" menu at the end of a table or list row: every row action except the one visible next to it.
@@ -604,6 +606,46 @@
 <!-- One link of the page header's breadcrumbs. url: an app path, e.g. '/office/ships' or ${'/office/ships/' + ship.id}.
      Below a ship use ship/parts :: crumbs, which adds Ships, the ship and its tab. -->
 <li th:fragment="crumb(label, url)" class="breadcrumb-item"><a th:href="@{${url}}" th:text="${label}">Ships</a></li>
+
+<!-- A group card of a long list that the person can close and open again: a native details element, open when the
+     page loads, its header the summary (the whole header is the target), so it works without JavaScript and with
+     the keyboard. Only on the four long lists: Inventory, Count the inventory, New request, Count what arrived.
+     The header: a chevron that turns, the group's name, then what is inside in words, so a closed card hides no fact.
+     Fields inside a closed card are still sent with the form. Styles: app.css, "Cards that close".
+       id      the id of the heading (the card is labelled by it)
+       title   the group's name
+       facts   ~{::name}: the header's facts, each <span class="fold-fact text-meta">12 items</span> (a dot is drawn
+               before each; a status word adds text-warning-emphasis or text-danger-emphasis; a fact that does not
+               apply now is [hidden]). <span class="fold-fact fold-done text-meta"> starts with foldTick, a tick
+               shown while the card is closed; a locked card says why instead ("1 without a number", #{fold.refused}:
+               "1 to correct"). A <span class="fold-hint text-meta"> is a line under the name.
+       body    ~{::name}: what the card holds, usually a ul.list-group.list-group-flush
+       key     the card's name in the remembered state, or null where nothing is remembered. js/fold-cards.js keeps
+               the state under the data-fold-store of an element around the cards (the page and the vessel).
+       locked  true for a card that cannot be closed now (a count's card with a row that needs the person): no
+               chevron and the summary does nothing; js/fold-cards.js (nnFoldLock) changes it as the rows change.
+       extra   more classes for the card, or null
+     Use (th:each and th:with go on a wrapper: th:replace runs before them on the same element):
+       <details th:replace="~{layout/parts :: foldCard(id=${groupId}, title=${g.place}, facts=~{::placeFacts},
+                body=~{::placeRows}, key=null, locked=false, extra=null)}">
+           <th:block th:fragment="placeFacts"><span class="fold-fact text-meta">12 items</span></th:block>
+           <th:block th:fragment="placeRows"><ul class="list-group list-group-flush">...</ul></th:block>
+       </details> -->
+<details th:fragment="foldCard(id, title, facts, body, key, locked, extra)" class="card fold-card" open data-fold
+         th:classappend="${(extra ?: '') + (locked ? ' is-locked' : '')}"
+         th:attr="aria-labelledby=${id}, data-fold-id=${key}">
+    <summary class="card-header fold-head" th:attr="tabindex=${locked} ? '-1' : null">
+        <span class="fold-chevron"><svg th:replace="~{layout/parts :: icon('chevron')}"></svg></span>
+        <span class="fold-head-text">
+            <h2 class="h5 fw-bold mb-0" th:id="${id}" th:text="${title}">Cold room</h2>
+            <th:block th:replace="${facts}"></th:block>
+        </span>
+    </summary>
+    <th:block th:replace="${body}"></th:block>
+</details>
+
+<!-- The tick that starts a foldCard's .fold-done fact, shown only while the card is closed. -->
+<span th:fragment="foldTick" class="fold-tick"><svg th:replace="~{layout/parts :: icon('check')}"></svg></span>
 
 <!-- Status badge: a dot and the text, in a status colour. The text carries the meaning, the colour only repeats it.
      tone: 'ok', 'warning', 'danger', 'info', 'primary' or 'neutral'.
@@ -927,7 +969,8 @@
      no visible label (the quote table).
      rule: null where the rule is the server's alone: the item is chosen on the page (the office's Add an item: js/item-search.js sets the rule).
      unitField (optional): the id of the field where the unit is chosen (the rule follows it; needs quantityTexts with
-     the units JSON). ofForm (optional): the id of the form the field belongs to, when it is not the one around it. -->
+     the units JSON). ofForm (optional): the id of the form the field belongs to, when it is not the one around it.
+     autofocus (optional): true for the first refused field of a count that came back, so it is in view without a script. -->
 <input th:fragment="quantityInput" type="text" autocomplete="off" spellcheck="false" data-quantity
        class="form-control font-monospace" th:classappend="${(cls ?: '') + (invalid == true ? ' is-invalid' : '')}"
        th:id="${id}" th:name="${name}" th:value="${@quantityRules.text(value)}"
@@ -939,7 +982,8 @@
                 data-quantity-kept=${kept == null} ? null : ${kept.stripTrailingZeros().toPlainString()},
                 data-quantity-unit-field=${unitField}, form=${ofForm},
                 aria-describedby=${describedBy}, aria-label=${ariaLabel},
-                aria-invalid=${invalid == true} ? 'true' : null">
+                aria-invalid=${invalid == true} ? 'true' : null,
+                autofocus=${autofocus == true} ? 'autofocus' : null">
 
 <!-- The slot under a quantity field where js/quantity.js shows its live errors ("Up to 2000 kg per line. ..."); empty
      while the value is fine. Its id goes in the field's aria-describedby. rule: the field's rule (not read here). -->

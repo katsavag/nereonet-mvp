@@ -324,7 +324,7 @@ class DeliveryCountFlowTest {
                         "On the invoice, not on the order", "Paper napkins", "New item", "Invoice 10 pcs",
                         "not on the order", "It is an item we have", "Not on the invoice: remove",
                         "Sparkling drink xyz", "New item", "Invoice 24 pcs")
-                .doesNotContain("120", "1.85", "price");
+                .doesNotContain("120 kg", "value=\"120\"", "1.85", "price");   // 120 alone can be in a script's file hash
         assertThat(eggs.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getOrderLine().getId()).isEqualTo(riceLine.getId());

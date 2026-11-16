@@ -34,7 +34,7 @@ the Master's rules): the Master and crew members get 403. The pages always show 
   name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
   filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
   alphabetical, the items without a place last under **Other**; each row is one link to the item with its
-  quantity and unit and its status badge (OK, Low, Out of stock; words, the colour only repeats them). The cards are two per row from 768 px. The header has one button, **Count**. No paging:
+  quantity and unit and its status badge (OK, Low, Out of stock; words, the colour only repeats them). The cards are two per row from 768 px. A card can be closed and opened again (P87: `layout/parts :: foldCard`, a native `<details>`; its header says what is inside, "Cold room · 12 items · 2 low · 1 out of stock"); which cards are closed is remembered on the device per vessel (`js/fold-cards.js`, localStorage), and a search or filter shows every card with a match open. The header has one button, **Count**. No paging:
   the whole store. Nothing found: "No results for these filters" with **Clear all**; no provisions at all: "No
   provisions yet".
 - **An item** (`/ship/stores/items/{id}`): its quantity and status, unit and place ("Not set"), then its history,
@@ -60,7 +60,11 @@ the Master's rules): the Master and crew members get 403. The pages always show 
     so nothing was saved."). A wrong value (blank, not a number, below zero, too many decimals, above the maximum)
     saves nothing at all: the page comes back with every typed value and the message under each wrong row. With
     JavaScript (`js/stores-changed.js`) a changed row is marked (a blue left edge and "changed") and the bar says
-    "3 items changed". The form carries `data-draft`, so `js/save.js` keeps what is typed in the browser if the
+    "3 items changed". The storage places are cards that can be closed (P87, `layout/parts :: foldCard`); nothing
+    is remembered, so every visit starts with every card open. A header says "Cold room · 12 items · 3 changed" (or
+    "nothing changed"); a card with an empty or refused number ("1 to correct") cannot be closed, the bar counts the
+    rows of closed cards too, and a refused Save comes back with every card open and the first refused field in
+    view (`autofocus`). The form carries `data-draft`, so `js/save.js` keeps what is typed in the browser if the
     connection drops and removes it once the count is saved.
   - **Add an item that is not on the list** (P75), at the end of the same form: Name, Unit, Quantity counted and
     Where it is kept (optional, the vessel's places as suggestions). As soon as one field is filled, name, unit and

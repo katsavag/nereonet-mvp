@@ -10,7 +10,8 @@
      Then the search and the status filter (All, Low, Out of stock; GET, handled on the server) and the items in
      one card per storage place (alphabetical, the items without a place last under "Other"; two cards per row from
      768px), each row one link (the
-     name, stretched over the row) to the item, with its quantity and unit and its status badge.
+     name, stretched over the row) to the item, with its quantity and unit and its status badge. A card can be closed
+     (layout/parts :: foldCard): its header says how many items it has and how many are low or out of stock.
      Model: stores (StoresService.Stores), list (ListQuery), status ("low", "out" or null). -->
 <main class="stores-page" th:with="s=${stores}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.title}, eyebrowShip=${s.ship},
@@ -101,14 +102,21 @@
         </div>
     </div>
 
-    <div th:unless="${s.groups.isEmpty()}" class="stores-places">
-    <section th:each="g, it : ${s.groups}" class="card stores-place" th:with="groupId=${'storesPlace' + it.index}"
-             th:attr="aria-labelledby=${groupId}">
-        <div class="card-header d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
-                th:text="${g.place != null} ? ${g.place} : #{stores.place.other}">Dry store</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${g.levels.size()}">4</span>
-        </div>
+    <!-- data-fold-store: js/fold-cards.js remembers on this device which cards are closed; not while a search or a
+         filter is on, when every card with a match is open. -->
+    <div th:unless="${s.groups.isEmpty()}" class="stores-places"
+         th:attr="data-fold-store=${#strings.isEmpty(list.q) and status == null} ? ${'stores:' + s.ship.id} : null">
+    <th:block th:each="g, it : ${s.groups}" th:with="groupId=${'storesPlace' + it.index},
+            low=${g.levels.?[status.name() == 'LOW'].size()}, out=${g.levels.?[status.name() == 'OUT'].size()}">
+    <details th:replace="~{layout/parts :: foldCard(id=${groupId},
+            title=${g.place != null} ? ${g.place} : #{stores.place.other}, facts=~{::placeFacts}, body=~{::placeRows},
+            key=${g.place ?: ''}, locked=false, extra='stores-place')}">
+        <th:block th:fragment="placeFacts">
+            <span class="fold-fact text-meta" th:text="#{fold.items(${g.levels.size()})}">12 items</span>
+            <span th:if="${low > 0}" class="fold-fact text-meta text-warning-emphasis" th:text="#{stores.fold.low(${low})}">2 low</span>
+            <span th:if="${out > 0}" class="fold-fact text-meta text-danger-emphasis" th:text="#{stores.fold.out(${out})}">1 out of stock</span>
+        </th:block>
+        <th:block th:fragment="placeRows">
         <ul class="list-group list-group-flush">
             <li th:each="l : ${g.levels}" class="list-group-item list-group-item-action stores-row">
                 <a class="stores-row-name stretched-link" th:href="@{/ship/stores/items/{id}(id=${l.item.id})}"
@@ -118,8 +126,11 @@
                 <span class="stores-count-status d-inline-flex"><span th:replace="~{stores/parts :: statusBadge(${l.status})}"></span></span>
             </li>
         </ul>
-    </section>
+        </th:block>
+    </details>
+    </th:block>
     </div>
+    <script th:src="@{/js/fold-cards.js}" defer></script>
 </main>
 </body>
 </html>

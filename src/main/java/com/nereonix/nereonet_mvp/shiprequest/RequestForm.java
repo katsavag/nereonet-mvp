@@ -90,6 +90,11 @@ public class RequestForm {
                 || (newQuantity != null && !newQuantity.isEmpty());
     }
 
+    /** How many of these rows of the form have a quantity typed: the "3 picked" of a group's header. */
+    public long picked(List<ShipRequestService.Row> rows) {
+        return rows.stream().filter(row -> row.index() < lines.size() && lines.get(row.index()).isPicked()).count();
+    }
+
     void clearNewItemFields() {
         newName = null;
         newUnit = null;

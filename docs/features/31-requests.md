@@ -28,6 +28,9 @@ ask, they decide (21, 22), and gets 403. A request is not an order: only an appr
   most 3 decimals (`ShipOrderService.isValidQuantity`, the order's rule; "2,5" is read as 2.5), its error under
   the row. No item names are typed. With JavaScript a **Search items** field filters the rows by name as you type
   (`js/request-form.js`, P50's pattern; without it the whole list shows) and Enter never sends the form.
+  Each group is a card that can be closed (P87, `layout/parts :: foldCard`): its header says "Provisions · 40 items
+  · 3 picked", the closed cards are remembered on the device per vessel (`js/fold-cards.js`), what is typed in a
+  closed card is still sent, and the search opens every card with a match.
   - The Chief cook only: the provisions **Out of stock** or **Low** (`StockService`) come first, under **Running
     low**, Out of stock first, each with what is on board and its status badge. Crew members never see stock.
   - The Chief cook only: **Add an item that is not on the list**: Name (required, 100 characters), Unit (optional,

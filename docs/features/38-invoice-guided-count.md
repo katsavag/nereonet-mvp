@@ -44,8 +44,14 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   when there is none), and **Did not arrive** (a checkbox that looks like a quiet button: the row is saved as 0,
   whatever the input says; typing 0 ticks it); under the input the difference in words ("2 more than the invoice",
   "3 fewer than the invoice", "Did not arrive"). A row that differs has a left border in the warning colour, a row
-  without a number in the danger colour. The bar at the bottom of the screen says what Save will record ("37 as the
-  invoice · 2 different · 1 without a number", `js/count.js`) and has **Retake invoice photo** (**Photograph the
+  without a number in the danger colour. Each category is a card that can be closed (P87, `layout/parts ::
+  foldCard`, a native `<details>`; nothing is remembered, every page load has every card open): its header says
+  "Provisions · 20 items · 2 different · 1 without a number", or "all counted" with a tick once closed. A card with a
+  row without a number or with a refused one cannot be closed (no chevron; the server renders it so, `js/count.js`
+  follows the typing and opens a card whose number is cleared), and what is typed in a closed card is still sent.
+  The bar at the bottom of the screen says what Save will record, over every row, open or closed ("37 as the
+  invoice · 2 different · 1 without a number", `js/count.js`; with a row without a number the sentence is a link
+  that opens its card and goes to it) and has **Retake invoice photo** (**Photograph the
   invoice** when there is no page) and **Save count** (`POST .../count`, `DeliveryCountService.saveRows`, P60's
   receipt rule in the row's unit): every row with a number is counted, a row left empty is not. A refused value:
   nothing is saved, every typed value stays, the message is at its row. Rows without a number: the rest is saved and

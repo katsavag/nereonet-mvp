@@ -94,6 +94,7 @@ public class StoresController {
 
     // Every active provisions item by place, each row with the quantity the inventory has now, in one form with one
     // "Save count". Model: stores, form (CountForm), rowErrors (item id: the message of its refused quantity),
+    // firstError (the item id of the first refused row, or null),
     // voiceEnabled (both providers configured) and voicePending (a proposal waits in the session for its review).
     @GetMapping(PATH + "/count")
     public String countPage(@AuthenticationPrincipal CurrentUser currentUser, HttpSession session, Model model) {
@@ -104,6 +105,9 @@ public class StoresController {
     private String countPage(Stores stores, Map<Long, String> rowErrors, HttpSession session, Model model) {
         model.addAttribute("stores", stores);
         model.addAttribute("rowErrors", rowErrors);
+        // The first refused row in the page's order: its field has the focus, so it is in view when the page comes back.
+        model.addAttribute("firstError", stores.groups().stream().flatMap(group -> group.levels().stream())
+                .map(level -> level.item().getId()).filter(rowErrors::containsKey).findFirst().orElse(null));
         model.addAttribute("voiceEnabled", voiceCountService.configured());
         model.addAttribute("voicePending", session.getAttribute(VoiceCountController.SESSION_KEY) != null);
         return "stores/count";

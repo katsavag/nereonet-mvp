@@ -1,9 +1,12 @@
 package com.nereonix.nereonet_mvp.stores;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.stock.StockService.Level;
 
 import jakarta.validation.constraints.Size;
 
@@ -34,6 +37,27 @@ public class CountForm {
     /** True when a field of the new item is filled: then its name, unit and quantity are required. */
     public boolean hasNewItem() {
         return newName != null || newUnit != null || newPlace != null || newQuantity != null;
+    }
+
+    /**
+     * How many of these items have a typed quantity that is not the one the page showed: the "3 changed" of a
+     * storage place's header as the server renders it ("12" and "12,0" are the same; js/stores-changed.js keeps it up
+     * to date).
+     */
+    public long changed(List<Level> levels) {
+        return levels.stream().filter(level -> {
+            String typed = quantities.get(level.item().getId());
+            String was = shown.get(level.item().getId());
+            return typed != null && was != null && !same(typed.strip(), was.strip());
+        }).count();
+    }
+
+    private static boolean same(String typed, String was) {
+        try {
+            return new BigDecimal(typed.replace(',', '.')).compareTo(new BigDecimal(was.replace(',', '.'))) == 0;
+        } catch (NumberFormatException e) {
+            return typed.equals(was);
+        }
     }
 
     private static String typed(String text) {

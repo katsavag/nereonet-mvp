@@ -12,11 +12,12 @@
        as suggestions). Filled in, the item joins the vessel's list and is counted by the same Save.
      - The bar at the bottom of the screen: "Save count", always enabled. Anything wrong: the page comes back with
        every typed value, the message under each wrong row or field, and nothing saved.
-     - js/stores-changed.js marks the rows whose number was changed and says how many in the bar; without it there is
-       no mark and no number.
+     - js/stores-changed.js marks the rows whose number was changed and says how many in the bar and in each card's
+       header; without it there is no mark, no number in the bar, and the headers say what the server rendered.
      - data-draft: js/save.js keeps what is typed in the browser if the connection drops, and removes it once the
        count is saved.
      English only. Model: stores (StoresService.Stores), form (CountForm), rowErrors (item id: message),
+     firstError (the item id of the first refused row, or null),
      voiceEnabled, voicePending. Each count follows the rule of the item's unit, 0 allowed, up to the inventory
      maximum (README 35). -->
 <main class="stores-count" th:with="s=${stores}">
@@ -43,14 +44,24 @@
                     text=#{stores.empty.text}, action=null)}"></div>
         </div>
 
+        <!-- The storage places, each a card that can be closed (layout/parts :: foldCard); nothing is remembered,
+             so every visit starts with every card open. A card with a refused row cannot be closed. -->
         <div th:unless="${s.groups.isEmpty()}" class="card-grid card-grid-start mb-4">
-        <section th:each="g, it : ${s.groups}" class="card" th:with="groupId=${'storesCountPlace' + it.index}"
-                 th:attr="aria-labelledby=${groupId}">
-            <div class="card-header d-flex justify-content-between align-items-center py-3">
-                <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
-                    th:text="${g.place != null} ? ${g.place} : #{stores.place.other}">Dry store</h2>
-                <span class="font-monospace small text-body-secondary" th:text="${g.levels.size()}">4</span>
-            </div>
+        <th:block th:each="g, it : ${s.groups}" th:with="groupId=${'storesCountPlace' + it.index},
+                changed=${form.changed(g.levels)}, refused=${g.countOf(rowErrors.keySet())}">
+        <details th:replace="~{layout/parts :: foldCard(id=${groupId},
+                title=${g.place != null} ? ${g.place} : #{stores.place.other}, facts=~{::placeFacts},
+                body=~{::placeRows}, key=null, locked=${refused > 0}, extra=null)}">
+            <th:block th:fragment="placeFacts">
+                <span class="fold-fact text-meta" th:text="#{fold.items(${g.levels.size()})}">12 items</span>
+                <span class="fold-fact text-meta text-danger-emphasis" data-fold-refused th:hidden="${refused == 0}"
+                      th:data-text="#{fold.refused('{n}')}" th:text="#{fold.refused(${refused})}">1 to correct</span>
+                <span class="fold-fact fold-done text-meta"><span th:replace="~{layout/parts :: foldTick}"></span><span
+                        data-fold-changed th:data-none="#{stores.count.fold.none}"
+                        th:data-many="#{stores.count.fold.changed('{count}')}"
+                        th:text="${changed == 0} ? #{stores.count.fold.none} : #{stores.count.fold.changed(${changed})}">nothing changed</span></span>
+            </th:block>
+            <th:block th:fragment="placeRows">
             <ul class="list-group list-group-flush">
                 <li th:each="l : ${g.levels}" class="list-group-item stores-count-row" data-count-row
                     th:with="id=${l.item.id}, error=${rowErrors.get(l.item.id)},
@@ -65,6 +76,7 @@
                     <input th:replace="~{layout/parts :: quantityInput(id=${'count-' + id},
                             name=${'quantities[' + id + ']'}, value=${form.quantities.get(id) ?: now},
                             rule=${rule}, cls='stores-count-input', invalid=${error != null}, kept=${l.quantity},
+                            autofocus=${id == firstError},
                             describedBy=${'count-' + id + '-unit count-' + id + '-hint'
                                     + (error != null ? ' count-' + id + '-error' : '')})}">
                     <span class="stores-count-unit" th:id="${'count-' + id + '-unit'}" th:text="${l.item.unit}">kg</span>
@@ -73,7 +85,9 @@
                     <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'count-' + id + '-hint'})}"></span>
                 </li>
             </ul>
-        </section>
+            </th:block>
+        </details>
+        </th:block>
         </div>
 
         <!-- An item on the shelf that is not on the list: saved, and counted, by the same "Save count". -->
@@ -142,6 +156,7 @@
     <th:block th:with="units=${@quantityRules.unitsJson('COUNT')}">
         <div th:replace="~{layout/parts :: quantityTexts('COUNT', ${units})}"></div>
     </th:block>
+    <script th:src="@{/js/fold-cards.js}" defer></script>
     <script th:src="@{/js/stores-changed.js}" defer></script>
     <script th:if="${voiceEnabled and s.total > 0}" th:src="@{/js/stores-voice.js}" defer></script>
 </main>

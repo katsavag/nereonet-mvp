@@ -18,7 +18,7 @@
      switch; Crew tab bar.
    Shared components: Confirmations; Dates and times; Error pages; Saving on a bad connection; Required notices;
      List filters, sort and pages; View switch; Row selection; Import from a file; Empty states; Snoozing alerts;
-     Date range; Facts grid; Stat strip and tiles.
+     Date range; Facts grid; Stat strip and tiles; Cards that close.
    Features: Vessel page; Overview; Sign-in and registration; Forgot password; Rank and access; Certificates;
      Library; Notifications; Crew Home; Home cards; Crew News; My profile and My crew; Approvals; Vessel order;
      Vetting; SIRE 2.0; Required documents; Suppliers and quotes; Vessel data; Receipt on board; Stores;
@@ -3276,6 +3276,65 @@ a.stat-chip:hover .stat-chip-label,
 .count-tile.is-different .count-tile-num { color: var(--nn-warning-text); }
 .stat-chip.is-danger { background-color: var(--nn-danger-bg); border-color: var(--nn-danger-border); }
 .stat-chip.is-danger .stat-chip-value { color: var(--nn-danger-text); }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Cards that close: layout/parts :: foldCard, a .card that is a details element, on the four long lists (Inventory,
+   Count the inventory, New request, Count what arrived). js/fold-cards.js remembers and locks; nothing here needs it.
+     - .fold-head: the summary, the card's header and the whole of it the target, at least 44px high: the chevron
+       (.fold-chevron, pointing right, turned down while the card is open; no browser marker), then .fold-head-text:
+       the name and the facts, which wrap under the name on a narrow card.
+     - .fold-fact: one fact in words ("12 items"), muted (.text-meta), a dot before it; a status word has its status
+       colour (text-warning-emphasis, text-danger-emphasis). .fold-hint: a line of its own under the name.
+     - .fold-done: the fact that says a card is finished ("all counted"); its tick (.fold-tick) shows only while the
+       card is closed. A locked card says why instead, in the danger colour ("1 without a number", "1 to correct").
+     - A closed card is its header alone, with the card's border and radius: the header keeps its height (the line
+       under it turns transparent), so nothing jumps.
+     - .is-locked: a card that cannot be closed now. No chevron (its room stays, so the names of all cards start on
+       one line), the summary takes no click and no focus, and if it is closed all the same its content still shows.
+   --------------------------------------------------------------------------------------------------------------- */
+.fold-card { display: block; }
+.fold-card[hidden] { display: none; }
+.fold-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nn-space-2);
+    min-height: 2.75rem;             /* 44px */
+    padding-top: var(--nn-space-4);
+    padding-bottom: var(--nn-space-4);
+    list-style: none;
+    cursor: pointer;
+}
+.fold-head::-webkit-details-marker { display: none; }
+.fold-card:not([open]) > .fold-head {
+    border-bottom-color: transparent;
+    border-radius: var(--bs-card-inner-border-radius);
+}
+.fold-chevron {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    height: 1.35rem;                 /* the line of the name, so the chevron stays beside it when the facts wrap */
+    color: var(--nn-text-secondary);
+    transition: transform .15s ease-in-out;
+}
+.fold-card[open] > .fold-head > .fold-chevron { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .fold-chevron { transition: none; } }
+.fold-head-text {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--nn-space-2);
+    min-width: 0;
+}
+.fold-fact { white-space: nowrap; }
+.fold-fact::before { content: "\00b7"; margin-right: var(--nn-space-2); color: var(--nn-text-secondary); }
+.fold-hint { flex-basis: 100%; }
+.fold-tick { display: none; margin-right: var(--nn-space-1); color: var(--nn-ok-text); vertical-align: text-bottom; }
+.fold-card:not([open]) .fold-tick { display: inline-flex; }
+.fold-card.is-locked > .fold-head { pointer-events: none; cursor: default; }
+.fold-card.is-locked .fold-chevron { visibility: hidden; }
+.fold-card.is-locked::details-content { content-visibility: visible; }
 
 
 

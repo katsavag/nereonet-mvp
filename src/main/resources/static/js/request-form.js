@@ -1,8 +1,10 @@
 // New request and Edit request (templates/shiprequest/form.html). Only an enhancement: without this script the
 // whole list shows and every button posts the form as it is.
 //  - [data-request-search] (hidden until this script runs) filters the rows ([data-request-row], by data-name) by
-//    name, ignoring case; a group ([data-request-group]) with no match is hidden. What is typed stays in the hidden
-//    rows and is sent with the form.
+//    name, ignoring case; a group's card (details[data-fold], layout/parts :: foldCard) with no match is hidden and
+//    one with a match is opened, whatever was closed. What is typed stays in the hidden rows and in the closed
+//    cards, and is sent with the form.
+//  - The header of each group's card says how many of its items have a quantity ([data-fold-picked]: "3 picked").
 //  - [data-request-search-empty] (a live region) says when nothing matches.
 //  - Enter never sends the form from a field: in the search or a quantity it does nothing (the form's first button
 //    could be "Add to request"); in the new item's fields it presses "Add to request".
@@ -29,7 +31,7 @@
             input.addEventListener('input', () => {
                 const query = input.value.trim().toLocaleLowerCase();
                 let shown = 0;
-                form.querySelectorAll('[data-request-group]').forEach(group => {
+                form.querySelectorAll('details[data-fold]').forEach(group => {
                     let inGroup = 0;
                     group.querySelectorAll('[data-request-row]').forEach(row => {
                         const match = !query || (row.dataset.name || '').includes(query);
@@ -37,6 +39,9 @@
                         inGroup += match ? 1 : 0;
                     });
                     group.hidden = inGroup === 0;
+                    if (query && inGroup > 0) {
+                        group.open = true;
+                    }
                     shown += inGroup;
                 });
                 if (empty) {
@@ -44,6 +49,21 @@
                 }
             });
         }
+
+        function picked() {
+            form.querySelectorAll('details[data-fold]').forEach(group => {
+                const fact = group.querySelector('[data-fold-picked]');
+                if (!fact) {
+                    return;
+                }
+                const count = Array.from(group.querySelectorAll('[data-request-row] input[data-quantity]'))
+                    .filter(field => field.value.trim() !== '').length;
+                fact.hidden = count === 0;
+                fact.textContent = fact.dataset.text.replace('{n}', count);
+            });
+        }
+        form.addEventListener('input', picked);
+        picked();
 
         form.addEventListener('keydown', event => {
             const field = event.target;

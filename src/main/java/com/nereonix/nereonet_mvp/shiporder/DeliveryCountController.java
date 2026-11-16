@@ -82,6 +82,17 @@ public class DeliveryCountController {
     public record AddError(Long item, String quantity, String itemMessage, String quantityMessage) {
     }
 
+    /**
+     * The header of one group's card as the server renders it: how many of its rows are not what the invoice says,
+     * how many have no number and how many have a refused one. With a row of the last two the card cannot be closed.
+     */
+    public record GroupHead(long different, long empty, long refused) {
+
+        public boolean locked() {
+            return empty > 0 || refused > 0;
+        }
+    }
+
     /** What the page shows instead of the saved count: what was typed per row (key: text), the notes, the errors. */
     public record Typed(Map<String, String> quantities, Map<String, String> notes, Map<String, String> errors) {
     }
@@ -456,7 +467,29 @@ public class DeliveryCountController {
     private String show(ShipOrder order, CountSheet sheet, Typed typed, Model model) {
         model.addAttribute("order", order);
         model.addAttribute("sheet", sheet);
-        model.addAttribute("groups", CountSheet.groups(sheet.getRows()));
+        List<CountSheet.Group> groups = CountSheet.groups(sheet.getRows());
+        Object left = model.getAttribute("leftEmpty");
+        // The text of each row's input: what was typed after a refused Save; nothing for a row the last Save left
+        // without a number; else the saved count, and for a row never saved the reference.
+        Map<String, String> values = new HashMap<>();
+        for (CountSheet.Row row : sheet.getRows()) {
+            String key = row.getKey();
+            values.put(key, typed != null && typed.quantities().containsKey(key) ? typed.quantities().get(key)
+                    : left instanceof List<?> keys && keys.contains(key) ? ""
+                    : row.text(row.hasCount() ? row.getCounted() : row.getReference()));
+        }
+        model.addAttribute("groups", groups);
+        model.addAttribute("values", values);
+        model.addAttribute("heads", groups.stream().map(group -> {
+            long different = group.rows().stream().filter(r -> "different".equals(r.mark(values.get(r.getKey())))).count();
+            long empty = group.rows().stream().filter(r -> "empty".equals(r.mark(values.get(r.getKey())))).count();
+            long refused = typed == null ? 0
+                    : group.rows().stream().filter(r -> typed.errors().containsKey(r.getKey())).count();
+            return new GroupHead(different, empty, refused);
+        }).toList());
+        // The first refused row: its field has the focus, so it is in view when the page comes back.
+        model.addAttribute("firstError", typed == null ? null : groups.stream().flatMap(group -> group.rows().stream())
+                .map(CountSheet.Row::getKey).filter(typed.errors()::containsKey).findFirst().orElse(null));
         model.addAttribute("typed", typed);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         model.addAttribute("invoicePages", receiptService.invoicePages(order.getId()).size());

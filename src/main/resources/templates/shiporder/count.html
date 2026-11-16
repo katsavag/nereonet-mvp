@@ -24,7 +24,9 @@
      the other rows comes back from that draft; so do the remove and Put back buttons (countLineForm, each button with
      its formaction) and the added line (countAddForm).
      Nothing goes into the store here. A count sent back by the Master shows the Master's note on top.
-     English only. Model: order, sheet (CountSheet), groups (CountSheet.Group), typed (DeliveryCountController.Typed
+     English only. Model: order, sheet (CountSheet), groups (CountSheet.Group), values (row key: the text of its
+     input), heads (DeliveryCountController.GroupHead, one per group), firstError (the key of the first refused row,
+     or null), typed (DeliveryCountController.Typed
      after a refused Save, else null), leftEmpty (the keys of the rows the last Save left without a number, or absent),
      fixError (DeliveryCountController.RowError: a correction of the invoice refused), noteMax, invoicePages,
      addable (InvoiceMatchService.Choices: what a line added by hand may be; null without a read invoice),
@@ -46,22 +48,40 @@
     </div>
 
     <form method="post" novalidate th:action="@{${baseUrl}}" th:data-draft="@{${baseUrl}}" data-count-form>
-        <section th:each="g, it : ${groups}" class="card mb-3 count-group" th:attr="aria-labelledby=${'countGroup' + it.index}">
-            <div class="card-header py-3">
-                <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}"
-                    th:text="${g.category != null} ? #{${g.category.labelKey()}} : #{order.count.new.heading}">Provisions</h2>
-            </div>
+        <!-- The groups, each a card that can be closed (layout/parts :: foldCard). Nothing is remembered: every visit,
+             and every page that comes back from Save, has every card open. A card with a row without a number or
+             with a refused one (h.locked) cannot be closed; js/count.js follows the rows as they are typed. -->
+        <th:block th:each="g, it : ${groups}" th:with="groupId=${'countGroup' + it.index}, h=${heads[it.index]}">
+        <details th:replace="~{layout/parts :: foldCard(id=${groupId},
+                title=${g.category != null} ? #{${g.category.labelKey()}} : #{order.count.new.heading},
+                facts=~{::groupFacts}, body=~{::groupRows}, key=null, locked=${h.locked()}, extra='mb-3 count-group')}">
+            <th:block th:fragment="groupFacts">
+                <span class="fold-fact text-meta" th:text="#{fold.items(${g.rows.size()})}">20 items</span>
+                <span class="fold-fact text-meta text-warning-emphasis" data-fold-different th:hidden="${h.different() == 0}"
+                      th:data-text="#{order.count.bar.different('{n}')}"
+                      th:text="#{order.count.bar.different(${h.different()})}">2 different</span>
+                <span class="fold-fact text-meta text-danger-emphasis" data-fold-empty th:hidden="${h.empty() == 0}"
+                      th:data-text="#{order.count.bar.empty('{n}')}"
+                      th:text="#{order.count.bar.empty(${h.empty()})}">1 without a number</span>
+                <span class="fold-fact text-meta text-danger-emphasis" data-fold-refused th:hidden="${h.refused() == 0}"
+                      th:data-text="#{fold.refused('{n}')}" th:text="#{fold.refused(${h.refused()})}">1 to correct</span>
+                <span class="fold-fact fold-done text-meta" data-fold-done th:hidden="${h.locked()}"><span
+                        th:replace="~{layout/parts :: foldTick}"></span>[[#{order.count.fold.done}]]</span>
+            </th:block>
+            <th:block th:fragment="groupRows">
             <ul class="list-group list-group-flush">
                 <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}"
                     th:with="sent=${typed != null and typed.quantities().containsKey(r.key)},
                              left=${leftEmpty != null and leftEmpty.contains(r.key)},
-                             value=${sent ? typed.quantities().get(r.key) : (left ? '' : r.text(r.hasCount() ? r.counted : r.reference))},
+                             value=${values.get(r.key)},
                              note=${sent ? typed.notes().get(r.key) : (r.note ?: '')},
                              error=${sent ? typed.errors().get(r.key) : null}">
                     <div th:replace="~{shiporder/parts :: countRow(${r}, ${value}, ${error}, ${left}, ${note}, true)}"></div>
                 </li>
             </ul>
-        </section>
+            </th:block>
+        </details>
+        </th:block>
 
         <section th:unless="${sheet.notOrdered.isEmpty()}" class="card mb-3" aria-labelledby="countNotOrderedTitle">
             <div class="card-header py-3">
@@ -171,6 +191,7 @@
     <!-- Remove and Put back (each button names its own formaction), and the line added by hand. -->
     <form method="post" th:action="@{${baseUrl + '/lines'}}" id="countLineForm" hidden></form>
     <form method="post" th:action="@{${baseUrl + '/lines'}}" id="countAddForm" hidden></form>
+    <script th:src="@{/js/fold-cards.js}" defer></script>
     <script th:src="@{/js/count.js}" defer></script>
 </main>
 </body>
