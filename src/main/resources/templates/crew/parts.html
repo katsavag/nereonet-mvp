@@ -29,36 +29,6 @@
             data-access-chief_cook=${#messages.msg(key, #messages.msg('role.CHIEF_COOK'), #messages.msg('role.access.CHIEF_COOK'))},
             data-access-crew_member=${#messages.msg(key, #messages.msg('role.CREW_MEMBER'), #messages.msg('role.access.CREW_MEMBER'))}">Access: set by the rank</p>
 
-<!-- In the lists, after the rank: a small badge for the roles that have their own access (Master and Chief cook:
-     Role.isOnePerShip), "Master access"; nothing for a crew member. role: the user's (or invitation's)
-     actual role, which for an older account may not be the one their rank sets. -->
-<th:block th:fragment="accessBadge(role)">
-    <th:block th:if="${role != null and role.onePerShip}"><span
-            th:replace="~{layout/parts :: statusIcon('primary', #{crew.access.badge(${#messages.msg('role.' + role)})}, 'key')}">Master access</span></th:block>
-</th:block>
-
-<!-- The Crew list's "Rank needs review" notice: users with no rank, or whose rank does not set the role they
-     have (User.rankNeedsReview). They keep their role; each links to the edit form, where saving applies the rank's.
-     users: those of the list shown, as filtered (CrewController); nothing is shown when there are none. -->
-<section th:fragment="rankReview(users)" th:if="${!users.isEmpty()}" class="alert alert-warning rank-review"
-         aria-labelledby="rankReviewHeading">
-    <h2 id="rankReviewHeading" class="rank-review-heading">
-        <span th:text="#{crew.rankReview.heading}">Rank needs review</span>
-        <span class="badge status-badge status-warning" th:text="${users.size()}">2</span>
-    </h2>
-    <p class="mb-2" th:text="#{crew.rankReview.text}">These crew members have no rank, or a rank that does not match
-        their access.</p>
-    <ul class="rank-review-list list-plain">
-        <li th:each="u : ${users}">
-            <a class="alert-link" th:href="@{/office/crew/{id}/edit(id=${u.id})}" th:text="${u.fullName}">Jane Doe</a>
-            <span class="rank-review-detail"><span aria-hidden="true">·</span> <span th:text="${u.ship != null} ? ${u.ship.name} : #{crew.rankReview.noVessel}">MV Demo</span>
-                <span aria-hidden="true">·</span> <span th:text="#{crew.rankReview.detail(${u.rank} ? ${#messages.msg('rank.' + u.rank)} : ${#messages.msg('crew.rankReview.noRank')}, ${#messages.msg('role.' + u.role)})}">Rank: not set · access now: Master</span></span>
-        </li>
-    </ul>
-    <!-- Without a rank or a vessel no required documents apply, so their Documents column is a dash. -->
-    <p class="mt-2 mb-0" th:text="#{crew.rankReview.documents}">Without a rank and a vessel, no required documents apply to them.</p>
-</section>
-
 <!-- Required documents -->
 
 <!-- The Crew list's Documents column: "5 of 7" required documents held (expired counts as missing), with an icon and
@@ -268,17 +238,16 @@
     </th:block>
 </th:block>
 
-<!-- A pending invitation's row actions: Resend, one click, also when expired (new link and expiry date); Cancel
-     invitation in the "more" menu, asking first. Both send the fields of the list they are on (listParams, see
-     crew/CrewListReturn; none on Office users), so they return to it with its filters. -->
+<!-- A pending invitation's row actions, in the "more" menu: Resend, one click, also when expired (new link and
+     expiry date); then Cancel invitation, asking first. Both send the fields of the list they are on (listParams,
+     see crew/CrewListReturn; none on Office users), so they return to it with its filters. -->
 <div th:fragment="invitationActions(inv)" class="row-actions">
-    <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
-        <input th:each="p : ${listParams}" type="hidden" th:name="${p.key}" th:value="${p.value}">
-        <button type="submit" class="btn btn-ghost btn-sm"
-                th:text="#{invitation.resend}">Resend</button>
-    </form>
     <details th:replace="~{layout/parts :: rowMenu(#{common.moreActions(${inv.fullName})}, ~{::invitationMenuItems})}">
         <th:block th:fragment="invitationMenuItems">
+            <form th:action="@{/office/invitations/{id}/resend(id=${inv.id})}" method="post">
+                <input th:each="p : ${listParams}" type="hidden" th:name="${p.key}" th:value="${p.value}">
+                <button type="submit" class="dropdown-item" th:text="#{invitation.resend}">Resend</button>
+            </form>
             <hr class="dropdown-divider">
             <form th:replace="~{layout/parts :: confirmForm(action=${'/office/invitations/' + inv.id + '/cancel'},
                     fields=${listParams}, label=#{invitation.cancel.confirm.submit},

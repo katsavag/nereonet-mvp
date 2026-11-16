@@ -203,9 +203,9 @@ class NavigationFlowTest {
         rightShip(today.plusDays(61));     // not yet
 
         String nav = sidebar(get("/office"));
-        // Certificates opens what its counter counts (P20); without a count, the list as it is.
+        // Certificates always opens the plain list; the counter is those expired or within 30 days.
         assertThat(empty).contains("href=\"/office/certificates\">");
-        assertThat(nav).containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?>Certificates</span>\\s*"
+        assertThat(nav).containsPattern("(?s)href=\"/office/certificates\">.*?>Certificates</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 expired or expiring within 30 days</span>")
                 .containsPattern("(?s)href=\"/office/orders\">.*?>Orders</span>\\s*"
@@ -213,7 +213,7 @@ class NavigationFlowTest {
                         + "<span class=\"visually-hidden\">2 open</span>")
                 // P40: Vetting, right after Certificates, counts the vessels whose inspection expired or expires within
                 // 60 days.
-                .containsPattern("(?s)href=\"/office/certificates\\?status=expired,30\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"
+                .containsPattern("(?s)href=\"/office/certificates\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 need attention</span>");
         assertThat(count(nav, "nav-count")).as("no unread notifications, no pill").isEqualTo(3);

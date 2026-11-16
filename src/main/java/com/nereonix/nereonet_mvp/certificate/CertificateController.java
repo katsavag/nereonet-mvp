@@ -167,7 +167,7 @@ public class CertificateController {
         model.addAttribute("certificates", certificates);
         // The snoozed rows of the page (muted, with Undo); the others get Snooze.
         model.addAttribute("snoozes", certificateService.snoozesOf(certificates.getContent()));
-        // Empty without a filter: no certificate yet at all, or none expiring within 90 days.
+        // Empty without a filter: no certificate yet at all.
         model.addAttribute("anyCertificates", certificateService.anyCertificates(filter.shipId()));
         model.addAttribute("status", status.key());
         model.addAttribute("statusOption", status.isOption());

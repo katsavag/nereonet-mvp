@@ -199,9 +199,6 @@ class ListsFlowTest {
                 .contains("Status: Delivery scheduled");
         assertThat(names(html(get("/office/orders").param("shipId", beta.getId().toString()))))
                 .containsExactly(number(exported.getId()));
-        String notExported = html(get("/office/orders").param("exported", "no"));
-        assertThat(names(notExported)).hasSize(10).doesNotContain(number(exported.getId()));
-        assertThat(notExported).contains("class=\"filter-chip\"", "Export status: Not exported yet");
         // Newest sent first.
         String first = html(get("/office/orders"));
         assertThat(names(first).getFirst()).isEqualTo(number(alphaOrders.getLast().getId()));

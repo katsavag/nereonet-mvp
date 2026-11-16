@@ -270,22 +270,18 @@ public class ShipOrderService {
 
     /**
      * One page of the orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN), newest sent first, paginated
-     * in the database. shipId and status null mean every ship and every one of those statuses; notExported keeps
-     * those never exported; invoiceDiffer those received whose invoice is not matched yet and has lines that
+     * in the database. shipId and status null mean every ship and every one of those statuses;
+     * invoiceDiffer keeps those received whose invoice is not matched yet and has lines that
      * differ. The search is an order number ("12" or "#12"), or the ship's name or IMO number.
      */
     @Transactional(readOnly = true)
-    public Page<ShipOrder> findSent(Long shipId, ShipOrderStatus status, boolean notExported, boolean invoiceDiffer,
-                                    ListQuery list) {
+    public Page<ShipOrder> findSent(Long shipId, ShipOrderStatus status, boolean invoiceDiffer, ListQuery list) {
         return listQueries.page(ShipOrder.class, list, (root, cb) -> {
             List<Predicate> where = new ArrayList<>();
             where.add(status != null && SENT_TO_OFFICE.contains(status) ? cb.equal(root.get("status"), status)
                     : root.get("status").in(SENT_TO_OFFICE));
             if (shipId != null) {
                 where.add(cb.equal(root.get("ship").get("id"), shipId));
-            }
-            if (notExported) {
-                where.add(cb.isNull(root.get("exportedAt")));
             }
             if (invoiceDiffer) {
                 where.add(cb.equal(root.get("status"), ShipOrderStatus.CLOSED));

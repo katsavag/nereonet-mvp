@@ -70,12 +70,6 @@ public class CrewService {
         return peopleQueries.page(false, shipId, status, missingDocuments, list);
     }
 
-    /** P18's "Rank needs review" notice: the users of the Crew list as filtered (every page, not only this one). */
-    @Transactional(readOnly = true)
-    public List<User> findRankNeedsReview(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
-        return peopleQueries.rankNeedsReview(shipId, status, missingDocuments, list);
-    }
-
     /** Every user of the Crew list as filtered and sorted (all pages, no invitations): its export. */
     @Transactional(readOnly = true)
     public List<User> findAllCrewUsers(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {

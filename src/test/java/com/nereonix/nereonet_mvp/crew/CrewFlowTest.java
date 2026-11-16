@@ -360,9 +360,9 @@ class CrewFlowTest {
                         ">Πρόσβαση: ορίζεται από τον βαθμό</p>");
     }
 
-    // P18: the Role column is gone; Master and Chief Cook have an access badge after the rank.
+    // P18: the Role column is gone; the Rank column shows only the rank, without an access badge.
     @Test
-    void listsShowTheRankAndAnAccessBadgeForTheRolesWithTheirOwnAccess() throws Exception {
+    void listsShowOnlyTheRankInTheRankColumn() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
         userService.createUser("master@example.com", "Mara Master", "secret123", Role.MASTER, ship, Rank.MASTER);
         userService.createUser("chief@example.com", "Chris Chief", "secret123", Role.CREW_MEMBER, ship,
@@ -374,16 +374,16 @@ class CrewFlowTest {
         for (String page : List.of("/office/crew", "/office/ships/" + ship.getId() + "/crew")) {
             String html = html(get(page));
             assertThat(html).as(page).doesNotContain("<th scope=\"col\">Role</th>")
-                    .contains(">Master access</span>", ">Chief cook access</span>", "<span>Bosun</span>",
-                            "<span>Chief Engineer</span>");
-            assertThat(html.split("access</span>", -1)).as(page).hasSize(3);
+                    .contains("<span>Master</span>", "<span>Chief Cook</span>", "<span>Bosun</span>",
+                            "<span>Chief Engineer</span>")
+                    .doesNotContain("access</span>");
         }
     }
 
-    // P18: users from before whose rank and role disagree, or who have no rank, keep their role and are listed in a
-    // notice on the Crew list; saving the edit form applies the rank's role.
+    // P18: users from before whose rank and role disagree, or who have no rank, keep their role; the edit form says
+    // which access they have now, and saving it applies the rank's role. The Crew list has no notice about them.
     @Test
-    void usersWhoseRankDoesNotSetTheirRoleAreListedForReview() throws Exception {
+    void usersWhoseRankDoesNotSetTheirRoleKeepItUntilSaved() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
         User noRank = userService.createUser("nora@example.com", "Nora Norank", "secret123", Role.MASTER, ship, null);
         User mismatch = userService.createUser("milo@example.com", "Milo Mismatch", "secret123", Role.CHIEF_COOK, ship,
@@ -391,22 +391,9 @@ class CrewFlowTest {
         User fine = userService.createUser("fiona@example.com", "Fiona Fine", "secret123", Role.CREW_MEMBER, ship,
                 Rank.BOSUN);
 
-        String list = html(get("/office/crew"));
-        String notice = list.substring(list.indexOf("<section class=\"alert alert-warning rank-review\""),
-                list.indexOf("</section>"));
-        assertThat(notice).contains("Rank needs review", ">2</span>",
-                "href=\"/office/crew/" + noRank.getId() + "/edit\">Nora Norank</a>",
-                "Rank: not set · access now: Master",
-                "href=\"/office/crew/" + mismatch.getId() + "/edit\">Milo Mismatch</a>",
-                "Rank: Bosun · access now: Chief cook")
-                .doesNotContain("Fiona Fine");
+        assertThat(html(get("/office/crew"))).contains("Nora Norank", "Milo Mismatch").doesNotContain("rank-review");
         // They keep their role until saved.
         assertThat(userRepository.findById(noRank.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
-        assertThat(html(get("/office/crew").param("lang", "el"))).contains("Ο βαθμός θέλει έλεγχο");
-        // Filtered to another ship or to invitations: not listed.
-        Ship other = ship("9176187", "MV Other");
-        assertThat(html(get("/office/crew").param("shipId", other.getId().toString()))).doesNotContain("rank-review");
-        assertThat(html(get("/office/crew").param("status", "invited"))).doesNotContain("rank-review");
 
         // The edit form names the access they have now; no rank is chosen for Nora.
         assertThat(html(get("/office/crew/" + noRank.getId() + "/edit")))
@@ -421,7 +408,6 @@ class CrewFlowTest {
         edit(mismatch, "BOSUN", ship).andExpect(redirectedUrl("/office/crew"));
         assertThat(userRepository.findById(noRank.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
         assertThat(userRepository.findById(mismatch.getId()).orElseThrow().getRole()).isEqualTo(Role.CREW_MEMBER);
-        assertThat(html(get("/office/crew"))).doesNotContain("rank-review");
     }
 
     private org.springframework.test.web.servlet.ResultActions edit(User user, String rank, Ship ship)

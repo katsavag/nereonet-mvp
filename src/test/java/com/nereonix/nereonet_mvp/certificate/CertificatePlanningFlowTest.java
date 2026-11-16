@@ -123,8 +123,8 @@ class CertificatePlanningFlowTest {
     // 1. The Status filter -------------------------------------------------------------------------------------------
 
     @Test
-    void statusFilterShowsEachStateAndDefaultsToExpiredAndWithin90Days() throws Exception {
-        assertThat(count(html(get("/office/certificates")))).isEqualTo(6);
+    void statusFilterShowsEachStateAndDefaultsToAll() throws Exception {
+        assertThat(count(html(get("/office/certificates")))).isEqualTo(7);
         assertThat(count(html(get("/office/certificates").param("status", "expired")))).isEqualTo(2);
         assertThat(count(html(get("/office/certificates").param("status", "30")))).isEqualTo(2);
         assertThat(count(html(get("/office/certificates").param("status", "60")))).isEqualTo(3);
@@ -133,7 +133,7 @@ class CertificatePlanningFlowTest {
         assertThat(count(html(get("/office/certificates").param("status", "all")))).isEqualTo(7);
         assertThat(count(html(get("/office/certificates").param("status", "expired,30")))).isEqualTo(4);
         // Something it does not know: the default, so any URL shows a list.
-        assertThat(count(html(get("/office/certificates").param("status", "soon")))).isEqualTo(6);
+        assertThat(count(html(get("/office/certificates").param("status", "soon")))).isEqualTo(7);
 
         String sixty = html(get("/office/certificates").param("status", "60"));
         assertThat(sixty).contains("<option value=\"60\" selected=\"selected\">Within 60 days</option>",
@@ -196,12 +196,14 @@ class CertificatePlanningFlowTest {
                 .matcher(overview);
         assertThat(nav.find()).isTrue();
         assertThat(nav.group(2)).isEqualTo("4");
-        assertThat(count(html(url(nav.group(1))))).isEqualTo(4);
+        // Its link is the plain list, with all seven; the Status filter narrows to the four counted.
+        assertThat(nav.group(1)).isEqualTo("/office/certificates");
+        assertThat(count(html(get("/office/certificates").param("status", "expired,30")))).isEqualTo(4);
 
-        // d. The ship page's Certificates tab count: expired or within 90 days, as the tab's List view shows them.
+        // d. The ship page's Certificates tab count: expired or within 90 days; the tab's List view shows all five.
         String tab = html(get("/office/ships/{id}/certificates", alpha.getId()));
         assertThat(tab).containsPattern("Certificates</span>\\s*<span class=\"ship-tab-count num\" aria-hidden=\"true\">4</span>");
-        assertThat(names(html(get("/office/ships/{id}/certificates/list", alpha.getId())))).hasSize(4);
+        assertThat(names(html(get("/office/ships/{id}/certificates/list", alpha.getId())))).hasSize(5);
 
         // Open certificate on the Overview comes back to the Overview.
         assertThat(overview).contains("/office/crew/" + anna.getId() + "/certificates/" + annaStcw.getId()

@@ -2403,7 +2403,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        "Select all on this page");
      - tr.is-row-link: a row that opens its record when clicked (set by the script: no pointer without it); the
        checkbox cell keeps the normal pointer, a click there never opens the row;
-     - .exported-by: when (UTC) and by whom, on two lines.
+     - .exported-by: when (UTC) and by whom, on two lines (the order page).
    --------------------------------------------------------------------------------------------------------------- */
 .select-target {
     display: inline-flex;
@@ -2426,6 +2426,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     border-bottom: 1px solid var(--nn-divider);
 }
 .list-selection-all { display: none; }
+/* A count with no sentence while nothing is selected (the snooze lists) takes no room; from 768px, where the
+   select-all checkbox is not in this line, the line itself is not shown until a row is selected. */
+.list-selection-count:empty { display: none; }
+@media (min-width: 768px) {
+    .list-selection:has(> .list-selection-count:empty) { display: none; }
+}
 @media (max-width: 767.98px) {
     .list-selection-all {
         display: flex;
@@ -3344,7 +3350,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        cut with an ellipsis) and the actions across; below that they wrap and the actions go under the text.
      - .attention-empty: "Nothing needs your attention" and the time of the last check.
      - .overview-card: a card of the right column with a header (title and a link on the right), one of:
-       .upcoming-list (the date, what, the vessel), .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
+       .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
        who, the vessel, when). An empty card shows the P25 empty state, compact.
      - .status-badge-icon: a status badge (layout/parts :: statusIcon) with a 12px icon in place of the dot.
      - .count-zero / .count-link: a count in the fleet table (layout/parts :: countLink); zero is a muted dash.
@@ -3462,36 +3468,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     border-top: 1px solid var(--nn-divider);
     font-size: var(--nn-font-xs);
     color: var(--nn-text-secondary);
-}
-
-/* Next 30 days */
-.upcoming-item {
-    display: flex;
-    align-items: baseline;
-    gap: var(--nn-space-3);
-    padding-block: var(--nn-space-2);
-    font-size: var(--nn-font-sm);
-}
-.upcoming-date {
-    flex: 0 0 6.25rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-.upcoming-text {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--nn-space-2);
-    min-width: 0;
-}
-.upcoming-title {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-    overflow-wrap: anywhere;
-}
-.upcoming-ship {
-    align-self: center;
-    font-weight: 600;
 }
 
 /* Fleet */
@@ -3995,43 +3971,13 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Rank and access: crew/parts :: rankOptions, accessHint, accessBadge, rankReview; js/forms.js.
+   Rank and access: crew/parts :: rankOptions, accessHint; js/forms.js.
      - .access-hint: "Access: Master · can publish library items and see acknowledgements" under a rank picker,
        read-only help text; in the import review table it is the short "Access: Master" and keeps to one line.
-     - the access badge in the lists (layout/parts :: statusIcon with the 'key' icon, primary pair).
-     - .rank-review: the Crew list's "Rank needs review" notice, in the warning pair. Each name is a link to the edit
-       form with a full touch target (40px, 44px on phones); the ship and rank details follow in body text.
    --------------------------------------------------------------------------------------------------------------- */
 .import-table .access-hint {
     margin-top: var(--nn-space-1);
     white-space: nowrap;
-}
-
-.rank-review { margin-bottom: var(--nn-space-4); }
-.rank-review-heading {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-2);
-    margin: 0 0 var(--nn-space-1);
-    font-size: 1rem;
-    font-weight: 700;
-}
-.rank-review-list li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    column-gap: var(--nn-space-2);
-}
-.rank-review-list a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--nn-touch-target);
-}
-/* Phones: the details on their own line under the name, without the leading dot. */
-@media (max-width: 575.98px) {
-    .rank-review-list li { margin-bottom: var(--nn-space-2); }
-    .rank-review-detail { flex-basis: 100%; }
-    .rank-review-detail > [aria-hidden="true"]:first-child { display: none; }
 }
 
 

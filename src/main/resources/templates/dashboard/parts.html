@@ -421,29 +421,6 @@
     <nav th:replace="~{layout/parts :: pager(${d.items}, ${list})}"></nav>
 </section>
 
-<!-- Next 30 days: the coming dates in order, at most 8; See all opens the list by date. -->
-<section th:fragment="upcoming(d)" class="card overview-card" aria-labelledby="upcomingTitle">
-    <div class="card-header overview-card-header">
-        <h2 class="overview-card-title" id="upcomingTitle" th:text="#{dashboard.upcoming.heading}">Next 30 days</h2>
-        <a class="overview-card-link" th:href="@{/office(sort='date')}" th:text="#{dashboard.upcoming.seeAll}">See all</a>
-    </div>
-    <th:block th:if="${d.upcoming.isEmpty()}">
-        <div th:replace="~{layout/parts :: emptyState(icon='certificates', title=#{dashboard.upcoming.empty},
-                text=#{dashboard.upcoming.empty.text}, action=null)}"></div>
-    </th:block>
-    <ul th:unless="${d.upcoming.isEmpty()}" class="list-group list-group-flush upcoming-list">
-        <li th:each="u : ${d.upcoming}" class="list-group-item upcoming-item">
-            <time class="upcoming-date num" th:datetime="${u.date}" th:text="${@dates.date(u.date)}">20 Nov 2026</time>
-            <span class="upcoming-text">
-                <a class="upcoming-title" th:href="@{${u.url}}"
-                   th:text="${u.kind == 'certificate'} ? #{dashboard.upcoming.certificate(${u.title})}
-                       : (${u.kind == 'delivery'} ? #{dashboard.upcoming.delivery(${u.title})} : #{${'dashboard.upcoming.' + u.kind}})">STCW expires</a>
-                <span class="upcoming-ship" th:if="${u.ship != null}" th:text="${u.ship.name}">MV Demo</span>
-            </span>
-        </li>
-    </ul>
-</section>
-
 <!-- Fleet: one compact row per vessel, those with open items first, at most 8. -->
 <section th:fragment="fleet(d)" class="card overview-card" aria-labelledby="fleetTitle">
     <div class="card-header overview-card-header">

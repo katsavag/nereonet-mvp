@@ -65,7 +65,7 @@ are not checked, and the crew cannot upload documents themselves.
   case and surrounding spaces) that expires last; **Valid**, **Expires in 12 days** (within 30), **Expired**
   (counts as missing), **Missing**. A certificate whose expiry is beyond the P39 plausible range (30 years) is ignored. An optional
   document is shown, last and marked "Optional", never counted. Without a rank or a vessel nothing applies: the
-  person is listed under **Rank needs review** ([8](08-crew.md)).
+  person's Documents column is a dash ([8](08-crew.md)).
 - **Where it shows**: the office's crew member page, card **Required documents** ("For Chief Officer on MV Demo
   (vessel type: Tanker)", missing and expired first, each with its badge, **Open** for a file and **Add
   certificate** with the person and type filled in, coming back to the page; **Change what is required**); the Crew

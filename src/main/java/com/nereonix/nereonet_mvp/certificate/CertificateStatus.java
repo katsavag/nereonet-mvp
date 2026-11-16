@@ -16,18 +16,18 @@ import jakarta.persistence.criteria.Predicate;
 /**
  * The Status filter of the Certificates list: ?status=expired, 30, 60, 90, valid or all, and combinations of
  * the states joined with a comma, so the Overview and the sidebar counter can link to exactly what they count
- * (?status=expired,30). Without the parameter, or with a value it does not know: expired and within 90 days.
+ * (?status=expired,30). Without the parameter, or with a value it does not know: every certificate.
  * <ul>
  *   <li>expired: the expiry date has passed (UTC days, as the badges and the reminder job);</li>
  *   <li>30, 60, 90: not expired, expiring within that many days, today included ("Within 60 days" includes the
  *       ones within 30);</li>
  *   <li>valid: more than 90 days left, the "Valid" badge;</li>
- *   <li>all: every certificate.</li>
+ *   <li>all: every certificate, as without the parameter.</li>
  * </ul>
  * Labels: certificate.filter.status.&lt;key&gt; (a combination: its own key with "-" for ",", else the states'
  * labels joined).
  * "snoozed" lists only the certificates whose snooze holds (AlertSnooze), whatever their state; every other
- * value but "all" leaves them out.
+ * value leaves them out, the default (all) has them too.
  */
 public record CertificateStatus(Set<State> states, boolean snoozed) {
 
@@ -80,17 +80,17 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
     /** "snoozed": only the certificates whose snooze holds. */
     public static final String SNOOZED = "snoozed";
 
-    /** Without a status: expired and within 90 days, what the list showed before P20. */
-    public static final CertificateStatus DEFAULT = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_90), false);
+    /** Without a status: every certificate, the snoozed ones too. */
+    public static final CertificateStatus DEFAULT = new CertificateStatus(EnumSet.allOf(State.class), false);
 
     /** Expired or within 30 days: what the Overview and the sidebar counter count (?status=expired,30). */
     public static final CertificateStatus OPEN_ITEMS = new CertificateStatus(EnumSet.of(State.EXPIRED, State.DAYS_30), false);
 
-    /** The options of the Status select, in order, after the default ("" ). */
-    public static final List<String> OPTIONS = List.of("expired", "30", "60", "90", "valid", SNOOZED, ALL);
+    /** The options of the Status select, in order, after the default ("": All). */
+    public static final List<String> OPTIONS = List.of("expired,90", "expired", "30", "60", "90", "valid", SNOOZED);
 
     /**
-     * The filter in the URL: null or blank is the default, "all" every certificate, "snoozed" the snoozed ones, else
+     * The filter in the URL: null, blank or "all" is the default (every certificate), "snoozed" the snoozed ones, else
      * one or more state keys joined with a comma. Anything it does not know is the default, so any URL shows a list.
      */
     public static CertificateStatus of(String value) {
@@ -98,7 +98,7 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
             return DEFAULT;
         }
         if (value.strip().equals(ALL)) {
-            return new CertificateStatus(EnumSet.allOf(State.class), false);
+            return DEFAULT;
         }
         if (value.strip().equals(SNOOZED)) {
             return new CertificateStatus(EnumSet.allOf(State.class), true);
@@ -126,21 +126,18 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
         return !snoozed && states.equals(EnumSet.allOf(State.class));
     }
 
-    /** Snoozed certificates are left out: every view but "all" and "snoozed". */
+    /** Snoozed certificates are left out: every view but the default (all) and "snoozed". */
     public boolean excludesSnoozed() {
         return !snoozed && !isAll();
     }
 
-    /** The value of ?status=, in a fixed order: "expired,30"; "all"; "snoozed"; null for the default (no parameter). */
+    /** The value of ?status=, in a fixed order: "expired,30"; "snoozed"; null for the default (no parameter, every certificate). */
     public String key() {
         if (isDefault()) {
             return null;
         }
         if (snoozed) {
             return SNOOZED;
-        }
-        if (isAll()) {
-            return ALL;
         }
         return states.stream().map(State::key).collect(Collectors.joining(","));
     }
@@ -150,9 +147,9 @@ public record CertificateStatus(Set<State> states, boolean snoozed) {
         return isDefault() || OPTIONS.contains(key());
     }
 
-    /** The message key of this filter's label: certificate.filter.status.default, .expired, .expired-30, ... */
+    /** The message key of this filter's label: certificate.filter.status.all, .expired, .expired-30, ... */
     public String labelKey() {
-        return "certificate.filter.status." + (isDefault() ? "default" : key().replace(',', '-'));
+        return "certificate.filter.status." + (isDefault() ? ALL : key().replace(',', '-'));
     }
 
     /** The message keys of the single states, to join when a combination has no label of its own. */

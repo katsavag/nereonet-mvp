@@ -63,10 +63,6 @@
         </th:block>
     </div>
 
-    <!-- The crew members in the list (as filtered, every page) whose rank does not set the role they have, or
-         who have no rank. -->
-    <th:block th:unless="${onShip}"><section th:replace="~{crew/parts :: rankReview(${rankNeedsReview})}"></section></th:block>
-
     <div class="card">
         <th:block th:if="${onShip}">
             <th:block th:replace="~{layout/parts :: listEmpty(rows=${people}, list=${list}, icon='crew',
@@ -107,9 +103,7 @@
                         <span th:replace="~{layout/parts :: email(${inv.email})}">jane@example.com</span>
                     </td>
                     <td th:attr="data-label=#{user.rank}">
-                        <span th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</span>
-                        <th:block th:replace="~{crew/parts :: accessBadge(${inv.role})}"></th:block>
-                    </td>
+                        <span th:text="${inv.rank} ? #{${'rank.' + inv.rank}} : '—'">Second Officer</span>                    </td>
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${inv.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <th:block th:replace="~{crew/parts :: invitationStatus(${inv})}"></th:block>
@@ -130,9 +124,7 @@
                         <span th:replace="~{layout/parts :: email(${u.email})}">jane@example.com</span>
                     </td>
                     <td th:attr="data-label=#{user.rank}">
-                        <span th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</span>
-                        <th:block th:replace="~{crew/parts :: accessBadge(${u.role})}"></th:block>
-                    </td>
+                        <span th:text="${u.rank} ? #{${'rank.' + u.rank}} : '—'">Second Officer</span>                    </td>
                     <td th:unless="${onShip}" th:attr="data-label=#{user.ship}"><a th:replace="~{layout/parts :: shipLink(${u.ship})}">MV Demo</a></td>
                     <td class="cell-status">
                         <span th:replace="~{crew/parts :: status(${u.enabled})}">Active</span>

@@ -112,11 +112,11 @@ class OfficeOrderFlowTest {
         // The list: the sent order with its details, never the OPEN one.
         String list = page("/office/orders");
         assertThat(list).contains("href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
-                        "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Pending</span>", "Not yet")
-                .doesNotContain("Order #" + open.getId() + "<");
+                        "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Pending</span>")
+                .doesNotContain("Order #" + open.getId() + "<", "Not yet");
         // The order: its note and its lines by category; while pending the office can change them (P50).
         String detail = page("/office/orders/" + order.getId());
-        assertThat(detail).contains("Deliver to the gangway", "Schedule delivery",
+        assertThat(detail).contains("Deliver to the gangway", "Schedule delivery", "Not yet",
                         "name=\"confirmedPort\" value=\"Rotterdam\"", "action=\"/office/orders/export\"")
                 .containsSubsequence(">Provisions<", "Basmati rice", ">kg<", "value=\"25\"", ">Personal items<", "Shower gel",
                         "value=\"2.5\"")
@@ -173,7 +173,8 @@ class OfficeOrderFlowTest {
             assertThat(e.getDetails()).isEqualTo("1 order, 2 lines, ids [" + order.getId() + "]");
             assertThat(e.getShip().getId()).isEqualTo(ship.getId());
         });
-        assertThat(page("/office/orders")).contains(">Delivery scheduled</span>", ">Exported</span>").doesNotContain("Not yet");
+        assertThat(page("/office/orders")).contains(">Delivery scheduled</span>").doesNotContain(">Exported</span>", "Not yet");
+        assertThat(page("/office/orders/" + order.getId())).contains(">Exported</span>");
     }
 
     @Test
@@ -232,8 +233,7 @@ class OfficeOrderFlowTest {
         ShipOrder order = sentOrderWithTwoLines();
         Instant before = Instant.now().minus(1, ChronoUnit.DAYS);
         order.setExportedAt(before);
-        assertThat(page("/office/orders")).contains(">Exported</span>");
-        assertThat(page("/office/orders?exported=no")).doesNotContain("Order #" + order.getId() + "<");
+        assertThat(page("/office/orders/" + order.getId())).contains(">Exported</span>");
 
         mockMvc.perform(post("/office/orders/export").param("ids", order.getId().toString()).with(csrf()))
                 .andExpect(status().isOk());

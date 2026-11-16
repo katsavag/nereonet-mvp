@@ -2,17 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${shipTab != null} ? ${ship.name} + ' · ' + #{ship.tab.certificates} : #{certificate.list.title}, ~{::main})}">
 <body>
-<!-- Certificates: every certificate, by default the expired ones and those expiring within 90 days, soonest
-     first. Also the List view of the ship page's Certificates tab (shipTab set, see ship/ShipFrame): the ship header
+<!-- Certificates: every certificate, soonest expiry first, so the expired ones and those expiring soon lead. Also the List view of the ship page's Certificates tab (shipTab set, see ship/ShipFrame): the ship header
      and the Matrix / List switch instead of the page header, the ship fixed (no ship filter, no ship column).
      Export downloads an Excel workbook of the list as filtered and sorted (every page). Links to a certificate carry returnTo, so its
      form comes back here.
      A certificate expired or within 90 days can be snoozed (Snooze on its row, or its checkbox and Snooze
      selected; the snooze page reviews them). A snoozed one (snoozes, by certificate id) is a muted row with "Snoozed
-     by … until … · reason" and Undo; the default views leave it out, Status "Snoozed" lists only those, "All" has
-     everything. The crew member's name opens their page. -->
+     by … until … · reason" and Undo; a Status of states leaves it out, "Snoozed" lists only those, "All" (the default)
+     has everything. The crew member's name opens their page. -->
 <!-- Empty without a filter: no certificate yet (noCertificates: the empty state leads to where they are added and
-     the header leaves out its actions), or none expiring within 90 days (the way to all of them). -->
+     the header leaves out its actions). -->
 <main th:with="onShip=${shipTab != null}, empty=${list.emptyUnfiltered(certificates)}, noCertificates=${empty and !anyCertificates},
                anySnoozable=${!certificates.isEmpty()}">
     <th:block th:if="${onShip}">
@@ -40,11 +39,11 @@
             <div class="filter-field filter-field-wide">
                 <label for="filterStatus" class="form-label" th:text="#{certificate.status}">Status</label>
                 <select id="filterStatus" name="status" class="form-select">
-                    <option value="" th:text="#{certificate.filter.status.default}">Expired or within 90 days</option>
+                    <option value="" th:text="#{certificate.filter.status.all}">All</option>
                     <option th:unless="${statusOption}" th:value="${status}" th:selected="${true}"
                             th:text="${statusLabel}">Expired or within 30 days</option>
                     <option th:each="o : ${statusOptions}" th:value="${o}" th:selected="${o == status}"
-                            th:text="#{${'certificate.filter.status.' + o}}">Expired</option>
+                            th:text="#{${'certificate.filter.status.' + #strings.replace(o, ',', '-')}}">Expired</option>
                 </select>
             </div>
             <div th:unless="${onShip}" class="filter-field filter-field-check">
@@ -62,9 +61,7 @@
     <form th:replace="~{alert/parts :: snoozeForm('snoozeForm', ${returnTo})}"></form>
     <div class="card">
         <th:block th:if="${anyCertificates}">
-            <th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list}, icon='certificates',
-                    title=#{certificate.list.empty.soon}, text=#{certificate.list.empty.allValid},
-                    action=~{layout/parts :: emptyLink(${list.path + '?status=all'}, #{certificate.list.empty.showAll}, 'btn btn-outline-secondary')})}"></th:block>
+            <th:block th:replace="~{layout/parts :: listEmpty(rows=${certificates}, list=${list})}"></th:block>
         </th:block>
         <!-- No certificate yet: they are added on a crew member's page, or from the ship's tab while it has crew. -->
         <th:block th:if="${!anyCertificates and !onShip}">

@@ -117,7 +117,7 @@ public class NeedsAttention {
         documents(ships, all);
         Map<Long, RightShipView> rightShip = rightShip(ships, today, all);
         sire(ships, today, all);
-        List<DashboardQueries.OrderRow> orders = queries.orders(today, today.plusDays(NextThirtyDays.DAYS));
+        List<DashboardQueries.OrderRow> orders = queries.orders();
         orders(orders, ships, all);
         rfqs(ships, today, all);
         invitations(ships, now, all);

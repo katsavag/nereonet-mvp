@@ -77,9 +77,8 @@
                             <li th:replace="~{layout/parts :: navItem('overview', '/office', #{nav.overview}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('ships', '/office/ships', #{nav.ships}, null, null)}"></li>
                             <li th:replace="~{layout/parts :: navItem('crew', '/office/crew', #{nav.crew}, null, null)}"></li>
-                            <!-- Certificates opens exactly what its counter counts: expired or within 30 days. -->
-                            <li th:replace="~{layout/parts :: navItem('certificates',
-                                    ${navCounts.certificates > 0} ? '/office/certificates?status=expired,30' : '/office/certificates', #{nav.certificates},
+                            <!-- Certificates: the counter is those expired or within 30 days; the list opens with all. -->
+                            <li th:replace="~{layout/parts :: navItem('certificates', '/office/certificates', #{nav.certificates},
                                     ${navCounts.certificates}, #{nav.count.certificates(${navCounts.certificates})})}"></li>
                             <!-- Vetting: RightShip, SIRE 2.0; the number of vessels whose RightShip
                                  inspection is expired or expires within 60 days. -->

@@ -308,8 +308,6 @@ public class CrewController {
         model.addAttribute("list", list);
         Page<PeopleQueries.Row> people = crewService.findCrew(shipId, status, missing, list);
         model.addAttribute("people", people);
-        // The "Rank needs review" notice, for the crew members in the list as filtered.
-        model.addAttribute("rankNeedsReview", crewService.findRankNeedsReview(shipId, status, missing, list));
         model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
         model.addAttribute("status", status == null ? null : status.key());

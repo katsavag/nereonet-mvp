@@ -24,7 +24,7 @@ vetting item aside for a while, with a reason, so the counters and the Overview 
   (`returnTo`, only local paths; "2 items snoozed."). An item that no longer needs attention is dropped from the
   selection ("Nothing to snooze" when none is left).
 - **While snoozed**: the item leaves the sidebar counters (Certificates, Vetting), the Overview (the list, the
-  tiles, the chips, Next 30 days and the Fleet counts; the Items tile says "3 snoozed") and the certificate
+  tiles, the chips and the Fleet counts; the Items tile says "3 snoozed") and the certificate
   reminder emails; it stays in its list, muted, with "Snoozed by Jane Office until 12 Dec 2026" and **Undo** (any
   office user; POST, comes back with "Snooze undone: the item is back."). The Status filters of the two lists leave
   snoozed items out; **Snoozed** lists them. The certificate or the vetting data do not change.

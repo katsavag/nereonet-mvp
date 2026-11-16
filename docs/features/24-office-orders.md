@@ -6,9 +6,9 @@ Ship orders in the office (P36, office users only). `core/order/ShipOrderService
   "2 open"). The list: the
   orders the ships have sent (SENT, CONFIRMED, CLOSED; never OPEN ones, which are still being put together on
   board), newest sent first, with ship, sent by, sent at, requested port, needed by, status (Pending, Delivery
-  scheduled, Received) and **Exported** (when, or "Not yet"). Filters: ship (`?shipId=`), status (`?status=sent`
+  scheduled, Received) and invoice. Filters: ship (`?shipId=`), status (`?status=sent`
   Pending, `delivery_scheduled` Delivery scheduled (P65; the older `delivery_pending` and `confirmed` still work),
-  `closed` Received) and export status (`?exported=no`: not exported yet, the Overview's link). Search the number (`#12`),
+  `closed` Received) and invoice. Search the number (`#12`),
   the ship name or IMO number; 10 per page, 20, 50 or 100 on request (paged in the database). A row opens its order.
 - **`/office/orders/{id}`**: status, sent by and when, requested port, needed by, the Master's note, the
   scheduled delivery once set (port, delivery date, by whom) and when it was last exported; then its lines by category

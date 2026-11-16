@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -46,7 +45,6 @@ public class PeopleQueries {
     }
 
     private static final String RANK_ORDER = rankCase(rank -> Integer.toString(rank.ordinal()), "999");
-    private static final String RANK_ROLE = rankCase(rank -> "'" + rank.role().name() + "'", "null");
 
     // Required documents, the rules of requirement/RequirementRules in SQL, for user u on ship s: the required
     // (not optional) types of u's vessel (of all vessels or s's type before) whose ranks include u's rank; none
@@ -143,31 +141,6 @@ public class PeopleQueries {
         Map<Long, User> users = userRepository.findAllWithShipByIdIn(ids).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
         return ids.stream().map(users::get).toList();
-    }
-
-    /**
-     * P18's "Rank needs review" notice, for the Crew list as filtered (every page): the users with a ship role who
-     * have no rank or a rank that sets another role (User.rankNeedsReview), by name; since P42 also those without a
-     * vessel, as neither has required documents.
-     */
-    public List<User> rankNeedsReview(Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {
-        if (status != null && !status.users()) {
-            return List.of();
-        }
-        Map<String, Object> params = new HashMap<>();
-        String sql = "select u.id from users u left join ship s on s.id = u.ship_id "
-                + userWhere(false, shipId, status, missingDocuments, list, params)
-                + " and (u.rank is null or u.ship_id is null or " + RANK_ROLE.replace("{col}", "u.rank") + " <> u.role)"
-                + " order by lower(u.full_name), u.id";
-        @SuppressWarnings("unchecked")
-        List<Number> ids = bind(entityManager.createNativeQuery(sql), params).getResultList();
-        if (ids.isEmpty()) {
-            return List.of();
-        }
-        Map<Long, User> users = userRepository.findAllWithShipByIdIn(ids.stream().map(Number::longValue).toList())
-                .stream()
-                .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-        return ids.stream().map(id -> users.get(id.longValue())).toList();
     }
 
     private static String union(boolean office, Long shipId, CrewStatus status, boolean missingDocuments,

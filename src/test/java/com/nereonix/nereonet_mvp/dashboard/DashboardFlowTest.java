@@ -80,7 +80,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
 // The office Overview (P09, P43): the stat tiles, the "Needs attention" work list (paged, filter chips, sortable by
-// date; P65: with a chip selected, the link to the kind's full list), the Next 30 days, Fleet and Recent activity
+// date; P65: with a chip selected, the link to the kind's full list), the Fleet and Recent activity
 // cards, and a fixed number of queries.
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -153,7 +153,7 @@ class DashboardFlowTest {
                 "<a class=\"overview-tile-link\" href=\"/office/orders?status=sent\">");
         // Every card has its empty state (P25). P65: no By category card, which repeated the chips' counts.
         assertThat(html).doesNotContain("By category", "category-tile");
-        assertThat(html).contains("Nothing due in the next 30 days", "Nothing recorded yet",
+        assertThat(html).contains("Nothing recorded yet",
                 "id=\"fleetTitle\"", "MV Calm");
     }
 
@@ -208,8 +208,6 @@ class DashboardFlowTest {
                 .containsPattern("(?s)<span>Invitations</span>\\s*<span class=\"chip-count num\">2</span>")
                 .containsPattern("(?s)<span>Announcements</span>\\s*<span class=\"chip-count num\">2</span>")
                 .containsPattern("(?s)<span>Vetting</span>\\s*<span class=\"chip-count num\">0</span>");
-        // Next 30 days: the expiring one.
-        assertThat(html).contains("STCW Basic Safety expires", "href=\"/office?sort=date\"");
         // Recent activity: the newest audit entries with the time.
         assertThat(html).contains("id=\"recentTitle\"", "href=\"/office/audit\"", "Nothing recorded yet"); // nothing here went through the audit log
 
@@ -245,13 +243,11 @@ class DashboardFlowTest {
                 .doesNotContain("Open the full list");
         assertThat(attentionHeader(html(get("/office").param("type", "certificates"))))
                 .contains("href=\"/office/certificates?status=expired,30&amp;activeShips=true\">Open the full list</a>");
-        assertThat(attentionHeader(html(get("/office").param("type", "orders"))))
-                .contains("href=\"/office/orders?exported=no\">Open the full list</a>");
         assertThat(attentionHeader(html(get("/office").param("type", "documents"))))
                 .contains("href=\"/office/crew?status=active&amp;documents=missing\">Open the full list</a>");
         assertThat(attentionHeader(html(get("/office").param("type", "vetting"))))
                 .contains("href=\"/office/vetting?status=attention\">Open the full list</a>");
-        for (String kind : List.of("invitations", "acknowledgements", "quotes")) {
+        for (String kind : List.of("orders", "invitations", "acknowledgements", "quotes")) {
             assertThat(html(get("/office").param("type", kind))).doesNotContain("Open the full list");
         }
     }
@@ -462,7 +458,7 @@ class DashboardFlowTest {
                 .doesNotContain("fs-2 fw-bold", "Active crew", "page-subtitle", "Set up Nereonet");
         assertThat(html(get("/office").param("lang", "el")))
                 .contains("Ενεργά πλοία", "Πλήρωμα επί των πλοίων", "Τίποτα δεν χρειάζεται την προσοχή σας",
-                        "Επόμενες 30 ημέρες", "Πρόσφατη δραστηριότητα");
+                        "Πρόσφατη δραστηριότητα");
     }
 
     // First run (P25) ------------------------------------------------------------------------------------------------

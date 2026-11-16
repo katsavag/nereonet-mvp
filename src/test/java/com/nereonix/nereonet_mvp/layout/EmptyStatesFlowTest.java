@@ -141,10 +141,8 @@ class EmptyStatesFlowTest {
         certificateRepository.save(certificate);
 
         String certificates = html(get("/office/certificates"));
-        assertThat(emptyState(certificates, "certificates")).contains("No certificates expire within 90 days",
-                "Every certificate is valid for more than 90 days.", "href=\"/office/certificates?status=all\"",
-                "btn btn-outline-secondary", "Show all certificates");
-        assertThat(certificates).contains("<span>Export</span>"); // not first use: the header keeps its action
+        // The Certificates list opens with all, so a valid certificate is listed: no empty state.
+        assertThat(certificates).contains("Passport", "<span>Export</span>").doesNotContain("class=\"empty-state\"");
 
         // A crew member without certificates: Add certificate moves from the card header into the empty state.
         String member = html(get("/office/crew/{id}/edit", anna.getId()));

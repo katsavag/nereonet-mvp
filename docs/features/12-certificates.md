@@ -9,17 +9,17 @@ an icon as well as a colour: a warning triangle for Expired, a clock for 30, 60 
 Searchable (type, number, crew member), sortable by expiry, type, crew member, ship and number, 10 per page (20, 50 or 100)
 (paged in the database), filterable by ship, **Active ships only** (`activeShips=true`) and **Status**
 (`?status=`): `expired`; `30`, `60`, `90` (not expired, expiring within that many days, today included, so
-"Within 60 days" includes "Within 30 days"); `valid` (more than 90 days left); `all`. Without a status, or with one
-it does not know: expired and within 90 days. States combine with a comma, which is how the counts link
+"Within 60 days" includes "Within 30 days"); `valid` (more than 90 days left); `all`, the default: without a status, or with one
+it does not know, every certificate (**All** is the first option of the select; **Expired or within 90 days** is `expired,90`). States combine with a comma, which is how the counts link
 to exactly what they count (each tested in `CertificatePlanningFlowTest`):
-- the sidebar counter (expired or within 30 days, every ship): the **Certificates** entry opens
-  `?status=expired,30` while the counter shows; without a counter, the list as it is;
+- the sidebar counter (expired or within 30 days, every ship): the **Certificates** entry always opens
+  the plain list; `?status=expired,30` lists exactly those counted;
 - the Overview's Certificates chip, then **Open the full list** (the same, crew of active ships; P43, "Full
   lists" before, P65 the By category tile before): `?status=expired,30&activeShips=true`;
-- the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view.
+- the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view with `?status=expired,90` (the List view opens with all).
 P43: the crew member's name in the list links to their page (`/office/crew/{id}/edit`), as in the Crew list; each
 row has a checkbox and **Snooze**, a snoozed certificate's row is muted with "Snoozed by … until …" and **Undo**,
-and the Status filter has **Snoozed** (`?status=snoozed`; the other states leave snoozed certificates out, see [27](27-snoozing.md)).
+and the Status filter has **Snoozed** (`?status=snoozed`; the states leave snoozed certificates out, All has them, see [27](27-snoozing.md)).
 **Export** (page header) downloads the list as filtered, searched and sorted, every page, as an Excel workbook (P39): `certificates-<date>.xls`, sheet "Certificates", with the columns
 `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,
 `SECOND_OFFICER`; `expires_on` a date cell, `days_left` a number, negative once expired; status `expired`,

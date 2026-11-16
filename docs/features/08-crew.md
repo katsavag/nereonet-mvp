@@ -7,24 +7,24 @@ Inactive (query parameters, so other pages can link to a filtered list: `/office
 and status, 10 per page, 20, 50 or 100 on request (P43; see "lists: search, sort and pages (P19)" below; users and invitations are paged together
 in the database, one native SQL `UNION ALL` in `crew/PeopleQueries`). The ship's **Crew** tab is the same list for
 that ship, without the ship filter. An invitation shows its status with its date,
-"Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has **Resend** (one
-click, also when expired: new link, new expiry date, new email) and, in the row's **⋯** menu, **Cancel invitation**
+"Invited · expires in 3 days" or, in the warning tone, "Invitation expired · 2 days ago", and has, in the row's **⋯** menu, **Resend** (one
+click, also when expired: new link, new expiry date, new email) and **Cancel invitation**
 (asks first, see [6](06-invitations.md)); both come back to the list as it was: search, filters, sort and page (P17, P19). **Add crew member** opens a pop-up form
 (full name, email, rank, active ship; no role, see [6](06-invitations.md)) that sends an invitation email (see Mailpit) and names the address in
 its success message;
 the member appears at once as "Invited" and becomes a user when they register. Clicking a member's name (or **Edit** in the row's **⋯** menu) opens their page; it changes full name, rank
 and ship (active ships only; the email cannot be changed), and saving sets the rank's role. Picking another ship
 moves the crew member. The one active Master / Chief cook per ship rule is checked here too, on the rank field.
-The list shows the rank; there is no Role column, only a small access badge after the rank for a Master and a
-Chief cook ("Master access"). Users from before P18 whose rank does not set the role they have, or who have no
-rank, keep their role: they are listed in a **Rank needs review** notice above the list (for the list as
-filtered), each linking to their page, which names the access they have now ("Access now: Master. Saving applies
+The list shows the rank; there is no Role column and no access badge. Users from before P18 whose rank does
+not set the role they have, or who have no rank, keep their role; the list does not mark them, only
+their page
+names the access they have now ("Access now: Master. Saving applies
 the access of the rank above."). Saving there applies the mapping. Under the form a **Profile** card (P31) shows,
 read only, what the crew member has filled in about themselves (photo, languages, nationality, bio; "Not given"
 where empty): only they can change it (see [20](20-my-profile-and-my-crew.md)). Deleting a crew member also deletes their photo files.
 P42 (see [26](26-required-documents.md)): a **Documents** column ("5 of 7" required documents held, sortable), the **Missing documents**
 filter (`?documents=missing`), **Export required documents** and a **Required documents** card on the member's
-page; the Rank needs review notice also lists crew without a vessel.
+page.
 
 **Import from file** (`/office/crew/import`) invites many crew members at once, from the file the crewing system
 produces or from the template. Four steps, shown at the top of every page (**Upload**, **Map columns**,

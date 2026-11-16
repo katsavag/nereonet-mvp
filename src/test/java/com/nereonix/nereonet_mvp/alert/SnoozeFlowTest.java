@@ -148,13 +148,13 @@ class SnoozeFlowTest {
                 .contains("certificate expiring: STCW Basic Safety Training of jane@example.com on ALDER", "until " + today.plusDays(30),
                         "renewal in progress");
 
-        // Left out of the counter, the Overview (tiles, Needs attention, By category, Next 30 days) and the default list.
+        // Left out of the counter and the Overview (tiles, Needs attention); the list (all by default) has it, muted.
         String overview = html(get("/office"));
         assertThat(navCertificates(overview)).isEqualTo("1");
         assertThat(overview).doesNotContain("STCW Basic Safety Training").contains("1 snoozed");
         assertThat(attentionRows(overview)).isEqualTo(2);
         String defaultList = html(get("/office/certificates"));
-        assertThat(defaultList).doesNotContain("STCW Basic Safety Training");
+        assertThat(defaultList).contains("STCW Basic Safety Training", "class=\"is-snoozed\"");
         // Status "Snoozed" lists it, muted, with the snooze and Undo; "All" has it among the others.
         String snoozed = html(get("/office/certificates").param("status", "snoozed"));
         assertThat(snoozed).contains("class=\"is-snoozed\"", "STCW Basic Safety Training",

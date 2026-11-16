@@ -67,9 +67,6 @@ public class OfficeOrderController {
     // The list has one order: newest sent first.
     private static final ListSort[] SORTS = {ListSort.desc("sentAt")};
 
-    // The "Export status" filter's value for "Not exported yet" (?exported=no), as the Overview links to it.
-    static final String NOT_EXPORTED = "no";
-
     // P64: the "Invoice" filter's value for "Lines differ" (?invoice=differ): received, the invoice not matched yet,
     // with lines that differ.
     static final String INVOICE_DIFFER = "differ";
@@ -111,36 +108,30 @@ public class OfficeOrderController {
     }
 
     // shipId, status (sent, delivery_scheduled, closed; P65: confirmed and delivery_pending still mean
-    // delivery_scheduled), exported=no (not exported yet) and invoice=differ (the invoice's
-    // lines differ, not matched yet) filter the list; anything else in status, exported or invoice filters nothing.
+    // delivery_scheduled) and invoice=differ (the invoice's
+    // lines differ, not matched yet) filter the list; anything else in status or invoice filters nothing.
     // listRequest: search and page.
     @GetMapping(LIST)
     public String list(@RequestParam(required = false) Long shipId,
                        @RequestParam(required = false) String status,
-                       @RequestParam(required = false) String exported,
                        @RequestParam(required = false) String invoice,
                        @ModelAttribute ListRequest listRequest, Model model) {
         List<Ship> ships = shipRepository.findAllByOrderByNameAsc();
         ShipOrderStatus chosen = status(status);
-        boolean notExported = NOT_EXPORTED.equals(exported);
         boolean invoiceDiffer = INVOICE_DIFFER.equals(invoice);
         ListQuery list = ListQuery.of(LIST, listRequest, SORTS).filterShip(shipId, ships);
         if (chosen != null) {
             list.filterKey("status", param(chosen), "officeorder.filter.status", chosen.labelKey());
         }
-        if (notExported) {
-            list.filterKey("exported", NOT_EXPORTED, "officeorder.filter.exported", "officeorder.filter.exported.no");
-        }
         if (invoiceDiffer) {
             list.filterKey("invoice", INVOICE_DIFFER, "officeorder.filter.invoice", "officeorder.filter.invoice.differ");
         }
         model.addAttribute("list", list);
-        model.addAttribute("orders", orderService.findSent(shipId, chosen, notExported, invoiceDiffer, list));
+        model.addAttribute("orders", orderService.findSent(shipId, chosen, invoiceDiffer, list));
         model.addAttribute("ships", ships);
         model.addAttribute("shipId", shipId);
         model.addAttribute("status", chosen == null ? null : param(chosen));
         model.addAttribute("statuses", ShipOrderService.SENT_TO_OFFICE);
-        model.addAttribute("exported", notExported ? NOT_EXPORTED : null);
         model.addAttribute("invoice", invoiceDiffer ? INVOICE_DIFFER : null);
         return "officeorder/list";
     }

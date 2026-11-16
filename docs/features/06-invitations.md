@@ -7,8 +7,8 @@ appears in Mailpit.
   went to, e.g. "Invitation sent to jane@example.com."). There is no separate invitations page any more:
   `/office/invitations` redirects to `/office/users`. Pending invitations are listed there with the users, as
   "Invited", or "Invitation expired" when past their expiry date; accepted and cancelled invitations are not listed
-  (an accepted one is a user). Each has **Resend** (new link and expiry date, new email; the old link stops
-  working) and, in the row's **⋯** menu, **Cancel invitation** (the link then shows the "invalid or expired" page). Cancel asks
+  (an accepted one is a user). Each has, in the row's **⋯** menu, **Resend** (new link and expiry date, new email; the old link stops
+  working) and **Cancel invitation** (the link then shows the "invalid or expired" page). Cancel asks
   first: "Cancel the invitation to Jane Doe? The link sent to jane@example.com stops working.", with **Keep
   invitation** and **Cancel invitation**.
 - Crew members: **Add crew member** on the **Crew** page (see [8](08-crew.md)), or on a ship page's **Crew** tab (see [5](05-ships.md)), the same

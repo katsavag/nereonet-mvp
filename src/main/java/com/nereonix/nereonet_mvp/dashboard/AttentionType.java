@@ -68,8 +68,7 @@ public enum AttentionType {
                 case CERTIFICATES -> "/office/certificates?status=expired,30&activeShips=true";
                 case DOCUMENTS -> "/office/crew?status=active&documents=missing";
                 case VETTING -> "/office/vetting?status=attention";
-                case ORDERS -> "/office/orders?exported=no";
-                case QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> null;
+                case ORDERS, QUOTES, INVITATIONS, ACKNOWLEDGEMENTS -> null;
             };
         }
 

@@ -3,7 +3,7 @@
 //  - A form with data-selection: its [data-select-all] checkboxes (the table header; on phones, where the header is
 //    hidden, the selection line above the table) check or clear every [data-select-row] checkbox of the page, and
 //    are half-checked when some are. [data-selection-count] says how many are selected (its data-none, data-one and
-//    data-many texts, "{count} selected"); it is a live region. The form's buttons with data-needs-selection,
+//    data-many texts, "{count} selected"; without data-none it is empty while nothing is); it is a live region. The form's buttons with data-needs-selection,
 //    also those outside it (form="..."), are disabled while nothing is selected. [data-selection-only] elements
 //    (select-all, the selection line) are hidden until this script runs. The checkboxes may sit outside the form
 //    element and belong to it by their form attribute (P43: a list whose rows hold forms of their own, such as Undo),
@@ -32,7 +32,7 @@
                 box.indeterminate = selected > 0 && selected < boxes.length;
             });
             if (count) {
-                const text = selected === 0 ? count.dataset.none
+                const text = selected === 0 ? (count.dataset.none || '')
                     : selected === 1 ? count.dataset.one
                         : count.dataset.many.replace('{count}', selected.toLocaleString(lang));
                 if (count.textContent !== text) {

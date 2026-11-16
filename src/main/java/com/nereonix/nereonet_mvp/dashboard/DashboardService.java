@@ -24,7 +24,7 @@ import com.nereonix.nereonet_mvp.dashboard.DashboardQueries.FleetShip;
 
 /**
  * The office Overview: four stat tiles (StatTiles), a work list of open items (NeedsAttention: paged, filtered by
- * category or vessel), and the cards Next 30 days (NextThirtyDays), Fleet (FleetCard) and Recent activity
+ * category or vessel), and the cards Fleet (FleetCard) and Recent activity
  * (RecentActivity); and the first-run checklist (SetupChecklist). This class composes them into the page's model.
  *
  * load() always runs the same 13 queries, whatever the size of the fleet: the active ships with their crew, the
@@ -64,11 +64,6 @@ public class DashboardService {
     public record GroupCount(Group group, long count) {
     }
 
-    /** A coming date of the Next 30 days card: what, which vessel, when, and the page it opens. kind: a message
-     *  key's suffix (dashboard.upcoming.<kind>). */
-    public record Upcoming(LocalDate date, String kind, String title, FleetShip ship, String url) {
-    }
-
     /**
      * The Overview.
      * fleet          active ships, those with open items first, then by name (the Fleet card shows FleetCard.SHOWN)
@@ -80,13 +75,12 @@ public class DashboardService {
      * items          one page of the open items the filter keeps, in the chosen order (ListQuery: page, sort)
      * groups         the number of open items per kind (unfiltered), every kind, zero included
      * group, ship    the filter (/office?type=...&shipId=...), each null when not set
-     * upcoming       the Next 30 days card's dates, soonest first
      * recent         the newest audit entries
      * checkedAt      when this was loaded
      */
     public record Dashboard(List<FleetRow> fleet, long crewOnBoard, long openItems, long snoozedItems,
                             long ordersWaiting, long ordersNotExported, Page<AttentionItem> items, List<GroupCount> groups, Group group,
-                            FleetShip ship, List<Upcoming> upcoming, List<AuditEntry> recent, Instant checkedAt) {
+                            FleetShip ship, List<AuditEntry> recent, Instant checkedAt) {
 
         /** A filter chip's URL: this page with the kind (null for All), keeping the vessel filter and the sort. */
         public String chipUrl(Group kind, boolean byDate) {
@@ -154,8 +148,7 @@ public class DashboardService {
 
         return new Dashboard(FleetCard.rows(ships, items.rightShip(), open, today), tiles.crewOnBoard(),
                 tiles.openItems(), tiles.snoozedItems(), tiles.ordersWaiting(), tiles.ordersNotExported(),
-                NeedsAttention.page(open, group, ship, list), NeedsAttention.groups(open), group, ship,
-                NextThirtyDays.dates(open, items.orders(), shipsById, today), recent, now);
+                NeedsAttention.page(open, group, ship, list), NeedsAttention.groups(open), group, ship, recent, now);
     }
 
     // ---------------------------------------------------------------------------------------------------------------

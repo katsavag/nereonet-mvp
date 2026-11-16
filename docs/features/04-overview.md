@@ -8,7 +8,7 @@ Crew filtered to Active), **Items needing attention** ("3 snoozed", to the list 
 (sent and the delivery not scheduled yet; "1 not exported yet", counting only the Not exported items, to Orders
 filtered to Pending). From 1200px the tiles are
 a row of four and the page has two columns: **Needs attention** on the left (7/12) and, stacked on the right,
-**Next 30 days**, **Fleet** and **Recent activity**; from 768px the tiles are 2 × 2 and the columns go under each other; on phones one
+**Fleet** and **Recent activity**; from 768px the tiles are 2 × 2 and the columns go under each other; on phones one
 column, the tiles two per row.
 - **Needs attention**: one row per open item of an active ship, the total in the card header, most urgent first:
   1. certificate expired; then (P40, P41, see [25](25-vetting.md)) a vessel's vetting: SIRE 2.0 operator comments overdue or due
@@ -39,13 +39,10 @@ column, the tiles two per row.
   keeps the vessel). **Open certificate** opens the form, which comes back to this page as it was (page, sort,
   filters) after Save or Cancel. With nothing open the card says "Nothing needs your attention" and when it was
   checked; a chip with nothing says "Nothing needs your attention here".
-  With a chip selected, the card header links to that category's full list, **Open the full list**: orders to `/office/orders?exported=no` (not exported yet), certificates to
+  With a chip selected, the card header links to that category's full list, **Open the full list**: certificates to
   `/office/certificates?status=expired,30&activeShips=true` (exactly the certificates counted, see [12](12-certificates.md)), vetting to
   `/office/vetting?status=attention`, required documents to `/office/crew?status=active&documents=missing`
-  (`AttentionType.Group.listUrl`). Quotes, invitations and announcements have no full list, so no link.
-- **Next 30 days**: the coming dates in order, at most 8 (certificates expiring, RightShip inspections ending,
-  SIRE 2.0 reports ending and operator comments due, order deliveries), each with the vessel and the record link;
-  **See all** opens the list by date. Nothing that has passed, nothing snoozed.
+  (`AttentionType.Group.listUrl`). Orders, quotes, invitations and announcements have no full list, so no link.
 - **Fleet**: one row per active ship, those with open items first, then by name, at most 8 ("The first 8 of 12
   vessels; those with open items first" under the table, with **All vessels** in the card header): the flag and
   the name (the ship page) with the type under it, the RightShip Safety Score (to its Vetting page, see [25](25-vetting.md)) and the

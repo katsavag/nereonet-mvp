@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{audit.title}, ~{::main})}">
 <body>
 <main>
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{audit.heading}, count=${entries.totalElements})}"></header>
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{audit.heading})}"></header>
 
     <!-- Search, filters and chips. A GET form, so the filtered page can be bookmarked. -->
     <div th:replace="~{layout/parts :: filterBar(${list}, #{audit.search}, ~{::listFilters})}">
