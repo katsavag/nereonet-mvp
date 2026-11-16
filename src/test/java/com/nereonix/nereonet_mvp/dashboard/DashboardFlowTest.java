@@ -230,9 +230,9 @@ class DashboardFlowTest {
                 "name=\"returnTo\" value=\"overview\"", ">Resend invitation</button>");
         // e. announcement and library item
         assertThat(list).contains("href=\"/office/announcements/" + drill.getId() + "#pending\"", "All vessels",
-                "1 of 2 not acknowledged",
+                "1 of 2 not read",
                 "href=\"/office/ships/" + ship.getId() + "/library/" + policy.getId() + "/acknowledgements\"",
-                "2 of 3 not acknowledged", "version 1 published", ">View who has not acknowledged</a>");
+                "2 of 3 not read", "version 1 published", ">View who has not read it</a>");
         // Every row: the badge has an icon; the action is a secondary button named by the row's title.
         assertThat(list).contains("status-badge-icon", "<svg viewBox=\"0 0 24 24\"")
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
@@ -269,7 +269,7 @@ class DashboardFlowTest {
         assertThat(ATTENTION_ROW.matcher(list).results().count()).isEqualTo(2);
         assertThat(list).containsPattern("(?s)href=\"/office/announcements/" + both.getId() + "\">Port state control</a>"
                         + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">2 vessels</span>"
-                        + "\\s*· <span>2 of 2 not acknowledged</span>")
+                        + "\\s*· <span>2 of 2 not read</span>")
                 .containsPattern("(?s)href=\"/office/announcements/" + one.getId() + "\">Bunkering</a>"
                         + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">MV Beta</span>");
     }
@@ -684,6 +684,7 @@ class DashboardFlowTest {
         Announcement announcement = new Announcement();
         announcement.setTitle(title);
         announcement.setBody("Please read.");
+        announcement.setRequired(true);
         if (target == null) {
             announcement.setFleetWide(true);
         } else {

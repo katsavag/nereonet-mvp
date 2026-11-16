@@ -47,7 +47,7 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
   - spacing 4 / 8 / 12 / 16 / 24 / 32 px: 24 px between page sections, 16 px inside cards, card padding 20 px;
   - buttons, three sizes: 40 px by default (page header actions, form actions, filters, modal footers), `btn-sm`
     32 px only in table rows, list rows and card toolbars, `btn-lg` 48 px only for the full-width buttons on the
-    sign-in, registration and error pages and for **I have read this**. Every button can be tapped over at least
+    sign-in, registration and error pages. Every button can be tapped over at least
     40 px (44 px on phones), also the small ones. Four levels: `btn-primary` (filled navy, at most one per view and
     one per modal), `btn-outline-secondary` (secondary: surface, visible border, navy text), `btn-ghost`
     (tertiary: navy text only; low-priority and row actions) and `btn-outline-danger` (only in a confirmation dialog,

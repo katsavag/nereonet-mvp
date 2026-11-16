@@ -44,7 +44,7 @@ public class LibraryItem {
     @Column(nullable = false)
     private LibraryCategory category;
 
-    // The crew must acknowledge the current version.
+    // The crew must read the current version: who has not is chased (To read, the Overview, reminders).
     @Column(nullable = false)
     private boolean required;
 

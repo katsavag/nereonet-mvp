@@ -19,7 +19,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-// A crew member confirmed they read one version of a library item.
+// A crew member read one version of a library item: recorded the first time they open its page.
 // Deleted together with the user (database cascade).
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"version_id", "user_id"}))

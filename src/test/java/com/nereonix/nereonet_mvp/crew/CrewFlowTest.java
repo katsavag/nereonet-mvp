@@ -340,8 +340,8 @@ class CrewFlowTest {
                     .contains("<optgroup label=\"Deck\">", "<optgroup label=\"Engine\">", "<optgroup label=\"Catering\">")
                     .contains("<option value=\"CHIEF_ENGINEER\" data-role=\"CREW_MEMBER\">Chief Engineer</option>",
                             "<option value=\"FITTER\" data-role=\"CREW_MEMBER\">Fitter</option>")
-                    .contains("data-access-master=\"Access: Master · can publish library items and see acknowledgements\"",
-                            "data-access-crew_member=\"Access: Crew member · can read the library and acknowledge required items\"")
+                    .contains("data-access-master=\"Access: Master · can publish library items and see who has read them\"",
+                            "data-access-crew_member=\"Access: Crew member · can read the library and its required items\"")
                     .doesNotContain("chief_engineer");
             // In the Rank order: Master first in Deck, Chief Engineer first in Engine, Steward last in Catering.
             assertThat(html.indexOf("value=\"MASTER\"")).isLessThan(html.indexOf("value=\"CHIEF_OFFICER\""));
@@ -353,7 +353,7 @@ class CrewFlowTest {
                 .containsPattern("aria-live=\"polite\"\\s+data-access-none=\"Access: set by the rank\"")
                 .contains(">Access: set by the rank</p>");
         assertThat(html(get("/office/crew/" + master.getId() + "/edit")))
-                .contains(">Access: Master · can publish library items and see acknowledgements</p>")
+                .contains(">Access: Master · can publish library items and see who has read them</p>")
                 .doesNotContain("Access now:");
         assertThat(html(get("/office/crew").param("lang", "el")))
                 .contains("<optgroup label=\"Κατάστρωμα\">", "<optgroup label=\"Τροφοδοσία\">",

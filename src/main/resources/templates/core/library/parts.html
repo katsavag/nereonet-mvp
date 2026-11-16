@@ -7,11 +7,12 @@
      /ship/library/{id}; true on the office's Library tab, where they open /office/ships/{shipId}/library/{id} (the
      read view).
      Each item is one row: the type icon, the title (the link; the whole row is its click area), version and
-     date published (UTC), and for a Required item a badge and, when acknowledgementCounts is given, the progress.
-     acknowledgedItemIds: for the crew, the ids of the items whose current version they acknowledged (the badge
-     says "Required · to acknowledge" or "Required · acknowledged"); null for the office (the badge says "Required").
-     acknowledgementCounts: for the Master and the office, "12 of 20 acknowledged" with a thin bar on each Required
-     item, linking to its acknowledgement overview; null for the other crew.
+     date published (UTC), and for a Required item the "Required" badge and, when acknowledgementCounts is given, the
+     progress.
+     acknowledgedItemIds: for the crew, the ids of the items whose current version they have opened: every row ends
+     its meta line with the read ticks and "Read" or "Not read", as the News list; null for the office (no ticks).
+     acknowledgementCounts: for the Master and the office, "12 of 20 read" with a thin bar on each Required
+     item, linking to who has read it; null for the other crew.
      particularsUrl: the "Edit ship particulars" page, or null when this user may not edit them.
      addAction: Add an item, shown in the empty library's empty state (the page header then leaves it out), or
      null for the crew who cannot add (the empty state then says who does). -->
@@ -69,14 +70,15 @@
                         <span th:text="#{library.version(${version.versionLabel})}">Version 1</span>
                         <span aria-hidden="true">·</span>
                         <time th:replace="~{layout/parts :: utcDate(${version.publishedAt})}"></time>
+                        <th:block th:if="${acknowledgedItemIds != null}" th:with="read=${acknowledgedItemIds.contains(item.id)}">
+                            <span class="read-receipt text-nowrap ms-2" th:classappend="${read} ? '' : 'is-unread'">
+                                <svg th:replace="~{layout/parts :: readTicks(${read})}"></svg>
+                                <span th:text="${read} ? #{announcement.read} : #{library.notRead}">Read</span>
+                            </span>
+                        </th:block>
                     </p>
                     <p th:if="${item.required}" class="library-row-badge">
-                        <th:block th:if="${acknowledgedItemIds == null}"><span
-                                th:replace="~{layout/parts :: status('neutral', #{library.required})}"></span></th:block>
-                        <th:block th:if="${acknowledgedItemIds != null and acknowledgedItemIds.contains(item.id)}"><span
-                                th:replace="~{layout/parts :: status('ok', #{library.required.acknowledged})}"></span></th:block>
-                        <th:block th:if="${acknowledgedItemIds != null and !acknowledgedItemIds.contains(item.id)}"><span
-                                th:replace="~{layout/parts :: status('warning', #{library.required.toAcknowledge})}"></span></th:block>
+                        <span th:replace="~{layout/parts :: status('neutral', #{library.required})}"></span>
                     </p>
                 </div>
                 <th:block th:if="${acknowledgementCounts != null and item.required}">
@@ -128,10 +130,8 @@
      A text version: the text. A file version: one file row, the type icon, file name and size, and its actions:
      a PDF has "Open PDF" (in a new tab, so this page stays in the tab's history and Back still works there) and
      Download second; DOCX and XLSX have Download only.
-     fileUrl: the GET URL of the file (?download=true is added for Download).
-     quiet: true while another button on the page is the primary one ("I have read this"): the file actions step
-     down one level. -->
-<th:block th:fragment="itemContent(fileUrl, quiet)" th:with="version=${item.currentVersion}">
+     fileUrl: the GET URL of the file (?download=true is added for Download). -->
+<th:block th:fragment="itemContent(fileUrl)" th:with="version=${item.currentVersion}">
     <div th:unless="${version.file}" class="card">
         <div class="card-body text-break text-pre-line" th:text="${version.text}">Text</div>
     </div>
@@ -143,14 +143,14 @@
                 <div class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${version.fileSize})}"></span></div>
             </div>
             <div class="file-row-actions">
-                <a th:if="${version.pdf}" class="btn" th:classappend="${quiet} ? 'btn-outline-secondary' : 'btn-primary'"
+                <a th:if="${version.pdf}" class="btn btn-primary"
                    th:href="@{${fileUrl}}" target="_blank" rel="noopener">
                     <svg th:replace="~{layout/parts :: icon('external')}"></svg>
                     <span th:text="#{library.file.open}">Open PDF</span>
                     <span class="visually-hidden" th:text="#{library.file.newTab}">(opens in a new tab)</span>
                 </a>
                 <a class="btn" th:href="@{${fileUrl}(download=true)}" download
-                   th:classappend="${version.pdf} ? (${quiet} ? 'btn-ghost' : 'btn-outline-secondary') : (${quiet} ? 'btn-outline-secondary' : 'btn-primary')">
+                   th:classappend="${version.pdf} ? 'btn-outline-secondary' : 'btn-primary'">
                     <svg th:replace="~{layout/parts :: icon('download')}"></svg>
                     <span th:text="#{library.download}">Download</span>
                 </a>

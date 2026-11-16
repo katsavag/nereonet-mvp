@@ -262,7 +262,7 @@ public class NeedsAttention {
         }
     }
 
-    /** One item per announcement that someone on an active ship has not acknowledged. */
+    /** One item per Required announcement that someone on an active ship has not read. */
     private static List<AttentionItem> announcements(List<DashboardQueries.AnnouncementShipRow> rows,
                                                      Map<Long, FleetShip> activeShips) {
         Map<Long, List<DashboardQueries.AnnouncementShipRow>> byAnnouncement = rows.stream()

@@ -125,6 +125,19 @@
                             <div th:replace="~{layout/parts :: counter(${form}, 'body', 'body')}"></div>
                         </div>
                     </div>
+                    <!-- As a library item's "Must the crew read it?" (core/library/parts :: itemForm): Not required
+                         unless chosen. Only the Required ones are chased. Not part of the draft, as the target. -->
+                    <fieldset>
+                        <legend class="form-group-legend" th:text="#{announcement.form.required}">Must the crew read it?</legend>
+                        <div class="form-check">
+                            <input type="radio" th:field="*{required}" value="true" class="form-check-input" data-draft-skip>
+                            <label class="form-check-label" th:for="${#ids.prev('required')}" th:text="#{announcement.form.requiredYes}">Required</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" th:field="*{required}" value="false" class="form-check-input" data-draft-skip>
+                            <label class="form-check-label" th:for="${#ids.prev('required')}" th:text="#{announcement.form.requiredNo}">Not required</label>
+                        </div>
+                    </fieldset>
                 </div>
                 <!-- FR-GEN-008: said before the button, here and on the review page. -->
                 <p th:replace="~{layout/parts :: infoNote(null, #{announcement.notEmergency})}"></p>

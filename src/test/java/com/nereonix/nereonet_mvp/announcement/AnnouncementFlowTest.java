@@ -634,7 +634,8 @@ class AnnouncementFlowTest {
                 .doesNotContainPattern("<input type=\"radio\" id=\"target\" name=\"target\"[^>]*checked")
                 .doesNotContainPattern("name=\"shipIds\"[^>]*value=\"" + alpha.getId() + "\"[^>]*checked");
         // Without it nothing is chosen.
-        assertThat(html(get("/office/announcements/new"))).doesNotContainPattern("<input[^>]*checked");
+        assertThat(html(get("/office/announcements/new")))
+                .doesNotContainPattern("<input[^>]*name=\"(target|shipIds)\"[^>]*checked");
     }
 
     // Sends an announcement as the office (to one ship, or to all ships when ship is null).
@@ -643,7 +644,8 @@ class AnnouncementFlowTest {
             return sendTo(List.of(ship), title, body);
         }
         mockMvc.perform(post("/office/announcements/send")
-                        .param("target", "fleet").param("title", title).param("body", body).with(csrf()))
+                        .param("target", "fleet").param("title", title).param("body", body)
+                        .param("required", "true").with(csrf()))
                 .andExpect(status().is3xxRedirection());
         return announcement(title);
     }
@@ -657,7 +659,7 @@ class AnnouncementFlowTest {
         mockMvc.perform(post("/office/announcements/send")
                         .param("target", "ships")
                         .param("shipIds", ships.stream().map(s -> s.getId().toString()).toArray(String[]::new))
-                        .param("title", title).param("body", body).with(csrf()))
+                        .param("title", title).param("body", body).param("required", "true").with(csrf()))
                 .andExpect(status().is3xxRedirection());
         return announcement(title);
     }

@@ -95,9 +95,9 @@ class CrewNewsWordingTest {
         new DevData(shipRepository, userRepository, userService, itemRepository, requestRepository,
                 libraryItemRepository, versionRepository, profileRepository, requestService, vettingService, sireService,
                 supplierRepository, stockLevelRepository, stockMovementRepository).run(null);
-        announcementService.create("Safety drill", "Drill on Friday.\nMuster at the lifeboat station.", true, List.of(),
+        announcementService.create("Safety drill", "Drill on Friday.\nMuster at the lifeboat station.", true, true, List.of(),
                 "office@example.com");
-        AnnouncementService.Sent second = announcementService.create("Bunkering plan", "Bunkering on Monday.", true,
+        AnnouncementService.Sent second = announcementService.create("Bunkering plan", "Bunkering on Monday.", true, true,
                 List.of(), "office@example.com");
         for (String email : CREW) {
             CurrentUser me = new CurrentUser(userRepository.findByEmail(email).orElseThrow());

@@ -54,9 +54,8 @@
 
     <div class="row g-4">
         <div class="col-lg-7">
-            <!-- To read: Required library items not yet acknowledged and news items not opened yet, oldest
-                 first. Each card opens the item: a library item has "I have read this"; a news item is read by opening
-                 it. -->
+            <!-- To read: Required library items and Required news items not opened yet, oldest first. Each card
+                 opens the item, which reads it. News and Library themselves are in the navigation. -->
             <section class="home-section" aria-labelledby="toReadTitle">
                 <h2 class="home-section-title" id="toReadTitle">
                     <span th:text="#{home.toRead.heading}">To read</span>
@@ -86,10 +85,6 @@
                 <p th:if="${home.toRead.isEmpty()}" class="up-to-date">
                     <svg th:replace="~{layout/parts :: icon('check')}"></svg>
                     <span th:text="#{home.toRead.empty}">You are up to date.</span>
-                </p>
-                <p class="home-links">
-                    <a class="btn btn-ghost" th:href="@{/ship/news}" th:text="#{home.links.announcements}">All news</a>
-                    <a class="btn btn-ghost" th:href="@{/ship/library}" th:text="#{home.links.library}">Open the Library</a>
                 </p>
             </section>
         </div>

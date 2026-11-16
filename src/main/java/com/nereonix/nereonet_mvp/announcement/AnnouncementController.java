@@ -128,7 +128,7 @@ public class AnnouncementController {
         if (!targets.leftOut().isEmpty()) {
             return showReview(form, targets, fromShip, model);
         }
-        AnnouncementService.Sent sent = announcementService.create(form.getTitle(), form.getBody(), form.isFleet(),
+        AnnouncementService.Sent sent = announcementService.create(form.getTitle(), form.getBody(), form.getRequired(), form.isFleet(),
                 targets.shipIds(), currentUser.getUsername());
         redirectAttributes.addFlashAttribute("successMessage", "announcement.created");
         redirectAttributes.addFlashAttribute("successArgs", new Object[] {sent.recipients(), sent.ships()});

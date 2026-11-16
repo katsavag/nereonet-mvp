@@ -133,7 +133,7 @@ class MasterHomeFlowTest {
         libraryItem(otherShip, "Other ship policy", true);
         acknowledge(master, policy);
         // Announcements: one to the Master's ship.
-        announcementService.create("Safety drill", "Drill on Friday.", false, List.of(ship.getId()),
+        announcementService.create("Safety drill", "Drill on Friday.", true, false, List.of(ship.getId()),
                 "office@example.com");
         // Crew on board: three enabled, one disabled, one on another ship.
         crew("gone@example.com", "Gone Sailor", Rank.ORDINARY_SEAMAN, ship).setEnabled(false);
@@ -146,7 +146,7 @@ class MasterHomeFlowTest {
         assertThat(card(html, "announcements"))
                 .contains("href=\"/ship/news\"", ">News to read<", ">1</span>", "is-due");
         assertThat(card(html, "library"))
-                .contains("href=\"/ship/library\"", ">Library to acknowledge<", ">1</span>", "is-due");
+                .contains("href=\"/ship/library\"", ">Library to read<", ">1</span>", "is-due");
         // Crew on board informs: never highlighted.
         assertThat(card(html, "crew")).contains("href=\"/ship/crew\"", ">Crew on board<", ">3</span>")
                 .doesNotContain("is-due");

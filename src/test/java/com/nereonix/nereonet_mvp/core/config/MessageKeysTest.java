@@ -38,13 +38,10 @@ class MessageKeysTest {
             "certificate.reminder.office.subject",
             // Crew (ship) screens: the library as the crew see it, their navigation, the ship home page and their announcements.
             // (Download and the file size are on the office's read view too since P22, so they are in Greek.)
-            "library.acknowledge",
-            "library.acknowledged",
             "library.empty.crew",
             "library.notification.newRequired",
             "library.notification.reminder",
-            "library.required.acknowledged",
-            "library.required.toAcknowledge",
+            "library.notRead",
             "nav.group.ship",
             "nav.home",
             "nav.library",
@@ -55,8 +52,6 @@ class MessageKeysTest {
             "home.toRead.date.LIBRARY",
             "home.toRead.date.ANNOUNCEMENT",
             "home.toRead.empty",
-            "home.links.library",
-            "home.links.announcements",
             "home.certificates.heading",
             "home.certificates.expires",
             "home.certificates.number",

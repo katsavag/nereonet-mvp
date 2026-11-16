@@ -112,8 +112,11 @@ public class LibraryController {
         return "redirect:/ship/library";
     }
 
+    // Opening an item reads it: the first time, the server records when (LibraryService.acknowledge). Opening its
+    // file records nothing more.
     @GetMapping("/ship/library/{id}")
     public String item(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model) {
+        libraryService.acknowledge(currentUser.getUsername(), id);
         LibraryItem item = libraryService.visibleItem(currentUser.getUsername(), id);
         model.addAttribute("item", item);
         model.addAttribute("acknowledgement",
@@ -122,12 +125,6 @@ public class LibraryController {
         model.addAttribute("versions",
                 currentUser.getRole() == Role.MASTER ? libraryService.versions(item) : null);
         return "library/item";
-    }
-
-    @PostMapping("/ship/library/{id}/acknowledge")
-    public String acknowledge(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id) {
-        libraryService.acknowledge(currentUser.getUsername(), id);
-        return "redirect:/ship/library/" + id;
     }
 
     // A PDF opens in the browser; ?download=true (and every DOCX or XLSX) downloads it.

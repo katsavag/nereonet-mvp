@@ -8,13 +8,13 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   it (the role when no rank is set), and before the name their profile photo or initials (P31, see [20](20-my-profile-and-my-crew.md)). P58: Home
   has no sign-out line of its own at any width: **Sign out** is in the sidebar user block from 768 px and under
   **More** in the tab bar on phones ([20](20-my-profile-and-my-crew.md)).
-- **To read**: the Required library items of the person's ship that they have not acknowledged in the current
-  version and the news they have not opened yet (P27, P39, see [19](19-crew-news.md)), together, oldest first, with their number
+- **To read**: the Required library items of the person's ship that they have not opened in the current
+  version and the Required news they have not opened yet (P27, P39, P73, see [19](19-crew-news.md)), together, oldest first, with their number
   after the heading. Each is a full-width card (at least 56 px) with the type icon (the announcements icon for an
   announcement), the type ("Library" or "News item"), the title and "Published 12 Nov 2026" or "Sent 12 Nov
-  2026" (UTC date), and opens the item (where **I have read this** is) or the news item (read by opening it). Retired items and items of
+  2026" (UTC date), and opens the library item or the news item (both read by opening them). Retired items and items of
   other ships never show. A new version puts the item back on the list. Nothing left: "You are up to date."
-  **All news** and **Open the Library** follow the list.
+  No links to News or the Library follow the list (P73): both are in the navigation.
 - **My certificates**: the person's own certificates, soonest expiry first (so expired, then expiring soon, then
   valid): type, "Expires 3 Nov 2026 · expired 8 days ago", the number when set, and the expiry badge of the office
   lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
@@ -41,8 +41,7 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   offcanvas menu and the bell for ship users; office users keep both. From 768 px the sidebar has every entry (P65):
   **On board** Home, News, Library and My crew; **Supplies**, in the order of the work, Requests (Chief cook, crew
   members, see [31](31-requests.md)), Approvals (Master, [21](21-approvals.md)), Vessel order (Master, Chief cook, [23](23-ship-order.md)) and Inventory (Chief cook, [30](30-stores.md));
-  **Account** My profile and Notifications. The page keeps room for the bar, and the offline banner and the pinned
-  **I have read this** sit above it.
+  **Account** My profile and Notifications. The page keeps room for the bar, and the offline banner sits above it.
 - Home has no card for what a tab already counts (P65): no **Requests to approve** for the Master (the Approvals tab) and no **My requests** for the Chief cook (the Requests tab; crew members keep the card).
 - The page loads no script of its own (only the layout's shared files) and no images, except the person's own 96 px photo when they have added one (about 2 KB, cached for a year). Measured with the dev data
   as `cook.demo@example.com` (Chrome, 390 px): the HTML is 19.6 KB; with an empty cache the whole page transfers
@@ -50,5 +49,5 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   49 KB). Those files carry a content hash and are cached for a year, so every later visit transfers only the
   HTML. The app does not compress responses, so these are uncompressed sizes.
 - To try it: sign in as `cook.demo@example.com` / `crew123`: "Drug and alcohol policy" is under To read; open it,
-  press **I have read this**, then **Home**: "You are up to date.". As `master.demo@example.com` the Crew
+  then **Home**: "You are up to date.". As `master.demo@example.com` the Crew
   acknowledgements card lists it with its count.

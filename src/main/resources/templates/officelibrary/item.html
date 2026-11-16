@@ -15,7 +15,7 @@
     </header>
 
     <div class="item-read">
-        <th:block th:replace="~{core/library/parts :: itemContent(${itemUrl + '/file'}, false)}"></th:block>
+        <th:block th:replace="~{core/library/parts :: itemContent(${itemUrl + '/file'})}"></th:block>
     </div>
 
     <section th:replace="~{core/library/parts :: versionHistory(${versions})}"></section>

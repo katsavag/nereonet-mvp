@@ -4,8 +4,8 @@
 <!-- Step 2 of 2 of a new announcement. Announcements cannot be edited or deleted, so this page shows what will
      be sent before anything is: the target (All ships, the one ship, or "3 ships"), the chosen ships that are no
      longer active and are left out, the recipients per ship (counted again when it is sent, with a Total for
-     more than one ship) and the title and message as the crew will see them. The form carries the text and the active
-     target ships in hidden fields: "Send to N people on N ships" posts it to /office/announcements/send, "Back to edit"
+     more than one ship), "Must be read: Required / Not required" and the title and message as the crew will see them.
+     The form carries the text, that choice and the active target ships in hidden fields: "Send to N people on N ships" posts it to /office/announcements/send, "Back to edit"
      to /office/announcements/new, which shows the form with the text and the ticks.
      Ship names are not links here: leaving this page would lose the text. data-draft-for: once sent, js/save.js removes
      the draft of the form. -->
@@ -42,6 +42,8 @@
                 <dl class="static-fields">
                     <dt th:text="#{announcement.target}">Send to</dt>
                     <dd class="fw-semibold" th:text="${targetLabel}">MV Demo · IMO 9074729</dd>
+                    <dt th:text="#{announcement.review.required}">Must be read</dt>
+                    <dd th:text="${form.required} ? #{announcement.form.requiredYes} : #{announcement.form.requiredNo}">Not required</dd>
                 </dl>
             </div>
             <div class="table-responsive">
@@ -96,6 +98,7 @@
             <input th:each="id : ${form.shipIds}" type="hidden" name="shipIds" th:value="${id}">
             <input type="hidden" name="title" th:value="${form.title}">
             <input type="hidden" name="body" th:value="${form.body}">
+            <input type="hidden" name="required" th:value="${form.required}">
             <input th:if="${fromShip != null}" type="hidden" name="returnShipId" th:value="${fromShip.id}">
             <div class="form-actions mt-0">
                 <button type="submit" class="btn btn-primary" th:text="#{announcement.review.send(${people}, ${ships.size()})}">Send to 12 people on 3 ships</button>

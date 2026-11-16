@@ -60,6 +60,9 @@
                 <tr th:each="row : ${rows}" th:with="a=${row.announcement}">
                     <td class="cell-primary">
                         <a th:href="@{/office/announcements/{id}(id=${a.id})}" th:text="${a.title}">Safety drill</a>
+                        <!-- Only a Required one says so; the others are simply news. -->
+                        <span th:if="${a.required}" class="ms-2"><span
+                                th:replace="~{layout/parts :: status('neutral', #{announcement.required})}"></span></span>
                     </td>
                     <!-- All ships, the one ship (a link), or "3 ships" with the names as its title and, on the phone
                          card, under it. -->

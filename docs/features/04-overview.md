@@ -22,14 +22,14 @@ column, the tiles two per row.
   with quotes from two suppliers ("2 quotes ready to compare", **Compare quotes**) or past its reply-by date with
   fewer ("Reply-by date passed", **Open request**);
   4. crew invitation expired, or sent (last) more than 48 hours ago and not accepted (worked out from its expiry
-  date and `app.invitation.valid-days`); 5. announcement sent, or Required library item published (current
-  version), more than 7 days ago that not everyone has acknowledged. Within a kind, the most overdue or oldest first.
+  date and `app.invitation.valid-days`); 5. Required announcement sent (P73), or Required library item published (current
+  version), more than 7 days ago that not everyone has read. Within a kind, the most overdue or oldest first.
   Each row has a status badge with an icon and the kind, a title linking to the record (the certificate, the order,
   the ship's crew list for an invitation, the announcement, the item's acknowledgements), one context line
-  (ship · person and rank, or "2 of 5 not acknowledged" · date) and one action: **Open certificate**, **Open order**
+  (ship · person and rank, or "2 of 5 not read" · date) and one action: **Open certificate**, **Open order**
   (the order page, where the delivery is scheduled and the order exported, see [24](24-office-orders.md); or where a shortage is marked
   handled, P51), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
-  has not acknowledged**. A certificate or vetting row also has a checkbox and **Snooze** (P43, see [27](27-snoozing.md)); snoozed
+  has not read it**. A certificate or vetting row also has a checkbox and **Snooze** (P43, see [27](27-snoozing.md)); snoozed
   items are left out. The list is paged, 10 rows at a time (20, 50 or 100, the P19 pager; `?page=2`), and sorted
   most urgent first or, with **By date** (`?sort=date`), by the date that drives each row, earliest first. Above
   the rows a line of filter chips, **All** and one per category with its count (Certificates, Required documents,

@@ -60,6 +60,10 @@
                 <span class="visually-hidden" th:text="#{announcement.read}">Read</span>
             </th:block>
         </p>
+        <!-- Only a Required one says so. -->
+        <p th:if="${a.required}" class="library-row-badge">
+            <span th:replace="~{layout/parts :: status('neutral', #{announcement.required})}"></span>
+        </p>
     </div>
 </li>
 </body>

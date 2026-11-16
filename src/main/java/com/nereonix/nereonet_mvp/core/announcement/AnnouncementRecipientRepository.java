@@ -42,11 +42,15 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
     /** How many announcements this user has still to acknowledge: the crew's sidebar counter. */
     long countByUserEmailAndAcknowledgedAtIsNull(String email);
 
-    /** The ones this user has not acknowledged yet, oldest first (To read on the crew home page). */
+    /** The Required ones this user has not opened yet, oldest first (To read on the crew home page). */
     @Query("""
             select r from AnnouncementRecipient r join fetch r.announcement a
-            where r.user.email = :email and r.acknowledgedAt is null order by a.createdAt asc, a.id asc""")
+            where r.user.email = :email and r.acknowledgedAt is null and a.required = true
+            order by a.createdAt asc, a.id asc""")
     List<AnnouncementRecipient> findUnacknowledgedForUser(String email);
+
+    /** How many Required ones this user has not opened yet: the Master's "News to read" card. */
+    long countByUserEmailAndAcknowledgedAtIsNullAndAnnouncementRequiredTrue(String email);
 
     /** This user's place among the recipients of one announcement; empty when they are not a recipient. */
     Optional<AnnouncementRecipient> findByAnnouncementIdAndUserEmail(Long announcementId, String email);

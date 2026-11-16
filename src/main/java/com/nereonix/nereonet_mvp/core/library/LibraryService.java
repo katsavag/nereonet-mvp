@@ -248,7 +248,7 @@ public class LibraryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    /** Ids of the items whose current version this user acknowledged. A Required item not in it is "to acknowledge". */
+    /** Ids of the items whose current version this user has read. A Required item not in it is "to read". */
     @Transactional(readOnly = true)
     public Set<Long> acknowledgedItemIds(String email) {
         return acknowledgementRepository.findItemIdsAcknowledgedInCurrentVersion(email);
@@ -261,15 +261,13 @@ public class LibraryService {
     }
 
     /**
-     * Records that this ship user read the current version of a Required item of their own ship.
-     * Does nothing when already acknowledged. 404 for an item that is not visible or not Required.
+     * This ship user opens an item of their own ship: the first time, it records that they read its current version
+     * (Required or not, so every row of their list can show its tick) and the audit entry; opening it again changes
+     * nothing. 404 for an item that is not visible. As AnnouncementService.open.
      */
     @Transactional
     public void acknowledge(String email, Long id) {
         LibraryItem item = visibleItem(email, id);
-        if (!item.isRequired()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
         LibraryItemVersion version = item.getCurrentVersion();
         if (acknowledgementRepository.findByVersionAndUserEmail(version, email).isPresent()) {
             return;

@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditRepository;
+import com.nereonix.nereonet_mvp.core.library.LibraryAcknowledgementRepository;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
@@ -70,6 +71,9 @@ class LibraryFlowTest {
 
     @Autowired
     AuditRepository auditRepository;
+
+    @Autowired
+    LibraryAcknowledgementRepository acknowledgementRepository;
 
     @Test
     void crewMemberSeesTheLibraryOfTheirShip() throws Exception {
@@ -170,22 +174,30 @@ class LibraryFlowTest {
         item.setCurrentVersion(versionRepository.save(version));
         itemRepository.flush();
 
-        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
+        mockMvc.perform(get("/ship/library").with(user(new CurrentUser(crew))))
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.containsString("I have read this")));
+                .andExpect(content().string(Matchers.stringContainsInOrder("is-unread", ">Not read<", ">Required<")));
+        // Opening the file records nothing.
+        mockMvc.perform(get("/ship/library/" + item.getId() + "/file").with(user(new CurrentUser(crew))));
+        assertThat(acknowledgementRepository.count()).isZero();
 
+        // Opening the item reads it: no button, and one audit entry however often it is opened.
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(Matchers.stringContainsInOrder("read-receipt", "is-read", "<span>Read</span>")))
+                    .andExpect(content().string(Matchers.not(Matchers.containsString("I have read this"))));
+        }
+        assertThat(acknowledgementRepository.count()).isEqualTo(1);
+        assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("LIBRARY_ITEM_ACKNOWLEDGED")).hasSize(1);
         mockMvc.perform(post("/ship/library/" + item.getId() + "/acknowledge")
                         .with(user(new CurrentUser(crew))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/library/" + item.getId()));
-
-        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
-                .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.containsString("Acknowledged · Version 2026-10")))
-                .andExpect(content().string(Matchers.not(Matchers.containsString("I have read this"))));
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/ship/library").with(user(new CurrentUser(crew))))
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.containsString("Required · acknowledged")));
+                .andExpect(content().string(Matchers.stringContainsInOrder("is-read", ">Read<", ">Required<")))
+                .andExpect(content().string(Matchers.not(Matchers.containsString(">Not read<"))));
     }
 
     @Test
@@ -213,26 +225,27 @@ class LibraryFlowTest {
         item.setCurrentVersion(versionRepository.save(version));
         itemRepository.flush();
 
-        mockMvc.perform(post("/ship/library/" + item.getId() + "/acknowledge")
-                        .with(user(new CurrentUser(crew))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/library/" + item.getId()));
+        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
+                .andExpect(status().isOk());
         mockMvc.perform(get("/ship/library").with(user(new CurrentUser(crew))))
-                .andExpect(content().string(Matchers.containsString("Required · acknowledged")));
+                .andExpect(content().string(Matchers.containsString(">Read<")));
 
         mockMvc.perform(post("/ship/library/" + item.getId() + "/edit").with(user(new CurrentUser(master))).with(csrf())
                         .param("versionLabel", "2")
                         .param("text", "No alcohol or drugs on board."))
                 .andExpect(redirectedUrl("/ship/library/" + item.getId()));
 
-        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
-                .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.containsString("Version 2")))
-                .andExpect(content().string(Matchers.containsString("No alcohol or drugs on board.")))
-                .andExpect(content().string(Matchers.containsString("I have read this")));
+        // The new version is not read until it is opened.
         mockMvc.perform(get("/ship/library").with(user(new CurrentUser(crew))))
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.containsString("Version 2")))
-                .andExpect(content().string(Matchers.containsString("Required · to acknowledge")));
+                .andExpect(content().string(Matchers.containsString(">Not read<")));
+        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(crew))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(Matchers.containsString("Version 2")))
+                .andExpect(content().string(Matchers.containsString("No alcohol or drugs on board.")));
+        mockMvc.perform(get("/ship/library").with(user(new CurrentUser(crew))))
+                .andExpect(content().string(Matchers.containsString(">Read<")));
         assertThat(versionRepository.findAll()).hasSize(2);
     }
 
@@ -318,19 +331,18 @@ class LibraryFlowTest {
         item.setCurrentVersion(versionRepository.save(version));
         itemRepository.flush();
 
-        mockMvc.perform(post("/ship/library/" + item.getId() + "/acknowledge")
-                        .with(user(new CurrentUser(reader))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/library/" + item.getId()));
+        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(reader))))
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/office/ships/" + ship.getId() + "/library").with(user(new CurrentUser(office))))
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.containsString("1 of 2 acknowledged")));
+                .andExpect(content().string(Matchers.containsString("1 of 2 read")));
 
         mockMvc.perform(get("/office/ships/" + ship.getId() + "/library/" + item.getId() + "/acknowledgements")
                         .with(user(new CurrentUser(office))))
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.stringContainsInOrder(
-                        "Acknowledged (1)", "reader@example.com", "Not yet acknowledged (1)", "late@example.com")));
+                        "Read (1)", "reader@example.com", "Not read yet (1)", "late@example.com")));
     }
 
     // P16, FR-SIN-002: next to the file input of the add and new version forms (crew and office), named by the input.
@@ -396,7 +408,7 @@ class LibraryFlowTest {
         assertThat(list)
                 .contains("href=\"" + itemUrl + "\"")
                 .contains(">Required<")
-                .contains("0 of 1 acknowledged")
+                .contains("0 of 1 read")
                 .doesNotContain(itemUrl + "/edit")
                 .doesNotContain("Edit this item");
 
@@ -516,8 +528,7 @@ class LibraryFlowTest {
         User reader = shipUser(ship, "reader@example.com", Role.CREW_MEMBER);
         User late = shipUser(ship, "late@example.com", Role.CHIEF_COOK);
         LibraryItem item = textItem(ship, "Drug and alcohol policy", true, "1", "No alcohol on board.");
-        mockMvc.perform(post("/ship/library/" + item.getId() + "/acknowledge")
-                .with(user(new CurrentUser(reader))).with(csrf()));
+        mockMvc.perform(get("/ship/library/" + item.getId()).with(user(new CurrentUser(reader))));
         String overviewUrl = "/office/ships/" + ship.getId() + "/library/" + item.getId() + "/acknowledgements";
 
         // The overview offers it, behind a confirmation (with a plain page when the script did not load).

@@ -1628,8 +1628,8 @@ fieldset:disabled button.btn {
        aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
      - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the counters
        of what is under it, P47, P65), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
-   The page keeps room for the bar: the content ends above it, and the offline banner and the pinned "I have read
-   this" (.ack-bar.is-pinned) sit on top of it instead of under it. The crew's top bar has the page name only.
+   The page keeps room for the bar: the content ends above it, and the offline banner sits on top of it instead of
+   under it. The crew's top bar has the page name only.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-topbar-height: 3.5rem;      /* 56px: a 40px button and 8px above and below */
@@ -1724,12 +1724,6 @@ fieldset:disabled button.btn {
 @media (max-width: 767.98px) {
     .has-tab-bar .app-content { padding-bottom: calc(var(--nn-section-gap) + var(--nn-tab-bar-room)); }
     .has-tab-bar .offline-banner { bottom: var(--nn-tab-bar-room); }
-}
-@media (max-width: 575.98px) {
-    .has-tab-bar .ack-bar.is-pinned {
-        bottom: var(--nn-tab-bar-room);
-        padding-bottom: var(--nn-space-3);
-    }
 }
 
 
@@ -4082,16 +4076,13 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* ---------------------------------------------------------------------------------------------------------------
    Library reading and oversight: core/library/parts.html, library/item.html, officelibrary/item.html.
      - .library-row: one item of a ship's library: the type icon, then the title (a .stretched-link, so the whole row
-       opens the item), "Version 3 · 12 Oct 2026" and the Required badge; on the right (below on phones) the
-       acknowledgement progress, a link of its own above the stretched one.
-     - .ack-progress: "12 of 20 acknowledged" (underlined: a link not told apart by colour alone) over a 4px bar, a
-       touch target tall. The bar repeats the words; it turns green when everyone has acknowledged.
+       opens the item), "Version 3 · 12 Oct 2026" (for the crew, then the read ticks and "Read" / "Not read") and the
+       Required badge; on the right (below on phones) the read progress, a link of its own above the stretched one.
+     - .ack-progress: "12 of 20 read" (underlined: a link not told apart by colour alone) over a 4px bar, a
+       touch target tall. The bar repeats the words; it turns green when everyone has read it.
      - .file-type: a 32 x 40 page with "PDF", "DOCX" or "XLSX" on a tag (lines for a text item). The tag's words say
        the type; its colour pair only repeats it (PDF danger, DOCX info, XLSX ok, text neutral).
      - .file-row: an item's file: icon, name and size, then Open PDF and Download (full width on phones).
-     - .ack-bar: "I have read this" after the content. On phones, while not yet acknowledged (.is-pinned), it sticks
-       to the bottom of the screen until the content ends (its parent .item-read ends with it), on the page colour
-       with a line above. Offline it lets go, so the offline banner never covers it.
      - .version-history: the item's versions, newest first (Master and office).
      - .ack-section-heading: "Not yet acknowledged (3)" with Send reminder on the right.
    --------------------------------------------------------------------------------------------------------------- */
@@ -4228,22 +4219,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 @media (max-width: 575.98px) {
     .file-row-actions { flex-basis: 100%; }
     .file-row-actions > .btn { flex: 1 1 auto; }
-}
-
-.ack-bar { margin-top: var(--nn-space-5); }
-@media (max-width: 575.98px) {
-    .ack-bar.is-pinned {
-        position: sticky;
-        bottom: 0;
-        z-index: 1020;               /* over the content, under the offline banner, offcanvas and dialogs */
-        margin-inline: calc(-1 * var(--nn-gutter));
-        padding: var(--nn-space-3) var(--nn-gutter) calc(var(--nn-space-3) + env(safe-area-inset-bottom, 0px));
-        background: var(--nn-page);
-        border-top: 1px solid var(--nn-divider);
-        box-shadow: var(--nn-shadow-bar);
-    }
-    .ack-bar.is-pinned .btn { width: 100%; }
-    html.is-offline .ack-bar.is-pinned { position: static; }
 }
 
 .version-history { margin-top: var(--nn-section-gap); }

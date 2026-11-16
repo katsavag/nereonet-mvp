@@ -16,6 +16,11 @@
             ·
             <!-- As in the list: a crew member has read it once they opened it on their own page. -->
             <span th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 read</span>
+            <!-- Only a Required one says so. -->
+            <th:block th:if="${announcement.required}">
+                ·
+                <span th:replace="~{layout/parts :: status('neutral', #{announcement.required})}"></span>
+            </th:block>
         </th:block>
     </header>
 

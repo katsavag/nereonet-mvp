@@ -8,7 +8,12 @@ text; on the phone card they show under it). Filter by ship to see the announcem
 ship among their targets; search the title; sort by sent (the default, newest first), title and target (All ships,
 then one ship by name, then several ships, fewest first); 10 per page, 20, 50 or 100 on request (paged in the database, the
 acknowledgement counts read for that page only, and the target ships of the page with one more query).
-**New announcement** asks for the target, a title and a plain-text message. The target (P28) is one of two options,
+A Required announcement has the neutral status "Required" after its title in the list and under the heading of its page.
+**New announcement** asks for the target, a title, a plain-text message and "Must the crew read it?": **Required**
+or **Not required** (P73, the default, as a Library item). Everyone is notified and reading is tracked either way;
+only the Required ones are chased: the crew Home's To read, the Master's "News to read" card and the Overview's
+Needs attention. `announcement.required` is a non-null boolean with the default true, so announcements sent before
+P73 stay required. The review page shows the choice as "Must be read" and carries it in a hidden field. The target (P28) is one of two options,
 nothing preselected: **All ships** ("The whole active fleet: 5 ships") or **Selected ships**, a list of the active
 ships to tick (name, IMO number, type and flag). With JavaScript (`js/ship-picker.js`) the list shows only while
 Selected ships is chosen and has quick filters by type and by flag (each only when the active ships have more than

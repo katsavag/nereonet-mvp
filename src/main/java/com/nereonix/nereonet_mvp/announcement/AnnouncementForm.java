@@ -7,6 +7,7 @@ import java.util.Objects;
 import com.nereonix.nereonet_mvp.core.announcement.Announcement;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -32,6 +33,10 @@ public class AnnouncementForm {
     @Size(max = Announcement.BODY_MAX_LENGTH, message = "{announcement.error.tooLong}")
     private String body;
 
+    // "Must the crew read it?": Not required until the office says otherwise, as a library item.
+    @NotNull
+    private Boolean required = false;
+
     public boolean isFleet() {
         return FLEET.equals(target);
     }
@@ -52,4 +57,7 @@ public class AnnouncementForm {
     public String getBody() { return body; }
     // Browsers send line breaks as \r\n; store \n so each line break counts as one character, as in the counter.
     public void setBody(String body) { this.body = body == null ? null : body.replace("\r\n", "\n").strip(); }
+
+    public Boolean getRequired() { return required; }
+    public void setRequired(Boolean required) { this.required = required; }
 }

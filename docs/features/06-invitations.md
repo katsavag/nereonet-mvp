@@ -22,7 +22,7 @@ appears in Mailpit.
   (P18): the rank sets it, Master → Master, Chief Cook → Chief cook, every other rank (Chief Engineer included) →
   crew member. The rank is required and is copied to the user on registration. Under the rank picker (grouped by
   department: Deck, Engine, Catering) a read-only line says what the rank gives, e.g. "Access: Master · can publish
-  library items and see acknowledgements", and follows the picker as it changes (`js/forms.js`; without the
+  library items and see who has read them", and follows the picker as it changes (`js/forms.js`; without the
   script it shows the saved rank's access). A ship can have only one active Master and one active Chief cook;
   inviting a second one shows an error on the rank field.
 - The email (P29) is plain text and HTML in one message (`core/mail/MailService.send(to, subject, text, html)`,

@@ -243,9 +243,12 @@ public class AnnouncementService {
      * recipients are fixed now: every enabled user with a ship role who is on one of those ships (on any active ship
      * for the fleet), counted again here, whatever the review page showed. Each recipient gets an in-app notification,
      * "Announcement · <title>", that opens the announcement. The audit entry lists the target ship ids.
+     * required: the crew must read it, so who has not is chased (Announcement.required); everyone is notified and
+     * their reading tracked either way.
      */
     @Transactional
-    public Sent create(String title, String body, boolean fleet, Collection<Long> shipIds, String actorEmail) {
+    public Sent create(String title, String body, boolean required, boolean fleet, Collection<Long> shipIds,
+                       String actorEmail) {
         Targets targets = targets(fleet, shipIds);
         if (!fleet && targets.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active ship chosen");
@@ -254,6 +257,7 @@ public class AnnouncementService {
         Announcement announcement = new Announcement();
         announcement.setTitle(title.strip());
         announcement.setBody(body.strip());
+        announcement.setRequired(required);
         announcement.setFleetWide(fleet);
         if (!fleet) {
             announcement.getTargetShips().addAll(targets.ships());

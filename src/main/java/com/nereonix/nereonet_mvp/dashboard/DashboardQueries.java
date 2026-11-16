@@ -183,7 +183,7 @@ public class DashboardQueries {
                 .getResultList();
     }
 
-    /** Announcements sent before "sentBefore": recipients and acknowledgements per ship of the recipients. */
+    /** Required announcements sent before "sentBefore": recipients and how many read it, per ship of the recipients. */
     List<AnnouncementShipRow> announcementsSentBefore(Instant sentBefore) {
         return entityManager.createQuery("""
                 select new com.nereonix.nereonet_mvp.dashboard.DashboardQueries$AnnouncementShipRow(
@@ -191,7 +191,7 @@ public class DashboardQueries {
                     count(r.acknowledgedAt))
                 from AnnouncementRecipient r join r.announcement a
                     left join a.targetShips oneTarget on size(a.targetShips) = 1
-                where a.createdAt < :sentBefore
+                where a.createdAt < :sentBefore and a.required = true
                 group by a.id, a.title, a.fleetWide, oneTarget.id, a.createdAt, r.ship.id""", AnnouncementShipRow.class)
                 .setParameter("sentBefore", sentBefore)
                 .getResultList();

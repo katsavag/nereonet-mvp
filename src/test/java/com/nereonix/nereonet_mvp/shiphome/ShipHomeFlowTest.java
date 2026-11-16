@@ -1,11 +1,8 @@
 package com.nereonix.nereonet_mvp.shiphome;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
@@ -122,11 +119,10 @@ class ShipHomeFlowTest {
         String toRead = section(TO_READ, html);
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy");
         assertThat(toRead).contains("href=\"/ship/library/" + policy.getId() + "\"", "class=\"read-card-type\">Library<",
-                        "Published", "href=\"/ship/library\"")
-                .doesNotContain("You are up to date.");
+                        "Published")
+                .doesNotContain("You are up to date.", "home-links", "All news", "Open the Library");
 
-        mockMvc.perform(post("/ship/library/{id}/acknowledge", policy.getId()).with(user(new CurrentUser(cook))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/library/" + policy.getId()));
+        acknowledge(cook, policy);
         String after = section(TO_READ, home(cook));
         assertThat(titles(after)).isEmpty();
         assertThat(after).contains("You are up to date.");
@@ -143,7 +139,7 @@ class ShipHomeFlowTest {
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
     void unacknowledgedAnnouncementsAreToRead() throws Exception {
-        Long id = announcementService.create("Safety drill", "Drill on Friday.", false, java.util.List.of(ship.getId()),
+        Long id = announcementService.create("Safety drill", "Drill on Friday.", true, false, java.util.List.of(ship.getId()),
                 "office@example.com")
                 .announcement().getId();
 
@@ -151,8 +147,7 @@ class ShipHomeFlowTest {
         // The policy was published two days ago, the announcement sent now: oldest first.
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy", "Safety drill");
         assertThat(toRead).contains("href=\"/ship/news/" + id + "\"", "class=\"read-card-type\">News item<",
-                        "<span>Sent</span>", "<span class=\"read-card-icon\" aria-hidden=\"true\">",
-                        "href=\"/ship/news\">All news</a>");
+                        "<span>Sent</span>", "<span class=\"read-card-icon\" aria-hidden=\"true\">");
 
         mockMvc.perform(get("/ship/news/{id}", id).with(user(new CurrentUser(cook)))).andExpect(status().isOk());
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
@@ -229,7 +224,7 @@ class ShipHomeFlowTest {
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
     void theTabsFitTheRole() throws Exception {
-        announcementService.create("Safety drill", "Drill on Friday.", false, List.of(ship.getId()),
+        announcementService.create("Safety drill", "Drill on Friday.", true, false, List.of(ship.getId()),
                 "office@example.com");
 
         // The Master: Approvals and Vessel order are tabs (active on their pages); News and Library are under More,
@@ -315,8 +310,8 @@ class ShipHomeFlowTest {
     }
 
     private void acknowledge(User u, LibraryItem item) throws Exception {
-        mockMvc.perform(post("/ship/library/{id}/acknowledge", item.getId()).with(user(new CurrentUser(u))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/library/" + item.getId()));
+        mockMvc.perform(get("/ship/library/{id}", item.getId()).with(user(new CurrentUser(u))))
+                .andExpect(status().isOk());
     }
 
     private Ship ship(String imo, String name) {

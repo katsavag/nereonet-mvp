@@ -18,6 +18,11 @@
                          : #{announcement.ship.fromOffice}">Office · Jane Doe</span>
             ·
             <time th:replace="~{layout/parts :: localTime(${announcement.createdAt})}"></time>
+            <!-- Only a Required one says so. -->
+            <th:block th:if="${announcement.required}">
+                ·
+                <span th:replace="~{layout/parts :: status('neutral', #{announcement.required})}"></span>
+            </th:block>
         </th:block>
     </header>
 

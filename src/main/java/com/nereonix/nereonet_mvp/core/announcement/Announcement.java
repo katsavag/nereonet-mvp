@@ -54,6 +54,12 @@ public class Announcement {
     @ColumnDefault("false")
     private boolean fleetWide;
 
+    // The crew must read it: who has not is chased (the crew's To read, the Master's card, the Overview). Reading is
+    // tracked for the others too. The default keeps the announcements sent before the choice existed required.
+    @Column(nullable = false, updatable = false)
+    @ColumnDefault("true")
+    private boolean required;
+
     // The ships it was sent to, by name; empty when fleetWide. Read in batches, so a page of the list loads the
     // targets of all its announcements with one query.
     @ManyToMany

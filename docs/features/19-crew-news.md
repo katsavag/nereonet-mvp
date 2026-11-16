@@ -21,7 +21,10 @@ with the number the person has not read yet (P37; "2 unread" for screen readers,
   `/ship/news/{id}` (bookmarks, links in older notifications and emails).
 - Someone who is not a recipient (another ship, joined after it was sent) gets 404 on both URLs, records nothing,
   and never sees it in their list. The crew never see who else has or has not read it: only their own state.
-- Unread news is on the Home page's To read ([18](18-crew-home.md)) until opened.
+- Required news (P73, [14](14-announcements.md)) has the badge "Required" in the list and on its page; the other
+  items have none. Reading is tracked the same way for both.
+- Unread Required news is on the Home page's To read ([18](18-crew-home.md)) until opened; news that is not
+  required is only in the News list and its counter.
 - To try it: as `office@example.com` send an announcement to MV Demo ([14](14-announcements.md)). As `cook.demo@example.com` /
   `crew123`: **News** has the counter; open the item. As the office, the announcement's page shows "1 of 2 read"
   with Demo Cook, the two ticks and the time under Read.
