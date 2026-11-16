@@ -15,7 +15,7 @@
             <span th:text="${announcement.createdBy} ? ${announcement.createdBy.fullName} : #{announcement.deletedUser}">Office user</span>
             ·
             <!-- As in the list: a crew member has read it once they opened it on their own page. -->
-            <span th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 read</span>
+            <span th:text="#{announcement.count(${recipients.acknowledged.totalElements}, ${recipients.total()})}">1 of 3 read</span>
             <!-- Only a Required one says so. -->
             <th:block th:if="${announcement.required}">
                 ·
@@ -56,7 +56,7 @@
                 <tr>
                     <th scope="row" th:text="#{announcement.review.total}">Total</th>
                     <td class="num fw-semibold text-nowrap"
-                        th:text="#{announcement.count(${recipients.acknowledged.size()}, ${recipients.acknowledged.size() + recipients.pending.size()})}">1 of 3 read</td>
+                        th:text="#{announcement.count(${recipients.acknowledged.totalElements}, ${recipients.total()})}">1 of 3 read</td>
                 </tr>
                 </tfoot>
             </table>
@@ -65,13 +65,13 @@
 
     <!-- Read and not read yet, side by side from 992px (.card-grid). Each recipient row ends with its read receipt
          (layout/parts :: readReceipt): two ticks in the primary blue and the time, or one grey tick and "Not read
-         yet". -->
+         yet". Each list is 10 a page with its own pager (readList, pendingList); the counts are everyone. -->
     <div class="card-grid">
         <!-- Read -->
         <div id="acknowledged" class="card">
             <div class="card-header d-flex justify-content-between align-items-center py-3">
                 <h2 class="h5 fw-bold mb-0" th:text="#{announcement.acknowledged}">Read</h2>
-                <span class="font-monospace small text-body-secondary" th:text="${recipients.acknowledged.size()}">0</span>
+                <span class="font-monospace small text-body-secondary" th:text="${recipients.acknowledged.totalElements}">0</span>
             </div>
             <p th:if="${recipients.acknowledged.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{announcement.acknowledged.empty}">Nobody has read it yet.</p>
@@ -95,13 +95,14 @@
                     </tbody>
                 </table>
             </div>
+            <nav th:replace="~{layout/parts :: pager(${recipients.acknowledged}, ${readList})}"></nav>
         </div>
     
         <!-- Not read yet -->
         <div id="pending" class="card">
             <div class="card-header d-flex justify-content-between align-items-center py-3">
                 <h2 class="h5 fw-bold mb-0" th:text="#{announcement.pending}">Not read yet</h2>
-                <span class="font-monospace small text-body-secondary" th:text="${recipients.pending.size()}">0</span>
+                <span class="font-monospace small text-body-secondary" th:text="${recipients.pending.totalElements}">0</span>
             </div>
             <p th:if="${recipients.pending.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{announcement.pending.empty}">Everyone has read it.</p>
@@ -125,6 +126,7 @@
                     </tbody>
                 </table>
             </div>
+            <nav th:replace="~{layout/parts :: pager(${recipients.pending}, ${pendingList})}"></nav>
         </div>
     </div>
 </main>

@@ -27,6 +27,9 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
  * </ul>
  * Changing the search, a filter, the sort or the page size goes back to page 1.
  * The parameters are written in a fixed order: q, the filters in the order added, sort, dir, size, page.
+ * A page with two lists (who has read an item, who has not) gives the second one its own page parameter
+ * and each list the other's page as a filter (firstOfTwo, secondOfTwo); a list below the top of its page names its
+ * anchor.
  */
 public final class ListQuery {
 
@@ -52,6 +55,8 @@ public final class ListQuery {
     private final int size;
     private final List<Integer> sizes;
     private final List<Filter> filters = new ArrayList<>();
+    private String pageParam = "page";
+    private String anchor;
 
     private ListQuery(String path, String q, List<ListSort> sorts, ListSort sort, boolean descending,
                       boolean sortChosen, int page, int size, List<Integer> sizes) {
@@ -80,6 +85,30 @@ public final class ListQuery {
         int size = r.size() != null && SIZES.contains(r.size()) ? r.size() : DEFAULT_SIZE;
         int page = r.page() == null || r.page() < 1 ? 0 : r.page() - 1;
         return new ListQuery(path, search(r.q()), all, sort, descending, chosen != null, page, size, SIZES);
+    }
+
+    /**
+     * Two lists on one page, each with its own pager ("Read" and "Not read yet"): the first has the usual ?page=,
+     * the second its own page parameter (secondParam: notReadPage) at secondPage; both share the page size and each
+     * keeps the other's page in its links. anchor: the id of the list's element, where its links go.
+     */
+    public static ListQuery firstOfTwo(String path, ListRequest request, String secondParam, Integer secondPage,
+                                       String anchor, ListSort sort) {
+        ListRequest r = request == null ? ListRequest.EMPTY : request;
+        return of(path, new ListRequest(null, null, null, r.page(), r.size()), sort)
+                .filter(secondParam, pastFirst(secondPage), null, null).anchor(anchor);
+    }
+
+    public static ListQuery secondOfTwo(String path, ListRequest request, String secondParam, Integer secondPage,
+                                        String anchor, ListSort sort) {
+        ListRequest r = request == null ? ListRequest.EMPTY : request;
+        return of(path, new ListRequest(null, null, null, secondPage, r.size()), sort).pageParam(secondParam)
+                .filter("page", pastFirst(r.page()), null, null).anchor(anchor);
+    }
+
+    // A page number worth keeping in a link: none for the first page.
+    private static Integer pastFirst(Integer page) {
+        return page != null && page > 1 ? page : null;
     }
 
     private static String search(String q) {
@@ -115,6 +144,22 @@ public final class ListQuery {
             filters.add(new Filter(name, value.toString(), labelKey, null, valueKey));
         }
         return this;
+    }
+
+    // The name of this list's page parameter when it is not "page": the second list of a page (?notReadPage=2).
+    private ListQuery pageParam(String name) {
+        this.pageParam = name;
+        return this;
+    }
+
+    /** The id of the element every link of this list goes to (#earlier), for a list below the top of its page. */
+    public ListQuery anchor(String id) {
+        this.anchor = id;
+        return this;
+    }
+
+    public String getPageParam() {
+        return pageParam;
     }
 
     // Read by the services.
@@ -295,9 +340,10 @@ public final class ListQuery {
             params.add(param("size", Integer.toString(pageSize)));
         }
         if (page1 > 1) {
-            params.add(param("page", Integer.toString(page1)));
+            params.add(param(pageParam, Integer.toString(page1)));
         }
-        return params.isEmpty() ? path : path + "?" + String.join("&", params);
+        String url = params.isEmpty() ? path : path + "?" + String.join("&", params);
+        return anchor == null ? url : url + "#" + anchor;
     }
 
     // Form encoding (space as +, + as %2B), as the browser sends the filter form.

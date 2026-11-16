@@ -2,17 +2,19 @@ package com.nereonix.nereonet_mvp.announcement;
 
 import java.util.List;
 
-import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.nereonix.nereonet_mvp.core.announcement.AnnouncementRecipient;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
@@ -25,10 +27,8 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 public class ShipAnnouncementController {
 
     static final String NEWS = "/ship/news";
-    /** News items per page: the list shows pages 1 to ?page=n, "Show older" adds the next one. */
-    static final int PAGE_SIZE = 10;
-    /** The most pages one request shows, so a hand-made URL cannot ask for everything at once. */
-    static final int MAX_PAGES = 50;
+    // Newest first: there is nothing to sort, but ListQuery needs its default.
+    private static final ListSort[] SORTS = {ListSort.desc("sent")};
     /** The longest preview sent to the browser; CSS cuts it to one line. */
     static final int PREVIEW_LENGTH = 160;
 
@@ -48,22 +48,27 @@ public class ShipAnnouncementController {
         }
     }
 
-    // The first `page` pages (10 each) in one list, limited in the database: unread first ("New"), then read
-    // ("Earlier"), each newest first. "Show older" links to page + 1 while there are more.
+    // "New": everything not opened yet, never paged (it is what must be read). "Earlier": what was read, 10 a page
+    // with the shared pager (listRequest: its page and page size), whose links come back to that heading. Each
+    // newest first.
     @GetMapping(NEWS)
-    public String list(@AuthenticationPrincipal CurrentUser currentUser,
-                       @RequestParam(defaultValue = "1") int page, Model model) {
+    public String list(@AuthenticationPrincipal CurrentUser currentUser, @ModelAttribute ListRequest listRequest,
+                       Model model) {
         User user = userRepository.findByEmail(currentUser.getUsername()).orElseThrow();
-        int pages = Math.clamp(page, 1, MAX_PAGES);
-        Slice<AnnouncementRecipient> slice = announcementService.forUser(currentUser.getUsername(), pages * PAGE_SIZE);
-        List<NewsRow> rows = slice.getContent().stream()
-                .map(r -> new NewsRow(r, preview(r.getAnnouncement().getBody()))).toList();
+        ListQuery list = ListQuery.of(NEWS, listRequest, SORTS).anchor("newsGroupEarlier");
+        List<NewsRow> unreadRows = announcementService.newFor(currentUser.getUsername()).stream()
+                .map(ShipAnnouncementController::row).toList();
         model.addAttribute("ship", user.getShip());
-        model.addAttribute("unreadRows", rows.stream().filter(NewsRow::isUnread).toList());
-        model.addAttribute("readRows", rows.stream().filter(r -> !r.isUnread()).toList());
-        model.addAttribute("unread", announcementService.unreadFor(currentUser.getUsername()));
-        model.addAttribute("nextPage", slice.hasNext() && pages < MAX_PAGES ? pages + 1 : null);
+        model.addAttribute("list", list);
+        model.addAttribute("unreadRows", unreadRows);
+        model.addAttribute("readRows", announcementService.earlierFor(currentUser.getUsername(), list)
+                .map(ShipAnnouncementController::row));
+        model.addAttribute("unread", unreadRows.size());
         return "announcement/ship-list";
+    }
+
+    private static NewsRow row(AnnouncementRecipient recipient) {
+        return new NewsRow(recipient, preview(recipient.getAnnouncement().getBody()));
     }
 
     /** The text on one line (every run of white space a single space), at most PREVIEW_LENGTH characters with "…". */

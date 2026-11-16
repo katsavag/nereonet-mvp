@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.library.AcknowledgementOverview;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFileResponse;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
@@ -21,6 +22,7 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemForm;
 import com.nereonix.nereonet_mvp.core.library.LibraryReminders;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.library.ParticularsForm;
 import com.nereonix.nereonet_mvp.core.library.PublishVersionForm;
 import com.nereonix.nereonet_mvp.core.library.VersionLabelUnchangedException;
@@ -56,11 +58,16 @@ public class LibraryController {
         return "library/list";
     }
 
+    // listRequest: the page of "Read" and the page size of both lists; notReadPage: the page of "Not read yet".
     @GetMapping("/ship/library/{id}/acknowledgements")
     public String acknowledgements(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                                   Model model) {
+                                   @ModelAttribute ListRequest listRequest,
+                                   @RequestParam(required = false) Integer notReadPage, Model model) {
+        String path = "/ship/library/" + id + "/acknowledgements";
         model.addAttribute("overview", libraryService.acknowledgementOverview(
-                libraryService.visibleItem(currentUser.getUsername(), id)));
+                libraryService.visibleItem(currentUser.getUsername(), id),
+                AcknowledgementOverview.readList(path, listRequest, notReadPage),
+                AcknowledgementOverview.notReadList(path, listRequest, notReadPage)));
         return "library/acknowledgements";
     }
 
@@ -140,8 +147,7 @@ public class LibraryController {
     @GetMapping("/ship/library/{id}/acknowledgements/remind")
     public String confirmRemind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                 Model model) {
-        LibraryItem item = libraryService.acknowledgementOverview(
-                libraryService.visibleItem(currentUser.getUsername(), id)).item();
+        LibraryItem item = libraryService.required(libraryService.visibleItem(currentUser.getUsername(), id));
         String itemUrl = "/ship/library/" + id;
         return confirmPages.neutral()
                 .title("library.reminder.confirm.title", item.getTitle())

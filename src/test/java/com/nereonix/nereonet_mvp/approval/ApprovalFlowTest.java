@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -235,7 +236,7 @@ class ApprovalFlowTest {
         devData.run(null);
 
         List<ItemRequest> pending = requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(ship.getId(),
-                RequestStatus.PENDING);
+                RequestStatus.PENDING, Pageable.unpaged()).getContent();
         assertThat(pending).hasSize(2);
         ItemRequest fromCook = pending.get(0);
         ItemRequest fromCrew = pending.get(1);

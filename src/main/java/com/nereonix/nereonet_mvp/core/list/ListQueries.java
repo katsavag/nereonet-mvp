@@ -2,10 +2,12 @@ package com.nereonix.nereonet_mvp.core.list;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import jakarta.persistence.EntityManager;
@@ -66,6 +68,18 @@ public class ListQueries {
                 .setMaxResults(list.getSize())
                 .getResultList();
         return new PageImpl<>(rows, PageRequest.of(page, list.getSize()), total);
+    }
+
+    /**
+     * One page of a repository query that takes a Pageable and sorts in its own SQL (the crew's lists): the page the
+     * list asks for, or the last one when that is past the end.
+     */
+    public static <T> Page<T> page(ListQuery list, Function<Pageable, Page<T>> query) {
+        Page<T> rows = query.apply(PageRequest.of(list.getPage(), list.getSize()));
+        if (rows.getNumberOfElements() == 0 && rows.getTotalElements() > 0) {
+            rows = query.apply(PageRequest.of(clamp(list, rows.getTotalElements()), list.getSize()));
+        }
+        return rows;
     }
 
     /** Every row of the list, in its order, without pages: an export of the list as it is filtered. */

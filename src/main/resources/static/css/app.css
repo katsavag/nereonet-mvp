@@ -2160,7 +2160,10 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .table-sticky: from 1200px the header row stays at the top of the window while the page scrolls (the list
        then has room for every column, so its card no longer scrolls sideways). Below 1200px the table may scroll
        sideways inside its card, which a sticky header cannot follow; phones stack the rows and have no header.
-     - .pager: "1 to 25 of 412", the page size and Previous / Next, under the table, on the card padding.
+     - .pager: "1 to 10 of 412", the page size and Previous / Next, under the table, on the card padding. Not at the
+       end of a card: .pager-plain around it under a list of separate rows (the crew's News, who has read a Library
+       item), no rule above it and in line with the list's edges; .pager-card, a card of its own under a list of
+       cards (Vessel order, In progress).
      - .list-empty: "No results for these filters" and Clear all, distinct from a list's first-use text.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
@@ -2346,6 +2349,12 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     .pager-nav { flex: 1 1 100%; }
     .pager-nav .btn { flex: 1 1 0; }
 }
+.pager-plain .pager {
+    padding-inline: 0;
+    border-top: 0;
+}
+.pager-card { margin-top: var(--nn-space-3); }
+.pager-card .pager { border-top: 0; }
 
 .list-empty {
     display: flex;
@@ -4762,7 +4771,6 @@ a.stat-chip:hover .stat-chip-label,
        one-line preview (.news-row-preview), then "Office · 13 Nov" and, read, the two ticks. Below 576px the cards
        reach the screen edges (no side border, no radius, the content's 16px gutter as their padding), one under the
        other with a 1px gap; from 576px separate rounded cards.
-     - .news-older: "Show older" at the end of the list.
      - .news-item: the detail page; .news-back: "Back to News" at the top and the bottom; a 22px bold title; the body
        at 16px / 1.6 with blank lines as paragraph spacing, links underlined.
      - .read-ticks: 16px; read (.is-read) two ticks in the primary blue (9.6:1 on white), not read one grey tick
@@ -4856,17 +4864,6 @@ a.stat-chip:hover .stat-chip-label,
     color: var(--nn-text-secondary);
 }
 .news-row-meta .read-ticks { margin-left: var(--nn-space-1); }
-.news-older {
-    margin: var(--nn-space-4) 0 0;
-    text-align: center;
-}
-.news-older a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding-inline: var(--nn-space-4);
-    font-weight: 600;
-}
 /* Phones: the cards reach the screen edges, flat, with the content's gutter as their padding. */
 @media (max-width: 575.98px) {
     .news-page .news-list {

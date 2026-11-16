@@ -262,7 +262,7 @@ class AnnouncementFlowTest {
                         "Galley inspection", "<p class=\"news-row-preview\">Next week.</p>", "<span>Office</span>",
                         "href=\"/ship/news/" + drill.getId() + "\"", "Safety drill",
                         "<p class=\"news-row-preview\">Drill on Friday. Muster at &lt;10:00&gt;.</p>")
-                .doesNotContain("newsGroupEarlier", "Show older", "To acknowledge", "Acknowledged", "Announcement");
+                .doesNotContain("newsGroupEarlier", "class=\"pager\"", "To acknowledge", "Acknowledged", "Announcement");
         assertThat(count(list, "news-row is-unread")).isEqualTo(2);
         // News is the active tab (and sidebar entry).
         assertThat(list).contains("<a class=\"tab-bar-link active\" href=\"/ship/news\" aria-current=\"page\">",
@@ -333,9 +333,10 @@ class AnnouncementFlowTest {
                 .contains("1 από 2 διάβασαν", "Δεν διαβάστηκε ακόμη", "<span>Διαβάστηκε</span>");
     }
 
-    // The News list loads 10 at a time; "Show older" adds the next 10 below them. A long text is cut to one line.
+    // "New" shows every unread item (it is what must be read); "Earlier" is 10 a page with the shared pager. A long
+    // text is cut to one line.
     @Test
-    void newsLoadsTenAtATimeWithShowOlder() throws Exception {
+    void newsShowsAllNewAndEarlierTenAPage() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
         User cook = crewMember("cook@example.com", "Demo Cook", demo);
         for (int i = 1; i <= 12; i++) {
@@ -343,21 +344,34 @@ class AnnouncementFlowTest {
         }
         announcementRepository.flush();
 
-        String first = html(get("/ship/news").with(user(new CurrentUser(cook))));
-        assertThat(count(first, "<li class=\"news-row")).isEqualTo(10);
-        assertThat(first).contains("<span class=\"num\">12 new</span>",
-                        "<p class=\"news-older\">", "<a href=\"/ship/news?page=2\">Show older</a>")
-                .containsSubsequence(">News 12<", ">News 11<", ">News 3<")
-                .doesNotContain(">News 2<", ">News 1<")
+        String unread = html(get("/ship/news").with(user(new CurrentUser(cook))));
+        assertThat(count(unread, "<li class=\"news-row")).isEqualTo(12);
+        assertThat(unread).contains("<span class=\"num\">12 new</span>")
+                .containsSubsequence(">News 12<", ">News 11<", ">News 3<", ">News 2<", ">News 1<")
+                .doesNotContain("class=\"pager\"")
                 // The preview: at most 160 characters, cut with an ellipsis.
                 .containsPattern("<p class=\"news-row-preview\">(Word ){31}Word…</p>");
 
-        String both = html(get("/ship/news").param("page", "2").with(user(new CurrentUser(cook))));
-        assertThat(count(both, "<li class=\"news-row")).isEqualTo(12);
-        assertThat(both).containsSubsequence(">News 3<", ">News 2<", ">News 1<").doesNotContain("Show older");
-        // A page number out of range is brought back into range.
+        // All read: "Earlier", 10 a page; the pager's links come back to that heading.
+        recipientRepository.findAll().forEach(r -> {
+            r.setAcknowledgedAt(Instant.now());
+            recipientRepository.save(r);
+        });
+        recipientRepository.flush();
+        String first = html(get("/ship/news").with(user(new CurrentUser(cook))));
+        assertThat(count(first, "<li class=\"news-row")).isEqualTo(10);
+        assertThat(first).contains("1 to 10 of 12", "href=\"/ship/news?page=2#newsGroupEarlier\"")
+                .containsSubsequence(">News 12<", ">News 11<", ">News 3<")
+                .doesNotContain(">News 2<", ">News 1<", "<span class=\"num\">12 new</span>");
+
+        String second = html(get("/ship/news").param("page", "2").with(user(new CurrentUser(cook))));
+        assertThat(count(second, "<li class=\"news-row")).isEqualTo(2);
+        assertThat(second).containsSubsequence(">News 2<", ">News 1<").contains("11 to 12 of 12");
+        // A page number out of range is brought back into range: below 1 the first page, past the end the last.
         assertThat(count(html(get("/ship/news").param("page", "0").with(user(new CurrentUser(cook)))),
                 "<li class=\"news-row")).isEqualTo(10);
+        assertThat(count(html(get("/ship/news").param("page", "9").with(user(new CurrentUser(cook)))),
+                "<li class=\"news-row")).isEqualTo(2);
     }
 
     // The old crew URLs (bookmarks, older notifications) move to /ship/news for good.

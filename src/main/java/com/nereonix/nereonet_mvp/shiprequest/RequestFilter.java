@@ -19,8 +19,8 @@ public enum RequestFilter {
         this.statuses = statuses;
     }
 
-    public boolean matches(RequestStatus status) {
-        return statuses.contains(status);
+    public Set<RequestStatus> statuses() {
+        return statuses;
     }
 
     /** The value of ?status=, or null for All. */

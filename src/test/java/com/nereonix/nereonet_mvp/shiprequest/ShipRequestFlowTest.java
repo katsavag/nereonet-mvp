@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -117,7 +118,8 @@ class ShipRequestFlowTest {
                 .andExpect(flash().attribute("successMessage", "request.sent"))
                 .andReturn().getResponse().getRedirectedUrl();
 
-        ItemRequest request = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(cook.getId())
+        ItemRequest request = requestRepository.findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(cook.getId(),
+                        List.of(RequestStatus.values()), Pageable.unpaged()).getContent()
                 .getFirst();
         assertThat(location).isEqualTo("/ship/requests/" + request.getId());
         assertThat(request.getStatus()).isEqualTo(RequestStatus.PENDING);
@@ -185,13 +187,15 @@ class ShipRequestFlowTest {
         assertThat(wrong).contains("This form has 3 errors", "Enter a number.", "Use whole numbers for pcs.",
                         "Up to 2000 kg per line. For more, split it or ask the office.")
                 .contains("value=\"abc\"", "value=\"1,5\"", "value=\"1000000\"");
-        assertThat(requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(cook.getId())).isEmpty();
+        assertThat(requestRepository.findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(cook.getId(),
+                        List.of(RequestStatus.values()), Pageable.unpaged()).getContent()).isEmpty();
 
         // "1,5" kg is 1.5 kg.
         mockMvc.perform(as(post("/ship/requests/new"), cook)
                         .param("lines[0].itemId", sugar.getId().toString()).param("lines[0].quantity", "1,5"))
                 .andExpect(status().is3xxRedirection());
-        ItemRequest request = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(cook.getId())
+        ItemRequest request = requestRepository.findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(cook.getId(),
+                        List.of(RequestStatus.values()), Pageable.unpaged()).getContent()
                 .getFirst();
         assertThat(request.getLines()).singleElement()
                 .satisfies(line -> assertThat(line.getQuantity()).isEqualByComparingTo("1.5"));
@@ -264,7 +268,8 @@ class ShipRequestFlowTest {
                         .param("newName", "Saffron").param("newQuantity", "1")
                         .param("newItems[0].name", "Caviar").param("newItems[0].quantity", "1"))
                 .andExpect(status().is3xxRedirection());
-        ItemRequest request = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(crewMember.getId())
+        ItemRequest request = requestRepository.findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(crewMember.getId(),
+                        List.of(RequestStatus.values()), Pageable.unpaged()).getContent()
                 .getFirst();
         assertThat(request.getLines()).singleElement().satisfies(l -> assertThat(l.isNewItem()).isFalse());
     }
@@ -280,7 +285,7 @@ class ShipRequestFlowTest {
         assertThat(request.getStatus()).isEqualTo(RequestStatus.CANCELLED);
         assertThat(request.getDecidedAt()).isNull();
         assertThat(requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(ship.getId(),
-                RequestStatus.PENDING)).isEmpty();
+                RequestStatus.PENDING, Pageable.unpaged())).isEmpty();
         assertThat(page("/ship/approvals", master)).doesNotContain("/ship/approvals/" + request.getId() + "\"");
         assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("REQUEST_CANCELLED"))
                 .singleElement().extracting(AuditEntry::getDetails).isEqualTo("Request #" + request.getId() + ", 1 lines");

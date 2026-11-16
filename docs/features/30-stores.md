@@ -74,8 +74,8 @@ the Master's rules): the Master and crew members get 403. The pages always show 
     created" by the cook) and counts it. A name the vessel already has (ignoring case): "This item is already on the
     list." and nothing is saved. One new item per save. So the Chief cook adds items to the vessel's list without
     the Master or the office.
-  - **History** (the Last count chip on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
-    page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
+  - **History** (the Last count chip on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 10 a
+    page with the shared pager (P89; it keeps the filters): date and time, item (a link), type, before, after,
     difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
     (both included; not a date: its error under the field, nothing filtered). P58: the dates use the shared
     date range (`layout/parts :: dateRange(bean, presets, actions)`, `core/list/DatePreset`, CSS "Date range

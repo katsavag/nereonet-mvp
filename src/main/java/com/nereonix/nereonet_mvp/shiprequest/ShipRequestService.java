@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,8 @@ import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.form.ItemUnits;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.request.InvalidRequestException;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
@@ -55,8 +58,8 @@ public class ShipRequestService {
     /** The group keys of the form: running low (the cook only), then the two categories. */
     public static final String RUNNING_LOW = "low";
 
-    /** The person's requests the filter leaves, newest first, and the number under each filter. */
-    public record Requests(Ship ship, RequestFilter filter, List<ItemRequest> requests, long all, long waiting,
+    /** One page of the person's requests the filter leaves, newest first, and the number under each filter. */
+    public record Requests(Ship ship, RequestFilter filter, Page<ItemRequest> requests, long all, long waiting,
                            long approved, long declined) {
     }
 
@@ -122,19 +125,19 @@ public class ShipRequestService {
     // ---- The list and one request ----
 
     @Transactional(readOnly = true)
-    public Requests list(String email, RequestFilter filter) {
+    public Requests list(String email, RequestFilter filter, ListQuery list) {
         User user = user(email);
-        List<ItemRequest> all = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(user.getId());
+        Page<ItemRequest> requests = ListQueries.page(list, page -> requestRepository
+                .findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(user.getId(), filter.statuses(), page));
         // The rows show the number of lines: load them here (in batches, see ItemRequest.lines).
-        all.forEach(request -> request.getLines().size());
-        return new Requests(user.getShip(), filter,
-                all.stream().filter(r -> filter.matches(r.getStatus())).toList(),
-                all.size(), count(all, RequestFilter.WAITING), count(all, RequestFilter.APPROVED),
-                count(all, RequestFilter.DECLINED));
+        requests.forEach(request -> request.getLines().size());
+        return new Requests(user.getShip(), filter, requests, count(user, RequestFilter.ALL),
+                count(user, RequestFilter.WAITING), count(user, RequestFilter.APPROVED),
+                count(user, RequestFilter.DECLINED));
     }
 
-    private static long count(List<ItemRequest> requests, RequestFilter filter) {
-        return requests.stream().filter(r -> filter.matches(r.getStatus())).count();
+    private long count(User user, RequestFilter filter) {
+        return requestRepository.countByRequestedByIdAndStatusIn(user.getId(), filter.statuses());
     }
 
     /** The person's own request with its lines by category (Provisions, then Personal items); otherwise 404. */

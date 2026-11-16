@@ -13,7 +13,7 @@ public interface StockMovementRepository extends Repository<StockMovement, Long>
 
     StockMovement save(StockMovement movement);
 
-    List<StockMovement> findAllByItemIdOrderByAtDescIdDesc(Long itemId);
+    Page<StockMovement> findAllByItemIdOrderByAtDescIdDesc(Long itemId, Pageable pageable);
 
     /** The movements of the ship's items with one of these types, at or after start and before end, newest first
      *  (StockService.history). The item and who in the same query. */

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.log.title}, ~{::main})}">
 <body>
-<!-- The store's history, the Chief cook only: every movement of the vessel's provisions, newest first, 50 a page
-     (StockService.HISTORY_PAGE_SIZE): date and time, item (a link to it), type, before, after, difference, who. Filter
+<!-- The store's history, the Chief cook only: every movement of the vessel's provisions, newest first, 10 a page
+     with the shared pager (which keeps the filters): date and time, item (a link to it), type, before, after, difference, who. Filter
      by type and by UTC days (a GET form). Kept plain on purpose: it will be redesigned. English only.
-     Model: history (StoresService.History), filter (StoresHistoryFilter), types (StockMovementType values), newerUrl
-     and olderUrl (null on the ends). -->
+     Model: history (StoresService.History), filter (StoresHistoryFilter), types (StockMovementType values), list
+     (ListQuery). -->
 <main class="stores-log" th:with="h=${history}, rows=${history.movements}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.log.title}, crumbs=~{::pageCrumbs},
             eyebrowShip=${h.ship})}">
@@ -73,15 +73,7 @@
                 </tbody>
             </table>
         </div>
-        <nav th:if="${rows.totalPages > 1}" class="card-footer bg-transparent d-flex flex-wrap align-items-center gap-3"
-             th:attr="aria-label=#{stores.log.pages}">
-            <a th:if="${newerUrl != null}" class="btn btn-outline-secondary btn-sm" th:href="@{${newerUrl}}"
-               th:text="#{stores.log.newer}">Newer</a>
-            <span class="small text-body-secondary"
-                  th:text="#{stores.log.page(${rows.number + 1}, ${rows.totalPages}, ${rows.totalElements})}">Page 1 of 3 · 120 movements</span>
-            <a th:if="${olderUrl != null}" class="btn btn-outline-secondary btn-sm" th:href="@{${olderUrl}}"
-               th:text="#{stores.log.older}">Older</a>
-        </nav>
+        <nav th:replace="~{layout/parts :: pager(${rows}, ${list})}"></nav>
     </div>
 </main>
 </body>

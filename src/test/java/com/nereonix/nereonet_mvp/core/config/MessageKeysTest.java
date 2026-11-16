@@ -79,7 +79,6 @@ class MessageKeysTest {
             "announcement.ship.newCount",
             "announcement.ship.group.new",
             "announcement.ship.group.earlier",
-            "announcement.ship.older",
             "announcement.ship.back",
             // The crew's word for announcements.
             "nav.news",
@@ -357,10 +356,6 @@ class MessageKeysTest {
             "stores.log.filter",
             "stores.log.clear",
             "stores.log.empty",
-            "stores.log.pages",
-            "stores.log.newer",
-            "stores.log.older",
-            "stores.log.page",
             "stores.card.low",
             "stores.card.out",
             // The Chief cook's and crew's requests to the Master.

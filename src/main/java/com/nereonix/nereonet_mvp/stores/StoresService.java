@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -73,7 +75,7 @@ public class StoresService {
         }
     }
 
-    public record ItemDetail(Ship ship, Level level, List<StockMovement> history) {
+    public record ItemDetail(Ship ship, Level level, Page<StockMovement> history) {
     }
 
     private final UserRepository userRepository;
@@ -145,14 +147,18 @@ public class StoresService {
         return groups;
     }
 
-    /** A PROVISIONS item of the cook's ship (active or not) with its stock and history, newest first; otherwise 404. */
+    /**
+     * A PROVISIONS item of the cook's ship (active or not) with its stock and one page of its history, newest first;
+     * otherwise 404.
+     */
     @Transactional(readOnly = true)
-    public ItemDetail item(String email, Long id) {
+    public ItemDetail item(String email, Long id, ListQuery list) {
         Ship ship = ship(email);
         Item item = itemRepository.findByIdAndShipId(id, ship.getId())
                 .filter(found -> found.getCategory() == ItemCategory.PROVISIONS)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return new ItemDetail(ship, stockService.level(item), stockService.history(item));
+        return new ItemDetail(ship, stockService.level(item),
+                ListQueries.page(list, page -> stockService.history(item, page)));
     }
 
     /** The item the cook adds while counting: its name, unit, place (null for none) and the quantity counted. */
@@ -177,15 +183,15 @@ public class StoresService {
         }
     }
 
-    /** The movements of the cook's ship, newest first, StockService.HISTORY_PAGE_SIZE a page. */
+    /** One page of the movements of the cook's ship, newest first. */
     public record History(Ship ship, Page<StockMovement> movements) {
     }
 
-    /** type: one type or all (null); from and to: UTC days, both included, or open (null); page from 0. */
+    /** type: one type or all (null); from and to: UTC days, both included, or open (null); list: the page. */
     @Transactional(readOnly = true)
-    public History history(String email, StockMovementType type, LocalDate from, LocalDate to, int page) {
+    public History history(String email, StockMovementType type, LocalDate from, LocalDate to, ListQuery list) {
         Ship ship = ship(email);
-        return new History(ship, stockService.history(ship, type, from, to, page));
+        return new History(ship, ListQueries.page(list, page -> stockService.history(ship, type, from, to, page)));
     }
 
     /** Every active provisions item of the cook's vessel, by name, with its stock (the items a phrase heard by

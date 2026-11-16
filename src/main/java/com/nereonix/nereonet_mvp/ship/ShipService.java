@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,8 @@ import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
 import com.nereonix.nereonet_mvp.core.item.StarterItems;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.ImoNumber;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
@@ -60,9 +65,16 @@ public class ShipService {
         this.announcementRepository = announcementRepository;
     }
 
+    /** One page of the Vessels list: by name (then id), or by RightShip Safety Score with the not rated last. */
     @Transactional(readOnly = true)
-    public List<Ship> findAll() {
-        return shipRepository.findAllByOrderByNameAsc();
+    public Page<Ship> page(ListQuery list) {
+        if ("score".equals(list.getSort())) {
+            return ListQueries.page(list, page -> list.isDescending()
+                    ? shipRepository.findAllByScoreDesc(page) : shipRepository.findAllByScoreAsc(page));
+        }
+        Sort byName = Sort.by(list.isDescending() ? Sort.Direction.DESC : Sort.Direction.ASC, "name", "id");
+        return ListQueries.page(list, page -> shipRepository.findAll(
+                PageRequest.of(page.getPageNumber(), page.getPageSize(), byName)));
     }
 
     // The vessel with this IMO number (7 digits), if the fleet has it ("Already in the fleet").

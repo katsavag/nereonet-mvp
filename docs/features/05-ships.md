@@ -11,7 +11,8 @@ edited in a pop-up (except the IMO number) and deactivated or activated, never d
 row's **⋯** menu (**Edit**, then **Activate** or **Deactivate**). The ship's name opens its ship page.
 P40: a **Safety Score** column (the RightShip score, "3/5", "N/A" when not rated; for an active vessel a link to its
 Vetting page, see [25](25-vetting.md)). The list sorts by name (default) or by Safety Score (`?sort=score`, lowest first, then the
-other way; not rated last either way, then by name); it has no search, filters or pages.
+other way; not rated last either way, then by name) and shows 10 vessels a page with the shared pager (P89); it has no
+search or filters.
 P43: the **Flag** column shows the country's flag as a small icon (20 × 15, `layout/parts :: flag`, the SVGs under
 `static/vendor/flags/`, see "Frontend assets") before the country name; the same icon with the name appears on
 the ship page header and particulars, the Vetting list, the library's particulars ([16](16-ship-library.md)) and, for the crew's

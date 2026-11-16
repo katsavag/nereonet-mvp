@@ -12,12 +12,12 @@
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{approval.title},
                     ${request.status.name() == 'APPROVED'} ? '/ship/approvals?tab=approved'
-                    : (${request.status.name() == 'REJECTED'} ? '/ship/approvals?tab=declined' : '/ship/approvals'))}"></li>
+                    : (${request.status.name() == 'REJECTED'} ? '/ship/approvals?tab=declined' : ${'/ship/approvals' + back}))}"></li>
         </th:block>
         <th:block th:fragment="pageActions">
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#declineModal"
                     th:text="#{approval.decline}">Decline</button>
-            <form method="post" th:action="@{/ship/approvals/{id}/approve(id=${request.id})}" class="d-inline">
+            <form method="post" th:action="@{${'/ship/approvals/' + request.id + '/approve' + back}}" class="d-inline">
                 <button type="submit" class="btn btn-primary" th:text="#{approval.approve}">Approve</button>
             </form>
         </th:block>
@@ -82,7 +82,7 @@
          modal open and the error. -->
     <div th:if="${pending}" class="modal fade" id="declineModal" tabindex="-1" aria-labelledby="declineModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <form class="modal-content" th:action="@{/ship/approvals/{id}/decline(id=${request.id})}"
+            <form class="modal-content" th:action="@{${'/ship/approvals/' + request.id + '/decline' + back}}"
                   th:object="${declineForm}" method="post" novalidate>
                 <div class="modal-header">
                     <h2 class="modal-title h5 fw-bold" id="declineModalTitle" th:text="#{approval.decline.heading}">Decline this request</h2>

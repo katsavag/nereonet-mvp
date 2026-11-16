@@ -21,8 +21,6 @@ public class StoresHistoryFilter {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate to;
 
-    private Integer page;
-
     /** The type chosen, or null for all (and for an unknown value). */
     public StockMovementType movementType() {
         for (StockMovementType value : StockMovementType.values()) {
@@ -31,11 +29,6 @@ public class StoresHistoryFilter {
             }
         }
         return null;
-    }
-
-    /** The page, from 0. */
-    public int pageIndex() {
-        return page == null || page < 0 ? 0 : page;
     }
 
     public String getType() { return type; }
@@ -47,6 +40,4 @@ public class StoresHistoryFilter {
     public LocalDate getTo() { return to; }
     public void setTo(LocalDate to) { this.to = to; }
 
-    public Integer getPage() { return page; }
-    public void setPage(Integer page) { this.page = page; }
 }

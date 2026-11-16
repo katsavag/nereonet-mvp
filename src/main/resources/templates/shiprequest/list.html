@@ -3,10 +3,10 @@
 <body>
 <!-- The Chief cook's and crew's own requests to the Master, newest first. Four filters (ordinary links,
      ?status=...), each with its count: All, Waiting (for the master), Approved and Declined; a cancelled request is
-     under All only.
+     under All only. 10 a page with the shared pager, which keeps the filter; the counts are the totals.
      Each row is one link (the request number, stretched over the row) with when it was sent and its number of items,
      and its status badge (request.status.*). "New request" in the header; with no request at all it moves into the
-     empty state. English only, as every crew screen. Model: requests (ShipRequestService.Requests). -->
+     empty state. English only, as every crew screen. Model: requests (ShipRequestService.Requests), list (ListQuery). -->
 <main th:with="r=${requests}, filter=${requests.filter.name()}, none=${requests.all == 0}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{request.list.title}, eyebrowShip=${r.ship},
             subtitle=#{request.list.hint}, actions=${none} ? null : ~{::pageActions})}">
@@ -65,6 +65,7 @@
                 </div>
             </li>
         </ul>
+        <nav th:replace="~{layout/parts :: pager(${r.requests}, ${list})}"></nav>
     </div>
 </main>
 </body>

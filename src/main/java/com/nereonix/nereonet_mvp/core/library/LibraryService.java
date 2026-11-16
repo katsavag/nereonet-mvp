@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.MessageSource;
 
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -294,31 +297,33 @@ public class LibraryService {
                 byItem);
     }
 
-    /** Who of the crew acknowledged the current version of this Required item and who not yet; 404 if not Required. */
-    @Transactional(readOnly = true)
-    public AcknowledgementOverview acknowledgementOverview(LibraryItem item) {
+    /** The item when it is Required (only those have an acknowledgement overview and reminders); otherwise 404. */
+    public LibraryItem required(LibraryItem item) {
         if (!item.isRequired()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        Map<Long, LibraryAcknowledgement> byUser = acknowledgementRepository
-                .findAllByVersion(item.getCurrentVersion()).stream()
-                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
-        List<LibraryAcknowledgement> acknowledged = new ArrayList<>();
-        List<User> notAcknowledged = new ArrayList<>();
-        for (User user : userRepository.findAllByShipAndRoleNotAndEnabledTrueOrderByFullNameAsc(item.getShip(),
-                Role.OFFICE_USER)) {
-            LibraryAcknowledgement acknowledgement = byUser.get(user.getId());
-            if (acknowledgement != null) {
-                acknowledged.add(acknowledgement);
-            } else {
-                notAcknowledged.add(user);
-            }
-        }
-        return new AcknowledgementOverview(item, acknowledged, notAcknowledged, nextReminderAt(item, Instant.now()));
+        return item;
     }
 
     /**
-     * "Send reminder" on the acknowledgement overview: notifies everyone of the crew (as in acknowledgementOverview)
+     * Who of the crew acknowledged the current version of this Required item and who not yet, one page of each
+     * (readList and notReadList: AcknowledgementOverview.readList, notReadList); 404 if not Required.
+     */
+    @Transactional(readOnly = true)
+    public AcknowledgementOverview acknowledgementOverview(LibraryItem item, ListQuery readList,
+                                                           ListQuery notReadList) {
+        required(item);
+        LibraryItemVersion version = item.getCurrentVersion();
+        return new AcknowledgementOverview(item,
+                ListQueries.page(readList, page -> acknowledgementRepository.findOnBoardByVersion(version,
+                        item.getShip(), Role.OFFICE_USER, page)),
+                ListQueries.page(notReadList, page -> acknowledgementRepository.findOnBoardWithout(version,
+                        item.getShip(), Role.OFFICE_USER, page)),
+                readList, notReadList, nextReminderAt(item, Instant.now()));
+    }
+
+    /**
+     * "Send reminder" on the acknowledgement overview: notifies everyone of the crew on board now
      * who has not acknowledged the current version of this Required item, except the actor, and records it in the
      * audit log. At most once per REMINDER_INTERVAL per item. Returns how many were notified; 0 (and nothing recorded)
      * when there is nobody to remind.
@@ -331,7 +336,8 @@ public class LibraryService {
             throw new ReminderTooSoonException();
         }
         User actor = userRepository.findByEmail(actorEmail).orElseThrow();
-        List<User> recipients = acknowledgementOverview(item).notAcknowledged().stream()
+        List<User> recipients = acknowledgementRepository.findOnBoardWithout(required(item).getCurrentVersion(),
+                        item.getShip(), Role.OFFICE_USER, Pageable.unpaged()).stream()
                 .filter(user -> !user.getId().equals(actor.getId()))
                 .toList();
         if (recipients.isEmpty()) {

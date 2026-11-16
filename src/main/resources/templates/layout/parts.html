@@ -849,14 +849,15 @@
 
 <!-- The pager at the end of a list card: "1 to 10 of 412", the page size (10, 20, 50 or 100; a new size starts at page 1) and
      Previous / Next, which keep the search, filters and sort. Shown when there are more rows than the smallest page.
-     rows: the Spring Page; list: the ListQuery.
+     rows: the Spring Page; list: the ListQuery. The second list of a page (ListQuery.pageParam) gets its own label id.
      Use: <nav th:replace="~{layout/parts :: pager(${people}, ${list})}"></nav> -->
 <nav th:fragment="pager(rows, list)" th:if="${list.pagerShown(rows)}" class="pager"
-     th:attr="aria-label=#{list.pager.label}">
+     th:attr="aria-label=#{list.pager.label}"
+     th:with="sizeLabelId=${list.pageParam == 'page'} ? 'pagerSizeLabel' : ${'pagerSizeLabel-' + list.pageParam}">
     <p class="pager-range" th:text="#{list.pager.range(${list.first(rows)}, ${list.last(rows)}, ${rows.totalElements})}">1 to 25 of 412</p>
     <div class="pager-size">
-        <span class="pager-size-label" id="pagerSizeLabel" th:text="#{list.pager.perPage}">Per page</span>
-        <ul class="pager-size-list" aria-labelledby="pagerSizeLabel">
+        <span class="pager-size-label" th:id="${sizeLabelId}" th:text="#{list.pager.perPage}">Per page</span>
+        <ul class="pager-size-list" th:aria-labelledby="${sizeLabelId}">
             <li th:each="n : ${list.sizes}">
                 <span th:if="${n == rows.size}" class="pager-size-current num" aria-current="true" th:text="${n}">25</span>
                 <a th:unless="${n == rows.size}" class="btn btn-ghost btn-sm num" th:with="url=${list.sizeUrl(n)}"

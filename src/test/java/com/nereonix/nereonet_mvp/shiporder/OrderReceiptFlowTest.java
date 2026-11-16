@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -301,7 +302,7 @@ class OrderReceiptFlowTest {
         // Rice: 8 higher, one RECEIPT movement 12 -> 20 by the Master, at the time received, linked to the order.
         assertThat(stockLevelRepository.findByItemId(rice.getId())).get()
                 .satisfies(l -> assertThat(l.getQuantity()).isEqualByComparingTo("20"));
-        List<StockMovement> movements = stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(rice.getId());
+        List<StockMovement> movements = stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(rice.getId(), Pageable.unpaged()).getContent();
         assertThat(movements).singleElement().satisfies(m -> {
             assertThat(m.getType()).isEqualTo(StockMovementType.RECEIPT);
             assertThat(m.getQuantityBefore()).isEqualByComparingTo("12");
@@ -312,7 +313,7 @@ class OrderReceiptFlowTest {
         });
         // Personal items never touch the store; the removed oil neither.
         assertThat(stockLevelRepository.findByItemId(soap.getId())).isEmpty();
-        assertThat(stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(soap.getId())).isEmpty();
+        assertThat(stockMovementRepository.findAllByItemIdOrderByAtDescIdDesc(soap.getId(), Pageable.unpaged()).getContent()).isEmpty();
         assertThat(stockLevelRepository.findByItemId(oil.getId())).isEmpty();
 
         // The cook is told, linking to Stores; the office's notification is unchanged.

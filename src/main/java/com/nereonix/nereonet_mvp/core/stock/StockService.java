@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,9 +51,6 @@ public class StockService {
     private final AuditService auditService;
     private final EntityManager entityManager;
     private final BigDecimal lowThreshold;
-
-    /** The ship's history shows this many movements a page. */
-    public static final int HISTORY_PAGE_SIZE = 50;
 
     public StockService(ItemRepository itemRepository, StockLevelRepository levelRepository,
                         StockMovementRepository movementRepository, AuditService auditService,
@@ -106,10 +103,10 @@ public class StockService {
         return new Level(item, quantity, status(quantity));
     }
 
-    /** The item's movements, newest first. */
+    /** One page of the item's movements, newest first. */
     @Transactional(readOnly = true)
-    public List<StockMovement> history(Item item) {
-        return movementRepository.findAllByItemIdOrderByAtDescIdDesc(item.getId());
+    public Page<StockMovement> history(Item item, Pageable pageable) {
+        return movementRepository.findAllByItemIdOrderByAtDescIdDesc(item.getId(), pageable);
     }
 
     /** When the ship's provisions were last counted (the latest COUNT movement), or null when never. */
@@ -223,17 +220,17 @@ public class StockService {
     }
 
     /**
-     * Every movement of the ship's provisions, newest first, HISTORY_PAGE_SIZE a page (page from 0). type: only
-     * that type, or all when null; from and to: UTC days, both included, or open when null.
+     * One page of the movements of the ship's provisions, newest first. type: only that type, or all when null;
+     * from and to: UTC days, both included, or open when null.
      */
     @Transactional(readOnly = true)
-    public Page<StockMovement> history(Ship ship, StockMovementType type, LocalDate from, LocalDate to, int page) {
+    public Page<StockMovement> history(Ship ship, StockMovementType type, LocalDate from, LocalDate to,
+                                       Pageable pageable) {
         List<StockMovementType> types = type == null ? List.of(StockMovementType.values()) : List.of(type);
         Instant start = from == null ? Instant.EPOCH : from.atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant end = to == null ? Instant.parse("9999-12-31T00:00:00Z")
                 : to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-        return movementRepository.findOnShip(ship.getId(), types, start, end,
-                PageRequest.of(Math.max(page, 0), HISTORY_PAGE_SIZE));
+        return movementRepository.findOnShip(ship.getId(), types, start, end, pageable);
     }
 
     /** Low plus Out of stock on the ship of the user with this email: the Chief cook's Stores counter. One query. */

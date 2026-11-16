@@ -17,6 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.request.RequestService.Outcome;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.shiprequest.ShipRequestService.Read;
@@ -31,6 +34,9 @@ import com.nereonix.nereonet_mvp.shiprequest.ShipRequestService.Read;
 public class ShipRequestController {
 
     static final String PATH = "/ship/requests";
+
+    // Newest first: there is nothing to sort, but ListQuery needs its default.
+    private static final ListSort[] SORTS = {ListSort.desc("sent")};
 
     // A ship has a few hundred items at most; Spring's default (256 lines in a posted list) is too few.
     private static final int MAX_LINES = 2000;
@@ -48,11 +54,16 @@ public class ShipRequestController {
         binder.setAutoGrowCollectionLimit(MAX_LINES);
     }
 
-    // status: waiting, approved or declined; anything else is All.
+    // status: waiting, approved or declined; anything else is All. listRequest: the page and the page size (10 a
+    // page as on every list); the view is kept in the pager's links.
     @GetMapping(PATH)
     public String list(@AuthenticationPrincipal CurrentUser currentUser,
-                       @RequestParam(required = false) String status, Model model) {
-        model.addAttribute("requests", requestService.list(currentUser.getUsername(), RequestFilter.of(status)));
+                       @RequestParam(required = false) String status, @ModelAttribute ListRequest listRequest,
+                       Model model) {
+        RequestFilter filter = RequestFilter.of(status);
+        ListQuery list = ListQuery.of(PATH, listRequest, SORTS).filter("status", filter.key(), null, null);
+        model.addAttribute("list", list);
+        model.addAttribute("requests", requestService.list(currentUser.getUsername(), filter, list));
         return "shiprequest/list";
     }
 

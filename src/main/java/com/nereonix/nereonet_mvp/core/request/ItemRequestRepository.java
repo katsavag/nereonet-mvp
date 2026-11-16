@@ -1,8 +1,10 @@
 package com.nereonix.nereonet_mvp.core.request;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,10 +18,13 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     long countByStatusAndShipId(RequestStatus status, Long shipId);
 
     // The Master's approvals: one ship's pending requests, oldest first, and its approved or declined ones,
-    // newest decision first. The detail page finds a request only within the Master's ship, so another ship's is a 404.
-    List<ItemRequest> findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(Long shipId, RequestStatus status);
+    // newest decision first, one page at a time. The detail page finds a request only within the Master's ship, so
+    // another ship's is a 404.
+    Page<ItemRequest> findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(Long shipId, RequestStatus status,
+                                                                       Pageable pageable);
 
-    List<ItemRequest> findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(Long shipId, RequestStatus status);
+    Page<ItemRequest> findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(Long shipId, RequestStatus status,
+                                                                         Pageable pageable);
 
     Optional<ItemRequest> findByIdAndShipId(Long id, Long shipId);
 
@@ -29,8 +34,12 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     @Query("select r from ItemRequest r where r.id = :id and r.ship.id = :shipId")
     Optional<ItemRequest> findForDecision(Long id, Long shipId);
 
-    // The requests of the person who asked: their list, newest first, and one of them (anyone else's is a 404).
-    List<ItemRequest> findAllByRequestedByIdOrderByCreatedAtDescIdDesc(Long userId);
+    // The requests of the person who asked: one page of their list (the statuses of its view), newest first, the
+    // number under a view, and one of them (anyone else's is a 404).
+    Page<ItemRequest> findAllByRequestedByIdAndStatusInOrderByCreatedAtDescIdDesc(Long userId,
+            Collection<RequestStatus> statuses, Pageable pageable);
+
+    long countByRequestedByIdAndStatusIn(Long userId, Collection<RequestStatus> statuses);
 
     Optional<ItemRequest> findByIdAndRequestedById(Long id, Long userId);
 

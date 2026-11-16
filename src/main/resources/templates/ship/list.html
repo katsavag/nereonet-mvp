@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{ship.list.title}, ~{::main})}">
 <body>
-<!-- No ships yet: the empty state holds Add ship, so the page header leaves it out. -->
-<main th:with="noShips=${ships.isEmpty()}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.size()}, actions=${noShips} ? null : ~{::pageActions})}">
+<!-- No ships yet: the empty state holds Add ship, so the page header leaves it out. 10 vessels a page with the
+     shared pager; the title's count is the whole fleet. Activate, Deactivate and Edit send the list's sort, page
+     size and page (listParams; the Edit pop-up as listPage) and come back to the same page.
+     Model: ships (a Page of Ship), list (ListQuery), listParams, rightShip, noVetting, newForm, editForm, editShip. -->
+<main th:with="noShips=${ships.totalElements == 0}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{ship.list.heading}, count=${ships.totalElements}, actions=${noShips} ? null : ~{::pageActions})}">
         <th:block th:fragment="pageActions">
             <!-- Opens the pop-up; without JavaScript the Add vessel page. -->
             <a class="btn btn-primary" th:href="@{/office/ships/new}" data-bs-toggle="modal" data-bs-target="#newShipModal">
@@ -72,13 +75,14 @@
                                        th:data-flag="${s.flag} ?: ''"
                                        th:text="#{ship.edit}">Edit</a>
                                     <form th:unless="${s.active}" th:action="@{/office/ships/{id}/activate(id=${s.id})}" method="post">
+                                        <input th:each="p : ${listParams}" type="hidden" th:name="${p.key}" th:value="${p.value}">
                                         <button type="submit" class="dropdown-item"
                                                 th:text="#{ship.activate}">Activate</button>
                                     </form>
                                     <th:block th:if="${s.active}">
                                         <hr class="dropdown-divider">
                                         <form th:replace="~{layout/parts :: confirmForm(action=${'/office/ships/' + s.id + '/deactivate'},
-                                                label=#{ship.deactivate}, linkClass='dropdown-item dropdown-item-danger',
+                                                fields=${listParams}, label=#{ship.deactivate}, linkClass='dropdown-item dropdown-item-danger',
                                                 title=#{ship.deactivate.confirm.title(${s.name})},
                                                 body=#{ship.deactivate.confirm.body(${s.name})},
                                                 confirm=#{ship.deactivate}, tone='neutral')}"></form>
@@ -91,6 +95,7 @@
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${ships}, ${list})}"></nav>
     </div>
 
     <!-- Add ship. Full screen on phones. -->

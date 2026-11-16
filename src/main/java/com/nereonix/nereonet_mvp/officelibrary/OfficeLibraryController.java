@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.library.AcknowledgementOverview;
 import com.nereonix.nereonet_mvp.core.library.LibraryCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFileResponse;
 import com.nereonix.nereonet_mvp.core.library.LibraryFullException;
@@ -21,6 +22,7 @@ import com.nereonix.nereonet_mvp.core.library.LibraryItem;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemForm;
 import com.nereonix.nereonet_mvp.core.library.LibraryReminders;
 import com.nereonix.nereonet_mvp.core.library.LibraryService;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
 import com.nereonix.nereonet_mvp.core.library.ParticularsForm;
 import com.nereonix.nereonet_mvp.core.library.PublishVersionForm;
 import com.nereonix.nereonet_mvp.core.library.VersionLabelUnchangedException;
@@ -73,9 +75,15 @@ public class OfficeLibraryController {
         return LibraryFileResponse.of(item.getCurrentVersion(), libraryService.currentFile(item), download);
     }
 
+    // listRequest: the page of "Read" and the page size of both lists; notReadPage: the page of "Not read yet".
     @GetMapping("/office/ships/{shipId}/library/{id}/acknowledgements")
-    public String acknowledgements(@PathVariable Long shipId, @PathVariable Long id, Model model) {
-        model.addAttribute("overview", libraryService.acknowledgementOverview(libraryService.shipItem(shipId, id)));
+    public String acknowledgements(@PathVariable Long shipId, @PathVariable Long id,
+                                   @ModelAttribute ListRequest listRequest,
+                                   @RequestParam(required = false) Integer notReadPage, Model model) {
+        String path = itemUrl(shipId, id) + "/acknowledgements";
+        model.addAttribute("overview", libraryService.acknowledgementOverview(libraryService.shipItem(shipId, id),
+                AcknowledgementOverview.readList(path, listRequest, notReadPage),
+                AcknowledgementOverview.notReadList(path, listRequest, notReadPage)));
         return "officelibrary/acknowledgements";
     }
 
@@ -84,7 +92,7 @@ public class OfficeLibraryController {
     @GetMapping("/office/ships/{shipId}/library/{id}/acknowledgements/remind")
     public String confirmRemind(@PathVariable Long shipId, @PathVariable Long id, Model model) {
         Ship ship = libraryService.ship(shipId);
-        LibraryItem item = libraryService.acknowledgementOverview(libraryService.shipItem(shipId, id)).item();
+        LibraryItem item = libraryService.required(libraryService.shipItem(shipId, id));
         String itemUrl = itemUrl(shipId, id);
         return confirmPages.neutral()
                 .title("library.reminder.confirm.title", item.getTitle())

@@ -6,7 +6,7 @@
      link to the order page that the cook reads),
      before and after, for a count the difference, counted minus expected ("-3"; a dash for a delivery), who ("Deleted user" when the account is gone) and the
      note. Read only. English only.
-     Model: detail (StoresService.ItemDetail). -->
+     The history is 10 a page with the shared pager. Model: detail (StoresService.ItemDetail), list (ListQuery). -->
 <main class="stores-item" th:with="l=${detail.level}, item=${detail.level.item}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${item.name}, crumbs=~{::pageCrumbs},
             eyebrowShip=${detail.ship})}">
@@ -36,7 +36,7 @@
         </dl>
     </div>
 
-    <section class="card mb-4" aria-labelledby="storesHistoryTitle">
+    <section class="card mb-4" id="storesHistory" aria-labelledby="storesHistoryTitle">
         <div class="card-header py-3">
             <h2 class="h5 fw-bold mb-0" id="storesHistoryTitle" th:text="#{stores.history.heading}">History</h2>
         </div>
@@ -78,6 +78,7 @@
                 </tbody>
             </table>
         </div>
+        <nav th:replace="~{layout/parts :: pager(${detail.history}, ${list})}"></nav>
     </section>
 </main>
 </body>

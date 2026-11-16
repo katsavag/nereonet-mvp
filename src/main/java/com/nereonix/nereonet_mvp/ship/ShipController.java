@@ -3,8 +3,7 @@ package com.nereonix.nereonet_mvp.ship;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -95,8 +94,9 @@ public class ShipController {
         return showEditPage(shipService.get(id), tab, model, null);
     }
 
-    // Sorted by name (the default) or by RightShip Safety Score (lowest first; not rated last either way). The
-    // fleet is small: no search, filters or pages.
+    // Sorted by name (the default) or by RightShip Safety Score (lowest first; not rated last either way), 10 a
+    // page as on every list. No search or filters. The row actions send the list's state (listParams) and come back
+    // to the same page.
     @GetMapping("/office/ships")
     public String list(@ModelAttribute ListRequest listRequest, Model model) {
         return showList(listRequest, model);
@@ -216,8 +216,13 @@ public class ShipController {
     public String update(@PathVariable Long id, @ModelAttribute("editForm") EditShipForm form,
                          BindingResult result, @RequestParam(required = false) String tab,
                          @RequestParam(defaultValue = "false") boolean page,
+                         @RequestParam(required = false) String sort, @RequestParam(required = false) String dir,
+                         @RequestParam(required = false) Integer size,
+                         @RequestParam(required = false) Integer listPage,
                          @AuthenticationPrincipal CurrentUser user, Model model,
                          RedirectAttributes redirectAttributes) {
+        // The list's own page comes as listPage: "page" already says the form was posted from the full Edit page.
+        ListRequest listRequest = new ListRequest(null, sort, dir, listPage, size);
         Ship ship = shipService.get(id);
         VesselLookup lookup = null;
         List<String> taken = List.of();
@@ -240,7 +245,7 @@ public class ShipController {
                 return showEditPage(ship, tab, model, lookup);
             }
             model.addAttribute("editShip", ship);
-            return showList(model);
+            return showList(listRequest, model);
         }
         shipService.update(id, form.getName(), form.getType(), form.getFlag(), form.isResetRequirements());
         if (lookup != null) {
@@ -250,19 +255,21 @@ public class ShipController {
             lookupStore.remove(form.getLookupToken());
         }
         redirectAttributes.addFlashAttribute("successMessage", "ship.updated");
-        return back(id, tab);
+        return back(id, tab, listRequest);
     }
 
     // The confirmation page: where Deactivate leads when js/confirm.js did not load.
     @GetMapping("/office/ships/{id}/deactivate")
-    public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab, Model model) {
+    public String confirmDeactivate(@PathVariable Long id, @RequestParam(required = false) String tab,
+                                    @ModelAttribute ListRequest listRequest, Model model) {
         Ship ship = shipService.get(id);
         return confirmPages.neutral()
                 .title("ship.deactivate.confirm.title", ship.getName())
                 .body("ship.deactivate.confirm.body", ship.getName())
                 .confirmLabel("ship.deactivate")
                 .action("/office/ships/" + id + "/deactivate", ShipTab.of(tab).map(ShipTab::key).orElse(null))
-                .cancelUrl(backUrl(id, tab))
+                .fields(listParams(ListQuery.of(LIST, listRequest, SORTS)))
+                .cancelUrl(backUrl(id, tab, listRequest))
                 .crumb("nav.ships", "/office/ships")
                 .crumbText(ship.getName(), ShipTab.OVERVIEW.url(id))
                 .show(model);
@@ -270,18 +277,18 @@ public class ShipController {
 
     @PostMapping("/office/ships/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @RequestParam(required = false) String tab,
-                             RedirectAttributes redirectAttributes) {
+                             @ModelAttribute ListRequest listRequest, RedirectAttributes redirectAttributes) {
         shipService.setActive(id, false);
         redirectAttributes.addFlashAttribute("successMessage", "ship.deactivated");
-        return back(id, tab);
+        return back(id, tab, listRequest);
     }
 
     @PostMapping("/office/ships/{id}/activate")
     public String activate(@PathVariable Long id, @RequestParam(required = false) String tab,
-                           RedirectAttributes redirectAttributes) {
+                           @ModelAttribute ListRequest listRequest, RedirectAttributes redirectAttributes) {
         shipService.setActive(id, true);
         redirectAttributes.addFlashAttribute("successMessage", "ship.activated");
-        return back(id, tab);
+        return back(id, tab, listRequest);
     }
 
     // The IMO number belongs to a vessel of the fleet: "Already in the fleet: <name>" on the field, and a link to it.
@@ -354,12 +361,31 @@ public class ShipController {
     }
 
     // To the ship page tab the action came from, or to the ships list.
-    private static String back(Long id, String tab) {
-        return "redirect:" + backUrl(id, tab);
+    private static String back(Long id, String tab, ListRequest listRequest) {
+        return "redirect:" + backUrl(id, tab, listRequest);
     }
 
-    private static String backUrl(Long id, String tab) {
-        return ShipTab.of(tab).map(t -> t.url(id)).orElse("/office/ships");
+    // The ship page's tab the action came from, or the Vessels list as it was (its sort, page and page size; a page
+    // that is now past the end shows the last one).
+    private static String backUrl(Long id, String tab, ListRequest listRequest) {
+        return ShipTab.of(tab).map(t -> t.url(id)).orElseGet(() -> ListQuery.of(LIST, listRequest, SORTS).getUrl());
+    }
+
+    // The list's sort, page size and page as the fields its row actions send, so they come back to the same page.
+    private static Map<String, String> listParams(ListQuery list) {
+        ListRequest request = list.getRequest();
+        Map<String, String> params = new LinkedHashMap<>();
+        if (request.sort() != null) {
+            params.put("sort", request.sort());
+            params.put("dir", request.dir());
+        }
+        if (request.size() != null) {
+            params.put("size", request.size().toString());
+        }
+        if (request.page() != null) {
+            params.put("page", request.page().toString());
+        }
+        return params;
     }
 
     // lookup: a "Refresh from VesselAPI" to compare (the Saved / VesselAPI table), or null.
@@ -388,18 +414,9 @@ public class ShipController {
     // Keeps a posted form (with its errors) and adds an empty one for the other modal.
     private String showList(ListRequest listRequest, Model model) {
         ListQuery list = ListQuery.of(LIST, listRequest, SORTS);
-        Map<Long, RightShipView> vetting = vettingService.viewsByShip();
-        List<Ship> ships = new ArrayList<>(shipService.findAll());
-        if ("score".equals(list.getSort())) {
-            Comparator<Integer> scores = list.isDescending() ? Comparator.<Integer>reverseOrder() : Comparator.naturalOrder();
-            // A stable sort: equal scores stay in name order.
-            ships.sort(Comparator.comparing((Ship s) -> vetting.containsKey(s.getId()) ? vetting.get(s.getId()).score() : null,
-                    Comparator.nullsLast(scores)));
-        } else if (list.isDescending()) {
-            Collections.reverse(ships);
-        }
         model.addAttribute("list", list);
-        model.addAttribute("rightShip", vetting);
+        model.addAttribute("listParams", listParams(list));
+        model.addAttribute("rightShip", vettingService.viewsByShip());
         model.addAttribute("noVetting", new RightShipView(null, VettingService.today()));
         if (!model.containsAttribute("newForm")) {
             model.addAttribute("newForm", new NewShipForm());
@@ -407,7 +424,7 @@ public class ShipController {
         if (!model.containsAttribute("editForm")) {
             model.addAttribute("editForm", new EditShipForm());
         }
-        model.addAttribute("ships", ships);
+        model.addAttribute("ships", shipService.page(list));
         model.addAttribute("types", ShipType.values());
         model.addAttribute("countries", countries());
         return "ship/list";

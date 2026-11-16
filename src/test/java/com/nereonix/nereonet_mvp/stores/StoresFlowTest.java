@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -168,7 +169,7 @@ class StoresFlowTest {
         assertThat(html).contains("<title>Basmati rice · Nereonet</title>", "href=\"/ship/stores\"", "Dry store",
                 "Found a sack in the freezer room", "Demo Cook");
         assertThat(html.indexOf("Found a sack")).isLessThan(html.lastIndexOf(">Count<"));
-        assertThat(stockService.history(rice)).extracting(StockMovement::getQuantityAfter)
+        assertThat(stockService.history(rice, Pageable.unpaged()).getContent()).extracting(StockMovement::getQuantityAfter)
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactly(new BigDecimal("40"), new BigDecimal("30"));
     }
@@ -233,11 +234,11 @@ class StoresFlowTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/ship/stores"))
                 .andExpect(flash().attribute("successMessage", "stores.count.changed.saved"));
-        assertThat(stockService.history(rice)).isEmpty();
+        assertThat(stockService.history(rice, Pageable.unpaged()).getContent()).isEmpty();
 
         assertThat(levelRepository.findByItemId(flour.getId())).get()
                 .satisfies(level -> assertThat(level.getQuantity()).isEqualByComparingTo("7"));
-        assertThat(stockService.history(flour)).singleElement().satisfies(m -> {
+        assertThat(stockService.history(flour, Pageable.unpaged()).getContent()).singleElement().satisfies(m -> {
             assertThat(m.getType()).isEqualTo(StockMovementType.COUNT);
             assertThat(m.getQuantityBefore()).isEqualByComparingTo("10");
             assertThat(m.getQuantityAfter()).isEqualByComparingTo("7");
@@ -264,8 +265,8 @@ class StoresFlowTest {
         count(sugar, "0", "stores.count.nothing");   // no row yet
         count(sugar, "12", "stores.count.changed.saved");
 
-        assertThat(stockService.history(rice)).isEmpty();
-        assertThat(stockService.history(sugar)).singleElement()
+        assertThat(stockService.history(rice, Pageable.unpaged()).getContent()).isEmpty();
+        assertThat(stockService.history(sugar, Pageable.unpaged()).getContent()).singleElement()
                 .satisfies(m -> assertThat(m.getQuantityBefore()).isEqualByComparingTo("0"));
         assertThat(levelRepository.findByItemId(sugar.getId())).get()
                 .satisfies(level -> assertThat(level.getQuantity()).isEqualByComparingTo("12"));
@@ -294,8 +295,8 @@ class StoresFlowTest {
                 throw new AssertionError(e);
             }
         });
-        assertThat(stockService.history(oil)).isEmpty();
-        assertThat(stockService.history(rice)).isEmpty();
+        assertThat(stockService.history(oil, Pageable.unpaged()).getContent()).isEmpty();
+        assertThat(stockService.history(rice, Pageable.unpaged()).getContent()).isEmpty();
         assertThat(stockService.level(oil).quantity()).isEqualByComparingTo("4");
 
         String html = mockMvc.perform(post("/ship/stores/count")
@@ -342,7 +343,7 @@ class StoresFlowTest {
                     .andExpect(flash().attribute("successMessage", "stores.count.nothing"));
         }
         assertThat(stockService.level(otherShipsRice).quantity()).isEqualByComparingTo("3");
-        assertThat(stockService.history(retired)).isEmpty();
+        assertThat(stockService.history(retired, Pageable.unpaged()).getContent()).isEmpty();
         for (User other : List.of(master, crewMember)) {
             mockMvc.perform(post("/ship/stores/count").param("quantities[" + rice.getId() + "]", "1")
                             .with(user(new CurrentUser(other))).with(csrf()))
@@ -362,7 +363,7 @@ class StoresFlowTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> stockService.count(cook, rice.getId(), BigDecimal.ONE, "x".repeat(201)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(stockService.history(rice)).isEmpty();
+        assertThat(stockService.history(rice, Pageable.unpaged()).getContent()).isEmpty();
     }
 
     @Test
@@ -374,7 +375,7 @@ class StoresFlowTest {
     }
 
     @Test
-    void theHistoryOfTheShipNewestFirstFilteredAndFiftyAPage() throws Exception {
+    void theHistoryOfTheShipNewestFirstFilteredAndTenAPage() throws Exception {
         Instant day = Instant.parse("2026-11-01T10:00:00Z");
         for (int i = 0; i < 55; i++) {
             movementRepository.save(StockMovement.of(rice, StockMovementType.COUNT, new BigDecimal(i),
@@ -386,27 +387,30 @@ class StoresFlowTest {
                 new BigDecimal("3"), cook, day, null, null));
 
         String first = page("/ship/stores/history", cook);
-        assertThat(first).contains("<title>History · Nereonet</title>", "Page 1 of 2 · 56 movements",
-                        "href=\"/ship/stores/history?page=1\"")
+        assertThat(first).contains("<title>History · Nereonet</title>", "1 to 10 of 56",
+                        "href=\"/ship/stores/history?page=2\"", "href=\"/ship/stores/history?size=50\"")
                 .doesNotContain("Jasmine rice");
-        assertThat(rows(first)).isEqualTo(50);
+        assertThat(rows(first)).isEqualTo(10);
         // Newest first: the delivery, then the latest count.
         assertThat(first.indexOf(">Delivery received</span>")).isPositive()
                 .isLessThan(first.indexOf(">Count</span>"));
         assertThat(first).containsPattern("(?s)>Olive oil</a>.*?>4</td>\\s*<td[^>]*>24</td>\\s*"
                 + "<td[^>]*><span class=\"num\">\\+20</span></td>\\s*<td[^>]*>Demo Cook</td>");
-        assertThat(rows(page("/ship/stores/history?page=1", cook))).isEqualTo(6);
+        assertThat(rows(page("/ship/stores/history?page=6", cook))).isEqualTo(6);
+        assertThat(rows(page("/ship/stores/history?size=50", cook))).isEqualTo(50);
+        // A page past the end shows the last one.
+        assertThat(rows(page("/ship/stores/history?page=99", cook))).isEqualTo(6);
 
         assertThat(rows(page("/ship/stores/history?type=RECEIPT", cook))).isEqualTo(1);
         String counts = page("/ship/stores/history?type=COUNT", cook);
-        assertThat(counts).contains("href=\"/ship/stores/history?type=COUNT&amp;page=1\"")
+        assertThat(counts).contains("href=\"/ship/stores/history?type=COUNT&amp;page=2\"")
                 .contains("<option value=\"COUNT\" selected=\"selected\">Count</option>")
                 .doesNotContain(">Delivery received</span>");
         assertThat(rows(page("/ship/stores/history?from=2026-11-02&to=2026-11-04", cook))).isEqualTo(1);
-        assertThat(rows(page("/ship/stores/history?to=2026-11-01", cook))).isEqualTo(50);
+        assertThat(rows(page("/ship/stores/history?to=2026-11-01&size=100", cook))).isEqualTo(55);
         assertThat(page("/ship/stores/history?from=2026-12-01", cook)).contains("No movements for these filters.");
         // Not a date: its error, and nothing filtered.
-        assertThat(page("/ship/stores/history?from=nonsense", cook)).contains("is-invalid", "56 movements");
+        assertThat(page("/ship/stores/history?from=nonsense", cook)).contains("is-invalid", "1 to 10 of 56");
     }
 
     // The shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and To. Each choice is

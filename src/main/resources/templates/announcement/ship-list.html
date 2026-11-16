@@ -9,8 +9,9 @@
      unread, a dot ("New" for screen readers) and a bold title; the title on at most two lines, a one-line preview of the
      text (plain text, cut with an ellipsis), then "Office · 13 Nov" and, read, the two ticks with "Read" for
      screen readers. Nothing about anyone else.
-     Only what is shown is loaded (10 a page, ShipAnnouncementController): "Show older" at the end adds the next 10.
-     Model: ship, unreadRows and readRows (NewsRow), unread (count of all unread), nextPage (or null). -->
+     "New" shows all of them (it is what must be read); "Earlier" is 10 a page with the shared pager under it.
+     Model: ship, unreadRows (NewsRow, all) and readRows (a Page of NewsRow), unread (count of all unread), list
+     (ListQuery of "Earlier"). -->
 <main class="news-page">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{announcement.ship.title}, eyebrowShip=${ship},
                          count=${unread > 0} ? #{announcement.ship.newCount(${unread})} : null,
@@ -33,11 +34,8 @@
         <ul class="news-list">
             <th:block th:each="r : ${readRows}"><li th:replace="~{::newsRow(${r})}"></li></th:block>
         </ul>
+        <div class="pager-plain"><nav th:replace="~{layout/parts :: pager(${readRows}, ${list})}"></nav></div>
     </section>
-
-    <p th:if="${nextPage != null}" class="news-older">
-        <a th:href="@{/ship/news(page=${nextPage})}" th:text="#{announcement.ship.older}">Show older</a>
-    </p>
 </main>
 
 <!-- One news item, outside main so it is only rendered where it is used. r: a NewsRow. -->

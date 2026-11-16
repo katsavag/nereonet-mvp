@@ -18,6 +18,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptService;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.ListRequest;
+import com.nereonix.nereonet_mvp.core.list.ListSort;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Change;
@@ -42,6 +45,9 @@ public class ShipOrderController {
     /** True for the Chief cook, who counts a scheduled delivery (DeliveryCountController). */
     static final String CAN_COUNT = "canCount";
 
+    // Each view has its own order: there is nothing to sort, but ListQuery needs its default.
+    private static final ListSort[] SORTS = {ListSort.asc("urgent")};
+
     private final ShipOrderPageService pageService;
     private final OrderReceiptService receiptService;
     private final QuantityRules quantityRules;
@@ -53,12 +59,13 @@ public class ShipOrderController {
         this.quantityRules = quantityRules;
     }
 
-    // view: "progress" or "received"; without it, or with anything else, the current order.
+    // view: "progress" or "received"; without it, or with anything else, the current order. listRequest: the page
+    // and the page size of those two views (10 a page as on every list).
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, @RequestParam(required = false) String view,
-                        Model model) {
+                        @ModelAttribute ListRequest listRequest, Model model) {
         model.addAttribute("sendForm", new SendOrderForm());
-        return showOrder(currentUser, view, model);
+        return showOrder(currentUser, view, listRequest, model);
     }
 
     // The rule of the item's unit (core/form/QuantityRules): blank, not a number, zero or less, too many decimals
@@ -93,7 +100,7 @@ public class ShipOrderController {
                        @Validated @ModelAttribute("sendForm") SendOrderForm sendForm, BindingResult bindingResult,
                        Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            return showOrder(currentUser, null, model);
+            return showOrder(currentUser, null, ListRequest.EMPTY, model);
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {
@@ -132,8 +139,14 @@ public class ShipOrderController {
         return "shiporder/detail";
     }
 
-    private String showOrder(CurrentUser currentUser, String view, Model model) {
-        model.addAttribute("orderPage", pageService.page(currentUser.getUsername(), view));
+    private String showOrder(CurrentUser currentUser, String view, ListRequest listRequest, Model model) {
+        ListQuery list = ListQuery.of("/ship/order", listRequest, SORTS);
+        ShipOrderPageService.OrderPage orderPage = pageService.page(currentUser.getUsername(), view, list);
+        // The pager's links keep the view (the current order has no pages).
+        list.filter("view", ShipOrderPageService.VIEW_CURRENT.equals(orderPage.view()) ? null : orderPage.view(),
+                null, null);
+        model.addAttribute("list", list);
+        model.addAttribute("orderPage", orderPage);
         model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
         model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
         return "shiporder/order";

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.context.MessageSource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.order.DeliveryCountStatus;
 import com.nereonix.nereonet_mvp.core.order.OrderReceiptFileRepository;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
@@ -57,14 +60,6 @@ public class ShipOrderPageService {
     // Sent and not received yet.
     static final List<ShipOrderStatus> IN_PROGRESS = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
 
-    // Most urgent first: the scheduled deliveries by delivery date (earliest first), then the orders waiting for the
-    // office by sent date (waiting longest first).
-    private static final Comparator<ShipOrder> MOST_URGENT_FIRST = Comparator
-            .comparing((ShipOrder order) -> order.getStatus() == ShipOrderStatus.CONFIRMED ? 0 : 1)
-            .thenComparing(ShipOrder::getDeliveryDate, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(ShipOrder::getSentAt, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(ShipOrder::getId);
-
     /** One line of the order, and who asked for it: "Chief Cook 6, A. Santos 4" (empty when nobody is linked). */
     public record LineView(ShipOrderLine line, String askedBy) {
     }
@@ -86,13 +81,14 @@ public class ShipOrderPageService {
 
     /**
      * Vessel order in one of its three views, with only what that view shows: current (the OPEN order; an empty
-     * view when there is none) in "current", inProgress in "progress", received (CLOSED, newest sent first) in
-     * "received"; the others are null. progressCount and receivedCount are the numbers on the tabs. attention (the
+     * view when there is none) in "current", one page of inProgress in "progress", one page of received (CLOSED,
+     * newest sent first) in "received"; the others are null. progressCount and receivedCount are the numbers on the
+     * tabs, the totals. attention (the
      * current view only): the orders in progress that need this user, the Master's deliveries to receive or the
      * Chief cook's deliveries to count.
      */
-    public record OrderPage(Ship ship, String view, OrderView current, List<InProgress> inProgress,
-                            List<ShipOrder> received, long progressCount, long receivedCount, long attention) {
+    public record OrderPage(Ship ship, String view, OrderView current, Page<InProgress> inProgress,
+                            Page<ShipOrder> received, long progressCount, long receivedCount, long attention) {
     }
 
     /**
@@ -174,22 +170,22 @@ public class ShipOrderPageService {
 
     /**
      * Vessel order for the Master or the Chief cook. view: "progress" or "received"; anything else is the current
-     * order.
+     * order. list: the page and page size of those two views.
      */
     @Transactional(readOnly = true)
-    public OrderPage page(String email, String view) {
+    public OrderPage page(String email, String view, ListQuery list) {
         User user = reader(email);
         Ship ship = ship(user);
         if (VIEW_PROGRESS.equals(view)) {
-            List<InProgress> inProgress = inProgress(ship);
-            return new OrderPage(ship, VIEW_PROGRESS, null, inProgress, null, inProgress.size(),
+            Page<InProgress> inProgress = inProgress(ship, list);
+            return new OrderPage(ship, VIEW_PROGRESS, null, inProgress, null, inProgress.getTotalElements(),
                     orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), 0);
         }
         if (VIEW_RECEIVED.equals(view)) {
-            List<ShipOrder> received = orderRepository.findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(ship.getId(),
-                    RECEIVED);
+            Page<ShipOrder> received = ListQueries.page(list, page -> orderRepository
+                    .findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(ship.getId(), RECEIVED, page));
             return new OrderPage(ship, VIEW_RECEIVED, null, null, received,
-                    orderRepository.countByShipIdAndStatusIn(ship.getId(), IN_PROGRESS), received.size(), 0);
+                    orderRepository.countByShipIdAndStatusIn(ship.getId(), IN_PROGRESS), received.getTotalElements(), 0);
         }
         ShipOrder open = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElse(null);
         // The orders in progress without their lines: how many there are, and how many need this user.
@@ -203,18 +199,17 @@ public class ShipOrderPageService {
                 orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), attention);
     }
 
-    // The ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
-    // date, then the orders waiting for the office by sent date).
-    private List<InProgress> inProgress(Ship ship) {
+    // One page of the ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by
+    // delivery date, then the orders waiting for the office by sent date; ShipOrderRepository.findInProgress).
+    private Page<InProgress> inProgress(Ship ship, ListQuery list) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        return orderRepository.findAllByShipIdAndStatusIn(ship.getId(), IN_PROGRESS).stream()
-                .sorted(MOST_URGENT_FIRST)
+        return ListQueries.page(list, page -> orderRepository.findInProgress(ship.getId(), IN_PROGRESS,
+                        ShipOrderStatus.CONFIRMED, page))
                 .map(order -> new InProgress(order, (int) order.getLines().stream().filter(l -> !l.isRemoved()).count(),
                         order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryDate() != null
                                 && order.getDeliveryDate().isBefore(today),
                         order.getStatus() == ShipOrderStatus.CONFIRMED
-                                && receiptFileRepository.countByOrderIdAndInvoicePageNotNull(order.getId()) > 0))
-                .toList();
+                                && receiptFileRepository.countByOrderIdAndInvoicePageNotNull(order.getId()) > 0));
     }
 
     /** One order of the ship with its lines; 404 for another ship's. The Master or the Chief cook. */

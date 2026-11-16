@@ -52,6 +52,9 @@ public class AnnouncementController {
     // The columns that sort, the default first.
     private static final ListSort[] SORTS = {ListSort.desc("sentAt"), ListSort.asc("title"), ListSort.asc("target")};
 
+    // The recipients are by vessel: there is nothing to sort, but ListQuery needs its default.
+    private static final ListSort RECIPIENT_SORT = ListSort.asc("ship");
+
     // listRequest: search, sort and page.
     @GetMapping("/office/announcements")
     public String list(@RequestParam(required = false) Long shipId, @ModelAttribute ListRequest listRequest,
@@ -146,14 +149,23 @@ public class AnnouncementController {
         return "redirect:/office/announcements/new";
     }
 
-    // The text, then the acknowledgements per ship (with the total) and who has and has not acknowledged.
+    // The text, then the acknowledgements per ship (with the total) and who has and has not acknowledged: two
+    // lists, 10 a page each. listRequest: the page of "Read" and the page size of both; notReadPage: the page of
+    // "Not read yet".
     @GetMapping("/office/announcements/{id}")
-    public String detail(@PathVariable Long id, Model model) {
+    public String detail(@PathVariable Long id, @ModelAttribute ListRequest listRequest,
+                         @RequestParam(required = false) Integer notReadPage, Model model) {
         Announcement announcement = announcementService.get(id);
-        AnnouncementService.Recipients recipients = announcementService.findRecipients(announcement);
+        String path = "/office/announcements/" + id;
+        ListQuery readList = ListQuery.firstOfTwo(path, listRequest, "notReadPage", notReadPage, "acknowledged",
+                RECIPIENT_SORT);
+        ListQuery pendingList = ListQuery.secondOfTwo(path, listRequest, "notReadPage", notReadPage, "pending",
+                RECIPIENT_SORT);
         model.addAttribute("announcement", announcement);
-        model.addAttribute("recipients", recipients);
-        model.addAttribute("perShip", announcementService.acknowledgementsPerShip(announcement, recipients));
+        model.addAttribute("readList", readList);
+        model.addAttribute("pendingList", pendingList);
+        model.addAttribute("recipients", announcementService.findRecipients(announcement, readList, pendingList));
+        model.addAttribute("perShip", announcementService.acknowledgementsPerShip(announcement));
         return "announcement/detail";
     }
 

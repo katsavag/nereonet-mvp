@@ -5,12 +5,15 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
+import com.nereonix.nereonet_mvp.core.list.ListQueries;
+import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.request.ItemRequest;
 import com.nereonix.nereonet_mvp.core.request.ItemRequestRepository;
 import com.nereonix.nereonet_mvp.core.request.RequestLine;
@@ -28,8 +31,8 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 @Service
 public class ApprovalService {
 
-    /** The requests of one tab, and the number in each tab (shown on all three). */
-    public record Approvals(Ship ship, ApprovalTab tab, List<ItemRequest> requests, long pending, long approved,
+    /** One page of the requests of one tab, and the number in each tab (shown on all three). */
+    public record Approvals(Ship ship, ApprovalTab tab, Page<ItemRequest> requests, long pending, long approved,
                             long declined) {
     }
 
@@ -53,11 +56,11 @@ public class ApprovalService {
 
     /** Pending: PENDING, oldest first. Approved: APPROVED, and Declined: REJECTED, newest decision first. */
     @Transactional(readOnly = true)
-    public Approvals list(String email, ApprovalTab tab) {
+    public Approvals list(String email, ApprovalTab tab, ListQuery list) {
         Ship ship = ship(email);
-        List<ItemRequest> requests = tab == ApprovalTab.PENDING
-                ? requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(ship.getId(), tab.status())
-                : requestRepository.findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(ship.getId(), tab.status());
+        Page<ItemRequest> requests = ListQueries.page(list, page -> tab == ApprovalTab.PENDING
+                ? requestRepository.findAllByShipIdAndStatusOrderByCreatedAtAscIdAsc(ship.getId(), tab.status(), page)
+                : requestRepository.findAllByShipIdAndStatusOrderByDecidedAtDescIdDesc(ship.getId(), tab.status(), page));
         // The rows show the number of lines: load them here (in batches, see ItemRequest.lines).
         requests.forEach(request -> request.getLines().size());
         return new Approvals(ship, tab, requests, count(ship, RequestStatus.PENDING),

@@ -18,8 +18,9 @@
      approve", one sent back says so.
      Received (?view=received): the received orders, newest sent first, each row one link (the order number,
      stretched over the row) with its delivery port and date, a neutral status and when it was sent.
-     Model: orderPage (ShipOrderPageService.OrderPage: only the chosen view is loaded), canManage, canCount
-     (boolean), sendForm (SendOrderForm). The quantities follow the rule of the item's unit. -->
+     In progress and Received are 10 a page with the shared pager, which keeps the view; the tab counts are the
+     totals. Model: orderPage (ShipOrderPageService.OrderPage: only the chosen view is loaded), list (ListQuery),
+     canManage, canCount (boolean), sendForm (SendOrderForm). The quantities follow the rule of the item's unit. -->
 <main th:with="op=${orderPage}, v=${orderPage.current}, tab=${orderPage.view}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${op.ship},
             subtitle=${tab != 'current'} ? null : (${canManage} ? #{order.hint} : #{order.hint.readOnly}))}"></header>
@@ -86,6 +87,10 @@
                 </div>
             </li>
         </ul>
+        <!-- The orders are cards of their own, so the pager gets one too. -->
+        <div th:if="${list.pagerShown(op.inProgress)}" class="card pager-card">
+            <nav th:replace="~{layout/parts :: pager(${op.inProgress}, ${list})}"></nav>
+        </div>
     </th:block>
 
     <th:block th:if="${tab == 'received'}">
@@ -108,6 +113,7 @@
                     </div>
                 </li>
             </ul>
+            <nav th:replace="~{layout/parts :: pager(${op.received}, ${list})}"></nav>
         </div>
     </th:block>
 

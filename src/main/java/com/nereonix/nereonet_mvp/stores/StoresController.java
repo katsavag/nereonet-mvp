@@ -54,6 +54,9 @@ public class StoresController {
     // Grouped by place and by name within a place: there is nothing to sort, but ListQuery needs its default.
     private static final ListSort[] SORTS = {ListSort.asc("name")};
 
+    // The histories are newest first: again nothing to sort.
+    private static final ListSort[] HISTORY_SORTS = {ListSort.desc("at")};
+
     private final StoresService storesService;
     private final VoiceCountService voiceCountService;
     private final MessageSource messageSource;
@@ -86,9 +89,13 @@ public class StoresController {
         return "stores/list";
     }
 
+    // listRequest: the page and page size of the item's history, whose pager comes back to that card.
     @GetMapping(PATH + "/items/{id}")
-    public String item(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model) {
-        model.addAttribute("detail", storesService.item(currentUser.getUsername(), id));
+    public String item(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                       @ModelAttribute ListRequest listRequest, Model model) {
+        ListQuery list = ListQuery.of(PATH + "/items/" + id, listRequest, HISTORY_SORTS).anchor("storesHistory");
+        model.addAttribute("list", list);
+        model.addAttribute("detail", storesService.item(currentUser.getUsername(), id, list));
         return "stores/item";
     }
 
@@ -191,37 +198,36 @@ public class StoresController {
                 : new NewItem(form.getNewName(), form.getNewUnit(), form.getNewPlace(), check.value());
     }
 
-    // Every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
+    // Every movement of the ship, newest first, 10 a page with the shared pager (listRequest: the page and the page
+    // size), which keeps the filters; filtered by type and UTC days. A day that is not a
     // date or outside the sensible range shows its error under the field and filters nothing. The quick choices
     // of layout/parts :: dateRange (the last 30, 60 and 90 days, links that keep the type).
     @GetMapping(PATH + "/history")
     public String history(@AuthenticationPrincipal CurrentUser currentUser,
                           @Validated @ModelAttribute("filter") StoresHistoryFilter filter, BindingResult bindingResult,
-                          Model model) {
+                          @ModelAttribute ListRequest listRequest, Model model) {
         if (bindingResult.hasFieldErrors("from")) {
             filter.setFrom(null);
         }
         if (bindingResult.hasFieldErrors("to")) {
             filter.setTo(null);
         }
-        StoresService.History history = storesService.history(currentUser.getUsername(), filter.movementType(),
-                filter.getFrom(), filter.getTo(), filter.pageIndex());
-        model.addAttribute("history", history);
+        StockMovementType type = filter.movementType();
+        ListQuery list = ListQuery.of(PATH + "/history", listRequest, HISTORY_SORTS)
+                .filter("type", type == null ? null : type.name(), null, null)
+                .filter("from", filter.getFrom(), null, null)
+                .filter("to", filter.getTo(), null, null);
+        model.addAttribute("list", list);
+        model.addAttribute("history", storesService.history(currentUser.getUsername(), type, filter.getFrom(),
+                filter.getTo(), list));
         model.addAttribute("types", StockMovementType.values());
-        int page = history.movements().getNumber();
-        model.addAttribute("newerUrl", history.movements().hasPrevious() ? historyUrl(filter, page - 1) : null);
-        model.addAttribute("olderUrl", history.movements().hasNext() ? historyUrl(filter, page + 1) : null);
         model.addAttribute("datePresets", DatePreset.of(DatePreset.LAST_DAYS, LocalDate.now(ZoneOffset.UTC),
-                filter.getFrom(), filter.getTo(),
-                (from, to) -> historyUrl(filter.movementType(), from, to, 0)));
+                filter.getFrom(), filter.getTo(), (from, to) -> historyUrl(type, from, to)));
         return "stores/history";
     }
 
-    private static String historyUrl(StoresHistoryFilter filter, int page) {
-        return historyUrl(filter.movementType(), filter.getFrom(), filter.getTo(), page);
-    }
-
-    private static String historyUrl(StockMovementType type, LocalDate from, LocalDate to, int page) {
+    // The history from its first page with this type and these days (a quick choice of the date range).
+    private static String historyUrl(StockMovementType type, LocalDate from, LocalDate to) {
         UriComponentsBuilder url = UriComponentsBuilder.fromPath(PATH + "/history");
         if (type != null) {
             url.queryParam("type", type.name());
@@ -231,9 +237,6 @@ public class StoresController {
         }
         if (to != null) {
             url.queryParam("to", to);
-        }
-        if (page > 0) {
-            url.queryParam("page", page);
         }
         return url.build().toUriString();
     }

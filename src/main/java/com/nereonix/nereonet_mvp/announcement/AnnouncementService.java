@@ -14,8 +14,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,8 +72,13 @@ public class AnnouncementService {
     public record Row(Announcement announcement, long recipients, long acknowledged) {
     }
 
-    /** The recipients of one announcement: acknowledged (earliest first) and not yet (by name). */
-    public record Recipients(List<AnnouncementRecipient> acknowledged, List<AnnouncementRecipient> pending) {
+    /** One page of each list of the recipients of one announcement: acknowledged (earliest first) and not yet (by name). */
+    public record Recipients(Page<AnnouncementRecipient> acknowledged, Page<AnnouncementRecipient> pending) {
+
+        /** Everyone it went to. */
+        public long total() {
+            return acknowledged.getTotalElements() + pending.getTotalElements();
+        }
     }
 
     /**
@@ -144,18 +147,14 @@ public class AnnouncementService {
     }
 
     /**
-     * The recipients of one announcement, both lists grouped by ship (by ship name): acknowledged earliest first and
-     * not yet by name within a ship.
+     * The recipients of one announcement, one page of each list, both grouped by ship (by ship name): acknowledged
+     * earliest first and not yet by name within a ship. readList and pendingList: the two lists' pages.
      */
     @Transactional(readOnly = true)
-    public Recipients findRecipients(Announcement announcement) {
-        List<AnnouncementRecipient> all = recipientRepository.findAllByAnnouncementOrderByUserFullNameAsc(announcement);
-        Comparator<AnnouncementRecipient> byShip = Comparator.comparing((AnnouncementRecipient r) -> r.getShip().getName(),
-                String.CASE_INSENSITIVE_ORDER).thenComparing(r -> r.getShip().getId());
+    public Recipients findRecipients(Announcement announcement, ListQuery readList, ListQuery pendingList) {
         return new Recipients(
-                all.stream().filter(r -> r.getAcknowledgedAt() != null)
-                        .sorted(byShip.thenComparing(AnnouncementRecipient::getAcknowledgedAt)).toList(),
-                all.stream().filter(r -> r.getAcknowledgedAt() == null).sorted(byShip).toList());
+                ListQueries.page(readList, page -> recipientRepository.findRead(announcement, page)),
+                ListQueries.page(pendingList, page -> recipientRepository.findNotRead(announcement, page)));
     }
 
     /** The acknowledgements of one ship's recipients (the detail page). */
@@ -166,23 +165,20 @@ public class AnnouncementService {
      * The acknowledgements per ship, by ship name: every target ship, also one that had nobody on board, and every
      * ship the recipients were on (for All ships, the active ships when it was sent that had crew).
      */
-    public List<ShipAcknowledgements> acknowledgementsPerShip(Announcement announcement, Recipients recipients) {
+    @Transactional(readOnly = true)
+    public List<ShipAcknowledgements> acknowledgementsPerShip(Announcement announcement) {
+        // Counted in the database: [ship id, recipients, of them read].
+        Map<Long, Object[]> counts = new LinkedHashMap<>();
+        recipientRepository.countPerShip(announcement).forEach(row -> counts.put((Long) row[0], row));
         Map<Long, Ship> ships = new LinkedHashMap<>();
-        Map<Long, int[]> counts = new LinkedHashMap<>();
         announcement.getTargetShips().forEach(s -> ships.put(s.getId(), s));
-        for (AnnouncementRecipient r : recipients.acknowledged()) {
-            ships.putIfAbsent(r.getShip().getId(), r.getShip());
-            counts.computeIfAbsent(r.getShip().getId(), id -> new int[2])[1]++;
-        }
-        for (AnnouncementRecipient r : recipients.pending()) {
-            ships.putIfAbsent(r.getShip().getId(), r.getShip());
-            counts.computeIfAbsent(r.getShip().getId(), id -> new int[2])[0]++;
-        }
+        shipRepository.findAllById(counts.keySet()).forEach(s -> ships.putIfAbsent(s.getId(), s));
         return ships.values().stream()
                 .sorted(Comparator.comparing(Ship::getName, String.CASE_INSENSITIVE_ORDER).thenComparing(Ship::getId))
                 .map(s -> {
-                    int[] c = counts.getOrDefault(s.getId(), new int[2]);
-                    return new ShipAcknowledgements(s, c[0] + c[1], c[1]);
+                    Object[] c = counts.get(s.getId());
+                    return c == null ? new ShipAcknowledgements(s, 0, 0)
+                            : new ShipAcknowledgements(s, ((Long) c[1]).intValue(), ((Long) c[2]).intValue());
                 })
                 .toList();
     }
@@ -301,13 +297,16 @@ public class AnnouncementService {
         return recipientRepository.findAllForUser(email);
     }
 
-    /**
-     * The first {@code limit} of forUser, in the same order, limited in the database (the crew's News); the
-     * Slice says whether there are older ones to show.
-     */
+    /** The crew's News, "New": every news item this user has not opened yet, newest first. */
     @Transactional(readOnly = true)
-    public Slice<AnnouncementRecipient> forUser(String email, int limit) {
-        return recipientRepository.findForUser(email, PageRequest.of(0, limit));
+    public List<AnnouncementRecipient> newFor(String email) {
+        return recipientRepository.findUnreadForUser(email);
+    }
+
+    /** The crew's News, "Earlier": one page of the news items this user has opened, newest first. */
+    @Transactional(readOnly = true)
+    public Page<AnnouncementRecipient> earlierFor(String email, ListQuery list) {
+        return ListQueries.page(list, page -> recipientRepository.findReadForUser(email, page));
     }
 
     /** How many news items this user has not opened yet. */

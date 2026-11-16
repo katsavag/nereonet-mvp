@@ -188,15 +188,16 @@
                     subtitle=${overview.item.title} + ' · ' + #{library.version(${overview.item.currentVersion.versionLabel})} + ' · ' + #{library.acknowledgements.hint})}">
 </header>
 
-<!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not. Needs ${overview}.
+<!-- Acknowledgement overview of a Required item: who acknowledged its current version and who has not, each list
+     10 a page with its own pager (overview.readList, overview.notReadList); the headings count everyone. Needs ${overview}.
      reminderUrl: where "Send reminder" posts. It notifies everyone not yet acknowledged, asks first (a neutral
      confirmForm: a notification cannot be taken back) and can be used once per 24 hours per item; until then the
      page says when the next one can be sent. Not shown when everyone has acknowledged. -->
 <th:block th:fragment="acknowledgements(reminderUrl)" th:with="item=${overview.item}">
 
-    <section class="mb-4">
+    <section class="mb-4" id="ackRead">
         <h2 class="h6 fw-bold mb-2"
-            th:text="#{library.acknowledgements.acknowledged(${overview.acknowledged.size()})}">Acknowledged (1)</h2>
+            th:text="#{library.acknowledgements.acknowledged(${overview.acknowledged.totalElements})}">Acknowledged (1)</h2>
         <p th:if="${overview.acknowledged.isEmpty()}" class="text-body-secondary"
            th:text="#{library.acknowledgements.noneAcknowledged}">Nobody has acknowledged this version yet.</p>
         <ul th:unless="${overview.acknowledged.isEmpty()}" class="list-group">
@@ -209,12 +210,13 @@
                 <span class="small"><time th:replace="~{layout/parts :: localTime(${a.acknowledgedAt})}"></time></span>
             </li>
         </ul>
+        <div class="pager-plain"><nav th:replace="~{layout/parts :: pager(${overview.acknowledged}, ${overview.readList})}"></nav></div>
     </section>
 
-    <section>
+    <section id="ackNotRead">
         <div class="ack-section-heading">
             <h2 class="h6 fw-bold mb-0"
-                th:text="#{library.acknowledgements.notYet(${overview.notAcknowledged.size()})}">Not yet acknowledged (1)</h2>
+                th:text="#{library.acknowledgements.notYet(${overview.notAcknowledged.totalElements})}">Not yet acknowledged (1)</h2>
             <th:block th:if="${!overview.notAcknowledged.isEmpty() and overview.nextReminderAt == null}">
                 <form th:replace="~{layout/parts :: confirmForm(action=${reminderUrl}, label=#{library.reminder.send},
                         linkClass='btn btn-outline-secondary', title=#{library.reminder.confirm.title(${item.title})},
@@ -233,6 +235,7 @@
                 <div class="small text-body-secondary" th:text="#{${'role.' + u.role}}">Crew member</div>
             </li>
         </ul>
+        <div class="pager-plain"><nav th:replace="~{layout/parts :: pager(${overview.notAcknowledged}, ${overview.notReadList})}"></nav></div>
     </section>
 </th:block>
 

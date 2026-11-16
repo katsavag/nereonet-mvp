@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -345,7 +346,7 @@ class VoiceCountFlowTest {
     }
 
     private List<StockMovement> movements() {
-        return stockService.history(ship, null, null, null, 0).getContent();
+        return stockService.history(ship, null, null, null, Pageable.unpaged()).getContent();
     }
 
     private Map<String, String> levels() {

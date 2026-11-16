@@ -428,13 +428,18 @@
 
 <!-- Edit ship pop-up. Full screen on phones. editShip: the ship it edits (the ship page, or a failed save on the
      ships list), or null when the list's script sets it from the Edit entry that opened it. tab: the ship page tab to
-     return to, or null for the ships list. -->
+     return to, or null for the ships list, which sends its sort, page size and page instead (listParams; its page
+     as listPage, because "page" is the full Edit page's own field). -->
 <div th:fragment="editModal(editShip, tab)" class="modal fade" id="editShipModal" tabindex="-1"
      aria-labelledby="editShipModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <form class="modal-content" th:object="${editForm}" method="post" novalidate
               th:action="${editShip != null} ? @{/office/ships/{id}/edit(id=${editShip.id})} : @{/office/ships}">
             <input th:if="${tab != null}" type="hidden" name="tab" th:value="${tab}">
+            <th:block th:if="${tab == null}">
+                <input th:each="p : ${listParams}" type="hidden" th:name="${p.key == 'page'} ? 'listPage' : ${p.key}"
+                       th:value="${p.value}">
+            </th:block>
             <div class="modal-header">
                 <h2 class="modal-title h5 fw-bold" id="editShipModalTitle" th:text="#{ship.edit.heading}">Edit ship</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"

@@ -4,7 +4,9 @@
 <!-- The Master's approvals: the item requests of their own ship, in three tabs (ordinary links, ?tab=...),
      each with its count. Pending: PENDING, oldest first. Approved: APPROVED, and Declined: REJECTED, newest decision
      first, with the decision and its date. Each row is one link (who asked, stretched over the row) to the request.
-     English only, as every crew screen. Model: approvals (ApprovalService.Approvals). -->
+     10 a page with the shared pager, which keeps the tab; the counts are the totals. A pending row's link carries
+     its page (back), so Approve and Decline return to it.
+     English only, as every crew screen. Model: approvals (ApprovalService.Approvals), list (ListQuery), back. -->
 <main th:with="a=${approvals}, tab=${approvals.tab.key()}, pendingTab=${approvals.tab.name() == 'PENDING'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{approval.title}, eyebrowShip=${a.ship},
             subtitle=#{'approval.hint.' + ${tab}})}"></header>
@@ -38,7 +40,7 @@
         <ul th:unless="${a.requests.isEmpty()}" class="list-group list-group-flush approval-list">
             <li th:each="r : ${a.requests}" class="list-group-item list-group-item-action approval-row">
                 <div class="approval-row-main">
-                    <a class="approval-row-title stretched-link" th:href="@{/ship/approvals/{id}(id=${r.id})}"><th:block
+                    <a class="approval-row-title stretched-link" th:href="@{${'/ship/approvals/' + r.id + (pendingTab ? back : '')}}"><th:block
                             th:replace="~{approval/parts :: person(${r.requestedBy})}"></th:block></a>
                     <p class="approval-row-meta">
                         <span th:text="#{request.number(${r.id})}">Request #12</span>
@@ -54,6 +56,7 @@
                 </div>
             </li>
         </ul>
+        <nav th:replace="~{layout/parts :: pager(${a.requests}, ${list})}"></nav>
     </div>
 </main>
 </body>
