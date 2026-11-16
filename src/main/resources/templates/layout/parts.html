@@ -927,7 +927,7 @@
      no visible label (the quote table).
      rule: null where the rule is the server's alone: the item is chosen on the page (the office's Add an item: js/item-search.js sets the rule).
      unitField (optional): the id of the field where the unit is chosen (the rule follows it; needs quantityTexts with
-     the units JSON). -->
+     the units JSON). ofForm (optional): the id of the form the field belongs to, when it is not the one around it. -->
 <input th:fragment="quantityInput" type="text" autocomplete="off" spellcheck="false" data-quantity
        class="form-control font-monospace" th:classappend="${(cls ?: '') + (invalid == true ? ' is-invalid' : '')}"
        th:id="${id}" th:name="${name}" th:value="${@quantityRules.text(value)}"
@@ -937,7 +937,7 @@
                 data-quantity-zero=${rule == null} ? 'true' : ${rule.zeroAllowed()},
                 data-quantity-unit=${rule == null} ? null : ${rule.unit()},
                 data-quantity-kept=${kept == null} ? null : ${kept.stripTrailingZeros().toPlainString()},
-                data-quantity-unit-field=${unitField},
+                data-quantity-unit-field=${unitField}, form=${ofForm},
                 aria-describedby=${describedBy}, aria-label=${ariaLabel},
                 aria-invalid=${invalid == true} ? 'true' : null">
 

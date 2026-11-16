@@ -1,23 +1,29 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.title}, ~{::main})}">
 <body>
-<!-- "Count what arrived", the Chief cook's, phone first. The rows (core/order/CountSheet) by category: each
-     order line not removed by the office, and each invoice line matched to a vessel item not on the order. Two tabs,
-     links that work without JavaScript: To do (the rows not counted; a row leaves it when confirmed, so the list only
-     gets shorter) and Done (?tab=done: the name, "Arrived 23 kg", the difference in words, with Change, ?change=key,
-     which opens the same row again). A row (shiporder/parts :: countRow) has its name, under it the reference
-     ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read), the input "Arrived"
-     prefilled with the reference, and Confirm. At the end, only when there are any, "On the invoice, not found on the
-     order": one row per invoice line nothing was found for, with Choose the product. At the bottom the Finish box:
-     what is left ("3 to do · Invoice: 2 pages photographed", muted), the way back to the invoice's photos (Retake
-     invoice photo, or Photograph the invoice when there is none) and Finish, the primary button once nothing is left.
+<!-- "Count what arrived", the Chief cook's, phone first: one list and one Save. Under the title one line of help.
+     One form around every row (core/order/CountSheet) by category: each order line not removed by the office, and each
+     invoice line matched to a vessel item not on the order. A row (shiporder/parts :: countRow) has its name, under it
+     the reference ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read, and "Add a
+     note"), the input "Arrived" and "Did not arrive". The input holds the saved count; a row never saved holds the
+     invoice's quantity (the quantity ordered without an invoice; nothing when there is none to go by). After the rows,
+     only when there are any: "On the invoice, not found on the order" (one row per invoice line nothing was found for,
+     with Choose the product) and "Not ordered" (the lines he said were not ordered, with Change).
+     The bar at the bottom of the screen: what Save will record, in words ("37 as the invoice · 2 different · 1 without
+     a number", written by js/count.js; nothing without it), Retake invoice photo (Photograph the invoice when there is
+     none) and the one primary button, Save count. Save records every row with a number; a refused number brings the
+     page back with everything typed and nothing saved; rows without a number bring it back at the first of them;
+     with everything counted it goes on to the page that sends the count to the Master.
+     data-draft: js/save.js keeps what is typed in the browser if the connection drops, and removes it once the count
+     is saved. "Read wrong?" posts a form of its own (the fixForm-{key} forms after the count's), so what is typed in
+     the other rows comes back from that draft.
      Nothing goes into the store here. A count sent back by the Master shows the Master's note on top.
-     English only. Model: order, sheet (CountSheet), done (the Done tab), groups (CountSheet.Group of the tab), change
-     (the row open in Done), openNote, rowError and fixError (DeliveryCountController.RowError: a count refused, a
-     correction of the invoice refused), noteMax, invoicePages. -->
-<main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
+     English only. Model: order, sheet (CountSheet), groups (CountSheet.Group), typed (DeliveryCountController.Typed
+     after a refused Save, else null), leftEmpty (the keys of the rows the last Save left without a number, or absent),
+     fixError (DeliveryCountController.RowError: a correction of the invoice refused), noteMax, invoicePages. -->
+<main class="count-page count-sheet" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.heading}, crumbs=~{::pageCrumbs},
-            eyebrow=#{order.number(${order.id})})}">
+            eyebrow=#{order.number(${order.id})}, subtitle=#{order.count.help})}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
             <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
@@ -31,27 +37,19 @@
         <q class="d-block" th:text="${order.countReturnNote}">Recount the frozen meat</q>
     </div>
 
-    <nav class="ship-tabs count-tabs" th:attr="aria-label=#{order.count.tabs.label}">
-        <ul class="ship-tabs-list">
-            <li><a class="ship-tab" th:classappend="${!done} ? 'active'" th:href="@{${baseUrl}}" th:aria-current="${!done} ? 'page'">
-                <span th:text="#{order.count.tab.todo}">To do</span>
-                <span class="ship-tab-count num" th:text="${sheet.toDoTotal}">6</span></a></li>
-            <li><a class="ship-tab" th:classappend="${done} ? 'active'" th:href="@{${baseUrl}(tab='done')}" th:aria-current="${done} ? 'page'">
-                <span th:text="#{order.count.tab.done}">Done</span>
-                <span class="ship-tab-count num" th:text="${sheet.countedTotal}">34</span></a></li>
-        </ul>
-    </nav>
-
-    <!-- To do: the rows still to count, then the invoice lines to choose. -->
-    <th:block th:unless="${done}">
-        <p th:if="${groups.isEmpty() and sheet.picks.isEmpty()}" class="count-empty" th:text="#{order.count.todo.empty}">Everything is counted.</p>
+    <form method="post" novalidate th:action="@{${baseUrl}}" th:data-draft="@{${baseUrl}}" data-count-form>
         <section th:each="g, it : ${groups}" class="card mb-3 count-group" th:attr="aria-labelledby=${'countGroup' + it.index}">
             <div class="card-header py-3">
                 <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
             </div>
             <ul class="list-group list-group-flush">
-                <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}">
-                    <form th:replace="~{shiporder/parts :: countRow(${r}, null, ${rowError}, ${openNote}, 'todo', ${baseUrl + '/row'}, ${baseUrl}, null, ${baseUrl + '/invoice'})}"></form>
+                <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}"
+                    th:with="sent=${typed != null and typed.quantities().containsKey(r.key)},
+                             left=${leftEmpty != null and leftEmpty.contains(r.key)},
+                             value=${sent ? typed.quantities().get(r.key) : (left ? '' : r.text(r.hasCount() ? r.counted : r.reference))},
+                             note=${sent ? typed.notes().get(r.key) : (r.note ?: '')},
+                             error=${sent ? typed.errors().get(r.key) : null}">
+                    <div th:replace="~{shiporder/parts :: countRow(${r}, ${value}, ${error}, ${left}, ${note}, true)}"></div>
                 </li>
             </ul>
         </section>
@@ -61,7 +59,7 @@
                 <h2 class="h5 fw-bold mb-0" id="countPicksTitle" th:text="#{order.count.picks.heading}">On the invoice, not found on the order</h2>
             </div>
             <ul class="list-group list-group-flush">
-                <li th:each="l : ${sheet.picks}" class="list-group-item count-row" th:id="${'pick-' + l.id}">
+                <li th:each="l : ${sheet.picks}" class="list-group-item count-row count-row-link" th:id="${'pick-' + l.id}">
                     <div class="count-row-head">
                         <span class="count-row-name" th:id="${'pickName-' + l.id}" th:text="${l.description}">BASMATI 10KG</span>
                         <span class="count-ref" th:if="${l.quantity != null}"
@@ -72,43 +70,13 @@
                 </li>
             </ul>
         </section>
-    </th:block>
-
-    <!-- Done: what was counted, with Change. -->
-    <th:block th:if="${done}">
-        <p th:if="${groups.isEmpty()}" class="count-empty" th:text="#{order.count.done.empty}">Nothing counted yet.</p>
-        <section th:each="g, it : ${groups}" class="card mb-3 count-group" th:attr="aria-labelledby=${'countGroup' + it.index}">
-            <div class="card-header py-3">
-                <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
-            </div>
-            <ul class="list-group list-group-flush">
-                <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}">
-                    <!-- th:if on a wrapper: th:replace runs before th:if on the same element. -->
-                    <th:block th:if="${change == r.key}">
-                        <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.counted)}, ${rowError}, ${openNote}, 'done', ${baseUrl + '/row'}, ${baseUrl + '?tab=done&change=' + r.key}, null, ${baseUrl + '/invoice'})}"></form>
-                    </th:block>
-                    <div th:unless="${change == r.key}" class="count-row-form">
-                        <div class="count-done-head">
-                            <span class="count-row-name" th:id="${'name-' + r.key}" th:text="${r.name}">Tomatoes</span>
-                            <a class="count-change" th:href="@{${baseUrl + '?tab=done&change=' + r.key + '#' + r.anchor}}"
-                               th:attr="aria-describedby=${'name-' + r.key}" th:text="#{order.count.change}">Change</a>
-                        </div>
-                        <p class="mb-0" th:text="#{order.count.done.arrived(${r.text(r.counted)}, ${r.unit(r.counted)})}">Arrived 23 kg</p>
-                        <p class="count-diff"><th:block th:replace="~{shiporder/parts :: countDiff(${r}, ${r.counted})}"></th:block></p>
-                        <!-- A corrected invoice number is never silent. -->
-                        <th:block th:if="${r.corrected}"><div th:replace="~{shiporder/parts :: countRef(${r}, null, null)}"></div></th:block>
-                        <q th:if="${r.note != null}" class="d-block small count-row-note" th:text="${r.note}">2 kg rotten</q>
-                    </div>
-                </li>
-            </ul>
-        </section>
 
         <section th:unless="${sheet.notOrdered.isEmpty()}" class="card mb-3" aria-labelledby="countNotOrderedTitle">
             <div class="card-header py-3">
                 <h2 class="h5 fw-bold mb-0" id="countNotOrderedTitle" th:text="#{order.count.notOrdered.heading}">Not ordered</h2>
             </div>
             <ul class="list-group list-group-flush">
-                <li th:each="l : ${sheet.notOrdered}" class="list-group-item count-row">
+                <li th:each="l : ${sheet.notOrdered}" class="list-group-item count-row count-row-link">
                     <div class="count-row-head">
                         <span class="count-row-name" th:id="${'notOrdered-' + l.id}" th:text="${l.description}">CHEESE 2KG</span>
                         <span class="count-ref" th:text="#{order.count.notOrdered.hint}">Not stocked: it goes to the office.</span>
@@ -118,24 +86,29 @@
                 </li>
             </ul>
         </section>
-    </th:block>
 
-    <!-- Finish: what is left, the way back to the invoice's photos, and Finish. -->
-    <section class="count-finish" id="countFinish" aria-labelledby="countFinishText">
-        <p id="countFinishText" class="text-meta">
-            <span th:text="#{order.count.finish.left(${sheet.toDoTotal})}">6 to do</span>
-            <th:block th:if="${invoicePages > 0}">
-                <span aria-hidden="true">·</span>
-                <span th:text="#{order.invoice.photographed(${invoicePages})}">Invoice: 2 pages photographed</span>
-            </th:block>
-        </p>
-        <div class="count-finish-actions">
-            <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}/invoice(id=${order.id})}"
-               th:text="${invoicePages > 0} ? #{order.invoice.retakePhoto} : #{order.invoice.photograph}">Retake invoice photo</a>
-            <a class="btn count-finish-button" th:classappend="${sheet.toDoTotal == 0} ? 'btn-primary' : 'btn-outline-primary'"
-               th:href="@{${baseUrl + '/send'}}" th:text="#{order.count.finish}">Finish</a>
+        <!-- The one Save of the page, stuck to the bottom of the screen (above the tab bar on phones). The text is
+             written by js/count.js. -->
+        <div class="stores-count-bar count-bar">
+            <p class="text-meta count-bar-text" role="status" data-count-summary
+               th:attr="data-same=${sheet.invoiceRead} ? #{order.count.bar.same('{n}')} : #{order.count.bar.sameOrdered('{n}')},
+                        data-different=#{order.count.bar.different('{n}')}, data-empty=#{order.count.bar.empty('{n}')}"></p>
+            <div class="count-bar-actions">
+                <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}/invoice(id=${order.id})}"
+                   th:text="${invoicePages > 0} ? #{order.invoice.retakePhoto} : #{order.invoice.photograph}">Retake invoice photo</a>
+                <button type="submit" class="btn btn-primary" th:text="#{order.count.save}">Save count</button>
+            </div>
         </div>
-    </section>
+    </form>
+
+    <!-- The corrections of the invoice: one small form per row with an invoice line; its number and button are in the row
+         (shiporder/parts :: countRef). -->
+    <th:block th:each="r : ${sheet.rows}">
+        <form th:if="${r.invoiceLine != null}" method="post" th:action="@{${baseUrl + '/invoice'}}"
+              th:id="${'fixForm-' + r.key}" hidden>
+            <input type="hidden" name="key" th:value="${r.key}">
+        </form>
+    </th:block>
     <script th:src="@{/js/count.js}" defer></script>
 </main>
 </body>

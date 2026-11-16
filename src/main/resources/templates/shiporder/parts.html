@@ -117,13 +117,15 @@
 <!-- A row of the delivery count (CountSheet.Row): its reference, one muted line under the name. "Ordered 10 bags ·
      Invoice 12 bags" (the invoice's quantity in its own unit; after a person's correction "Invoice 21 bags (corrected,
      photo read 12)"), "Invoice: not read", "Not on the invoice"; without a read invoice only "Ordered 12 kg".
-     fixUrl (null: none, the Master's and the read-only lines): where the cook's correction of the invoice's number
-     posts. Then the line ends with the small link "Read wrong?" ("Enter it" for a quantity not read): the summary of a
-     details element, which opens one small form under the line ("The paper invoice says", the number, Correct
-     invoice). Only for a row with one invoice line (r.invoiceLine). tab: 'done' when the row is open on Done.
+     fix (true on the cook's count; false: the Master's and the read-only lines): the line ends with the small link
+     "Read wrong?" ("Enter it" for a quantity not read): the summary of a details element, which opens "The paper
+     invoice says", the number and Correct invoice under the line. Only for a row with one invoice line
+     (r.invoiceLine). The row is inside the count's one form, so these two controls belong to a form of their own by
+     its id ('fixForm-' + r.key, which the page writes outside the count's form with the hidden key): the correction
+     changes the invoice's number and nothing else.
      Model: fixError (DeliveryCountController.RowError, or absent): the number refused, its form open.
-     Use: <div th:replace="~{shiporder/parts :: countRef(${r}, null, null)}"></div> -->
-<div th:fragment="countRef(r, fixUrl, tab)" class="count-ref"
+     Use: <div th:replace="~{shiporder/parts :: countRef(${r}, false)}"></div> -->
+<div th:fragment="countRef(r, fix)" class="count-ref"
      th:with="src=${r.source.name()}, i=${r.key}, fixErr=${fixError != null and fixError.key() == r.key},
               fixRule=${r.packed} ? ${@quantityRules.forUnit(r.unit, 'RECEIPT')} : ${@quantityRules.forItem(r.item, 'RECEIPT')}">
     <span th:if="${r.ordered != null}" th:text="#{order.count.ref.ordered(${r.text(r.orderedShown)}, ${r.orderedUnit})}">Ordered 10 bags</span>
@@ -135,26 +137,25 @@
         <span th:if="${src == 'NOT_READ'}" th:text="#{order.count.ref.notRead}">Invoice: not read</span>
         <span th:if="${src == 'NOT_ON_INVOICE'}" th:text="#{order.count.ref.notOnInvoice}">Not on the invoice</span>
     </th:block>
-    <th:block th:if="${fixUrl != null and r.invoiceLine != null}">
+    <th:block th:if="${fix and r.invoiceLine != null}">
         <details class="count-fix" th:open="${fixErr}">
             <!-- The dot is inside the summary so it never ends a line on its own. -->
             <summary th:attr="aria-describedby=${'name-' + i}"><span aria-hidden="true">·</span>
                 <span class="count-fix-link" th:text="${src == 'INVOICE'} ? #{order.count.fix.open} : #{order.count.fix.enter}">Read wrong?</span></summary>
-            <form method="post" th:action="@{${fixUrl}}" class="count-fix-form" novalidate>
-                <input type="hidden" name="key" th:value="${r.key}">
-                <input th:if="${tab == 'done'}" type="hidden" name="change" value="">
+            <div class="count-fix-form" data-count-fix>
                 <label th:for="${'fix-' + i}" th:text="#{order.count.fix.label}">The paper invoice says</label>
                 <span class="input-group count-fix-qty">
                     <input th:replace="~{layout/parts :: quantityInput(id=${'fix-' + i}, name='quantity',
                             value=${fixErr} ? ${fixError.value()} : ${r.text(r.invoiced)},
                             rule=${fixRule}, cls='', invalid=${fixErr}, kept=${r.invoiced},
-                            describedBy=${'name-' + i + (fixErr ? ' fixError-' + i : '')})}">
+                            describedBy=${'name-' + i + (fixErr ? ' fixError-' + i : '')}, ofForm=${'fixForm-' + i})}">
                     <span class="input-group-text" th:text="${r.unit}">bags</span>
                 </span>
-                <button type="submit" class="btn btn-outline-primary" th:text="#{order.count.fix.save}">Correct invoice</button>
+                <button type="submit" class="btn btn-outline-secondary" th:form="${'fixForm-' + i}"
+                        th:text="#{order.count.fix.save}">Correct invoice</button>
                 <p th:if="${fixErr}" class="invalid-feedback d-block mb-0" th:id="${'fixError-' + i}"
                    th:text="${fixError.message()}">Use whole numbers for bags.</p>
-            </form>
+            </div>
         </details>
     </th:block>
 </div>
@@ -184,62 +185,63 @@
               th:text="#{order.count.line.arrived(${r.text(res)}, ${r.unit(res)})}">12 kg arrived</th:block>
 </th:block>
 
-<!-- One row of the delivery count, the same on phone and desktop: the name ("Basmati rice, 10 kg bag"), under it
-     the muted reference line (countRef, with the cook's "Read wrong?"), then the row's own form: the label "Arrived",
-     the input with the unit (prefilled with the reference: the invoice's quantity, or the quantity ordered without an
-     invoice; empty when there is none; the count so far when changed in Done) and the one button, Confirm. A correct
-     line is one tap; a wrong one is typed over (js/count.js selects the number on focus). Under it the difference in
-     words when the number is not the reference's (countDiff; js/count.js as it is typed). Add a note opens one
-     optional line (without JavaScript: ?note=key, the page again with it open). One form per row: a confirmed row is
-     saved at once and leaves To do. The correction of the invoice is a form of its own, beside this one.
-     r: the row; value: the input's value (null: the reference); rowError (DeliveryCountController.RowError, or null);
-     openNote: the key of the row whose note is open; tab: 'todo' or 'done'; action: where it posts (the cook's
-     /count/row, the Master's /receipt/change); noteUrl: the page, for Add a note without JavaScript (null: no note);
-     extra: a hidden field's name to send too (the Master's 'all'), or null; fixUrl: countRef's (null: the Master). -->
-<div th:fragment="countRow(r, value, rowError, openNote, tab, action, noteUrl, extra, fixUrl)" class="count-row-form"
-     th:with="ref=${r.reference}, err=${rowError != null and rowError.key() == r.key}, i=${r.key},
+<!-- One row of the delivery count: fields only, the form around them is the page's (the cook's one form with its
+     one Save; the Master's form for the one row he changes). On a phone the name ("Basmati rice, 10 kg bag") and
+     under it the muted reference line (countRef, with the cook's "Read wrong?" and "Add a note") come first, then on
+     one line the input "Arrived" with its unit and "Did not arrive", then the words. From 768px the row is one line:
+     the name and the reference on the left, the input, the unit and "Did not arrive" on the right, each in a straight
+     column down the list, the words under the input.
+     "Did not arrive" is a checkbox that looks like a quiet button: ticked, the row is saved as 0 whatever the input
+     says (js/count.js writes the 0, dims the input, and puts the number back when it is unticked).
+     The words: the difference from the reference when the number is not the reference's (countDiff; js/count.js as it
+     is typed), the error of a refused number, or "Enter a number or tick Did not arrive".
+     The root says how the number stands, for the left border of the list's row and for js/count.js: is-empty (no
+     number), is-different (not what the invoice says), is-none (0).
+     Fields: q-{key} the number, none-{key} Did not arrive, note-{key} the note.
+     r: the row; value: the input's text ('' for none); error: the message of a refused number, or null; need: true
+     after a Save that left the row without a number; note: the note's text ('' for none), or null for a row
+     without a note field (the Master's); fix: countRef's (false: the Master's). -->
+<div th:fragment="countRow(r, value, error, need, note, fix)" class="count-row-form" data-count-row
+     th:with="ref=${r.reference}, i=${r.key}, mark=${r.mark(value)},
               rule=${r.packed} ? ${@quantityRules.forUnit(r.unit, 'RECEIPT')} : ${@quantityRules.forItem(r.item, 'RECEIPT')},
-              vsOrder=${r.source.name() == 'NO_INVOICE'},
-              typed=${err} ? ${rowError.value()} : (${value != null} ? ${value} : ${r.text(ref)}),
-              noteOpen=${noteUrl != null and (openNote == r.key or r.note != null)}">
+              vsOrder=${r.source.name() == 'NO_INVOICE'}, none=${value == '0'},
+              shown=${r.result != null and value == r.text(r.result)} ? ${r.result} : null"
+     th:classappend="${(mark == 'same' ? '' : 'is-' + mark) + (none ? ' is-none' : '')}"
+     th:attr="data-reference=${ref != null} ? ${r.text(ref)} : null, data-base=${r.base != null} ? ${r.text(r.base)} : null,
+              data-none=#{order.count.diff.none},
+              data-less=${vsOrder} ? #{order.count.diff.lessOrdered('{n}')} : #{order.count.diff.less('{n}')},
+              data-more=${vsOrder} ? #{order.count.diff.moreOrdered('{n}')} : #{order.count.diff.more('{n}')}">
     <div class="count-row-head">
         <span class="count-row-name" th:id="${'name-' + i}" th:text="${r.name}">Basmati rice, 10 kg bag</span>
-        <div th:replace="~{shiporder/parts :: countRef(${r}, ${fixUrl}, ${tab})}"></div>
-    </div>
-    <form method="post" th:action="@{${action}}" novalidate data-count-row
-          th:attr="data-reference=${ref != null} ? ${r.text(ref)} : null,
-                   data-none=#{order.count.diff.none},
-                   data-less=${vsOrder} ? #{order.count.diff.lessOrdered('{n}')} : #{order.count.diff.less('{n}')},
-                   data-more=${vsOrder} ? #{order.count.diff.moreOrdered('{n}')} : #{order.count.diff.more('{n}')}">
-        <input type="hidden" name="key" th:value="${r.key}">
-        <input th:if="${tab == 'done'}" type="hidden" name="tab" value="done">
-        <input th:if="${extra != null}" type="hidden" th:name="${extra}" value="">
-        <label class="count-arrived" th:for="${'q-' + i}" th:text="#{order.count.arrived}">Arrived</label>
-        <div class="count-row-controls">
-            <span class="input-group count-qty">
-                <input th:replace="~{layout/parts :: quantityInput(id=${'q-' + i}, name='quantity', value=${typed}, rule=${rule},
-                        cls='', invalid=${err}, kept=${ref}, describedBy=${'name-' + i + ' diff-' + i + (err ? ' error-' + i : '')})}">
-                <span class="input-group-text" th:text="${r.unit}">bags</span>
-            </span>
-            <button type="submit" class="btn btn-primary count-confirm" th:attr="aria-describedby=${'name-' + i}"
-                    th:text="#{order.count.confirm}">Confirm</button>
-        </div>
-        <p class="count-diff" th:id="${'diff-' + i}" data-count-diff aria-live="polite"><th:block
-                th:if="${!err and r.hasCount()}"><th:block th:replace="~{shiporder/parts :: countDiff(${r}, ${r.result})}"></th:block></th:block></p>
-        <p th:if="${err}" class="invalid-feedback d-block mb-0" th:id="${'error-' + i}" th:text="${rowError.message()}">Use whole
-            numbers for bags.</p>
-        <th:block th:if="${noteUrl != null}">
-            <a class="count-note-link" th:href="@{${noteUrl + (#strings.contains(noteUrl, '?') ? '&' : '?') + 'note=' + r.key + '#' + r.anchor}}"
-               data-count-note-open th:hidden="${noteOpen}" th:attr="aria-describedby=${'name-' + i}"
-               th:text="#{order.count.addNote}">Add a note</a>
-            <div class="count-note" data-count-note th:hidden="${!noteOpen}">
+        <div th:replace="~{shiporder/parts :: countRef(${r}, ${fix})}"></div>
+        <details th:if="${note != null}" class="count-fix" th:open="${!note.isEmpty()}">
+            <summary th:attr="aria-describedby=${'name-' + i}"><span aria-hidden="true">·</span>
+                <span class="count-fix-link" th:text="#{order.count.addNote}">Add a note</span></summary>
+            <div class="count-fix-form">
                 <label class="visually-hidden" th:for="${'note-' + i}" th:text="#{order.count.note.row(${r.name})}">Note on
                     Basmati rice (optional)</label>
-                <input type="text" class="form-control" name="note" th:id="${'note-' + i}" th:value="${r.note}"
+                <input type="text" class="form-control" th:name="${'note-' + i}" th:id="${'note-' + i}" th:value="${note}"
                        th:maxlength="${noteMax ?: 200}" autocomplete="off" th:placeholder="#{order.count.note.placeholder}">
             </div>
-        </th:block>
-    </form>
+        </details>
+    </div>
+    <div class="count-row-controls">
+        <label class="visually-hidden" th:for="${'q-' + i}" th:text="#{order.count.arrived}">Arrived</label>
+        <input th:replace="~{layout/parts :: quantityInput(id=${'q-' + i}, name=${'q-' + i}, value=${value}, rule=${rule},
+                cls='count-qty', invalid=${error != null}, kept=${ref},
+                describedBy=${'name-' + i + ' unit-' + i + ' says-' + i})}">
+        <span class="count-unit" th:id="${'unit-' + i}" th:text="${r.unit}">bags</span>
+        <input type="checkbox" class="btn-check" th:id="${'none-' + i}" th:name="${'none-' + i}" value="1"
+               th:checked="${none}" autocomplete="off" data-count-none th:attr="aria-describedby=${'name-' + i}">
+        <label class="btn btn-outline-secondary count-none" th:for="${'none-' + i}" th:text="#{order.count.diff.none}">Did not arrive</label>
+    </div>
+    <div class="count-row-says" th:id="${'says-' + i}">
+        <p class="count-diff" data-count-diff aria-live="polite"><th:block
+                th:if="${error == null}"><th:block th:replace="~{shiporder/parts :: countDiff(${r}, ${shown})}"></th:block></th:block></p>
+        <p th:if="${error != null}" class="invalid-feedback d-block mb-0" th:text="${error}">Use whole numbers for bags.</p>
+        <p th:if="${need and value.isEmpty()}" class="count-need" data-count-need th:text="#{order.count.need}">Enter a
+            number or tick Did not arrive</p>
+    </div>
 </div>
 
 <!-- The tiles of a count's summary: how many as the invoice (or as ordered) and how many different.

@@ -1,7 +1,10 @@
 package com.nereonix.nereonet_mvp.shiporder;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.springframework.http.HttpStatus;
@@ -27,25 +30,24 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
 /**
- * "Count what arrived": the vessel's Chief cook counts a CONFIRMED order (delivery scheduled) row by row
- * against the invoice read from its photos, then sends the count to the Master, who approves it
+ * "Count what arrived": the vessel's Chief cook counts a CONFIRMED order (delivery scheduled) on one list
+ * against the invoice read from its photos, saves it once, then sends the count to the Master, who approves it
  * (OrderReceiptController). Nothing here touches the store. SecurityConfig gives /ship/orders/{id}/count/** to
  * CHIEF_COOK only; DeliveryCountService refuses anyone but the ship's enabled Chief cook as well; another ship's order
- * is a 404. English only, as every crew page. Everything works without JavaScript (js/count.js only selects the number
- * on focus, says the difference as it is typed and opens the note in place).
+ * is a 404. English only, as every crew page. Everything works without JavaScript (js/count.js selects the number
+ * on focus, says the difference as it is typed, follows Did not arrive and writes the Save bar's sentence).
  * <pre>
- *   GET  /ship/orders/{id}/count                   To do (?tab=done: Done; ?change=o12: that row's input in Done;
- *                                                  ?note=o12: that row's note open); once sent, what was sent
- *   POST /ship/orders/{id}/count/row               one row confirmed: key, quantity (empty: the reference), note
+ *   GET  /ship/orders/{id}/count                   the list, the saved numbers in its inputs; once sent, what was sent
+ *   POST /ship/orders/{id}/count                   Save count: every row's q-{key}, none-{key}, note-{key}
  *   POST /ship/orders/{id}/count/invoice           Read wrong? what the paper invoice says of one row: key, quantity
  *   GET  /ship/orders/{id}/count/choose/{lineId}   Choose the product of an invoice line (?q= narrows the list)
  *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
- *   GET  /ship/orders/{id}/count/send              Finish: the rows still to do (Count them), or, when none is
- *                                                  left, the summary with Send to Master
+ *   GET  /ship/orders/{id}/count/send              the summary with Send to Master; back to the list while rows are
+ *                                                  still to do
  *   POST /ship/orders/{id}/count/send              Send to Master, with an optional note; refused while rows are
  *                                                  still to do
  * </pre>
- * The count is kept on the order as he goes (the server's, not the browser's): each row is saved when confirmed.
+ * The count is kept on the order (the server's); what is typed and not saved yet is the browser's draft (js/save.js).
  */
 @Controller
 public class DeliveryCountController {
@@ -72,10 +74,12 @@ public class DeliveryCountController {
     public record RowError(String key, String value, String message) {
     }
 
+    /** What the page shows instead of the saved count: what was typed per row (key: text), the notes, the errors. */
+    public record Typed(Map<String, String> quantities, Map<String, String> notes, Map<String, String> errors) {
+    }
+
     @GetMapping(BASE)
-    public String count(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                        @RequestParam(required = false) String tab, @RequestParam(required = false) String change,
-                        @RequestParam(required = false) String note, Model model,
+    public String count(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model,
                         RedirectAttributes redirectAttributes) {
         String email = currentUser.getUsername();
         ShipOrder order = prepare(email, id);
@@ -86,19 +90,19 @@ public class DeliveryCountController {
         if (!order.getDeliveryCountStatus().editable()) {
             return summary(order, sheet, true, model);
         }
-        return show(order, sheet, "done".equals(tab), change, note, null, model);
+        return show(order, sheet, null, model);
     }
 
     /**
-     * One row confirmed: the number in its input (in the row's unit; prefilled with the row's reference, which an empty
-     * one confirms too); the note optional. Back to the tab, at the next row still to do; a refused number comes back with
-     * its error under the row.
+     * Save count: every row at once. Per row q-{key} (the number, in the row's unit), none-{key} (Did not arrive:
+     * 0 whatever the number says) and note-{key}. A row with a number is counted, one left empty is not. Any value
+     * refused: nothing is saved and the page comes back with everything typed and the message at its row. Rows still
+     * without a number: the rest is saved and the page comes back at the first of them. Everything counted: on to
+     * the page that sends the count to the Master.
      */
-    @PostMapping(BASE + "/row")
-    public String row(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                      @RequestParam(required = false) String key, @RequestParam(required = false) String quantity,
-                      @RequestParam(required = false) String note, @RequestParam(required = false) String tab,
-                      Model model, RedirectAttributes redirectAttributes) {
+    @PostMapping(BASE)
+    public String save(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                       @RequestParam Map<String, String> params, Model model, RedirectAttributes redirectAttributes) {
         String email = currentUser.getUsername();
         ShipOrder order = prepare(email, id);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
@@ -109,47 +113,63 @@ public class DeliveryCountController {
             return "redirect:/ship/orders/" + id + "/count";
         }
         CountSheet sheet = matchService.sheet(order);
-        CountSheet.Row row = sheet.row(key == null ? "" : key);
-        boolean done = "done".equals(tab);
-        if (row == null) {
-            // A row gone meanwhile (the invoice read again): the count as it is now.
-            return "redirect:/ship/orders/" + id + "/count";
+        Typed typed = new Typed(new HashMap<>(), new HashMap<>(), new HashMap<>());
+        Map<String, DeliveryCountService.Counted> counts = new LinkedHashMap<>();
+        for (CountSheet.Row row : sheet.getRows()) {
+            String key = row.getKey();
+            boolean none = params.containsKey("none-" + key);
+            if (!none && !params.containsKey("q-" + key)) {
+                continue;   // a row that joined the count after the page was opened
+            }
+            String quantity = none ? "0" : params.get("q-" + key).strip();
+            String note = params.getOrDefault("note-" + key, "").strip();
+            typed.quantities().put(key, quantity);
+            typed.notes().put(key, note);
+            if (quantity.isEmpty()) {
+                counts.put(key, new DeliveryCountService.Counted(null, note));
+                continue;
+            }
+            QuantityRules.Check check = CountQuantities.read(quantityRules, row, quantity);
+            if (check.ok() && note.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
+                check = new QuantityRules.Check(null, "order.receipt.error.noteTooLong", null);
+            }
+            if (check.ok()) {
+                counts.put(key, new DeliveryCountService.Counted(check.value(), note));
+            } else {
+                typed.errors().put(key, pageService.message(check.code(), check.args()));
+            }
         }
-        QuantityRules.Check check = CountQuantities.read(quantityRules, row, quantity);
-        String text = note == null ? null : note.strip();
-        if (check.ok() && text != null && text.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
-            check = new QuantityRules.Check(null, "order.receipt.error.noteTooLong", null);
+        if (!typed.errors().isEmpty()) {
+            return show(order, sheet, typed, model);
         }
-        if (!check.ok()) {
-            // A row already counted is on Done (sent from another page or tab): shown there, its input open.
-            done = done || row.hasCount();
-            return show(order, sheet, done, done ? key : null, text != null && !text.isEmpty() ? key : null,
-                    new RowError(key, quantity, pageService.message(check.code(), check.args())), model);
-        }
-        // The next row still to do, to come back to.
-        List<CountSheet.Row> toDo = sheet.getToDo();
-        int at = toDo.indexOf(row);
-        String next = at >= 0 && at + 1 < toDo.size() ? toDo.get(at + 1).getAnchor() : null;
-        DeliveryCountService.Result result = countService.saveRow(pageService.cook(email), id, key, check.value(), text);
+        DeliveryCountService.Result result = countService.saveRows(pageService.cook(email), id, counts);
         if (result != DeliveryCountService.Result.DONE) {
             return refused(order, result, redirectAttributes);
         }
-        redirectAttributes.addFlashAttribute("successMessage", "order.count.row.saved");
-        redirectAttributes.addFlashAttribute("successArgs", new Object[] {row.getName(),
-                plain(row.toRow(check.value())), row.unit(row.toRow(check.value()))});
-        return "redirect:/ship/orders/" + id + "/count" + (done ? "?tab=done#" + row.getAnchor()
-                : next != null ? "#" + next : "#countFinish");
+        List<CountSheet.Row> empty = sheet.getToDo();
+        if (!empty.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.save.left");
+            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {empty.size()});
+            redirectAttributes.addFlashAttribute("leftEmpty", empty.stream().map(CountSheet.Row::getKey).toList());
+            return "redirect:/ship/orders/" + id + "/count#" + empty.getFirst().getAnchor();
+        }
+        if (!sheet.getPicks().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.save.picks");
+            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {sheet.getPicks().size()});
+            return "redirect:/ship/orders/" + id + "/count#countPicksTitle";
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "order.count.saved");
+        return "redirect:/ship/orders/" + id + "/count/send";
     }
 
     /**
      * Read wrong? The cook says what the paper invoice says of one row (in the row's unit; a line not read: Enter
-     * it). Back to the same row, on the tab it is on; a refused number comes back with its error in the open form.
+     * it). Back to the same row; a refused number comes back with its error in the open form.
      */
     @PostMapping(BASE + "/invoice")
     public String correctInvoice(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                                  @RequestParam(required = false) String key,
-                                 @RequestParam(required = false) String quantity,
-                                 @RequestParam(required = false) String change, Model model,
+                                 @RequestParam(required = false) String quantity, Model model,
                                  RedirectAttributes redirectAttributes) {
         String email = currentUser.getUsername();
         ShipOrder order = prepare(email, id);
@@ -166,9 +186,6 @@ public class DeliveryCountController {
             // A row gone meanwhile (the invoice read again): the count as it is now.
             return "redirect:/ship/orders/" + id + "/count";
         }
-        // A row already counted is on Done; its input stays open when it was (Change).
-        boolean done = row.hasCount();
-        String open = done && change != null ? key : null;
         QuantityRules.Check check = quantity == null || quantity.isBlank()
                 ? new QuantityRules.Check(null, "order.count.fix.required", null)
                 : CountQuantities.rule(quantityRules, row).check(quantity, row.getInvoiced());
@@ -177,7 +194,7 @@ public class DeliveryCountController {
         }
         if (!check.ok()) {
             model.addAttribute("fixError", new RowError(key, quantity, pageService.message(check.code(), check.args())));
-            return show(order, sheet, done, open, null, null, model);
+            return show(order, sheet, null, model);
         }
         DeliveryCountService.Result result = countService.correctInvoice(pageService.cook(email), id, key, check.value());
         if (result != DeliveryCountService.Result.DONE) {
@@ -186,14 +203,14 @@ public class DeliveryCountController {
         redirectAttributes.addFlashAttribute("successMessage", "order.count.fix.saved");
         redirectAttributes.addFlashAttribute("successArgs", new Object[] {row.getName(), plain(check.value()),
                 row.unit(check.value())});
-        return "redirect:/ship/orders/" + id + "/count" + (done ? "?tab=done" + (open != null ? "&change=" + key : "") : "")
-                + "#" + row.getAnchor();
+        return "redirect:/ship/orders/" + id + "/count#" + row.getAnchor();
     }
 
-    @GetMapping({BASE + "/row", BASE + "/invoice"})
+    @GetMapping(BASE + "/invoice")
     public String toCount(@PathVariable Long id) {
         return "redirect:/ship/orders/" + id + "/count";
     }
+
 
     /** Choose the product: the order's lines nothing is matched to yet, then the vessel's items, or Not ordered. */
     @GetMapping(BASE + "/choose/{lineId}")
@@ -260,15 +277,14 @@ public class DeliveryCountController {
                     .filter(r -> r.getInvoiceLines().stream().anyMatch(l -> l.getId().equals(lineId)))
                     .findFirst().orElse(null);
             if (row != null) {
-                return "redirect:/ship/orders/" + id + "/count" + (row.hasCount() ? "?tab=done" : "") + "#"
-                        + row.getAnchor();
+                return "redirect:/ship/orders/" + id + "/count#" + row.getAnchor();
             }
         }
         return "redirect:/ship/orders/" + id + "/count";
     }
 
     /**
-     * Finish: while rows are still to do, what is left (Count them); otherwise the summary with Send to Master.
+     * The summary with Send to Master; while rows are still to do, back to the list, which says how many.
      */
     @GetMapping(BASE + "/send")
     public String finish(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
@@ -282,9 +298,9 @@ public class DeliveryCountController {
         }
         CountSheet sheet = matchService.sheet(order);
         if (sheet.getToDoTotal() > 0) {
-            model.addAttribute("order", order);
-            model.addAttribute("sheet", sheet);
-            return "shiporder/count-left";
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.error.unfinished");
+            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {sheet.getToDoTotal()});
+            return "redirect:/ship/orders/" + id + "/count";
         }
         return summary(order, sheet, false, model);
     }
@@ -336,15 +352,12 @@ public class DeliveryCountController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    private String show(ShipOrder order, CountSheet sheet, boolean done, String change, String note,
-                        RowError rowError, Model model) {
+    // typed: what the refused Save sent, shown instead of the saved count (null: the saved count).
+    private String show(ShipOrder order, CountSheet sheet, Typed typed, Model model) {
         model.addAttribute("order", order);
         model.addAttribute("sheet", sheet);
-        model.addAttribute("done", done);
-        model.addAttribute("groups", CountSheet.groups(done ? sheet.getDone() : sheet.getToDo()));
-        model.addAttribute("change", change);
-        model.addAttribute("openNote", note);
-        model.addAttribute("rowError", rowError);
+        model.addAttribute("groups", CountSheet.groups(sheet.getRows()));
+        model.addAttribute("typed", typed);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         model.addAttribute("invoicePages", receiptService.invoicePages(order.getId()).size());
         return "shiporder/count";

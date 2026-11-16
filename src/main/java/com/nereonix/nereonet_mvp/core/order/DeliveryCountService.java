@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ import jakarta.persistence.LockModeType;
 
 /**
  * The Chief cook counts a delivery, the Master approves it (row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
- * vessel's enabled Chief cook counts what arrived of each line (saveDraft, as often as he likes), then sends the count
+ * vessel's enabled Chief cook counts what arrived of each line (saveRows, as often as he likes), then sends the count
  * to the Master (send, once every row is counted): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
  * confirms receipt (OrderReceiptService.confirmReceipt, which marks the count APPROVED) or sends it back with a note
  * (sendBack): a draft again, the cook's numbers kept. Nothing here touches the store; the receipt still does.
@@ -43,7 +44,7 @@ public class DeliveryCountService {
         NOT_CONFIRMED,
         // CLOSED: the receipt was confirmed. Nothing changed.
         RECEIVED,
-        // saveDraft, send: the count is with the Master already. sendBack: no count is waiting for the Master.
+        // saveRows, send: the count is with the Master already. sendBack: no count is waiting for the Master.
         WRONG_STATE,
         // send: rows are still to do (CountSheet.getToDoTotal). Nothing changed.
         NOT_FINISHED
@@ -84,39 +85,51 @@ public class DeliveryCountService {
         }
     }
 
+    /** What the cook says of one row: what arrived in the item's unit (null: not counted) and an optional note. */
+    public record Counted(BigDecimal quantity, String note) {
+    }
+
     /**
-     * The cook confirms one row of the count (CountSheet.Row key: "o12" an order line, "i34" an invoice line
-     * matched to an item not on the order): what arrived in the item's unit (0: nothing) and an optional note. The
-     * count is saved as he goes: DRAFT (RETURNED kept, the Master's note stays on top until he sends again).
-     * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException for a row of
-     * another order, a quantity that is not a received quantity, or a note too long; 404 for an order of another
-     * ship; AccessDeniedException for anyone but the vessel's enabled Chief cook.
+     * The cook saves the count, all its rows at once (CountSheet.Row key: "o12" an order line, "i34" an invoice line
+     * matched to an item not on the order): per row what arrived in the item's unit (0: nothing; null: not counted)
+     * and an optional note. Rows not in the map stay as they are. DRAFT (RETURNED kept, the Master's note stays on
+     * top until he sends again).
+     * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException, before anything
+     * is changed, for a row of another order, a quantity that is not a received quantity, or a note too long; 404
+     * for an order of another ship; AccessDeniedException for anyone but the vessel's enabled Chief cook.
      */
     @Transactional
-    public Result saveRow(User cook, Long orderId, String key, BigDecimal counted, String note) {
+    public Result saveRows(User cook, Long orderId, Map<String, Counted> counts) {
         ShipOrder order = lockForCook(cook, orderId);
         Result refused = refuseCount(order);
         if (refused != null) {
             return refused;
         }
-        if (!OrderReceiptService.isValidReceivedQuantity(counted)) {
-            throw new IllegalArgumentException("A counted quantity is zero or more");
+        CountSheet sheet = matchService.sheet(order);
+        for (Map.Entry<String, Counted> entry : counts.entrySet()) {
+            Counted counted = entry.getValue();
+            if (sheet.row(entry.getKey()) == null) {
+                throw new IllegalArgumentException("Not a row of this count: " + entry.getKey());
+            }
+            if (counted.quantity() != null && !OrderReceiptService.isValidReceivedQuantity(counted.quantity())) {
+                throw new IllegalArgumentException("A counted quantity is zero or more");
+            }
+            String text = blankToNull(counted.note());
+            if (text != null && text.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
+                throw new IllegalArgumentException("A note is at most " + ShipOrderLine.NOTE_MAX_LENGTH + " characters");
+            }
         }
-        String text = blankToNull(note);
-        if (text != null && text.length() > ShipOrderLine.NOTE_MAX_LENGTH) {
-            throw new IllegalArgumentException("A note is at most " + ShipOrderLine.NOTE_MAX_LENGTH + " characters");
-        }
-        CountSheet.Row row = matchService.sheet(order).row(key == null ? "" : key);
-        if (row == null) {
-            throw new IllegalArgumentException("Not a row of this count: " + key);
-        }
-        if (row.getOrderLine() != null) {
-            row.getOrderLine().setCountedQuantity(counted);
-            row.getOrderLine().setCountNote(text);
-        } else {
-            row.getExtra().setCountedQuantity(counted);
-            row.getExtra().setCountNote(text);
-        }
+        counts.forEach((key, counted) -> {
+            CountSheet.Row row = sheet.row(key);
+            String text = blankToNull(counted.note());
+            if (row.getOrderLine() != null) {
+                row.getOrderLine().setCountedQuantity(counted.quantity());
+                row.getOrderLine().setCountNote(text);
+            } else {
+                row.getExtra().setCountedQuantity(counted.quantity());
+                row.getExtra().setCountNote(text);
+            }
+        });
         touch(order, cook);
         return Result.DONE;
     }
@@ -126,7 +139,7 @@ public class DeliveryCountService {
      * invoice says, in the row's unit. The line's quantity is replaced and what the photo read is kept
      * (DeliveryInvoiceLine.correctQuantity, as the office's correction); the count of the row stays, so its difference
      * is against the new number. Recorded as "Invoice quantity corrected on board" with the old and the new value.
-     * Refusals as saveRow; IllegalArgumentException for a row without one invoice line to correct or a quantity that
+     * Refusals as saveRows; IllegalArgumentException for a row without one invoice line to correct or a quantity that
      * is not one.
      */
     @Transactional
@@ -158,7 +171,7 @@ public class DeliveryCountService {
     /**
      * Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
      * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
-     * to the office). The product chosen is learned for the supplier. Refusals as saveRow; IllegalArgumentException for
+     * to the office). The product chosen is learned for the supplier. Refusals as saveRows; IllegalArgumentException for
      * a line of another order's invoice or a product it cannot be.
      */
     @Transactional
@@ -178,7 +191,7 @@ public class DeliveryCountService {
      * be counted and every invoice line chosen (what did not arrive is counted as 0): NOT_FINISHED while
      * CountSheet.getToDoTotal is above zero, nothing changed. SENT_TO_MASTER; recorded as "Delivery counted"; the
      * ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval", linking to the
-     * approval. Other refusals as saveRow.
+     * approval. Other refusals as saveRows.
      */
     @Transactional
     public Result send(User cook, Long orderId, String note) {

@@ -69,7 +69,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
  *   GET  /ship/orders/{id}/receipt?change=o12       that one row's input (?all: in the full list)
  *   GET  /ship/orders/{id}/receipt?all              Show all: every row, read only, Change per row
  *   GET  /ship/orders/{id}/receipt?invoice          the invoice's photos
- *   POST /ship/orders/{id}/receipt/change           key, quantity (the row's unit): "Changed from 23"
+ *   POST /ship/orders/{id}/receipt/change           key, q-{key} (the row's unit): "Changed from 23"
  *   POST /ship/orders/{id}/receipt/approve          Approve: receivedAt optional (Change date), else when it was sent
  * </pre>
  */
@@ -147,10 +147,11 @@ public class OrderReceiptController {
         return showForm(order, ReceiptForm.of(order), model);
     }
 
-    /** Change on the approval: one row's number, in the row's unit; back to the approval at that row. */
+    /** Change on the approval: one row's number (q-{key}, in the row's unit; none-{key}, Did not arrive: 0); back to the
+     * approval at that row. */
     @PostMapping(BASE + "/change")
     public String change(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                         @RequestParam(required = false) String key, @RequestParam(required = false) String quantity,
+                         @RequestParam(required = false) String key, @RequestParam Map<String, String> params,
                          @RequestParam(required = false) String all, Model model,
                          RedirectAttributes redirectAttributes) {
         String email = currentUser.getUsername();
@@ -166,6 +167,7 @@ public class OrderReceiptController {
         if (row == null) {
             return "redirect:/ship/orders/" + id + "/receipt";
         }
+        String quantity = params.containsKey("none-" + key) ? "0" : params.get("q-" + key);
         QuantityRules.Check check = quantity == null || quantity.isBlank()
                 ? new QuantityRules.Check(null, "quantity.error.required", null)
                 : CountQuantities.read(quantityRules, row, quantity);

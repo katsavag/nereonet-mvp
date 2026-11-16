@@ -244,6 +244,23 @@ public final class CountSheet {
             return (value.scale() < 0 ? value.setScale(0) : value).toPlainString();
         }
 
+        /**
+         * How the page marks a number typed in the row's input (the row's unit): "empty" for none, "same" when it is
+         * what the invoice (or the order) says, "different" when it is not or there is nothing to compare with. Text
+         * that is not a number is "same": its error says what is wrong.
+         */
+        public String mark(String typed) {
+            if (typed == null || typed.isBlank()) {
+                return "empty";
+            }
+            try {
+                BigDecimal value = new BigDecimal(typed.strip().replace(',', '.'));
+                return getBase() != null && value.compareTo(getBase()) == 0 ? "same" : "different";
+            } catch (NumberFormatException e) {
+                return "same";
+            }
+        }
+
         /** The anchor of the row on the page. */
         public String getAnchor() {
             return "row-" + key;

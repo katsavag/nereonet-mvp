@@ -25,16 +25,10 @@ final class CountQuantities {
     }
 
     /**
-     * What was typed, in the item's unit. Nothing typed (the input emptied): the row's reference, or "Enter what
-     * arrived" when it has none. The reference itself is always accepted, even above the maximum.
+     * What was typed (never blank: the callers decide what an empty input means), in the item's unit. The reference
+     * itself is always accepted, even above the maximum.
      */
     static Check read(QuantityRules rules, CountSheet.Row row, String typed) {
-        if (typed == null || typed.isBlank()) {
-            BigDecimal reference = row.getReference();
-            return reference == null
-                    ? new Check(null, "order.count.error.required", new Object[] {row.getName()})
-                    : new Check(row.toItem(reference), null, null);
-        }
         Rule rule = rule(rules, row);
         Check check = rule.check(typed, row.getReference());
         if (!check.ok()) {

@@ -6670,15 +6670,17 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
        side by side, then the place; from 768px all four on one line.
      - .stores-count-bar: "Save count", stuck to the bottom of the screen (above the tab bar on phones), as wide as
        the content area; the number of changed rows on the left, the button on the right (full width under the text
-       on phones). --nn-count-bar is its height: the floating "Hold to speak" sits above it.
+       on phones). --nn-count-bar is its height: the floating "Hold to speak" sits above it. The delivery count
+       (.count-sheet, shiporder/count.html) has the same bar.
    .stores-count-status is the Inventory list's (stores/list.html): as wide as the widest badge. */
-.stores-count {
+.stores-count,
+.count-sheet {
     --nn-count-bar: 4rem;            /* 64px: the button and 12px above and below */
     --nn-count-bar-bottom: 0px;
 }
 @media (max-width: 767.98px) {
-    .stores-count { --nn-count-bar: 6.5rem; }   /* 104px: one line of text over the button */
-    .has-tab-bar .stores-count { --nn-count-bar-bottom: var(--nn-tab-bar-room); }
+    .stores-count, .count-sheet { --nn-count-bar: 6.5rem; }   /* 104px: one line of text over the button */
+    .has-tab-bar .stores-count, .has-tab-bar .count-sheet { --nn-count-bar-bottom: var(--nn-tab-bar-room); }
 }
 .stores-count-row {
     display: flex;
@@ -6949,33 +6951,41 @@ html.is-offline .voice-hold {
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   The delivery count and the Master's approval: shiporder/count.html, count-choose.html, count-left.html,
-   count-send.html and receipt-approve.html.
-     - .count-tabs: To do and Done (the ship tabs' look, as plain links).
-     - .count-row: one row, the same on phone and desktop: the name, under it the muted reference line (.count-ref,
-       ending with the small link "Read wrong?": .count-fix, whose form opens under the line, smaller than the count's),
-       the label "Arrived" (.count-arrived), then the input with its
-       unit and the one button side by side, both at least 48px high, the difference in words (.count-diff,
-       hidden while empty) and Add a note. The button takes the rest of the line.
-     - .count-finish: the box at the bottom: what is left (muted), then .count-finish-actions: the way back to the
-       invoice's photos and Finish side by side, 48px high, Finish the wider; when the labels do not fit, Finish
-       goes on top, full width (wrap-reverse).
+   The delivery count and the Master's approval: shiporder/count.html, count-choose.html, count-send.html and
+   receipt-approve.html.
+     - .count-row: one row of the list (shiporder/parts :: countRow inside it: .count-row-form). On a phone the name
+       and under it the muted reference line (.count-ref, ending with the small links "Read wrong?" and "Add a note":
+       .count-fix, whose fields open under the line), then .count-row-controls: the input (.count-qty, 44px high, up
+       to 9rem wide), its unit (.count-unit) and "Did not arrive" (.count-none) on one line, then .count-row-says: the
+       difference in words (.count-diff, hidden while empty), an error or .count-need. From 768px the row is one
+       line: the name and the reference on the left, the controls on the right with fixed widths, so the inputs and
+       the "Did not arrive" buttons of all rows form straight columns; the words are under the input.
+       A row as the invoice says is plain. .is-different (on .count-row-form) gives the row a thin left border in the
+       warning colour, .is-empty the same in the danger colour; the words say it. .is-none dims the input (0).
+     - .count-row-link: a row with only a name and a link on its right (Choose the product, Change).
+     - .count-bar: the count page's Save bar (.stores-count-bar): the sentence on the left, .count-bar-actions on the
+       right; on a phone the sentence, then the two buttons on one line, Save the wider.
+     - .count-row-single: the Master's one row in its own form, Confirm under it.
      - .count-tiles: the two tiles of a summary (same / different); .is-different repeats the warning colour on the
        number (the words say it).
      - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
      - .receipt-changed-line: the Master's "Changed from 23", in words and bold.
      - .home-card-note: the line under the Master's Deliveries card label.
    --------------------------------------------------------------------------------------------------------------- */
-.count-tabs { margin-bottom: var(--nn-space-4); }
-.count-empty { color: var(--nn-text-secondary); }
 .count-row { padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); scroll-margin-top: 5rem; }
-.count-row-form, .count-row-form > form { display: grid; gap: var(--nn-space-2); }
-.count-row-head { display: grid; gap: var(--nn-space-1); }
-.count-done-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--nn-space-3); }
-.count-row-name { font-weight: 600; }
-.count-ref, .count-arrived { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
-.count-arrived { margin-bottom: calc(-1 * var(--nn-space-1)); }
-.count-fix { display: inline; }
+.count-row:has(> .count-row-form.is-different) { box-shadow: inset var(--nn-space-1) 0 0 var(--nn-warning); }
+.count-row:has(> .count-row-form.is-empty) { box-shadow: inset var(--nn-space-1) 0 0 var(--nn-danger); }
+.count-row-link { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: var(--nn-space-2) var(--nn-space-4); }
+.count-row-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--nn-space-2) var(--nn-space-4); }
+.count-row-head { display: flex; flex-wrap: wrap; align-items: baseline; align-content: start; column-gap: var(--nn-space-1);
+    min-width: 0; }
+.count-row-name { display: block; font-weight: 600; }
+.count-row-head > .count-row-name { flex-basis: 100%; }
+.count-row-link > .count-row-head { flex: 1 1 12rem; }
+.count-ref { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
+.count-row-head > .count-ref { min-width: 0; }
+.count-fix { display: inline; color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
 .count-fix > summary { display: inline-block; padding: var(--nn-space-3) 0; margin: calc(-1 * var(--nn-space-3)) 0;
     cursor: pointer; }
 .count-fix-link { color: var(--bs-link-color); text-decoration: underline; }
@@ -6984,26 +6994,44 @@ html.is-offline .voice-hold {
     margin: var(--nn-space-2) 0 var(--nn-space-1); }
 .count-fix-form > label { margin: 0; }
 .count-fix-form > .invalid-feedback { flex-basis: 100%; }
+.count-fix-form > .form-control { flex: 1 1 12rem; max-width: 28rem; min-height: var(--nn-touch-target); }
 .count-fix-qty { width: 8rem; flex: 0 0 auto; flex-wrap: nowrap; }
 .count-fix-qty .form-control, .count-fix-qty .input-group-text, .count-fix-form > .btn { min-height: var(--nn-touch-target); }
 .count-fix-qty .form-control { text-align: end; min-width: 0; }
-.count-row-controls { display: flex; align-items: stretch; gap: var(--nn-space-2); }
-.count-qty { width: 9.5rem; flex: 0 0 auto; flex-wrap: nowrap; }
-.count-qty .form-control, .count-qty .input-group-text, .count-confirm { min-height: 48px; }
-.count-qty .form-control { font-size: 1.125rem; text-align: end; min-width: 0; }
-.count-confirm { flex: 1 1 auto; font-weight: 600; white-space: nowrap; }
+.count-row-controls { display: flex; align-items: center; gap: var(--nn-space-2); min-width: 0; }
+.count-qty { flex: 0 1 9rem; width: 9rem; min-width: 5rem; min-height: 2.75rem; font-size: 1.125rem; text-align: end; }
+.count-row-form.is-none .count-qty { color: var(--nn-text-secondary); background-color: var(--bs-secondary-bg); }
+.count-unit { flex: 0 0 auto; color: var(--nn-text-secondary); }
+.count-none { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: var(--nn-touch-target); margin-left: auto;
+    white-space: nowrap; }
+.count-row-says > p { margin: 0; }
 .count-diff { margin: 0; font-size: var(--nn-font-sm); font-weight: 600; color: var(--nn-warning-text); }
 .count-diff:empty { display: none; }
-.count-note-link, .count-change { font-size: var(--nn-font-sm); }
-.count-note-link[hidden], .count-note[hidden] { display: none; }
+.count-need { font-size: var(--nn-font-sm); font-weight: 600; color: var(--nn-danger-text); }
+.count-change { font-size: var(--nn-font-sm); }
 .count-row-note, .count-note, .count-returned q { white-space: pre-line; }
 .count-row-note { color: var(--nn-text-secondary); }
-.count-choose { margin-top: var(--nn-space-2); min-height: var(--nn-touch-target); }
-.count-finish { margin: var(--nn-space-4) 0; padding: var(--nn-space-4); border: 1px solid var(--nn-border);
-    border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
-.count-finish-actions { display: flex; flex-wrap: wrap-reverse; gap: var(--nn-space-2); margin-top: var(--nn-space-3); }
-.count-finish-actions > .btn { flex: 1 1 auto; min-height: 48px; white-space: nowrap; }
-.count-finish-actions > .count-finish-button { flex: 3 1 12rem; font-weight: 600; }
+.count-choose { min-height: var(--nn-touch-target); }
+.count-row-single { flex-basis: 100%; }
+.count-bar-actions { display: flex; gap: var(--nn-space-2); }
+.count-bar-actions > .btn { flex: 0 1 auto; white-space: nowrap; }
+.count-bar-actions > .btn-primary { flex-grow: 1; }
+@media (max-width: 767.98px) {
+    .count-bar-actions > .btn-outline-secondary { --bs-btn-font-size: var(--nn-font-sm); }
+}
+.count-bar-text { margin: 0; }
+.count-bar-text:empty { display: none; }
+@media (min-width: 768px) {
+    .count-row-form { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head controls" "head says"; }
+    .count-row-head { grid-area: head; }
+    .count-row-controls { grid-area: controls; }
+    .count-row-says { grid-area: says; }
+    .count-qty { flex: 0 0 9rem; }
+    .count-unit { flex: 0 0 4.5rem; overflow-wrap: anywhere; }
+    .count-none { margin-left: 0; }
+    .count-bar-actions { margin-left: auto; }
+    .count-bar-actions > .btn { flex: 0 0 auto; }
+}
 .count-send-button, .approve-button { width: 100%; min-height: 48px; }
 .count-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
 .count-tile { display: flex; flex-direction: column; margin: 0; padding: var(--nn-space-3) var(--nn-space-4);
@@ -7013,7 +7041,6 @@ html.is-offline .voice-hold {
 .count-different, .count-all, .approve-invoice { margin-bottom: var(--nn-space-4); }
 .count-different-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nn-space-1) var(--nn-space-3);
     scroll-margin-top: 5rem; }
-.count-different-line > .count-row-form { flex-basis: 100%; }
 .count-different-what { color: var(--nn-text-secondary); }
 .count-different-line > .count-change { margin-left: auto; }
 .count-send-form, .approve-form { margin-top: var(--nn-space-4); }
@@ -7027,7 +7054,6 @@ html.is-offline .voice-hold {
 .count-choose-group { margin-bottom: var(--nn-space-4); }
 .count-choice { display: flex; align-items: center; min-height: var(--nn-touch-target); }
 .count-choice .form-check-label { display: flex; flex-wrap: wrap; gap: 0 var(--nn-space-2); padding-left: var(--nn-space-1); }
-.count-left-list { padding-left: 1.25rem; }
 .count-return > summary { list-style: none; display: inline-flex; align-items: center; }
 .count-return > summary::-webkit-details-marker { display: none; }
 .receipt-changed-line { color: var(--nn-warning-text); font-size: var(--nn-font-sm); }
@@ -7036,8 +7062,6 @@ html.is-offline .voice-hold {
     color: var(--nn-text-secondary); }
 @media (min-width: 576px) {
     .count-send-button, .approve-button { width: auto; min-width: 14rem; }
-    .count-finish-actions > .btn { flex-grow: 0; }
-    .count-finish-actions > .count-finish-button { flex: 0 1 14rem; }
 }
 
 

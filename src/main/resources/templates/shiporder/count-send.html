@@ -32,7 +32,7 @@
                 <span class="count-different-what"><th:block th:replace="~{shiporder/parts :: countResult(${r})}"></th:block></span>
                 <q th:if="${r.note != null}" class="small count-row-note" th:text="${r.note}">2 kg rotten</q>
                 <a th:unless="${readOnly}" class="count-change"
-                   th:href="@{${r.hasCount()} ? ${baseUrl + '?tab=done&change=' + r.key + '#' + r.anchor} : ${baseUrl + '#' + r.anchor}}"
+                   th:href="@{${baseUrl + '#' + r.anchor}}"
                    th:attr="aria-describedby=${'diff-' + r.key}" th:text="#{order.count.change}">Change</a>
             </li>
             <li th:each="l : ${sheet.picks}" class="list-group-item count-different-line">
