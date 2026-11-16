@@ -6908,7 +6908,9 @@ html.is-offline .voice-hold {
        the label "Arrived" (.count-arrived), then the input with its
        unit and the one button side by side, both at least 48px high (P60), the difference in words (.count-diff,
        hidden while empty) and Add a note. The button takes the rest of the line.
-     - .count-finish: Finish and what is left, at the bottom.
+     - .count-finish: the box at the bottom: what is left (muted), then .count-finish-actions: the way back to the
+       invoice's photos and Finish side by side, 48px high, Finish the wider; when the labels do not fit, Finish
+       goes on top, full width (wrap-reverse).
      - .count-tiles: the two tiles of a summary (same / different); .is-different repeats the warning colour on the
        number (the words say it).
      - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
@@ -6950,8 +6952,10 @@ html.is-offline .voice-hold {
 .count-choose { margin-top: var(--nn-space-2); min-height: var(--nn-touch-target); }
 .count-finish { margin: var(--nn-space-4) 0; padding: var(--nn-space-4); border: 1px solid var(--nn-border);
     border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
-.count-finish-button, .count-send-button, .approve-button { width: 100%; min-height: 48px; }
-.count-invoice { color: var(--nn-text-secondary); }
+.count-finish-actions { display: flex; flex-wrap: wrap-reverse; gap: var(--nn-space-2); margin-top: var(--nn-space-3); }
+.count-finish-actions > .btn { flex: 1 1 auto; min-height: 48px; white-space: nowrap; }
+.count-finish-actions > .count-finish-button { flex: 3 1 12rem; font-weight: 600; }
+.count-send-button, .approve-button { width: 100%; min-height: 48px; }
 .count-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
 .count-tile { display: flex; flex-direction: column; margin: 0; padding: var(--nn-space-3) var(--nn-space-4);
     border: 1px solid var(--nn-border); border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
@@ -6982,7 +6986,9 @@ html.is-offline .voice-hold {
 .home-card-note { display: block; margin-top: var(--nn-space-1); font-size: var(--nn-font-sm); font-weight: 400;
     color: var(--nn-text-secondary); }
 @media (min-width: 576px) {
-    .count-finish-button, .count-send-button, .approve-button { width: auto; min-width: 14rem; }
+    .count-send-button, .approve-button { width: auto; min-width: 14rem; }
+    .count-finish-actions > .btn { flex-grow: 0; }
+    .count-finish-actions > .count-finish-button { flex: 0 1 14rem; }
 }
 
 

@@ -37,8 +37,12 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   on the invoice not found: "On the invoice, not found on the order", **Choose the product**
   (`.../count/choose/{lineId}`: the order's lines not matched, the vessel's other items, a search, or **Not
   ordered**); a choice is learned for the supplier ("Invoice line matched by hand" in the audit log). **Finish**:
-  the rows still to do ("1 product is not counted yet", **Count them** or **Send anyway**), then the summary (two
-  tiles, the differences, an optional note) and **Send to Master**. Sending does not need every row. Count by
+  while rows are still to do, the list of them ("1 product is not counted yet", **Count them**; what did not arrive
+  is confirmed as 0); once none is left, the summary (two tiles, the differences, an optional note) and **Send to
+  Master**. Sending needs every row counted and every invoice line chosen (P77: `DeliveryCountService.send`
+  answers NOT_FINISHED, "Count every item before sending. 3 still to do."). The Finish box says what is left
+  ("3 to do · Invoice: 2 pages photographed") and has **Retake invoice photo** (**Photograph the invoice** when
+  there is no page) beside **Finish**; counts already confirmed are kept when the invoice is read again. Count by
   voice and the cook's photos of the delivery note are not on this page (the invoice photos take their place;
   voice stays on the stores count, [34](34-voice-count.md)).
 - **The Master** (`/ship/orders/{id}/receipt` while a count waits, `shiporder/receipt-approve.html`): "Approve the

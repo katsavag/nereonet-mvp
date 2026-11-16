@@ -26,7 +26,7 @@ import jakarta.persistence.LockModeType;
 /**
  * The Chief cook counts a delivery, the Master approves it (P63: row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
  * vessel's enabled Chief cook counts what arrived of each line (saveDraft, as often as he likes), then sends the count
- * to the Master (send): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
+ * to the Master (send, once every row is counted): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
  * confirms receipt (OrderReceiptService.confirmReceipt, which marks the count APPROVED) or sends it back with a note
  * (sendBack): a draft again, the cook's numbers kept. Nothing here touches the store; the receipt still does.
  * The count only helps: the Master can confirm receipt without one. Every change locks the order's row, as the
@@ -44,7 +44,9 @@ public class DeliveryCountService {
         // CLOSED: the receipt was confirmed. Nothing changed.
         RECEIVED,
         // saveDraft, send: the count is with the Master already. sendBack: no count is waiting for the Master.
-        WRONG_STATE
+        WRONG_STATE,
+        // send: rows are still to do (CountSheet.getToDoTotal). Nothing changed.
+        NOT_FINISHED
     }
 
     private final UserRepository userRepository;
@@ -172,10 +174,11 @@ public class DeliveryCountService {
     }
 
     /**
-     * The cook sends the count to the Master with an optional note (at most COUNT_NOTE_MAX_LENGTH). P63: rows not
-     * counted go as not counted (the Master sees them among the differences). SENT_TO_MASTER; recorded as "Delivery
-     * counted"; the ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval",
-     * linking to the approval. Refusals as saveRow.
+     * The cook sends the count to the Master with an optional note (at most COUNT_NOTE_MAX_LENGTH). Every row must
+     * be counted and every invoice line chosen (what did not arrive is counted as 0): NOT_FINISHED while
+     * CountSheet.getToDoTotal is above zero, nothing changed. SENT_TO_MASTER; recorded as "Delivery counted"; the
+     * ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval", linking to the
+     * approval. Other refusals as saveRow.
      */
     @Transactional
     public Result send(User cook, Long orderId, String note) {
@@ -190,6 +193,9 @@ public class DeliveryCountService {
                     + " characters");
         }
         CountSheet sheet = matchService.sheet(order);
+        if (sheet.getToDoTotal() > 0) {
+            return Result.NOT_FINISHED;
+        }
         Instant now = Instant.now();
         order.setCountNote(text);
         order.setDeliveryCount(DeliveryCountStatus.SENT_TO_MASTER);

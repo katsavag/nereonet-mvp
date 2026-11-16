@@ -8,8 +8,9 @@
      which opens the same row again). A row (shiporder/parts :: countRow) has its name, under it the reference
      ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read), the input "Arrived"
      prefilled with the reference, and Confirm. At the end, only when there are any, "On the invoice, not found on the
-     order": one row per invoice line nothing was found for, with Choose the product. Finish at the bottom, with what
-     is left.
+     order": one row per invoice line nothing was found for, with Choose the product. At the bottom the Finish box:
+     what is left ("3 to do · Invoice: 2 pages photographed", muted), the way back to the invoice's photos (Retake
+     invoice photo, or Photograph the invoice when there is none) and Finish, the primary button once nothing is left.
      Nothing goes into the store here. A count sent back by the Master shows the Master's note on top.
      English only. Model: order, sheet (CountSheet), done (the Done tab), groups (CountSheet.Group of the tab), change
      (the row open in Done), openNote, rowError and fixError (DeliveryCountController.RowError: a count refused, a
@@ -119,18 +120,22 @@
         </section>
     </th:block>
 
-    <!-- Finish: what is left, saved as he goes. -->
+    <!-- Finish: what is left, the way back to the invoice's photos, and Finish. -->
     <section class="count-finish" id="countFinish" aria-labelledby="countFinishText">
-        <p id="countFinishText" class="mb-2" th:text="#{order.count.finish.left(${sheet.toDoTotal})}">6 still to do. Each item
-            is saved when you confirm it.</p>
-        <a class="btn btn-primary count-finish-button" th:href="@{${baseUrl + '/send'}}" th:text="#{order.count.finish}">Finish</a>
+        <p id="countFinishText" class="text-meta">
+            <span th:text="#{order.count.finish.left(${sheet.toDoTotal})}">6 to do</span>
+            <th:block th:if="${invoicePages > 0}">
+                <span aria-hidden="true">·</span>
+                <span th:text="#{order.invoice.photographed(${invoicePages})}">Invoice: 2 pages photographed</span>
+            </th:block>
+        </p>
+        <div class="count-finish-actions">
+            <a class="btn btn-outline-secondary" th:href="@{/ship/orders/{id}/invoice(id=${order.id})}"
+               th:text="${invoicePages > 0} ? #{order.invoice.retakePhoto} : #{order.invoice.photograph}">Retake invoice photo</a>
+            <a class="btn count-finish-button" th:classappend="${sheet.toDoTotal == 0} ? 'btn-primary' : 'btn-outline-primary'"
+               th:href="@{${baseUrl + '/send'}}" th:text="#{order.count.finish}">Finish</a>
+        </div>
     </section>
-
-    <p class="count-invoice small">
-        <span th:if="${invoicePages > 0}" th:text="#{order.invoice.photographed(${invoicePages})}">Invoice: 2 pages photographed</span>
-        <span th:if="${invoicePages > 0}" aria-hidden="true">·</span>
-        <a th:href="@{/ship/orders/{id}/invoice(id=${order.id})}" th:text="#{order.invoice.photograph}">Photograph the invoice</a>
-    </p>
     <script th:src="@{/js/count.js}" defer></script>
 </main>
 </body>

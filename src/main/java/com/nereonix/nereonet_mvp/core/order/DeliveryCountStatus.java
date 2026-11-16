@@ -8,9 +8,9 @@ package com.nereonix.nereonet_mvp.core.order;
 public enum DeliveryCountStatus {
     /** Nobody counted yet. */
     NONE,
-    /** The cook saved a count and may come back to it. */
+    /** The cook counted some rows and may come back to it. */
     DRAFT,
-    /** The cook sent it: the Master approves it by confirming receipt, or sends it back. */
+    /** The cook sent it, every row counted: the Master approves it by confirming receipt, or sends it back. */
     SENT_TO_MASTER,
     /** The Master sent it back with a note: a draft again, the cook's numbers kept. */
     RETURNED,

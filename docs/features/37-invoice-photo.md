@@ -8,7 +8,8 @@ invoice only helps: **Count without the invoice** is always there, and a reading
   36) and **Confirm receipt** (the Master, with no count of the cook to approve) on the In progress cards and on the
   order page open `/ship/orders/{id}/invoice` instead of the count or the receipt
   (`ShipOrderPageService.invoiceFirstForCook`/`invoiceFirstForMaster`); afterwards they go straight on, and the
-  count and the receipt say "Invoice: 2 pages photographed" with a link back.
+  count and the receipt say "Invoice: 2 pages photographed" with a way back (on the count the button **Retake
+  invoice photo** in the Finish box, P77).
 - **The photo page** (`shiporder/InvoiceController`, `shiporder/invoice.html`, `js/invoice.js`, phone first):
   "Photograph every page. Hold it flat, in good light." **Take a photo** (`accept="image/*"
   capture="environment"`: the back camera) and **Choose a file** (photos or a PDF). One page at a time: a thumbnail

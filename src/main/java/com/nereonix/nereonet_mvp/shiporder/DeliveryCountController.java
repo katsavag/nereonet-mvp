@@ -40,9 +40,10 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
  *   POST /ship/orders/{id}/count/invoice           Read wrong? what the paper invoice says of one row: key, quantity
  *   GET  /ship/orders/{id}/count/choose/{lineId}   Choose the product of an invoice line (?q= narrows the list)
  *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
- *   GET  /ship/orders/{id}/count/send              Finish: the rows still to do (?anyway: on regardless), or the
- *                                                  summary with Send to Master
- *   POST /ship/orders/{id}/count/send              Send to Master, with an optional note
+ *   GET  /ship/orders/{id}/count/send              Finish: the rows still to do (Count them), or, when none is
+ *                                                  left, the summary with Send to Master
+ *   POST /ship/orders/{id}/count/send              Send to Master, with an optional note; refused while rows are
+ *                                                  still to do
  * </pre>
  * The count is kept on the order as he goes (the server's, not the browser's): each row is saved when confirmed.
  */
@@ -267,13 +268,11 @@ public class DeliveryCountController {
     }
 
     /**
-     * Finish: while rows are still to do, what is left (Count them, Send anyway); otherwise, or with ?anyway, the
-     * summary with Send to Master.
+     * Finish: while rows are still to do, what is left (Count them); otherwise the summary with Send to Master.
      */
     @GetMapping(BASE + "/send")
     public String finish(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                         @RequestParam(required = false) String anyway, Model model,
-                         RedirectAttributes redirectAttributes) {
+                         Model model, RedirectAttributes redirectAttributes) {
         ShipOrder order = prepare(currentUser.getUsername(), id);
         if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
             return notCountable(order, redirectAttributes);
@@ -282,7 +281,7 @@ public class DeliveryCountController {
             return "redirect:/ship/orders/" + id + "/count";
         }
         CountSheet sheet = matchService.sheet(order);
-        if (sheet.getToDoTotal() > 0 && anyway == null) {
+        if (sheet.getToDoTotal() > 0) {
             model.addAttribute("order", order);
             model.addAttribute("sheet", sheet);
             return "shiporder/count-left";
@@ -306,6 +305,12 @@ public class DeliveryCountController {
             return summary(order, matchService.sheet(order), false, model);
         }
         DeliveryCountService.Result result = countService.send(pageService.cook(email), id, text);
+        if (result == DeliveryCountService.Result.NOT_FINISHED) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.error.unfinished");
+            redirectAttributes.addFlashAttribute("errorArgs",
+                    new Object[] {matchService.sheet(order).getToDoTotal()});
+            return "redirect:/ship/orders/" + id + "/count";
+        }
         if (result != DeliveryCountService.Result.DONE) {
             return refused(order, result, redirectAttributes);
         }

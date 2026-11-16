@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.left.title}, ~{::main})}">
 <body>
-<!-- Finish while rows are still to do: "6 products are not counted yet", the list, Count them (back to To do) and
-     Send anyway (on to the summary: they go as not counted, and the Master sees them among the differences).
+<!-- Finish while rows are still to do: "6 products are not counted yet", the list, and Count them (back to To do).
+     The count cannot be sent before every one is counted: what did not arrive is confirmed as 0.
      English only. Model: order, sheet (CountSheet). -->
 <main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.left.heading(${sheet.toDoTotal})}, crumbs=~{::pageCrumbs},
@@ -18,11 +18,9 @@
         <li th:each="l : ${sheet.picks}"><a th:href="@{${baseUrl + '#pick-' + l.id}}" th:text="${l.description}">CHEESE 2KG</a>
             <span class="text-body-secondary small" th:text="#{order.count.line.choose}">Not counted: choose the product</span></li>
     </ul>
-    <p class="text-body-secondary" th:text="#{order.count.left.hint}">Products sent without a count go as not counted. The
-        Master sees them among the differences.</p>
+    <p class="text-body-secondary" th:text="#{order.count.left.hint}">If something did not arrive, confirm it as 0.</p>
     <div class="form-actions">
         <a class="btn btn-primary" th:href="@{${baseUrl}}" th:text="#{order.count.left.countThem}">Count them</a>
-        <a class="btn btn-outline-secondary" th:href="@{${baseUrl + '/send'}(anyway='')}" th:text="#{order.count.left.sendAnyway}">Send anyway</a>
     </div>
 </main>
 </body>

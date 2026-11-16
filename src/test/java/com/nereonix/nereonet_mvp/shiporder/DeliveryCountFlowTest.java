@@ -126,7 +126,7 @@ class DeliveryCountFlowTest {
     void withoutAnInvoiceTheCookCountsAgainstTheOrderAndTheMasterApprovesIt() throws Exception {
         // The count: To do and Done, one row per line with the quantity ordered, the input prefilled with it and one button.
         String page = as(cook, get("/ship/orders/{id}/count", id));
-        assertThat(page).contains("Count what arrived", "To do", "Done", "3 still to do. Each item is saved when you confirm it.",
+        assertThat(page).contains("Count what arrived", "To do", "Done", "3 to do", "Photograph the invoice",
                         "Finish", "name=\"quantity\"")
                 .containsSubsequence("Provisions", "Eggs", "Ordered 30 pcs", "Arrived", "value=\"30\"", ">Confirm<", "Tomatoes",
                         "Ordered 25 kg", "value=\"25\"", "Personal items", "Shower gel", "Ordered 6 pcs", "value=\"6\"")
@@ -149,7 +149,7 @@ class DeliveryCountFlowTest {
         assertThat(movements()).isEmpty();
 
         // To do only gets shorter; Done lists what was counted, with Change.
-        assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Shower gel", "1 still to do")
+        assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Shower gel", "1 to do")
                 .doesNotContain("Ordered 30 pcs");
         assertThat(as(cook, get("/ship/orders/{id}/count", id).param("tab", "done")))
                 .containsSubsequence("Eggs", "Change", "Arrived 30 pcs", "Tomatoes", "Change", "Arrived 23 kg",
@@ -158,15 +158,22 @@ class DeliveryCountFlowTest {
         assertThat(as(cook, get("/ship/orders/{id}/count", id).param("tab", "done")
                 .param("change", "o" + tomatoLine.getId()))).contains("value=\"23\"", ">Confirm<");
 
-        // Finish with a row still to do: it says so.
+        // Finish with a row still to do: it says so, and the count cannot be sent.
         assertThat(as(cook, get("/ship/orders/{id}/count/send", id))).contains("1 product is not counted yet",
-                "Shower gel", "Count them", "Send anyway");
-        // Send anyway: the summary.
-        String summary = as(cook, get("/ship/orders/{id}/count/send", id).param("anyway", ""));
-        assertThat(summary).contains("2 of 3 counted", "same as ordered", "The 2 that are different", "Send to Master",
+                        "Shower gel", "Count them", "If something did not arrive, confirm it as 0.")
+                .doesNotContain("Send anyway", "Send to Master");
+        mockMvc.perform(post("/ship/orders/{id}/count/send", id).with(user(new CurrentUser(cook))).with(csrf()))
+                .andExpect(redirectedUrl("/ship/orders/" + id + "/count"))
+                .andExpect(flash().attribute("errorMessage", "order.count.error.unfinished"));
+        assertThat(order.getDeliveryCountStatus()).isEqualTo(DeliveryCountStatus.DRAFT);
+        // No shower gel arrived: 0 is a count. Then Finish is the summary.
+        mockMvc.perform(row("o" + gelLine.getId(), "0", ""));
+        assertThat(gelLine.getCountedQuantity()).isEqualByComparingTo("0");
+        String summary = as(cook, get("/ship/orders/{id}/count/send", id));
+        assertThat(summary).contains("All 3 counted", "same as ordered", "The 2 that are different", "Send to Master",
                         "The Master checks it. Then the stock is updated.", "Add a note for the Master")
                 .containsSubsequence("Tomatoes", "23 of 25 kg arrived", "2 kg rotten, sent back", "Change",
-                        "Shower gel", "Not counted", "Change");
+                        "Shower gel", "0 of 6 pcs arrived", "Change");
 
         mockMvc.perform(post("/ship/orders/{id}/count/send", id).param("note", "Meat comes tomorrow")
                         .with(user(new CurrentUser(cook))).with(csrf()))
@@ -175,7 +182,7 @@ class DeliveryCountFlowTest {
         assertThat(order.getDeliveryCountStatus()).isEqualTo(DeliveryCountStatus.SENT_TO_MASTER);
         assertThat(order.getCountNote()).isEqualTo("Meat comes tomorrow");
         assertThat(audit("ORDER_DELIVERY_COUNTED")).singleElement().satisfies(e -> {
-            assertThat(e.getDetails()).isEqualTo("Order #" + id + ", 2 of 3 counted, 2 different");
+            assertThat(e.getDetails()).isEqualTo("Order #" + id + ", 3 of 3 counted, 2 different");
             assertThat(e.getActor().getId()).isEqualTo(cook.getId());
         });
         assertThat(notifications("master@example.com")).singleElement().satisfies(n -> {
@@ -185,10 +192,10 @@ class DeliveryCountFlowTest {
 
         // Sent: read only for the cook; another row changes nothing.
         assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Sent to the Master on", "waiting for approval",
-                "2 of 3 counted").doesNotContain("Send to Master", "name=\"quantity\"");
+                "All 3 counted").doesNotContain("Send to Master", "name=\"quantity\"");
         mockMvc.perform(row("o" + gelLine.getId(), "6", ""))
                 .andExpect(flash().attribute("errorMessage", "order.count.alreadySent"));
-        assertThat(gelLine.getCountedQuantity()).isNull();
+        assertThat(gelLine.getCountedQuantity()).isEqualByComparingTo("0");
         assertThat(as(cook, get("/ship/order?view=progress"))).contains("Counted by the Chief cook, to approve", "View count");
 
         // The Master: one short page and one decision.
@@ -198,7 +205,7 @@ class DeliveryCountFlowTest {
                         "The 2 that are different", "Show all 3", "Meat comes tomorrow", "Send back to cook",
                         "Approving updates the stock and tells the office. It cannot be changed afterwards.", "Change date")
                 .containsSubsequence("Tomatoes", "23 of 25 kg arrived", "2 kg rotten, sent back", "Change",
-                        "Shower gel", "Not counted")
+                        "Shower gel", "0 of 6 pcs arrived")
                 .doesNotContain("name=\"lines[0].received\"", "Review");
         // Show all: every row, read only.
         assertThat(as(master, get("/ship/orders/{id}/receipt", id).param("all", "")))
@@ -230,10 +237,10 @@ class DeliveryCountFlowTest {
         assertThat(as(master, get("/ship/orders/{id}/receipt", id))).doesNotContain("Approve the delivery")
                 .contains("value=\"25\"");
 
-        // The cook: the Master's note on top; he counts the gel and sends again.
-        assertThat(as(cook, get("/ship/orders/{id}/count", id))).containsSubsequence("The Master sent the count back on",
+        // The cook: the Master's note on top; he counts the gel again and sends again.
+        assertThat(as(cook, get("/ship/orders/{id}/count", id).param("tab", "done"))).containsSubsequence("The Master sent the count back on",
                 "Count the shower gel", "Shower gel");
-        mockMvc.perform(row("o" + gelLine.getId(), "", ""));
+        mockMvc.perform(row("o" + gelLine.getId(), "6", ""));
         assertThat(gelLine.getCountedQuantity()).isEqualByComparingTo("6");
         mockMvc.perform(post("/ship/orders/{id}/count/send", id).param("note", "")
                         .with(user(new CurrentUser(cook))).with(csrf()))
@@ -312,7 +319,7 @@ class DeliveryCountFlowTest {
                         "Shower gel", "Not on the invoice", ">Confirm<",
                         "On the invoice, not found on the order", "SPARKLING DRINK XYZ", "Choose the product",
                         "PAPER NAPKINS", "Choose the product")
-                .contains("8 still to do")
+                .contains("8 to do")
                 .doesNotContain("120", "1.85", "price");
         assertThat(eggs.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
@@ -494,7 +501,10 @@ class DeliveryCountFlowTest {
                 .andExpect(status().isNotFound());
         assertThat(eggLine.getCountedQuantity()).isNull();
 
-        // Sent, then only the vessel's Master changes, approves or sends it back.
+        // Counted and sent, then only the vessel's Master changes, approves or sends it back.
+        for (ShipOrderLine line : List.of(eggLine, tomatoLine, gelLine)) {
+            mockMvc.perform(row("o" + line.getId(), "", ""));
+        }
         mockMvc.perform(post("/ship/orders/{id}/count/send", id).with(user(new CurrentUser(cook))).with(csrf()))
                 .andExpect(flash().attribute("successMessage", "order.count.sent"));
         for (String path : List.of("/receipt/return", "/receipt/approve", "/receipt/change")) {
