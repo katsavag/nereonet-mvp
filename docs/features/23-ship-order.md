@@ -12,7 +12,13 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
   item name, quantity and unit and, under it, who asked for it: "Chief Cook 6, A. Santos 4" (the Master and the
   Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
   OPEN order, or with no lines: "Nothing to order yet. Approved requests are collected here."
-- **Orders in progress** (P59): above the OPEN order, one card per order of the vessel that is SENT ("Pending") or
+- **Three views** (P74), switched by links under the header (`layout/parts :: viewSwitch`, `?view=`): **Current
+  order** (the default, also for an unknown value: the OPEN order and Send to office), **In progress**
+  (`?view=progress`) and **Received** (`?view=received`), the last two with their count on the tab when above zero.
+  `ShipOrderPageService.page` loads only the chosen view. When an order in progress needs the user (the Master: a
+  scheduled delivery to receive; the Chief cook: one to count), the Current order view says so in one warning
+  line above the order, "1 delivery to receive", a link to In progress.
+- **In progress** (P59, its own view since P74): one card per order of the vessel that is SENT ("Pending") or
   CONFIRMED ("Delivery scheduled"), most urgent first: the scheduled deliveries by delivery date (earliest first),
   then the orders waiting for the office by sent date (waiting longest first). Each card: "Order #12", the status
   badge (`shiporder/parts :: statusBadge`), the number of items (lines the office did not remove) and one line:
@@ -20,9 +26,8 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
   waiting for the office to schedule the delivery". A delivery whose date (UTC) has passed and is not received yet
   keeps its place and says "Delivery was due 12 Nov 2026, Antwerp", in words with a warning icon and border. The
   enabled Master has **Confirm receipt** (the primary, to `/ship/orders/{id}/receipt`, P51) and **Open order** on
-  a scheduled delivery; everyone else (the Chief cook, [32](32-cook-reads-order.md)) only **Open order**. No section without any; with some,
-  the OPEN order follows under "Current order", unchanged. `ShipOrderPageService.inProgress`, one query
-  (`findAllByShipIdAndStatusIn`).
+  a scheduled delivery; everyone else (the Chief cook, [32](32-cook-reads-order.md)) only **Open order**. Without any: "Nothing in
+  progress". One query (`findAllByShipIdAndStatusIn`).
 - **Editing** (only while OPEN): each line's quantity is a small form with **Save**
   (`POST /ship/order/lines/{id}/quantity`; above zero, at most 3 decimals, otherwise an error and nothing saved),
   and **Remove** (`POST /ship/order/lines/{id}/remove`; the requests stay approved, their lines are unlinked). Each
@@ -35,14 +40,14 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
   its lines, 24; the page then shows each change, P50); each line keeps the quantity sent (`originalQuantity`); the next approved request opens a new OPEN
   order. Every change and the send lock the ship's row, as approvals do, so an approval never lands in an order
   being sent.
-- **`/ship/orders`**: **All orders** (P59; "Past orders" before, same URL): every order sent (SENT, CONFIRMED,
-  CLOSED), newest sent first, with status, requested port,
-  needed by and, once the office has set them, confirmed port and delivery date. `/ship/orders/{id}` shows one
+- **Received** (`/ship/order?view=received`, P74): the CLOSED orders, newest sent first, all of them, each row
+  with the delivery port and date, a neutral status and when it was sent. `/ship/orders` (the list of every sent
+  order before P74) redirects there. `/ship/orders/{id}` shows one order
   with its lines (the OPEN one redirects to `/ship/order`).
 - Status labels (`order.status.*`, the same on the ship's pages and the office's, English and Greek, P65): OPEN
   "Collecting", SENT "Pending", CONFIRMED "Delivery scheduled" (P51), CLOSED
   "Received". On the ship's pages a Pending order also says "Waiting for the office to schedule the delivery" (the
-  order page under the badge, All orders and the Master's home on its row, the Orders in progress card).
+  order page under the badge, the Master's home on its row, the In progress card).
 - Another ship's line or order is a 404; crew members get 403, and so does the Chief cook for every POST (the
   cook reads the pages, P55). New column `ship_order.office_note`
   (nullable, Hibernate adds it); new notification type ORDER (`RequestSchemaMigration` re-creates the check).
@@ -51,7 +56,7 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
   approve; it opens Vessel order, or the receipt itself when there is exactly one. (The Vessel order card still
   counts the lines of the OPEN order.)
 - Tests: `shiporder/ShipOrderFlowTest` (orders in progress, their order, the Master's and the cook's actions, the
-  overdue delivery, All orders, the counter), `masterhome/MasterHomeFlowTest` (Deliveries to receive).
+  overdue delivery, the three views, the counter), `masterhome/MasterHomeFlowTest` (Deliveries to receive).
 - To try it: as `master.demo@example.com`, approve the waiting requests, open **Ship order**, change a quantity
-  and send it with port "Rotterdam"; `office@example.com` sees the notification. The sent order is under Orders in
+  and send it with port "Rotterdam"; `office@example.com` sees the notification. The sent order is under In
   progress; once the office schedules its delivery, the card has Confirm receipt and the counter shows it.

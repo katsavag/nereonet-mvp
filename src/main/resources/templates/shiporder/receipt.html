@@ -22,7 +22,7 @@
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.receipt.hint})}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
-            <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${order.status.name() == 'CLOSED'} ? #{order.view.received} : #{order.view.progress}, '/ship/order?view=' + (${order.status.name() == 'CLOSED'} ? 'received' : 'progress'))}"></li>
             <li th:replace="~{layout/parts :: crumb(#{order.number(${order.id})}, '/ship/orders/' + ${order.id})}"></li>
         </th:block>
     </header>

@@ -38,8 +38,8 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * The ship order pages: the OPEN order of the signed-in user's own ship, and its past orders. The Master changes
- * and sends the order, and confirms its receipt; since P55 the Chief cook reads the same pages (open, past, detail),
+ * The ship order pages: the OPEN order of the signed-in user's own ship, and its sent orders. The Master changes
+ * and sends the order, and confirms its receipt; since P55 the Chief cook reads the same pages (Vessel order, detail),
  * and nothing more: every change is ShipOrderService's or OrderReceiptService's, which refuse anyone but the ship's
  * enabled Master, and the receipt pages (order) and the services' user (master) refuse anyone but the Master here.
  * An order of another ship is a 404, never a 403, so nobody can probe which exist.
@@ -47,8 +47,12 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 @Service
 public class ShipOrderPageService {
 
-    static final List<ShipOrderStatus> PAST = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED,
-            ShipOrderStatus.CLOSED);
+    /** The views of Vessel order (?view=): the OPEN order, the orders in progress, the received ones. */
+    static final String VIEW_CURRENT = "current";
+    static final String VIEW_PROGRESS = "progress";
+    static final String VIEW_RECEIVED = "received";
+
+    private static final List<ShipOrderStatus> RECEIVED = List.of(ShipOrderStatus.CLOSED);
 
     // Sent and not received yet.
     static final List<ShipOrderStatus> IN_PROGRESS = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
@@ -80,7 +84,15 @@ public class ShipOrderPageService {
         }
     }
 
-    public record PastOrders(Ship ship, List<ShipOrder> orders) {
+    /**
+     * Vessel order in one of its three views, with only what that view shows: current (the OPEN order; an empty
+     * view when there is none) in "current", inProgress in "progress", received (CLOSED, newest sent first) in
+     * "received"; the others are null. progressCount and receivedCount are the numbers on the tabs. attention (the
+     * current view only): the orders in progress that need this user, the Master's deliveries to receive or the
+     * Chief cook's deliveries to count.
+     */
+    public record OrderPage(Ship ship, String view, OrderView current, List<InProgress> inProgress,
+                            List<ShipOrder> received, long progressCount, long receivedCount, long attention) {
     }
 
     /**
@@ -160,21 +172,40 @@ public class ShipOrderPageService {
         return reader(email);
     }
 
-    /** The ship's OPEN order with its lines; an empty view when there is none. The Master or the Chief cook. */
-    @Transactional(readOnly = true)
-    public OrderView open(String email) {
-        Ship ship = ship(reader(email));
-        ShipOrder order = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElse(null);
-        return view(ship, order);
-    }
-
     /**
-     * The ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
-     * date, then the orders waiting for the office by sent date). The Master or the Chief cook.
+     * Vessel order for the Master or the Chief cook. view: "progress" or "received"; anything else is the current
+     * order.
      */
     @Transactional(readOnly = true)
-    public List<InProgress> inProgress(String email) {
-        Ship ship = ship(reader(email));
+    public OrderPage page(String email, String view) {
+        User user = reader(email);
+        Ship ship = ship(user);
+        if (VIEW_PROGRESS.equals(view)) {
+            List<InProgress> inProgress = inProgress(ship);
+            return new OrderPage(ship, VIEW_PROGRESS, null, inProgress, null, inProgress.size(),
+                    orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), 0);
+        }
+        if (VIEW_RECEIVED.equals(view)) {
+            List<ShipOrder> received = orderRepository.findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(ship.getId(),
+                    RECEIVED);
+            return new OrderPage(ship, VIEW_RECEIVED, null, null, received,
+                    orderRepository.countByShipIdAndStatusIn(ship.getId(), IN_PROGRESS), received.size(), 0);
+        }
+        ShipOrder open = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElse(null);
+        // The orders in progress without their lines: how many there are, and how many need this user.
+        List<ShipOrder> progress = orderRepository.findAllByShipIdAndStatusIn(ship.getId(), IN_PROGRESS);
+        boolean master = user.getRole() == Role.MASTER;
+        long attention = progress.stream()
+                .filter(order -> order.getStatus() == ShipOrderStatus.CONFIRMED
+                        && (master || order.getDeliveryCountStatus().editable()))
+                .count();
+        return new OrderPage(ship, VIEW_CURRENT, view(ship, open), null, null, progress.size(),
+                orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), attention);
+    }
+
+    // The ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by delivery
+    // date, then the orders waiting for the office by sent date).
+    private List<InProgress> inProgress(Ship ship) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         return orderRepository.findAllByShipIdAndStatusIn(ship.getId(), IN_PROGRESS).stream()
                 .sorted(MOST_URGENT_FIRST)
@@ -184,13 +215,6 @@ public class ShipOrderPageService {
                         order.getStatus() == ShipOrderStatus.CONFIRMED
                                 && receiptFileRepository.countByOrderIdAndInvoicePageNotNull(order.getId()) > 0))
                 .toList();
-    }
-
-    /** SENT, CONFIRMED and CLOSED orders of the ship, newest sent first. The Master or the Chief cook. */
-    @Transactional(readOnly = true)
-    public PastOrders past(String email) {
-        Ship ship = ship(reader(email));
-        return new PastOrders(ship, orderRepository.findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(ship.getId(), PAST));
     }
 
     /** One order of the ship with its lines; 404 for another ship's. The Master or the Chief cook. */

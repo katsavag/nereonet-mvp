@@ -195,7 +195,7 @@ class MasterHomeFlowTest {
         assertThat(recent).containsSubsequence("Waiting for the office to schedule the delivery", ">Pending</span>",
                         "Delivery: Antwerp", "Delivery date", "20 Nov 2026", "Delivery scheduled",
                         "Delivery: Hamburg", "15 Oct 2026", "Received")
-                .contains("href=\"/ship/orders\">All orders</a>")
+                .contains("href=\"/ship/order?view=received\">All orders</a>")
                 .doesNotContain("Piraeus");
     }
 

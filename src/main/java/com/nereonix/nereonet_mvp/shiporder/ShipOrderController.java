@@ -25,15 +25,14 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderService.Send;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderStatus;
 import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 
-// The Master's ship order: the OPEN order of their own ship, its lines edited one at a time (each change is
-// saved at once, nobody is notified), "Send to office", and the past orders ("All orders" since P59); P51: "Confirm
-// receipt" on a past order whose delivery is scheduled (OrderReceiptController), and its receipt once received. P55:
-// the Chief cook reads the same three pages (GET /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig), with
-// nothing to act on: the
-// model's canManage (the ship's enabled Master) decides what the templates offer, and the receipt's files are the
+// The Master's ship order, /ship/order in three views (?view=): the OPEN order of their own ship, its lines edited
+// one at a time (each change is saved at once, nobody is notified) with "Send to office"; the orders in progress
+// (SENT, CONFIRMED), the Master's with Confirm receipt (OrderReceiptController); and the received ones (CLOSED).
+// /ship/orders/{id} is one sent order, with its receipt once received. The Chief cook reads the same pages (GET
+// /ship/order, /ship/orders, /ship/orders/{id}; SecurityConfig) and counts a scheduled delivery: the model's
+// canManage (the ship's enabled Master) decides what the templates offer, and the receipt's files are the
 // Master's only. Every POST stays MASTER only (SecurityConfig), and the services refuse anyone else as well.
-// P59: /ship/order also lists the orders in progress (SENT, CONFIRMED) above the OPEN one, the Master's with Confirm
-// receipt. English only, as every crew screen.
+// English only, as every crew screen.
 @Controller
 public class ShipOrderController {
 
@@ -54,11 +53,12 @@ public class ShipOrderController {
         this.quantityRules = quantityRules;
     }
 
-    // Above the OPEN order, the orders in progress (sent, delivery scheduled), most urgent first.
+    // view: "progress" or "received"; without it, or with anything else, the current order.
     @GetMapping("/ship/order")
-    public String order(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
+    public String order(@AuthenticationPrincipal CurrentUser currentUser, @RequestParam(required = false) String view,
+                        Model model) {
         model.addAttribute("sendForm", new SendOrderForm());
-        return showOrder(currentUser, model);
+        return showOrder(currentUser, view, model);
     }
 
     // The rule of the item's unit (core/form/QuantityRules): blank, not a number, zero or less, too many decimals
@@ -93,7 +93,7 @@ public class ShipOrderController {
                        @Validated @ModelAttribute("sendForm") SendOrderForm sendForm, BindingResult bindingResult,
                        Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            return showOrder(currentUser, model);
+            return showOrder(currentUser, null, model);
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {
@@ -104,11 +104,10 @@ public class ShipOrderController {
         return "redirect:/ship/orders/" + send.order().getId();
     }
 
+    // The old list of sent orders: the received ones are a view of Vessel order.
     @GetMapping("/ship/orders")
-    public String past(@AuthenticationPrincipal CurrentUser currentUser, Model model) {
-        model.addAttribute("past", pageService.past(currentUser.getUsername()));
-        model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
-        return "shiporder/list";
+    public String received() {
+        return "redirect:/ship/order?view=" + ShipOrderPageService.VIEW_RECEIVED;
     }
 
     // The OPEN order is edited on /ship/order.
@@ -133,9 +132,8 @@ public class ShipOrderController {
         return "shiporder/detail";
     }
 
-    private String showOrder(CurrentUser currentUser, Model model) {
-        model.addAttribute("view", pageService.open(currentUser.getUsername()));
-        model.addAttribute("inProgress", pageService.inProgress(currentUser.getUsername()));
+    private String showOrder(CurrentUser currentUser, String view, Model model) {
+        model.addAttribute("orderPage", pageService.page(currentUser.getUsername(), view));
         model.addAttribute(CAN_MANAGE, pageService.canManage(currentUser.getUsername()));
         model.addAttribute(CAN_COUNT, pageService.canCount(currentUser.getUsername()));
         return "shiporder/order";

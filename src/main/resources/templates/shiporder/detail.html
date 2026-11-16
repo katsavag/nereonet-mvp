@@ -18,7 +18,7 @@
             eyebrowShip=${view.ship}, actions=${(canManage or canCount) and order.status.name() == 'CONFIRMED'} ? ~{::pageActions} : null)}">
         <th:block th:fragment="pageCrumbs">
             <li th:replace="~{layout/parts :: crumb(#{order.title}, '/ship/order')}"></li>
-            <li th:replace="~{layout/parts :: crumb(#{order.past.title}, '/ship/orders')}"></li>
+            <li th:replace="~{layout/parts :: crumb(${view.order.status.name() == 'CLOSED'} ? #{order.view.received} : #{order.view.progress}, '/ship/order?view=' + (${view.order.status.name() == 'CLOSED'} ? 'received' : 'progress'))}"></li>
         </th:block>
         <th:block th:fragment="pageActions">
             <a th:if="${canManage}" class="btn btn-primary" th:href="${invoiceFirstForMaster} ? @{/ship/orders/{id}/invoice(id=${order.id})} : @{/ship/orders/{id}/receipt(id=${order.id})}" th:text="#{order.receipt.action}">Confirm receipt</a>

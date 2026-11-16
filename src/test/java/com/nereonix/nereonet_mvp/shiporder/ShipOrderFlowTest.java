@@ -66,11 +66,11 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 /**
  * P35, the Master's ship order: the OPEN order shows its lines by category with who asked for each; a line's quantity
  * is changed or the line removed, each saved at once; "Send to office" makes it SENT and read-only, records it and
- * notifies every enabled office user. Past orders are listed with their status. Only the Master of the ship changes
- * it; P55: the Chief cook reads the same pages, with nothing to act on, and the services refuse them. P59: the orders
- * in progress (sent, delivery scheduled) are on Vessel order above the collecting one, most urgent first, the Master's
- * scheduled deliveries with Confirm receipt; "Past orders" is "All orders"; the sidebar counter counts the orders that
- * need the Master, not lines.
+ * notifies every enabled office user. Only the Master of the ship changes
+ * it; P55: the Chief cook reads the same pages, with nothing to act on, and the services refuse them. Vessel order
+ * has three views: the current order, the orders in progress (sent, delivery scheduled; most urgent first, the
+ * Master's scheduled deliveries with Confirm receipt) and the received ones; the sidebar counter counts the orders
+ * that need the Master, not lines.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -161,9 +161,10 @@ class ShipOrderFlowTest {
         String detail = page("/ship/orders/" + order.getId());
         assertThat(detail).contains(">Pending</span>", "Waiting for the office to schedule the delivery", "Rotterdam", "Deliver to the gangway", "Basmati rice")
                 .doesNotContain("/ship/order/lines/");
-        // P59: the sent order is in progress, above the empty collecting order.
-        assertThat(main(page("/ship/order"))).containsSubsequence("Orders in progress", "Order #" + order.getId(),
-                ">Pending</span>", "2 items", "waiting for the office to schedule the delivery", "Current order",
+        // The sent order is in progress; the current order is empty.
+        assertThat(main(page("/ship/order?view=progress"))).containsSubsequence("Order #" + order.getId(),
+                ">Pending</span>", "2 items", "waiting for the office to schedule the delivery");
+        assertThat(main(page("/ship/order"))).containsSubsequence("Current order", "In progress", ">1<",
                 "Nothing to order yet", "Approved requests are collected here.");
         changeQuantity(riceLine, "1").andExpect(flash().attribute("errorMessage", "order.notOpen"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("12");
@@ -190,7 +191,7 @@ class ShipOrderFlowTest {
         String html = page("/ship/order");
 
         assertThat(html).contains("Nothing to order yet", "Approved requests are collected here.")
-                .doesNotContain("/ship/order/send", "Orders in progress", "Current order");
+                .doesNotContain("/ship/order/send");
         send("Rotterdam", LocalDate.now(ZoneOffset.UTC).toString(), "")
                 .andExpect(flash().attribute("errorMessage", "order.nothingToSend"));
     }
@@ -239,22 +240,24 @@ class ShipOrderFlowTest {
     }
 
     @Test
-    void pastOrdersAreListedNewestFirstWithTheirStatus() throws Exception {
+    void receivedOrdersAreListedNewestFirst() throws Exception {
         ShipOrder first = openOrderWithTwoLines();
         send("Rotterdam", LocalDate.now(ZoneOffset.UTC).plusDays(5).toString(), "");
-        first.setStatus(ShipOrderStatus.CONFIRMED);
+        first.setStatus(ShipOrderStatus.CLOSED);
         first.setConfirmedPort("Antwerp");
         first.setDeliveryDate(LocalDate.now(ZoneOffset.UTC).plusDays(7));
         approve(submit(cook, line(rice, "1")));
         ShipOrder second = orderRepository.findByShipIdAndStatus(ship.getId(), ShipOrderStatus.OPEN).orElseThrow();
         send("Piraeus", LocalDate.now(ZoneOffset.UTC).plusDays(9).toString(), "");
+        second.setStatus(ShipOrderStatus.CLOSED);
         second.setSentAt(first.getSentAt().plusSeconds(60));
 
-        String html = page("/ship/orders");
+        mockMvc.perform(get("/ship/orders").with(user(new CurrentUser(master))))
+                .andExpect(redirectedUrl("/ship/order?view=received"));
+        String html = main(page("/ship/order?view=received"));
 
-        assertThat(html).contains("<title>All orders · Nereonet</title>", "<span>All orders</span>", "Delivery scheduled",
-                "Delivery: Antwerp", ">Pending</span>", "Requested: Piraeus", "Waiting for the office to schedule the delivery")
-                .doesNotContain("Sent to office");
+        assertThat(html).contains("Delivery: Antwerp", "status-neutral", ">Received</span>")
+                .doesNotContain("Send to office", "status-ok");
         assertThat(html.indexOf("Order #" + second.getId())).isLessThan(html.indexOf("Order #" + first.getId()));
         mockMvc.perform(get("/ship/orders/" + openOrderAfter().getId()).with(user(new CurrentUser(master))))
                 .andExpect(redirectedUrl("/ship/order"));
@@ -308,9 +311,9 @@ class ShipOrderFlowTest {
         order.setConfirmedPort("Antwerp");
         order.setDeliveryDate(neededBy.plusDays(1));
 
-        String list = main(cookPage("/ship/orders"));
-        assertThat(list).contains("Order #" + order.getId(), "Delivery scheduled", "Requested: Rotterdam",
-                DAY.format(neededBy), "Delivery: Antwerp", DAY.format(neededBy.plusDays(1)),
+        String list = main(cookPage("/ship/order?view=progress"));
+        assertThat(list).contains("Order #" + order.getId(), "Delivery scheduled",
+                "Delivery: Antwerp", DAY.format(neededBy.plusDays(1)),
                 "href=\"/ship/orders/" + order.getId() + "\"");
 
         String detail = main(cookPage("/ship/orders/" + order.getId()));
@@ -365,11 +368,11 @@ class ShipOrderFlowTest {
         assertThat(auditRepository.findAll()).noneMatch(e -> e.getAction().equals("ORDER_SENT"));
     }
 
-    // P59: Vessel order lists the orders sent and not received yet above the collecting one, most urgent first: the
+    // Vessel order lists the orders sent and not received yet in its In progress view, most urgent first: the
     // scheduled deliveries by delivery date, then the orders waiting for the office by sent date. The Master confirms
-    // receipt from the card; the Chief cook only opens the order. Received orders are only under All orders.
+    // receipt from the card; the Chief cook only opens the order. Received orders are only in the Received view.
     @Test
-    void ordersInProgressAreAboveTheCollectingOrderMostUrgentFirst() throws Exception {
+    void ordersInProgressAreInTheirOwnViewMostUrgentFirst() throws Exception {
         openOrderWithTwoLines();
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         Instant now = Instant.now();
@@ -385,7 +388,7 @@ class ShipOrderFlowTest {
         line(sooner, soap).setRemoved(true);
 
         String main = main(page("/ship/order"));
-        String progress = main.substring(main.indexOf("id=\"inProgressTitle\""), main.indexOf(">Current order<"));
+        String progress = main(page("/ship/order?view=progress"));
         assertThat(PROGRESS_CARD.matcher(progress).results().map(m -> Long.valueOf(m.group(1))).toList())
                 .containsExactly(sooner.getId(), later.getId(), waitingLonger.getId(), waiting.getId());
         assertThat(progress).doesNotContain("Order #" + received.getId(), "Piraeus");
@@ -400,22 +403,21 @@ class ShipOrderFlowTest {
                         + DAY.format(waiting.getSentAt().atZone(ZoneOffset.UTC)) + " · waiting for the office to schedule the delivery",
                         ">Open order<")
                 .doesNotContain("/receipt", "Confirm receipt");
-        // The collecting order follows, unchanged, under its own heading.
-        assertThat(main).containsSubsequence(">Orders in progress<", ">Current order<", "Collecting", "Basmati rice",
-                "Chief Cook 6, A. Santos 4", "Send to office");
+        // The collecting order is the default view, without the cards.
+        assertThat(main).containsSubsequence(">Current order<", "Collecting", "Basmati rice",
+                "Chief Cook 6, A. Santos 4", "Send to office").doesNotContain("data-order=");
 
         // The Chief cook sees the same cards, with Open order only.
-        String cook = main(cookPage("/ship/order"));
+        String cook = main(cookPage("/ship/order?view=progress"));
         assertThat(PROGRESS_CARD.matcher(cook).results().map(m -> Long.valueOf(m.group(1))).toList())
                 .containsExactly(sooner.getId(), later.getId(), waitingLonger.getId(), waiting.getId());
         assertThat(cook).contains("Delivery: Antwerp", ">Open order<").doesNotContain("/receipt", "Confirm receipt");
 
-        // All orders (Past orders before P59) still lists every sent order, the received one too.
-        String all = main(page("/ship/orders"));
-        for (ShipOrder o : List.of(sooner, later, waitingLonger, waiting, received)) {
-            assertThat(all).contains("href=\"/ship/orders/" + o.getId() + "\"");
-        }
-        assertThat(main).contains("href=\"/ship/orders\">All orders</a>");
+        // The Received view lists the received order only.
+        String all = main(page("/ship/order?view=received"));
+        assertThat(all).contains("href=\"/ship/orders/" + received.getId() + "\"")
+                .doesNotContain("href=\"/ship/orders/" + sooner.getId() + "\"");
+        assertThat(main).doesNotContain("All orders");
     }
 
     @Test
@@ -425,7 +427,7 @@ class ShipOrderFlowTest {
         ShipOrder overdue = sentOrder(ShipOrderStatus.CONFIRMED, Instant.now().minus(Duration.ofDays(20)), "Antwerp",
                 due, rice);
 
-        String main = main(page("/ship/order"));
+        String main = main(page("/ship/order?view=progress"));
         assertThat(PROGRESS_CARD.matcher(main).results().map(m -> Long.valueOf(m.group(1))).toList())
                 .containsExactly(overdue.getId(), waiting.getId());
         // In words, with a warning icon: not colour alone.

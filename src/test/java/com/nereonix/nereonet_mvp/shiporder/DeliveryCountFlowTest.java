@@ -188,7 +188,7 @@ class DeliveryCountFlowTest {
         mockMvc.perform(row("o" + gelLine.getId(), "6", ""))
                 .andExpect(flash().attribute("errorMessage", "order.count.alreadySent"));
         assertThat(gelLine.getCountedQuantity()).isNull();
-        assertThat(as(cook, get("/ship/order"))).contains("Counted by the Chief cook, to approve", "View count");
+        assertThat(as(cook, get("/ship/order?view=progress"))).contains("Counted by the Chief cook, to approve", "View count");
 
         // The Master: one short page and one decision.
         assertThat(as(master, get("/ship"))).contains("Deliveries to receive", "Counted by the Chief cook, to approve");
@@ -518,7 +518,7 @@ class DeliveryCountFlowTest {
         mockMvc.perform(get("/ship/orders/{id}/count", sent.getId()).with(user(new CurrentUser(cook))))
                 .andExpect(redirectedUrl("/ship/orders/" + sent.getId()))
                 .andExpect(flash().attribute("errorMessage", "order.count.notConfirmed"));
-        assertThat(as(cook, get("/ship/order"))).doesNotContain("href=\"/ship/orders/" + sent.getId() + "/count\"");
+        assertThat(as(cook, get("/ship/order?view=progress"))).doesNotContain("href=\"/ship/orders/" + sent.getId() + "/count\"");
     }
 
     // ---------------------------------------------------------------------------------------------------------------

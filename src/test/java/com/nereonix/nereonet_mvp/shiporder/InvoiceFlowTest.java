@@ -126,7 +126,7 @@ class InvoiceFlowTest {
     void theCookPhotographsTheInvoiceAndGoesStraightOnToTheCount() throws Exception {
         fake.orderReference(String.format("SR-%06d", id));
         // Count delivery opens the photo page first.
-        assertThat(as(cook, get("/ship/order"))).contains("href=\"/ship/orders/" + id + "/invoice\"", "Count delivery");
+        assertThat(as(cook, get("/ship/order?view=progress"))).contains("href=\"/ship/orders/" + id + "/invoice\"", "Count delivery");
         assertThat(as(cook, get("/ship/orders/{id}", id))).contains("href=\"/ship/orders/" + id + "/invoice\"");
 
         String page = as(cook, get("/ship/orders/{id}/invoice", id));
@@ -201,7 +201,7 @@ class InvoiceFlowTest {
         String count = as(cook, get("/ship/orders/{id}/count", id));
         assertThat(count).contains("Invoice: 2 pages photographed", "href=\"/ship/orders/" + id + "/invoice\"")
                 .doesNotContain("p1.jpg", "p2.jpg");
-        assertThat(as(cook, get("/ship/order"))).contains("href=\"/ship/orders/" + id + "/count\"")
+        assertThat(as(cook, get("/ship/order?view=progress"))).contains("href=\"/ship/orders/" + id + "/count\"")
                 .doesNotContain("href=\"/ship/orders/" + id + "/invoice\"");
         // They are the Master's receipt files.
         assertThat(as(master, get("/ship/orders/{id}/receipt", id))).contains("Page 1 · Photograph the invoice",
@@ -213,7 +213,7 @@ class InvoiceFlowTest {
     @Test
     void theMasterPhotographsTheInvoiceWhenNoCountWaits() throws Exception {
         fake.orderReference(String.valueOf(id));
-        assertThat(as(master, get("/ship/order"))).contains("href=\"/ship/orders/" + id + "/invoice\"", "Confirm receipt");
+        assertThat(as(master, get("/ship/order?view=progress"))).contains("href=\"/ship/orders/" + id + "/invoice\"", "Confirm receipt");
         assertThat(as(master, get("/ship/orders/{id}", id))).contains("href=\"/ship/orders/" + id + "/invoice\"");
         assertThat(as(master, get("/ship/orders/{id}/invoice", id)))
                 .contains("href=\"/ship/orders/" + id + "/receipt\">Count without the invoice</a>");
@@ -233,7 +233,7 @@ class InvoiceFlowTest {
         other.setCountedBy(cook);
         other.setCountSentAt(Instant.now());
         orderRepository.save(other);
-        assertThat(as(master, get("/ship/order"))).contains("href=\"/ship/orders/" + other.getId() + "/receipt\"");
+        assertThat(as(master, get("/ship/order?view=progress"))).contains("href=\"/ship/orders/" + other.getId() + "/receipt\"");
     }
 
     @Test

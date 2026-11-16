@@ -31,7 +31,10 @@ public interface ShipOrderRepository extends JpaRepository<ShipOrder, Long> {
     // The ship's next delivery: its orders with a scheduled delivery (CONFIRMED), earliest delivery first.
     Optional<ShipOrder> findFirstByShipIdAndStatusOrderByDeliveryDateAscIdAsc(Long shipId, ShipOrderStatus status);
 
-    // Past orders: newest sent first.
+    // The numbers on the tabs of Vessel order (in progress, received).
+    long countByShipIdAndStatusIn(Long shipId, Collection<ShipOrderStatus> statuses);
+
+    // The received orders of Vessel order: newest sent first.
     List<ShipOrder> findAllByShipIdAndStatusInOrderBySentAtDescIdDesc(Long shipId, Collection<ShipOrderStatus> statuses);
 
     // The Master's home page: the three most recently sent.

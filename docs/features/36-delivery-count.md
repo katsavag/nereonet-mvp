@@ -12,7 +12,7 @@ can still confirm receipt without one (no cook on board, or he is busy).
   The order keeps status CONFIRMED throughout. `core/order/DeliveryCountService` (`saveDraft`, `send`, `sendBack`)
   locks the order's row on every change, like the receipt.
 - **The count** (`shiporder/DeliveryCountController`, `DeliveryCountForm`, `shiporder/count.html`, phone first):
-  **Count delivery** on the cook's Orders in progress card ([23](23-ship-order.md), P59) and on the order page. `/ship/orders/{id}/count`
+  **Count delivery** on the cook's In progress card ([23](23-ship-order.md), P59) and on the order page. `/ship/orders/{id}/count`
   has one block per line the office did not remove, by category: the item, "Ordered 25 kg", **Received** (empty
   until counted; the receipt's rule of P60, 0 = nothing arrived) with **All arrived** (the quantity ordered;
   `js/receipt.js` fills it in, without JavaScript it saves the draft with that line filled), an optional note per
@@ -31,7 +31,7 @@ can still confirm receipt without one (no cook on board, or he is busy).
   Nothing is saved until Save draft or Send.
 - **Sent to the Master**: "Delivery counted" in the audit log (`Order #12, 3 lines counted, 1 not as ordered`); the
   ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval", linking to the
-  receipt page. Orders in progress and the Master's home **Deliveries to receive** card say "Counted by the Chief
+  receipt page. The In progress cards and the Master's home **Deliveries to receive** card say "Counted by the Chief
   cook, to approve".
 - **The Master's receipt** (`ReceiptForm.of`): prefilled with the cook's quantities (0 is Not delivered) and notes,
   a card on top with who counted, when and his note; each line says "Counted: 48 kg" and, once the Master changes

@@ -117,13 +117,13 @@ class StoresFlowTest {
         assertThat(html).contains("<title>Inventory · Nereonet</title>", "MV Demo · IMO 9074729")
                 .containsPattern("(?s)href=\"/ship/stores/items/" + rice.getId() + "\">Basmati rice</a>\\s*"
                         + "<span class=\"stores-qty\"><span class=\"num\">40</span> <span>kg</span></span>\\s*"
-                        + "<span class=\"badge status-badge status-ok\">OK</span>")
+                        + "<span class=\"stores-count-status d-inline-flex\"><span class=\"badge status-badge status-ok\">OK</span>")
                 .containsPattern("(?s)href=\"/ship/stores/items/" + oil.getId() + "\">Olive oil</a>\\s*"
                         + "<span class=\"stores-qty\"><span class=\"num\">4</span> <span>lt</span></span>\\s*"
-                        + "<span class=\"badge status-badge status-warning\">Low</span>")
+                        + "<span class=\"stores-count-status d-inline-flex\"><span class=\"badge status-badge status-warning\">Low</span>")
                 .containsPattern("(?s)href=\"/ship/stores/items/" + sugar.getId() + "\">Sugar</a>\\s*"
                         + "<span class=\"stores-qty\"><span class=\"num\">0</span> <span>kg</span></span>\\s*"
-                        + "<span class=\"badge status-badge status-danger\">Out of stock</span>")
+                        + "<span class=\"stores-count-status d-inline-flex\"><span class=\"badge status-badge status-danger\">Out of stock</span>")
                 .contains(">12.5</span> <span>kg</span>")
                 .doesNotContain("Shower gel", "Jasmine rice");
         // By place, the items without one last under "Other".
@@ -246,7 +246,7 @@ class StoresFlowTest {
         });
         assertThat(page("/ship/stores", cook)).containsPattern("(?s)href=\"/ship/stores/items/" + flour.getId()
                 + "\">Flour</a>\\s*<span class=\"stores-qty\"><span class=\"num\">7</span> <span>kg</span></span>\\s*"
-                + "<span class=\"badge status-badge status-warning\">Low</span>");
+                + "<span class=\"stores-count-status d-inline-flex\"><span class=\"badge status-badge status-warning\">Low</span>");
         assertThat(audit("STOCK_COUNTED")).singleElement().satisfies(e -> {
             assertThat(e.getDetails()).isEqualTo("Flour: 10 -> 7 kg");
             assertThat(e.getActor().getId()).isEqualTo(cook.getId());

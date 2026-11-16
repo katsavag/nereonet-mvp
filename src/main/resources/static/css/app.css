@@ -5161,15 +5161,16 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   The Master's ship order: shiporder/order.html, detail.html and list.html (its rows are .approval-row).
+   The Master's ship order: shiporder/order.html (its Received rows are .approval-row) and detail.html.
      - .order-asked-by: who asked for a line, under the item's name.
      - .order-qty-form: a line's quantity and its Save button on one row; each saves at once.
-     - .order-progress (P59): "Orders in progress" above the collecting order, one .order-progress-card per order:
+     - .order-progress-list: the In progress view, one .order-progress-card per order:
        number, status badge and item count, one line under them, the actions at the right (under it on phones, each
        button as wide as it can be). .is-overdue: a delivery whose date has passed, a warning border (the line under
        the number says it in words, with a warning icon).
+     - .order-attention: the line above the current order that links to In progress, a warning badge in a link as
+       high as a touch target.
    --------------------------------------------------------------------------------------------------------------- */
-.order-progress { margin-bottom: var(--nn-section-gap); }
 .order-progress-list {
     display: grid;
     gap: var(--nn-space-3);
@@ -5186,6 +5187,11 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     padding: var(--nn-space-3) var(--nn-space-4);
 }
 .order-progress-card.is-overdue { border-color: var(--nn-warning-border); }
+.order-attention {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--nn-touch-target);
+}
 .order-progress-main {
     flex: 1 1 18rem;
     min-width: 0;
@@ -6574,6 +6580,8 @@ input.supplier-currency { max-width: 7rem; }
        across the row; a tile is a link when it leads to a list or an order. .is-low and .is-out tint a tile
        with something in it (the number says it, the tint repeats it).
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
+     - .stores-places: the cards of the storage places, two per row from 768px (one per row on phones, where two
+       columns are too narrow for name, quantity and status).
      - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
    --------------------------------------------------------------------------------------------------------------- */
 .stores-summary { margin-bottom: var(--nn-space-4); }
@@ -6614,6 +6622,14 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .stores-fact.is-low .stores-fact-value { color: var(--nn-warning-text); }
 .stores-fact.is-out { background-color: var(--nn-danger-bg); border-color: var(--nn-danger-border); }
 .stores-fact.is-out .stores-fact-value { color: var(--nn-danger-text); }
+.stores-places {
+    display: grid;
+    gap: var(--nn-space-4);
+    align-items: start;
+}
+@media (min-width: 768px) {
+    .stores-places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .stores-row {
     display: flex;
     flex-wrap: wrap;
@@ -6749,7 +6765,8 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
        a phone target. The quantity field is wide enough for 123456.125 and tall enough for a finger.
      - .request-group-low: the Running low card, with the warning colour on its left edge (the heading says it).
      - js/request-form.js hides the rows and groups that do not match the search with [hidden].
-     - .request-filters: the list's four filters; on phones they share the full width, so all four fit.
+     - .request-filters: the list's four filters (and the three views of Vessel order); on phones they share the
+       full width, so all of them fit.
    --------------------------------------------------------------------------------------------------------------- */
 @media (max-width: 575.98px) {
     .request-filters > .view-switch { display: flex; }

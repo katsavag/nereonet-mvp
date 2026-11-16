@@ -1,38 +1,57 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.title}, ~{::main})}">
 <body>
-<!-- The Master's ship order: the OPEN order of their own ship, the approved requests added up by item. Each line
-     says who asked for it; its quantity can be changed and the line removed, each a small form that saves at once
-     (nobody is notified). Under the lines, "Send to office" with the requested port, the date needed by and an
-     optional note; after sending the order is read-only (/ship/orders/{id}). English only, as every crew screen.
-     The Chief cook (canManage false) sees the same lines and who asked, with no quantity inputs, no Remove and no
-     Send to office: one line says only the Master can change or send the order.
-     Above it, "Orders in progress": one card per order sent and not received yet (ShipOrderPageService
-     .inProgress, most urgent first), with its status, number of items and one line: the delivery port and date once
-     scheduled ("Delivery was due 12 Nov 2026, Antwerp" with a warning icon once the date has passed), else when it was
-     sent. The Master has Confirm receipt (the primary) on a scheduled delivery; everyone has Open order. No section
-     without any; with some, the OPEN order follows under "Current order".
-     The Chief cook (canCount) has Count delivery on a scheduled delivery (View count once sent); a count sent to
-     the Master says "Counted by the Chief cook, to approve", one sent back says so.
-     Model: view (ShipOrderPageService.OrderView), inProgress (ShipOrderPageService.InProgress), canManage, canCount (boolean),
-     sendForm (SendOrderForm). The quantities follow the rule of
-     the item's unit (README 35). -->
-<main th:with="v=${view}">
-    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${v.ship},
-            subtitle=${canManage} ? #{order.hint} : #{order.hint.readOnly}, actions=~{::pageActions})}">
-        <th:block th:fragment="pageActions">
-            <a class="btn btn-outline-secondary" th:href="@{/ship/orders}" th:text="#{order.past.title}">All orders</a>
-        </th:block>
-    </header>
+<!-- Vessel order of the Master's own ship, in three views switched by links under the header (?view=, the tab
+     labels with their count when above zero). English only, as every crew screen.
+     Current order (default, and for an unknown ?view=): the OPEN order, the approved requests added up by item. Each
+     line says who asked for it; its quantity can be changed and the line removed, each a small form that saves at
+     once (nobody is notified). Under the lines, "Send to office" with the requested port, the date needed by and an
+     optional note; after sending the order is read-only (/ship/orders/{id}). The Chief cook (canManage false) sees
+     the same lines and who asked, with no quantity inputs, no Remove and no Send to office: one line says only the
+     Master can change or send the order. Above the order, when orders in progress need this user, one warning
+     line that links to In progress: "1 delivery to receive" (the Master), "1 delivery to count" (the Chief cook).
+     In progress (?view=progress): one card per order sent and not received yet, most urgent first, with its status,
+     number of items and one line: the delivery port and date once scheduled ("Delivery was due 12 Nov 2026, Antwerp"
+     with a warning icon once the date has passed), else when it was sent. The Master has Confirm receipt (the
+     primary) on a scheduled delivery; everyone has Open order. The Chief cook (canCount) has Count delivery on a
+     scheduled delivery (View count once sent); a count sent to the Master says "Counted by the Chief cook, to
+     approve", one sent back says so.
+     Received (?view=received): the received orders, newest sent first, each row one link (the order number,
+     stretched over the row) with its delivery port and date, a neutral status and when it was sent.
+     Model: orderPage (ShipOrderPageService.OrderPage: only the chosen view is loaded), canManage, canCount
+     (boolean), sendForm (SendOrderForm). The quantities follow the rule of the item's unit. -->
+<main th:with="op=${orderPage}, v=${orderPage.current}, tab=${orderPage.view}">
+    <header th:replace="~{layout/parts :: pageHeader(heading=#{order.title}, eyebrowShip=${op.ship},
+            subtitle=${tab != 'current'} ? null : (${canManage} ? #{order.hint} : #{order.hint.readOnly}))}"></header>
 
-    <section th:unless="${inProgress.isEmpty()}" class="order-progress" aria-labelledby="inProgressTitle">
-        <h2 class="h5 fw-bold mb-3" id="inProgressTitle" th:text="#{order.progress.heading}">Orders in progress</h2>
-        <ul class="order-progress-list">
-            <li th:each="p : ${inProgress}" th:with="o=${p.order}" class="card order-progress-card"
+    <div class="request-filters">
+    <nav th:replace="~{layout/parts :: viewSwitch(#{order.view.label}, ~{::orderViews})}">
+        <th:block th:fragment="orderViews">
+            <a class="view-switch-link" th:href="@{/ship/order}" th:aria-current="${tab == 'current'} ? 'page'">
+                <span th:text="#{order.current.heading}">Current order</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/order(view='progress')}" th:aria-current="${tab == 'progress'} ? 'page'">
+                <span th:text="#{order.view.progress}">In progress</span>
+                <span th:if="${op.progressCount > 0}" class="num" th:text="${op.progressCount}">2</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/order(view='received')}" th:aria-current="${tab == 'received'} ? 'page'">
+                <span th:text="#{order.view.received}">Received</span>
+                <span th:if="${op.receivedCount > 0}" class="num" th:text="${op.receivedCount}">12</span>
+            </a>
+        </th:block>
+    </nav>
+    </div>
+
+    <th:block th:if="${tab == 'progress'}">
+        <div th:if="${op.inProgress.isEmpty()}" class="card">
+            <p class="card-body mb-0" th:text="#{order.progress.empty}">Nothing in progress</p>
+        </div>
+        <ul th:unless="${op.inProgress.isEmpty()}" class="order-progress-list">
+            <li th:each="p : ${op.inProgress}" th:with="o=${p.order}" class="card order-progress-card"
                 th:classappend="${p.overdue} ? 'is-overdue'" th:attr="data-order=${o.id}">
                 <div class="order-progress-main">
                     <div class="order-progress-title">
-                        <h3 class="h6 fw-bold mb-0" th:text="#{order.number(${o.id})}">Order #12</h3>
+                        <h2 class="h6 fw-bold mb-0" th:text="#{order.number(${o.id})}">Order #12</h2>
                         <span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span>
                         <span class="small text-body-secondary" th:text="#{order.lineCount(${p.itemCount})}">3 items</span>
                     </div>
@@ -67,9 +86,38 @@
                 </div>
             </li>
         </ul>
-    </section>
+    </th:block>
 
-    <h2 th:unless="${inProgress.isEmpty()}" class="h5 fw-bold mb-3" th:text="#{order.current.heading}">Current order</h2>
+    <th:block th:if="${tab == 'received'}">
+        <div class="card">
+            <p th:if="${op.received.isEmpty()}" class="card-body mb-0" th:text="#{order.received.empty}">No received orders yet</p>
+            <ul th:unless="${op.received.isEmpty()}" class="list-group list-group-flush">
+                <li th:each="o : ${op.received}" class="list-group-item list-group-item-action approval-row">
+                    <div class="approval-row-main">
+                        <a class="approval-row-title fw-normal stretched-link" th:href="@{/ship/orders/{id}(id=${o.id})}"
+                           th:text="#{order.number(${o.id})}">Order #12</a>
+                        <p th:if="${o.confirmedPort != null or o.deliveryDate != null}" class="approval-row-meta">
+                            <span th:if="${o.confirmedPort != null}" th:text="#{order.confirmedAt(${o.confirmedPort})}">Delivery: Antwerp</span>
+                            <span th:if="${o.confirmedPort != null and o.deliveryDate != null}" aria-hidden="true">·</span>
+                            <span th:if="${o.deliveryDate != null}">[[#{order.deliveryDate}]] <time th:replace="~{layout/parts :: localDate(${o.deliveryDate})}"></time></span>
+                        </p>
+                    </div>
+                    <div class="approval-row-decision">
+                        <span th:replace="~{layout/parts :: status('neutral', #{${o.status.labelKey()}})}"></span>
+                        <span>[[#{order.sentBy}]] <time th:replace="~{layout/parts :: utcDate(${o.sentAt})}"></time></span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </th:block>
+
+    <th:block th:if="${tab == 'current'}">
+    <!-- Nothing urgent hides behind a tab: the orders in progress that need this user. -->
+    <p th:if="${op.attention > 0}" class="mb-3">
+        <a class="order-attention" th:href="@{/ship/order(view='progress')}"
+           th:with="text=${canManage} ? #{order.attention.receive(${op.attention})} : #{order.attention.count(${op.attention})}"><span
+                th:replace="~{layout/parts :: statusIcon('warning', ${text}, 'alert')}"></span></a>
+    </p>
 
     <div th:if="${v.empty}" class="card">
         <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.empty.title},
@@ -129,6 +177,7 @@
                 </form>
             </div>
         </section>
+    </th:block>
     </th:block>
 </main>
 </body>

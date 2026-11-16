@@ -25,7 +25,7 @@ the Master's rules): the Master and crew members get 403. The pages always show 
   The cook's Home ([18](18-crew-home.md)) has an **Inventory** card above To read with both counts ("2 low · 1 out of stock"), tinted
   while either is above zero. The Master's home gets its Inventory card later.
 - **The store** (`/ship/stores`, titled "Inventory"): a summary first, **Low** and **Out of stock** (each a link to
-  that filter, tinted when above zero) and **Last count** (the date of the latest COUNT movement, or "Not counted
+  that filter, tinted when above zero) and **Last count** (a link to History; the date of the latest COUNT movement, or "Not counted
   yet") and **Requests waiting**: the cook's own requests still waiting for the Master, a link to
   Requests filtered to Waiting ([31](31-requests.md)); **Next delivery** ("Antwerp, 20 Nov 2026", a link to that order,
   read only for the cook, 32; "None scheduled" without one). Five tiles in a row from 1200 px; below, two per row,
@@ -34,7 +34,7 @@ the Master's rules): the Master and crew members get 403. The pages always show 
   name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
   filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
   alphabetical, the items without a place last under **Other**; each row is one link to the item with its
-  quantity and unit and its status badge (OK, Low, Out of stock; words, the colour only repeats them). No paging:
+  quantity and unit and its status badge (OK, Low, Out of stock; words, the colour only repeats them). The cards are two per row from 768 px. The header has one button, **Count**. No paging:
   the whole store. Nothing found: "No results for these filters" with **Clear all**; no provisions at all: "No
   provisions yet".
 - **An item** (`/ship/stores/items/{id}`): its quantity and status, unit and place ("Not set"), then its history,
@@ -62,7 +62,7 @@ the Master's rules): the Master and crew members get 403. The pages always show 
     value kept (JSON: 422). Offline or a dropped connection: "Not saved: no connection…" under the row. There is no
     Save for the page and nothing to resume: the forms carry `data-autosave`, so `js/save.js` never asks "leave this
     page?" there.
-  - **History** (a button on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
+  - **History** (the Last count tile on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
     page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
     difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
     (both included; not a date: its error under the field, nothing filtered). P58: the dates use the shared

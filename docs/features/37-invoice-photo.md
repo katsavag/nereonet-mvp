@@ -5,7 +5,7 @@ Master, when no count is waiting for him) photographs the supplier's invoice fir
 invoice lines (P70) and the server checks them. The checks are stored for later (P64 shows them to the office); the lines guide the cook's count ([38](38-invoice-guided-count.md)). The
 invoice only helps: **Count without the invoice** is always there, and a reading that fails never loses a photo.
 - **Where**: while the order is CONFIRMED and no invoice page is photographed yet, **Count delivery** (the cook,
-  36) and **Confirm receipt** (the Master, with no count of the cook to approve) on Orders in progress and on the
+  36) and **Confirm receipt** (the Master, with no count of the cook to approve) on the In progress cards and on the
   order page open `/ship/orders/{id}/invoice` instead of the count or the receipt
   (`ShipOrderPageService.invoiceFirstForCook`/`invoiceFirstForMaster`); afterwards they go straight on, and the
   count and the receipt say "Invoice: 2 pages photographed" with a link back.
