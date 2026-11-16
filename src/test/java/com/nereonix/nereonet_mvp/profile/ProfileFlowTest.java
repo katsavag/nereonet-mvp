@@ -192,7 +192,7 @@ class ProfileFlowTest {
     @Test
     void bioIsPlainTextOfAtMost280CharactersWithLineBreaks() throws Exception {
         String html = page(get("/ship/profile/bio"), cook);
-        assertThat(html).contains("data-draft=\"/ship/profile/bio\"", "Up to 280 characters", "data-max=\"280\"",
+        assertThat(html).contains("data-draft=\"/ship/profile/bio\"", "data-max=\"280\"",
                 "aria-describedby=\"bioHint bioCounter\"");
 
         // 281 characters: refused, nothing stored.

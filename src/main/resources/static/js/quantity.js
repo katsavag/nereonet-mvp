@@ -4,7 +4,7 @@
 //    (Greek keyboards). Letters, spaces and signs are dropped as they are typed.
 //  - The limit is checked as the person types: too many decimals ("Use whole numbers for pcs.") or above
 //    data-quantity-max ("Up to 2000 kg per line. ...") marks the field invalid and shows the message in its hint
-//    ([data-quantity-hint] named in aria-describedby); fine again, the hint shows the limit. data-quantity-kept: the
+//    ([data-quantity-hint] named in aria-describedby); fine again, the hint is empty. data-quantity-kept: the
 //    value already saved, never flagged.
 //  - The rule can change on the page: set data-quantity-max / -decimals / -unit and dispatch "quantity-rule" on the
 //    input (js/item-search.js, Add an item). data-quantity-unit-field="newUnit": the unit is typed in that field, and
@@ -43,11 +43,6 @@
             unit: input.dataset.quantityUnit || t.unitNone || '',
             decimals: input.dataset.quantityDecimals || '0'
         };
-    }
-
-    function limitText(input) {
-        const v = values(input);
-        return fill(v.decimals === '0' ? t.hintWhole : t.hintMax, v);
     }
 
     // Keeps digits and the first separator; a comma becomes a dot. Keeps the caret where it was.
@@ -114,11 +109,11 @@
         } else if (input.dataset.quantityServerError !== 'true') {
             input.removeAttribute('aria-invalid');
         }
-        // While the server's error is shown under the field (nothing typed since), the hint keeps the limit: the
-        // same message twice would be read twice.
+        // While the server's error is shown under the field (nothing typed since), the hint stays empty: the same
+        // message twice would be read twice.
         const live = message !== null && input.dataset.quantityServerError !== 'true';
         if (hint) {
-            hint.textContent = live ? message : limitText(input);
+            hint.textContent = live ? message : '';
             hint.classList.toggle('quantity-hint-error', live);
         }
     }

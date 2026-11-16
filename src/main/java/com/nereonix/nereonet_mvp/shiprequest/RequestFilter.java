@@ -5,12 +5,13 @@ import java.util.Set;
 
 import com.nereonix.nereonet_mvp.core.request.RequestStatus;
 
-// The filter of /ship/requests, chosen with ?status=waiting|decided; anything else is All. Waiting: PENDING.
-// Decided: no longer waiting, whether the Master approved or declined it or the person who asked cancelled it.
+// The filter of /ship/requests, chosen with ?status=waiting|approved|declined; anything else is All. Waiting:
+// PENDING. Approved: APPROVED. Declined: REJECTED. A cancelled request is under All only.
 public enum RequestFilter {
     ALL(Set.of(RequestStatus.values())),
     WAITING(Set.of(RequestStatus.PENDING)),
-    DECIDED(Set.of(RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.CANCELLED));
+    APPROVED(Set.of(RequestStatus.APPROVED)),
+    DECLINED(Set.of(RequestStatus.REJECTED));
 
     private final Set<RequestStatus> statuses;
 

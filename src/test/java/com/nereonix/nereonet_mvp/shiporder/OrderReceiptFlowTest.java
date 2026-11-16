@@ -341,9 +341,10 @@ class OrderReceiptFlowTest {
 
     @Test
     void theReceivedQuantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
-        // P60: the limit under each field; 0 is Not delivered.
+        // P60: each field carries the limit of its unit; 0 is Not delivered.
         String form = asMaster(get("/ship/orders/{id}/receipt", order.getId()));
-        assertThat(form).contains("Up to 2000 kg", "Up to 2000 l", "Whole numbers, up to 5000 pcs", "data-quantity-texts");
+        assertThat(form).contains("data-quantity-max=\"2000\"", "data-quantity-max=\"5000\"", "data-quantity-texts")
+                .doesNotContain("Up to 2000 kg", "Whole numbers, up to 5000 pcs");
 
         String now = INPUT.format(LocalDateTime.now(ZoneOffset.UTC));
         String errors = mockMvc.perform(receipt(post("/ship/orders/{id}/receipt", order.getId()),

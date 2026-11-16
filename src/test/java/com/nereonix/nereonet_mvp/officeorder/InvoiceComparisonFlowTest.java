@@ -217,9 +217,9 @@ class InvoiceComparisonFlowTest {
         assertThat(rice.getInvoicedQuantity()).isEqualByComparingTo("60");
         assertThat(rice.getReceivedQuantity()).isEqualByComparingTo("110");
         assertThat(page("/office/orders/" + id)).contains("Received 50 kg more than invoiced",
-                "The store was updated with the old match. Ask the vessel to count these items.");
+                "The inventory was updated with the old match. Ask the vessel to count these items.");
         assertThat(notifications(cook)).extracting(Notification::getText).contains("Order " + id
-                + ": the office corrected \"BASMATI RICE 10KG\" (Basmati rice). The store was updated before the "
+                + ": the office corrected \"BASMATI RICE 10KG\" (Basmati rice). The inventory was updated before the "
                 + "correction: please count these items.");
         mockMvc.perform(post("/office/orders/{id}/invoice/lines/{l}/factor", id, riceLine.getId()).param("factor", "10")
                         .with(csrf()));

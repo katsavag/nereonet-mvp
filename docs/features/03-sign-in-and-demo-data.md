@@ -11,7 +11,7 @@ active Master / Chief cook, it creates the users `master.demo@example.com` and `
 `crew123`). The first ship also gets three more crew members with sample profiles for My crew (see [20](20-my-profile-and-my-crew.md)),
 and, while it has none, two requests waiting for its Master (see [21](21-approvals.md)), with four demo items. No approved requests are seeded: the Master approves these and sends the ship order ([23](23-ship-order.md)), which the office then sees
 on **Orders** ([24](24-office-orders.md)). While that ship has no stock at all, its provisions get some for the Chief cook's
-**Stores** ([30](30-stores.md)): several OK, two Low and two Out of stock.
+**Inventory** ([30](30-stores.md)): several OK, two Low and two Out of stock.
 While that ship's library is empty it also gets two text items: "Galley hygiene rules" (Ship rules) and
 "Drug and alcohol policy" (Company policies, required).
 Once (while there is no ship with IMO 9300001): three bulk carriers with RightShip data entered by hand,

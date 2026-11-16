@@ -9,12 +9,13 @@ ask, they decide (21, 22), and gets 403. A request is not an order: only an appr
   waiting for the Master (one count query, `ItemRequestRepository.countByRequestedByEmailAndStatus`); on phones the
   Chief cook's third tab (P65) and a row of **More** for crew members, with the same number (the More tab adds it
   to its badge). Home ([18](18-crew-home.md)) has a **My requests** card for crew members ("1 waiting"), and the
-  cook's Stores summary a **Requests
+  cook's Inventory summary a **Requests
   waiting** tile ([30](30-stores.md)).
 - **List** (`/ship/requests`): the signed-in person's own requests, newest first: the request number (one link over
   the row), when it was sent (UTC), the number of items and the status (`request.status.*`: Waiting for the master,
   Approved, Declined, Cancelled). Filters as ordinary links with their counts: **All**, **Waiting**
-  (`?status=waiting`, PENDING) and **Decided** (`?status=decided`: approved, declined or cancelled). **New request**
+  (`?status=waiting`, PENDING), **Approved** (`?status=approved`) and **Declined** (`?status=declined`, REJECTED);
+  a cancelled request is under All only, and an unknown `?status=` shows All. **New request**
   in the header; with no request yet the empty state carries it. Not paged.
 - **A request** (`/ship/requests/{id}`): when it was sent, its status, who decided and when, the Master's reason when
   declined; then its lines by category (Provisions, then Personal items): item, unit, quantity, with a **New item**

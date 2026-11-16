@@ -114,7 +114,7 @@ class StoresFlowTest {
     void theCookSeesEachItemWithItsQuantityAndStatus() throws Exception {
         String html = page("/ship/stores", cook);
 
-        assertThat(html).contains("<title>Stores · Nereonet</title>", "MV Demo · IMO 9074729")
+        assertThat(html).contains("<title>Inventory · Nereonet</title>", "MV Demo · IMO 9074729")
                 .containsPattern("(?s)href=\"/ship/stores/items/" + rice.getId() + "\">Basmati rice</a>\\s*"
                         + "<span class=\"stores-qty\"><span class=\"num\">40</span> <span>kg</span></span>\\s*"
                         + "<span class=\"badge status-badge status-ok\">OK</span>")
@@ -136,7 +136,7 @@ class StoresFlowTest {
                         + "<span class=\"stores-fact-value num\">1</span>")
                 .contains("Not counted yet");
         // The sidebar counter: Low plus Out of stock.
-        assertThat(html).containsPattern("<span[^>]*>Stores</span>\\s*<span class=\"nav-count num\""
+        assertThat(html).containsPattern("<span[^>]*>Inventory</span>\\s*<span class=\"nav-count num\""
                 + " aria-hidden=\"true\">2</span>");
     }
 
@@ -324,19 +324,19 @@ class StoresFlowTest {
                                 new DefaultMessageSourceResolvable(new String[] {"quantity.error.max.count"},
                                         new Object[] {"20000", "lt"}))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html).containsOnlyOnce("Up to 20000 lt in the store. Check the count.")
+        assertThat(html).containsOnlyOnce("Up to 20000 lt in the inventory. Check the count.")
                 .containsOnlyOnce("is-invalid")
                 .containsPattern("<input(?=[^>]*id=\"count-" + oil.getId() + "\")(?=[^>]*is-invalid)"
                         + "(?=[^>]*aria-invalid=\"true\")(?=[^>]*value=\"20001\")")
                 .containsPattern("id=\"count-" + oil.getId() + "-error\" data-count-error>Up to 20000 lt");
-        // The limit under each field.
-        assertThat(html).contains("Up to 20000 kg");
+        // No limit under the other fields: each carries it for the script.
+        assertThat(html).doesNotContain("Up to 20000 kg").contains("data-quantity-max=\"20000\"");
 
         // The same answer for the script (422 with the error).
         mockMvc.perform(post("/ship/stores/items/{id}/count", oil.getId()).param("quantity", "20001")
                         .accept(MediaType.APPLICATION_JSON).with(user(new CurrentUser(cook))).with(csrf()))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.error").value("Up to 20000 lt in the store. Check the count."));
+                .andExpect(jsonPath("$.error").value("Up to 20000 lt in the inventory. Check the count."));
     }
 
     @Test
@@ -344,7 +344,7 @@ class StoresFlowTest {
         assertThat(page("/ship/stores", cook)).contains("href=\"/ship/stores/count\"", "href=\"/ship/stores/history\"");
 
         String html = page("/ship/stores/count", cook);
-        assertThat(html).contains("<title>Count the store · Nereonet</title>", "js/stores-count", "data-autosave")
+        assertThat(html).contains("<title>Count the inventory · Nereonet</title>", "js/stores-count", "data-autosave")
                 .doesNotContain("Shower gel", "Jasmine rice")
                 .containsPattern("<input type=\"text\"[^>]*id=\"count-" + rice.getId()
                         + "\"[^>]*value=\"40\"[^>]*inputmode=\"decimal\"")

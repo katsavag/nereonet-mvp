@@ -141,10 +141,11 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     - errors: a form posted with more than one error starts with a summary ("This form has 3 errors",
       `layout/parts :: errorSummary`) linking to each field in page order; `js/forms.js` moves focus to it (in a
       pop-up once it has opened) and puts each field's label before its message;
-    - character limits: every field with a `@Size(max)` in its form class shows a counter under it
+    - character limits: every field with a `@Size(max)` in its form class has a counter under it
       (`layout/parts :: counter`; the limit is read from the form class by the `formFields` bean,
-      `core/form/FormFields`). Without JavaScript it reads "Up to 5,000 characters"; `js/forms.js` turns it into
-      "123 / 5,000" while typing, and "5,012 / 5,000 · 12 too many" in red and bold over the limit. Announcement
+      `core/form/FormFields`). It is hidden until the text reaches 75 % of the limit; then `js/forms.js` shows
+      "3,800 / 5,000" while typing, and "5,012 / 5,000 · 12 too many" in red and bold over the limit. Without
+      JavaScript it stays hidden: `maxlength` and the server's message cover the limit. Announcement
       messages and ship particulars count a line break as one character, as the server does;
     - pop-up or page: a pop-up only for short forms (add and edit ship, invite office user, add crew member, also on a ship's Crew tab), everything else is a full page;
     - file inputs show the accepted types and the size limit before a file is chosen ("PDF, DOCX or XLSX, at most

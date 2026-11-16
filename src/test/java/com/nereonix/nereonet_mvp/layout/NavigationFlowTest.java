@@ -172,7 +172,7 @@ class NavigationFlowTest {
                 "<p class=\"nav-group-label\" id=\"navGroupSupplies\">Supplies</p>",
                 "<ul class=\"nav flex-column\" aria-labelledby=\"navGroupSupplies\">", "href=\"/ship/requests\"",
                 "href=\"/ship/stores\"", "</ul>", ">Account</p>");
-        assertActive(get("/ship/stores").with(user(new CurrentUser(cook))), "/ship/stores", "Stores");
+        assertActive(get("/ship/stores").with(user(new CurrentUser(cook))), "/ship/stores", "Inventory");
         assertThat(sidebar(get("/ship").with(user(new CurrentUser(crew))))).contains(">Supplies</p>");
         // The office has no Supplies group.
         assertThat(sidebar(get("/office"))).doesNotContain("navGroupSupplies");

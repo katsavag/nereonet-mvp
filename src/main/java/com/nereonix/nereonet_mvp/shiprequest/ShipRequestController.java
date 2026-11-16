@@ -47,7 +47,7 @@ public class ShipRequestController {
         binder.setAutoGrowCollectionLimit(MAX_LINES);
     }
 
-    // status: waiting or decided; anything else is All.
+    // status: waiting, approved or declined; anything else is All.
     @GetMapping(PATH)
     public String list(@AuthenticationPrincipal CurrentUser currentUser,
                        @RequestParam(required = false) String status, Model model) {

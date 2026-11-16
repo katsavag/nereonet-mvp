@@ -24,5 +24,5 @@ of the provisions is added to the Chief cook's store ([30](30-stores.md)), in th
   provisions stock 8 higher with one RECEIPT movement linked to the order, no stock for the personal item, the
   cook's notification, the link on the item page).
 - To try it: as in [32](32-cook-reads-order.md), send the order and schedule its delivery; as `master.demo@example.com` confirm its receipt.
-  Then as `cook.demo@example.com` the notification opens Stores, and the item's history shows the delivery with
+  Then as `cook.demo@example.com` the notification opens Inventory, and the item's history shows the delivery with
   its order.

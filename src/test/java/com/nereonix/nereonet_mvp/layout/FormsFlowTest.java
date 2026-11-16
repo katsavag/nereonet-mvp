@@ -130,23 +130,25 @@ class FormsFlowTest {
     }
 
     @Test
-    void countersShowTheLimitFromTheFormClassWithoutJavaScript() throws Exception {
+    void countersTakeTheLimitFromTheFormClassAndStayHiddenWithoutJavaScript() throws Exception {
         assertThat(formFields.maxLength(new AnnouncementForm(), "body")).isEqualTo(5000);
         assertThat(formFields.maxLength(new ParticularsForm(), "text")).isEqualTo(20_000);
         assertThat(formFields.maxLength(new EditShipForm(), "flag")).isNull();
 
         String html = page("/office/announcements/new");
-        assertThat(html).contains("data-counter-for=\"body\"", "data-max=\"5000\"", "Up to 5,000 characters",
+        assertThat(html).contains("data-counter-for=\"body\"", "data-max=\"5000\"",
                 "data-counter-for=\"title\"", "data-max=\"200\"", "aria-describedby=\"bodyHint bodyCounter\"",
-                "data-template=\"{count} / {max}\"", "data-over-template=\"{count} / {max} · {over} too many\"");
+                "data-template=\"{count} / {max}\"", "data-over-template=\"{count} / {max} · {over} too many\"")
+                .containsPattern("<div class=\"form-counter\" id=\"bodyCounter\" hidden[^>]*></div>")
+                .doesNotContain("Up to 5,000 characters");
 
         String greek = mockMvc.perform(get("/office/announcements/new").param("lang", "el"))
                 .andReturn().getResponse().getContentAsString();
-        assertThat(greek).contains("Έως 5.000 χαρακτήρες");
+        assertThat(greek).contains("data-counter-for=\"body\"").doesNotContain("Έως 5.000 χαρακτήρες");
 
         Ship ship = ship();
         assertThat(page("/office/ships/" + ship.getId() + "/library/particulars"))
-                .contains("data-counter-for=\"text\"", "data-max=\"20000\"", "Up to 20,000 characters");
+                .contains("data-counter-for=\"text\"", "data-max=\"20000\"");
         assertThat(page("/office/ships/" + ship.getId() + "/items/new"))
                 .contains("data-counter-for=\"unit\"", "data-max=\"20\"");
     }

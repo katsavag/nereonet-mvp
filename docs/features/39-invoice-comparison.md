@@ -35,9 +35,9 @@ with each difference. `core/order/InvoiceComparison` (pure), `InvoiceComparisonS
   order's lines, the vessel's other items, which become a line added on receipt with nothing received, or Not
   ordered), another factor (inline, more than 0, at most 100000), or a line corrected on View invoice. Changing a
   match or a conversion corrects the comparison and the learned name only, never the store: the message and the
-  point say "The store was updated with the old match. Ask the vessel to count these items." and the vessel's
-  Chief cook gets "Order 12: the office corrected "BASMATI RICE 10KG" (Basmati rice). The store was updated before
-  the correction: please count these items." (linking to Stores; English only). A decided point stays listed with
+  point say "The inventory was updated with the old match. Ask the vessel to count these items." and the vessel's
+  Chief cook gets "Order 12: the office corrected "BASMATI RICE 10KG" (Basmati rice). The inventory was updated before
+  the correction: please count these items." (linking to Inventory; English only). A decided point stays listed with
   who and when.
 - **Accept** a difference with a required note (up to 500 characters, "Credit note requested from the supplier").
   A decision holds only while the difference stays what it was (`InvoiceDecision.detail`): a later correction that

@@ -365,9 +365,7 @@
                                         value=${addFailed} ? ${addQuantityError.value} : null, rule=null,
                                         cls='', invalid=${addFailed},
                                         describedBy=${'addQuantityHint' + (addFailed ? ' addQuantityError' : '')})}">
-                                <span class="form-text quantity-hint" id="addQuantityHint" data-quantity-hint
-                                      th:data-empty="#{officeorder.edit.add.limitHint}"
-                                      th:text="#{officeorder.edit.add.limitHint}">The limit depends on the item's unit.</span>
+                                <span class="form-text quantity-hint" id="addQuantityHint" data-quantity-hint></span>
                                 <span th:if="${addFailed}" class="quantity-line-error text-start" id="addQuantityError"
                                       th:text="${#messages.msgWithParams(addQuantityError.message.codes[0], addQuantityError.message.arguments)}">Up to 2000 kg per line.</span>
                             </th:block>

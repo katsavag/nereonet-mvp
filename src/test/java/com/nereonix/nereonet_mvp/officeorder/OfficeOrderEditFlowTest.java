@@ -280,11 +280,11 @@ class OfficeOrderEditFlowTest {
     void addAnItemAndTheLinesFollowTheRuleOfTheItemsUnit() throws Exception {
         // P60: each item of Add an item carries its limit for the script; the hint says it depends on the unit.
         String page = page("/office/orders/" + order.getId());
-        assertThat(page).contains("The limit depends on the item", "data-quantity-texts")
+        assertThat(page).contains("id=\"addQuantityHint\" data-quantity-hint></span>", "data-quantity-texts")
                 .containsPattern("value=\"" + oil.getId() + "\"[^>]*data-quantity-max=\"2000\" data-quantity-decimals=\"3\"")
                 .containsPattern("id=\"addQuantity\"[^>]*type=\"text\"|type=\"text\"[^>]*id=\"addQuantity\"")
-                // Each line shows its own limit.
-                .contains("Up to 2000 kg", "Whole numbers, up to 5000 pcs");
+                // No limit is shown before a value breaks it.
+                .doesNotContain("Up to 2000 kg", "Whole numbers, up to 5000 pcs");
 
         // Too much, letters, decimals for pcs: nothing added, the error with the item's name, the item still chosen
         // and the value typed back in the field.

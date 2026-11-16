@@ -1,7 +1,7 @@
 // Form helpers (P05). Only enhancements: without this script every form still shows its limits and help text, the
 // error summary still links to the fields, and the forms submit as usual.
-//  - [data-counter-for]: the counter under a field with a character limit, "123 / 4,000" while typing; the page
-//    shows "Up to 4,000 characters" until this runs. Texts come from data-template / data-over-template, where
+//  - [data-counter-for]: the counter under a field with a character limit, hidden until the text reaches 75 % of
+//    the limit, then "3,200 / 4,000" while typing. Texts come from data-template / data-over-template, where
 //    {count}, {max} and {over} are replaced.
 //  - .error-summary: gets focus when the page loads (in a modal: when the modal has opened); its links focus the
 //    field and scroll its label into view, and start with the field's label ("Title: Too long.").
@@ -53,6 +53,7 @@
             counter.textContent = fill(over > 0 ? counter.dataset.overTemplate : counter.dataset.template,
                 {count: integer.format(count), max: integer.format(max), over: integer.format(over)});
             counter.classList.toggle('is-over', over > 0);
+            counter.hidden = count < max * 0.75;
         };
         field.addEventListener('input', update);
         update();

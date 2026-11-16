@@ -883,17 +883,17 @@
 <span th:fragment="optional" class="form-label-optional" th:text="#{form.optional}">(optional)</span>
 
 <!-- Character counter of a field with a server-side maximum: the @Size(max) of property in the form's class
-     (@formFields.maxLength); nothing when it has none. Without JavaScript it reads "Up to 4,000 characters";
-     js/forms.js turns it into "123 / 4,000" as the user types. Put it in the field's .form-meta, after the help
-     text, and its id (fieldId + 'Counter') in the field's aria-describedby.
+     (@formFields.maxLength); nothing when it has none. Empty and hidden until the text reaches 75 % of the limit:
+     then js/forms.js shows "3,200 / 4,000" as the user types. Without JavaScript it stays hidden (maxlength and the
+     server's message cover the limit). Put it in the field's .form-meta, after the help text, and its id
+     (fieldId + 'Counter') in the field's aria-describedby.
      Use: <div th:replace="~{layout/parts :: counter(${form}, 'title', 'title')}"></div>
      form: the form object; property: its field; fieldId: the input's id (usually the same as property). -->
 <th:block th:fragment="counter(form, property, fieldId)" th:with="max=${@formFields.maxLength(form, property)}">
-    <div th:if="${max != null}" class="form-counter" th:id="${fieldId + 'Counter'}"
+    <div th:if="${max != null}" class="form-counter" th:id="${fieldId + 'Counter'}" hidden
          th:data-counter-for="${fieldId}" th:data-max="${max}"
          th:data-template="#{form.counter.count('{count}', '{max}')}"
-         th:data-over-template="#{form.counter.over('{count}', '{max}', '{over}')}"
-         th:text="#{form.counter.limit(${max})}">Up to 4,000 characters</div>
+         th:data-over-template="#{form.counter.over('{count}', '{max}', '{over}')}"></div>
 </th:block>
 
 <!-- Quantity fields: one rule per unit, core/form/QuantityRules (@quantityRules). A text input, so a comma works
@@ -922,17 +922,14 @@
                 aria-describedby=${describedBy}, aria-label=${ariaLabel},
                 aria-invalid=${invalid == true} ? 'true' : null">
 
-<!-- The limit under a quantity field: "Up to 2000 kg" or "Whole numbers, up to 5000 pcs". js/quantity.js shows its
-     live errors here (and puts the limit back once the value is fine). Its id goes in the field's aria-describedby. -->
-<span th:fragment="quantityHint(rule, hintId)" class="form-text quantity-hint" th:id="${hintId}" data-quantity-hint
-      th:text="${#messages.msgWithParams(rule.hintKey(), rule.hintArgs())}">Up to 2000 kg</span>
+<!-- The slot under a quantity field where js/quantity.js shows its live errors ("Up to 2000 kg per line. ..."); empty
+     while the value is fine. Its id goes in the field's aria-describedby. rule: the field's rule (not read here). -->
+<span th:fragment="quantityHint(rule, hintId)" class="form-text quantity-hint" th:id="${hintId}" data-quantity-hint></span>
 
-<!-- The texts of js/quantity.js, once per page with quantity fields: the hints and live errors, {max} {unit} and
+<!-- The texts of js/quantity.js, once per page with quantity fields: the live errors, {max} {unit} and
      {decimals} filled in by the script. use: the page's QuantityRules.Use ('REQUEST', 'RECEIPT', ...), for the wording
      of "too much"; units: the units JSON (only where a unit is typed on the page, the request's new item). -->
 <div th:fragment="quantityTexts(use, units)" hidden data-quantity-texts
-     th:data-hint-max="#{quantity.hint.max('{max}', '{unit}')}"
-     th:data-hint-whole="#{quantity.hint.whole('{max}', '{unit}')}"
      th:data-error-whole="#{quantity.error.whole('{unit}')}"
      th:data-error-decimals="#{quantity.error.decimals('{decimals}', '{unit}')}"
      th:data-error-max="${#messages.msg('quantity.error.max.' + #strings.toLowerCase(#strings.replace(use, '_', '')), '{max}', '{unit}')}"

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.list.title}, ~{::main})}">
 <body>
-<!-- The Chief cook's and crew's own requests to the Master, newest first. Three filters (ordinary links,
-     ?status=...), each with its count: All, Waiting (for the master) and Decided (approved, declined or cancelled).
+<!-- The Chief cook's and crew's own requests to the Master, newest first. Four filters (ordinary links,
+     ?status=...), each with its count: All, Waiting (for the master), Approved and Declined; a cancelled request is
+     under All only.
      Each row is one link (the request number, stretched over the row) with when it was sent and its number of items,
      and its status badge (request.status.*). "New request" in the header; with no request at all it moves into the
      empty state. English only, as every crew screen. Model: requests (ShipRequestService.Requests). -->
@@ -16,7 +17,7 @@
     </header>
 
     <!-- th:unless on a wrapper: th:replace runs before th:unless on the same element. -->
-    <th:block th:unless="${none}">
+    <div class="request-filters" th:unless="${none}">
     <nav th:replace="~{layout/parts :: viewSwitch(#{request.list.filters}, ~{::requestFilters})}">
         <th:block th:fragment="requestFilters">
             <a class="view-switch-link" th:href="@{/ship/requests}" th:aria-current="${filter == 'ALL'} ? 'page'">
@@ -27,13 +28,17 @@
                 <span th:text="#{request.filter.waiting}">Waiting</span>
                 <span class="num" th:text="${r.waiting}">1</span>
             </a>
-            <a class="view-switch-link" th:href="@{/ship/requests(status='decided')}" th:aria-current="${filter == 'DECIDED'} ? 'page'">
-                <span th:text="#{request.filter.decided}">Decided</span>
-                <span class="num" th:text="${r.decided}">3</span>
+            <a class="view-switch-link" th:href="@{/ship/requests(status='approved')}" th:aria-current="${filter == 'APPROVED'} ? 'page'">
+                <span th:text="#{request.filter.approved}">Approved</span>
+                <span class="num" th:text="${r.approved}">2</span>
+            </a>
+            <a class="view-switch-link" th:href="@{/ship/requests(status='declined')}" th:aria-current="${filter == 'DECLINED'} ? 'page'">
+                <span th:text="#{request.filter.declined}">Declined</span>
+                <span class="num" th:text="${r.declined}">1</span>
             </a>
         </th:block>
     </nav>
-    </th:block>
+    </div>
 
     <div class="card">
         <th:block th:if="${none}">

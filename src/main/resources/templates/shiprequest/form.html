@@ -100,10 +100,9 @@
                     <div class="field-half">
                         <label for="newUnit" class="form-label">[[#{request.form.newItem.unit}]] <span th:replace="~{layout/parts :: optional}"></span></label>
                         <input type="text" class="form-control" th:field="*{newUnit}" th:errorclass="is-invalid"
-                               autocomplete="off" aria-describedby="newUnitHint newUnitCounter">
+                               autocomplete="off" aria-describedby="newUnitCounter">
                         <div class="invalid-feedback" th:errors="*{newUnit}"></div>
                         <div class="form-meta">
-                            <div id="newUnitHint" class="form-text" th:text="#{request.form.newItem.unitHint}">kg, lt, pcs…</div>
                             <div th:replace="~{layout/parts :: counter(${form}, 'newUnit', 'newUnit')}"></div>
                         </div>
                     </div>

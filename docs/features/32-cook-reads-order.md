@@ -24,11 +24,11 @@ order; that stays the Master's (23, 24). The cook also counts a scheduled delive
   with **Open order** only, never Confirm receipt.
 - **Notifications**: "Delivery scheduled" / "Delivery changed" ([24](24-office-orders.md)) and "The office changed order 12…" (P50) link
   the cook to `/ship/orders/{id}` too.
-- **Stores**: the summary's **Next delivery** ([30](30-stores.md)), `ShipOrderService.nextDelivery`: the vessel's CONFIRMED order
+- **Inventory**: the summary's **Next delivery** ([30](30-stores.md)), `ShipOrderService.nextDelivery`: the vessel's CONFIRMED order
   with the earliest delivery date.
 - Tests: `shiporder/ShipOrderFlowTest` (the cook's pages, the 403 on send with the order unchanged, the services'
   checks), `stores/StoresFlowTest` (Next delivery), the notification links in `officeorder/OfficeOrderFlowTest` and
   `OfficeOrderEditFlowTest`.
 - To try it: as `master.demo@example.com` approve the requests and send the order; as `office@example.com` schedule
   its delivery. Then as `cook.demo@example.com` / `crew123`: **Ship order** in the sidebar, the notification opens
-  the order (no Confirm receipt), and Stores shows **Next delivery**.
+  the order (no Confirm receipt), and Inventory shows **Next delivery**.

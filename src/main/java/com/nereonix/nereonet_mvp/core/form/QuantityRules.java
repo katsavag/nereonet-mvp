@@ -150,15 +150,6 @@ public class QuantityRules {
             return unit != null ? unit : new DefaultMessageSourceResolvable("quantity.unit.none");
         }
 
-        /** The hint under the field: "Up to 2000 kg" or "Whole numbers, up to 5000 pcs". */
-        public String hintKey() {
-            return wholeNumbers() ? "quantity.hint.whole" : "quantity.hint.max";
-        }
-
-        public Object[] hintArgs() {
-            return new Object[] {maxText(), unitLabel()};
-        }
-
         /** Reads a quantity typed in this field. A blank one is "Enter a quantity". */
         public Check check(String text) {
             return check(text, null);

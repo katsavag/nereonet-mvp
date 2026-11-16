@@ -459,12 +459,14 @@ h1, .h1 {
     font-weight: 600;
     color: var(--nn-danger);
 }
-/* P60: the limit under a quantity field ("Up to 2000 kg", layout/parts :: quantityHint). js/quantity.js puts a live
-   error in it ("Use whole numbers for pcs."): red and bold, and the text says what is wrong, so not by colour alone. */
+/* The slot under a quantity field (layout/parts :: quantityHint), empty and out of the layout while the value is
+   fine. js/quantity.js puts a live error in it ("Use whole numbers for pcs."): red and bold, and the text says what
+   is wrong, so not by colour alone. */
 .quantity-hint {
     display: block;
     margin-top: var(--nn-space-1);
 }
+.quantity-hint:empty { display: none; }
 .quantity-hint.quantity-hint-error {
     font-weight: 600;
     color: var(--nn-danger);
@@ -6772,7 +6774,17 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
        a phone target. The quantity field is wide enough for 123456.125 and tall enough for a finger.
      - .request-group-low: the Running low card, with the warning colour on its left edge (the heading says it).
      - js/request-form.js hides the rows and groups that do not match the search with [hidden].
+     - .request-filters: the list's four filters; on phones they share the full width, so all four fit.
    --------------------------------------------------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+    .request-filters > .view-switch { display: flex; }
+    .request-filters .view-switch-link {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0 var(--nn-space-2);
+        white-space: nowrap;
+    }
+}
 .request-search { margin-bottom: var(--nn-space-4); }
 .request-search[hidden],
 .request-group[hidden],

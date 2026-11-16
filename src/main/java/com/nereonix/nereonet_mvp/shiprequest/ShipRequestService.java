@@ -56,7 +56,7 @@ public class ShipRequestService {
 
     /** The person's requests the filter leaves, newest first, and the number under each filter. */
     public record Requests(Ship ship, RequestFilter filter, List<ItemRequest> requests, long all, long waiting,
-                           long decided) {
+                           long approved, long declined) {
     }
 
     /** One category's lines of a request, in the request's order. */
@@ -126,10 +126,14 @@ public class ShipRequestService {
         List<ItemRequest> all = requestRepository.findAllByRequestedByIdOrderByCreatedAtDescIdDesc(user.getId());
         // The rows show the number of lines: load them here (in batches, see ItemRequest.lines).
         all.forEach(request -> request.getLines().size());
-        long waiting = all.stream().filter(r -> RequestFilter.WAITING.matches(r.getStatus())).count();
         return new Requests(user.getShip(), filter,
                 all.stream().filter(r -> filter.matches(r.getStatus())).toList(),
-                all.size(), waiting, all.size() - waiting);
+                all.size(), count(all, RequestFilter.WAITING), count(all, RequestFilter.APPROVED),
+                count(all, RequestFilter.DECLINED));
+    }
+
+    private static long count(List<ItemRequest> requests, RequestFilter filter) {
+        return requests.stream().filter(r -> filter.matches(r.getStatus())).count();
     }
 
     /** The person's own request with its lines by category (Provisions, then Personal items); otherwise 404. */

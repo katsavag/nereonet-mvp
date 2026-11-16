@@ -11,8 +11,8 @@
 //    "Adding: Basmati rice (kg)" from its data-text and the chosen radio's data-label, or its data-empty text.
 //  - [data-item-quantity-label] reads "Quantity (kg)" (its data-text and the radio's data-unit) once an item is chosen.
 //  - P60: the quantity field (input[data-quantity]) takes the chosen item's rule (the radio's data-quantity-max and
-//    -decimals, and its unit) and js/quantity.js shows its limit in the hint ("Up to 2000 kg"); nothing chosen, the
-//    hint says the limit depends on the unit (its data-empty).
+//    -decimals, and its unit) and js/quantity.js shows its live error in the hint; nothing chosen, the
+//    hint is empty.
 (function () {
     'use strict';
 
@@ -20,7 +20,7 @@
         const radios = Array.from(picker.querySelectorAll('input[type="radio"][name="itemId"]'));
         const summary = picker.querySelector('[data-item-summary]');
         const quantity = picker.querySelector('input[data-quantity]');
-        const quantityHint = picker.querySelector('[data-quantity-hint][data-empty]');
+        const quantityHint = picker.querySelector('[data-quantity-hint]');
         const quantityLabel = picker.querySelector('[data-item-quantity-label]');
         const plainLabel = quantityLabel ? quantityLabel.textContent : '';
 
@@ -51,7 +51,7 @@
                     quantity.dataset.quantityDecimals = '3';
                     delete quantity.dataset.quantityUnit;
                     if (quantityHint) {
-                        quantityHint.textContent = quantityHint.dataset.empty;
+                        quantityHint.textContent = '';
                         quantityHint.classList.remove('quantity-hint-error');
                     }
                 }

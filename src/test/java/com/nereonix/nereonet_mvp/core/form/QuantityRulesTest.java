@@ -46,7 +46,6 @@ class QuantityRulesTest {
         assertError(kg.check("0.1255"), "quantity.error.decimals");
         assertError(kg.check("2000.001"), "quantity.error.max.request");
         assertError(kg.check("1000000"), "quantity.error.max.request");
-        assertThat(kg.hintKey()).isEqualTo("quantity.hint.max");
         assertThat(kg.maxText()).isEqualTo("2000");
         assertThat(kg.inputMode()).isEqualTo("decimal");
         assertThat(kg.step()).isEqualTo("0.001");
@@ -60,7 +59,6 @@ class QuantityRulesTest {
         assertThat(pcs.check("12,0").value()).isEqualByComparingTo("12");
         assertError(pcs.check("1,5"), "quantity.error.whole");
         assertError(pcs.check("5001"), "quantity.error.max.request");
-        assertThat(pcs.hintKey()).isEqualTo("quantity.hint.whole");
         assertThat(pcs.inputMode()).isEqualTo("numeric");
         // g and ml are whole numbers too.
         assertError(rules.forUnit("g", Use.REQUEST).check("2.5"), "quantity.error.whole");

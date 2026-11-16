@@ -24,9 +24,9 @@ or "12,5 pcs" never reaches an order or the store.
   "Check the count"). What was typed is shown again with the error under its field.
 - **Browser** (`js/quantity.js`, every `input[data-quantity]` from the `layout/parts :: quantityInput` fragment):
   text inputs with `inputmode` numeric or decimal (no number spinners, which round and accept "e"), letters and
-  extra separators filtered as they are typed, a comma turned into a dot, the error shown live in the hint under
-  the field (`quantityHint`, "Up to 2000 kg" or "Whole numbers, up to 5000 pcs", in the field's
-  `aria-describedby`). On the Chief cook's new item the rule follows the unit typed beside it; on the office's Add
+  extra separators filtered as they are typed, a comma turned into a dot, the error shown live in the slot under
+  the field (`quantityHint`, empty while the value is fine: no limit is shown before a value breaks it; in the
+  field's `aria-describedby`). On the Chief cook's new item the rule follows the unit typed beside it; on the office's Add
   an item it follows the item picked. Without the script the fields are plain text inputs and the server checks
   them.
 - **Other inputs** (the P60 audit): text fields keep a `maxlength` matching their column and a `@Size` on the form
@@ -40,6 +40,6 @@ or "12,5 pcs" never reaches an order or the store.
 - Tests: `core/form/QuantityRulesTest` (kinds, decimals, maxima, zero, the item's maximum, unchanged values),
   and the flow tests of each screen: `ShipRequestFlowTest`, `ShipOrderFlowTest`, `OfficeOrderEditFlowTest`,
   `OrderReceiptFlowTest`, `StoresFlowTest`, `VoiceCountFlowTest`, `ItemFlowTest`.
-- To try it: as `cook.demo@example.com`, **Requests › New request**, type `1,5` for an item in pcs (the hint turns
-  into "Use whole numbers for pcs.") or `3000` for an item in kg and send: the form comes back with the error under
+- To try it: as `cook.demo@example.com`, **Requests › New request**, type `1,5` for an item in pcs ("Use whole numbers for pcs."
+  appears under the field) or `3000` for an item in kg and send: the form comes back with the error under
   the row. As the office, give an item a **Maximum per request** on its Edit form and request more than that.

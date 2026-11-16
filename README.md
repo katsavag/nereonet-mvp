@@ -109,7 +109,7 @@ One file per feature, numbered in the order they were built (1 and 2 are the run
 - [27. Snoozing alerts](docs/features/27-snoozing.md)
 - [28. Suppliers and requests for quotes](docs/features/28-suppliers-and-quotes.md)
 - [29. Vessel data from VesselAPI](docs/features/29-vessel-data.md)
-- [30. Stores](docs/features/30-stores.md)
+- [30. Inventory](docs/features/30-stores.md)
 - [31. Requests](docs/features/31-requests.md)
 - [32. The Chief cook reads the vessel order](docs/features/32-cook-reads-order.md)
 - [33. A received delivery goes into the store](docs/features/33-delivery-into-store.md)

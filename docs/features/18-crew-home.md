@@ -24,12 +24,12 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
 - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
   the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
   acknowledgement overview ([16](16-ship-library.md)). When everyone has: "Everyone on board has acknowledged every required document."
-- **Stores** (P52, the Chief cook only, see [30](30-stores.md)): above To read, one card linking to `/ship/stores` with the number
+- **Inventory** (P52, the Chief cook only, see [30](30-stores.md)): above To read, one card linking to `/ship/stores` with the number
   of provisions Low and Out of stock ("2 low · 1 out of stock"), tinted while either is above zero.
 - From 992 px To read (and the Master's card) and the certificates sit side by side.
 - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
   :: tabBar`) with four tabs per role since P65, Home first and **More** last: the Master **Home**, **Approvals**
-  and **Vessel order**; the Chief cook **Home**, **Stores** and **Requests**; crew members **Home**, **News** (P27;
+  and **Vessel order**; the Chief cook **Home**, **Inventory** and **Requests**; crew members **Home**, **News** (P27;
   "Announcements" before P39) and **Library**. Each tab's counter is a badge on its icon, in words for screen
   readers; each is a 56 px target, the active one navy and semibold with a bar on its top edge and
   `aria-current="page"`. **More** (`/ship/more`, see [20](20-my-profile-and-my-crew.md)) lists Notifications and My profile, then whatever is not a
@@ -40,7 +40,7 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   `navigation/ShipNav` (model attribute `shipNav`, with `navTab` from `NavigationAdvice`). It replaces the
   offcanvas menu and the bell for ship users; office users keep both. From 768 px the sidebar has every entry (P65):
   **On board** Home, News, Library and My crew; **Supplies**, in the order of the work, Requests (Chief cook, crew
-  members, see [31](31-requests.md)), Approvals (Master, [21](21-approvals.md)), Vessel order (Master, Chief cook, [23](23-ship-order.md)) and Stores (Chief cook, [30](30-stores.md));
+  members, see [31](31-requests.md)), Approvals (Master, [21](21-approvals.md)), Vessel order (Master, Chief cook, [23](23-ship-order.md)) and Inventory (Chief cook, [30](30-stores.md));
   **Account** My profile and Notifications. The page keeps room for the bar, and the offline banner and the pinned
   **I have read this** sit above it.
 - Home has no card for what a tab already counts (P65): no **Requests to approve** for the Master (the Approvals tab) and no **My requests** for the Chief cook (the Requests tab; crew members keep the card).

@@ -31,7 +31,7 @@ anything reaches the store. One recording may name one item or many.
   item, the quantity heard, what the store expects, the words and High / Medium / Low from 0.8 / 0.5, and the
   unmatched phrases). It does not touch the stock and keeps nothing: the recording is only in memory for the call.
   `confirm(email, rows)` applies the rows through `StockService.count` with the note "Voice count", in one
-  transaction: all or none (an item no longer active: none, "An item is no longer in the store").
+  transaction: all or none (an item no longer active: none, "An item is no longer in the inventory").
 - **The microphone** (`js/stores-voice.js`, the Count by voice card on `/ship/stores/count`, shown only while both
   providers are configured or faked, and only by the script: without JavaScript the page is the hand count of 30).
   **Enable microphone** asks for the microphone once (the browser's prompt would break the first hold; skipped when
@@ -76,7 +76,7 @@ anything reaches the store. One recording may name one item or many.
   quantities; removed rows and dropped phrases; errors; Discard; failures; only the Chief cook),
   `core/ai/CountAnswerTest` (the answer's checks and the fake's rules), `core/ai/ClaudeCountExtractorTest` and
   `core/speech/AssemblyAiSpeechClientTest` (the real clients against a local HTTP server).
-- To try it: start in dev (both fakes), sign in as `cook.demo@example.com` / `crew123`, open **Stores › Count**,
+- To try it: start in dev (both fakes), sign in as `cook.demo@example.com` / `crew123`, open **Inventory › Count**,
   press **Enable microphone** (skipped when the browser already allows it), then hold **Hold to speak** for a
   second and let go. What we heard shows a row for each item of the vessel that the fixed sentence names (on the
   demo store: Tomatoes 5 High, Chicken breast 8 Low and highlighted, Eggs 30 High) and the other phrases under Not

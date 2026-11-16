@@ -16,7 +16,7 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
   CONFIRMED ("Delivery scheduled"), most urgent first: the scheduled deliveries by delivery date (earliest first),
   then the orders waiting for the office by sent date (waiting longest first). Each card: "Order #12", the status
   badge (`shiporder/parts :: statusBadge`), the number of items (lines the office did not remove) and one line:
-  "Delivery: Antwerp, 20 Nov 2026" once scheduled (the wording of Stores' Next delivery), or "Sent on 14 Nov 2026 ·
+  "Delivery: Antwerp, 20 Nov 2026" once scheduled (the wording of Inventory's Next delivery), or "Sent on 14 Nov 2026 ·
   waiting for the office to schedule the delivery". A delivery whose date (UTC) has passed and is not received yet
   keeps its place and says "Delivery was due 12 Nov 2026, Antwerp", in words with a warning icon and border. The
   enabled Master has **Confirm receipt** (the primary, to `/ship/orders/{id}/receipt`, P51) and **Open order** on

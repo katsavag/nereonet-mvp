@@ -168,9 +168,10 @@ class ShipRequestFlowTest {
 
     @Test
     void quantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
-        // P60: the form shows the limit of each item under its field, and the script's texts.
+        // P60: each field carries the limit of its item, and the page the script's texts; no limit is shown.
         String form = page("/ship/requests/new", cook);
-        assertThat(form).contains("Up to 2000 kg", "Whole numbers, up to 5000 pcs", "data-quantity-texts",
+        assertThat(form).doesNotContain("Up to 2000 kg", "Whole numbers, up to 5000 pcs", "kg, lt or pcs")
+                .contains("data-quantity-texts",
                         "data-quantity-max=\"2000\"", "inputmode=\"numeric\"")
                 // data-quantity is what js/quantity.js looks for.
                 .containsPattern("<input type=\"text\"[^>]* data-quantity[\\s>][^>]*id=\"lines\\[\\d+]\\.quantity\"");
@@ -201,7 +202,7 @@ class ShipRequestFlowTest {
         // The office allows 3000 kg of rice in one request.
         rice.setMaxPerRequest(new BigDecimal("3000"));
         itemRepository.save(rice);
-        assertThat(page("/ship/requests/new", cook)).contains("Up to 3000 kg");
+        assertThat(page("/ship/requests/new", cook)).contains("data-quantity-max=\"3000\"");
         mockMvc.perform(as(post("/ship/requests/new"), cook)
                         .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "2500"))
                 .andExpect(status().is3xxRedirection());
@@ -360,6 +361,11 @@ class ShipRequestFlowTest {
                 "New request");
         String onlyWaiting = page("/ship/requests?status=waiting", cook);
         assertThat(onlyWaiting).contains("href=\"/ship/requests/" + waiting.getId() + "\"")
+                .doesNotContain("href=\"/ship/requests/" + cancelled.getId() + "\"");
+        // A cancelled request is under All only; an unknown status shows All.
+        assertThat(page("/ship/requests?status=approved", cook))
+                .doesNotContain("href=\"/ship/requests/" + cancelled.getId() + "\"");
+        assertThat(page("/ship/requests?status=declined", cook))
                 .doesNotContain("href=\"/ship/requests/" + cancelled.getId() + "\"");
         assertThat(page("/ship/requests?status=decided", cook))
                 .contains("href=\"/ship/requests/" + cancelled.getId() + "\"");
