@@ -64,7 +64,8 @@ the Master's rules): the Master and crew members get 403. The pages always show 
     connection drops and removes it once the count is saved.
   - **Add an item that is not on the list** (P75), at the end of the same form: Name, Unit, Quantity counted and
     Where it is kept (optional, the vessel's places as suggestions). As soon as one field is filled, name, unit and
-    quantity are required (the lengths of `Item`, the quantity by the rule of the typed unit). The same Save creates
+    quantity are required (the lengths of `Item`, the unit chosen from the list of `ItemUnits`, the quantity by the rule
+    of that unit). The same Save creates
     the item (`core/item/NewItemService.createProvisions`: PROVISIONS, active, the cook's own vessel, audit "Item
     created" by the cook) and counts it. A name the vessel already has (ignoring case): "This item is already on the
     list." and nothing is saved. One new item per save. So the Chief cook adds items to the vessel's list without

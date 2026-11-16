@@ -17,6 +17,7 @@ import com.nereonix.nereonet_mvp.core.certificate.CertificateRepository;
 import com.nereonix.nereonet_mvp.core.invitation.Invitation;
 import com.nereonix.nereonet_mvp.core.invitation.InvitationRepository;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.item.StarterItems;
 import com.nereonix.nereonet_mvp.core.library.LibraryItemRepository;
 import com.nereonix.nereonet_mvp.core.ship.ImoNumber;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -39,12 +40,14 @@ public class ShipService {
     private final ItemRepository itemRepository;
     private final AnnouncementRepository announcementRepository;
     private final RequirementService requirementService;
+    private final StarterItems starterItems;
 
     public ShipService(ShipRepository shipRepository, AuditService auditService, ShipOverviewService shipOverviewService,
                        UserRepository userRepository, InvitationRepository invitationRepository,
                        CertificateRepository certificateRepository, LibraryItemRepository libraryItemRepository,
                        ItemRepository itemRepository, AnnouncementRepository announcementRepository,
-                       RequirementService requirementService) {
+                       RequirementService requirementService, StarterItems starterItems) {
+        this.starterItems = starterItems;
         this.requirementService = requirementService;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
@@ -96,7 +99,8 @@ public class ShipService {
     /**
      * Saves a new, active ship. imoNumber may be "IMO 9074729" or "9074729"; only the digits are stored.
      * Throws ImoNumberAlreadyExistsException if a ship with that IMO number exists. The vessel starts with the
-     * required documents of its type's defaults (StarterRequirements), as suggestions to review.
+     * required documents of its type's defaults (StarterRequirements), as suggestions to review, and with the standard
+     * galley list (StarterItems, ITEMS_STARTED).
      */
     @Transactional
     public Ship create(String imoNumber, String name, ShipType type, String flag) {
@@ -115,6 +119,7 @@ public class ShipService {
         shipRepository.save(ship);
         auditService.record("SHIP_CREATED", ship, describe(ship));
         requirementService.startWithDefaults(ship);
+        starterItems.addTo(ship);
         return ship;
     }
 

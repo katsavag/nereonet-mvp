@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.form.ItemUnits;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.request.InvalidRequestException;
@@ -251,7 +252,7 @@ public class ShipRequestService {
 
     /**
      * "Add to request" (the Chief cook only): the typed new item becomes a new-item line of the form, its fields are
-     * emptied. A name is required (at most Item.NAME_MAX_LENGTH), the unit optional (at most Item.UNIT_MAX_LENGTH),
+     * emptied. A name is required (at most Item.NAME_MAX_LENGTH), the unit optional (one of ItemUnits),
      * the quantity above zero (the order's quantity rule); a name already on the list or already added is refused,
      * so the person picks it there. False, with the errors, when refused.
      */
@@ -279,8 +280,8 @@ public class ShipRequestService {
                 errors.rejectValue("newName", "request.form.error.alreadyAdded", new Object[] {name}, null);
             }
         }
-        if (form.getNewUnit() != null && form.getNewUnit().length() > Item.UNIT_MAX_LENGTH) {
-            errors.rejectValue("newUnit", "request.form.error.unitTooLong", new Object[] {Item.UNIT_MAX_LENGTH}, null);
+        if (form.getNewUnit() != null && !ItemUnits.listed(form.getNewUnit())) {
+            errors.rejectValue("newUnit", "unit.error.notListed");
         }
         newItemRule(form.getNewUnit()).check(form.getNewQuantity()).reject(errors, "newQuantity");
         if (errors.hasErrors()) {

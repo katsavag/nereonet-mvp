@@ -1,7 +1,9 @@
 # 11. Galley items
 
 Galley items (signed in as an office user): the **Items** tab of a ship page (`/office/ships/{id}/items`, see [5](05-ships.md)).
-Each item has a name (unique per ship, ignoring case), a short unit (e.g. `kg`, `lt`, `pcs`), a required category
+Each item has a name (unique per ship, ignoring case), a unit chosen from one list (P78, `core/form/ItemUnits`: kg, g, lt,
+ml, pcs, box, bottle, can, bag, pack, dozen; an item that already has another unit keeps it as one more option, and the
+import still takes any unit), a required category
 (P32, `core/item/ItemCategory`): **Provisions** (food and drink for the ship's meals) or **Personal items** (things
 crew buy for themselves, such as cigarettes, soft drinks, toiletries), and, for provisions only, an optional
 **Place** where it is stored (e.g. "Dry store", "Cold room"). On the add and edit forms Category is a select and
@@ -14,6 +16,11 @@ request line, office order line or receipt line (see [35](35-input-limits.md)).
 category, place and status; it is searchable (name and place), filterable by status (Active, Inactive) and
 category (Provisions, Personal items), sortable by name (the default), unit, category, place and status, 10 (20, 50 or 100)
 per page (paged in the database).
+A vessel added through **Add vessel** starts with the standard galley list (P78, `core/item/StarterItems`: the rows of
+`src/main/resources/starter/galley-items.csv`, `name;unit;place`, all Provisions and active, no quantities; one audit
+entry "Standard galley list added" with the number of items). A wrong row of the file stops the application at startup.
+A vessel with no items at all has **Add the standard list** in the empty state of this tab
+(`POST /office/ships/{id}/items/starter`); a name the vessel already has is skipped.
 **Import** (`/office/ships/{id}/items/import`) adds and updates many items at once, from the file the purchasing
 system produces or from the template, in the same four steps as the crew import (see [8](08-crew.md)): **Upload** (`.xlsx`,
 `.xls` or `.csv`, any columns; **Download template** gives `items-template.xlsx` with

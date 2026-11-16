@@ -883,6 +883,23 @@
      Use: <label for="rank" class="form-label">[[#{user.rank}]] <span th:replace="~{layout/parts :: optional}"></span></label> -->
 <span th:fragment="optional" class="form-label-optional" th:text="#{form.optional}">(optional)</span>
 
+<!-- The unit of an item, chosen from the one list (core/form/ItemUnits): "Choose a unit" (empty), then the units as
+     they are stored. A plain select, no script.
+       id, name  the field (the property of the form)
+       value     the unit chosen now, null for none
+       current   the unit the item being edited already has (null for a new item): when it is not on the list it is
+                 one more option, so saving does not change it
+       required, invalid  true or false; describedBy: the ids of the field's error and help text, or null
+     Use: <select th:replace="~{layout/parts :: unitSelect(id='unit', name='unit', value=*{unit}, current=${item?.unit},
+              required=true, invalid=${#fields.hasErrors('unit')}, describedBy='unitError')}"></select> -->
+<select th:fragment="unitSelect(id, name, value, current, required, invalid, describedBy)" class="form-select"
+        th:classappend="${invalid} ? 'is-invalid'" th:id="${id}" th:name="${name}" th:required="${required}"
+        th:attr="aria-describedby=${describedBy}, aria-invalid=${invalid} ? 'true' : null">
+    <option value="" th:text="#{unit.choose}">Choose a unit</option>
+    <option th:each="u : ${@itemUnits.options(current)}" th:value="${u}" th:text="${u}"
+            th:selected="${u == value}">kg</option>
+</select>
+
 <!-- Character counter of a field with a server-side maximum: the @Size(max) of property in the form's class
      (@formFields.maxLength); nothing when it has none. Empty and hidden until the text reaches 75 % of the limit:
      then js/forms.js shows "3,200 / 4,000" as the user types. Without JavaScript it stays hidden (maxlength and the
@@ -908,7 +925,7 @@
      value: text as typed, or a BigDecimal (written plain: 10, never 1E+1). ariaLabel (optional): where the field has
      no visible label (the quote table).
      rule: null where the rule is the server's alone: the item is chosen on the page (the office's Add an item: js/item-search.js sets the rule).
-     unitField (optional): the id of the field where the unit is typed (the rule follows it; needs quantityTexts with
+     unitField (optional): the id of the field where the unit is chosen (the rule follows it; needs quantityTexts with
      the units JSON). -->
 <input th:fragment="quantityInput" type="text" autocomplete="off" spellcheck="false" data-quantity
        class="form-control font-monospace" th:classappend="${(cls ?: '') + (invalid == true ? ' is-invalid' : '')}"

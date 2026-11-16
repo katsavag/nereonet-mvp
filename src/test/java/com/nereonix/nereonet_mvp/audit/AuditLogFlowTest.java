@@ -50,7 +50,8 @@ class AuditLogFlowTest {
                 .andExpect(redirectedUrl("/office/ships"));
 
         List<AuditEntry> entries = auditRepository.findAll();
-        assertThat(entries).hasSize(1);
+        // The vessel, and the standard galley list it starts with (ITEMS_STARTED).
+        assertThat(entries).hasSize(2);
         AuditEntry entry = entries.getFirst();
         assertThat(entry.getAction()).isEqualTo("SHIP_CREATED");
         assertThat(entry.getActor().getEmail()).isEqualTo("office@example.com");

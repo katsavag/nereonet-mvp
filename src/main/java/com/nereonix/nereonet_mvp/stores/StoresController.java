@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.nereonix.nereonet_mvp.core.form.ItemUnits;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.item.Item;
@@ -166,18 +167,16 @@ public class StoresController {
         }
     }
 
-    // The new item as typed, checked: name, unit and quantity required, the lengths of Item, the quantity by the rule
-    // of the typed unit for a count. Null when a field is wrong (the errors are on the fields).
+    // The new item as typed, checked: name, unit (one of ItemUnits) and quantity required, the lengths of Item, the
+    // quantity by the rule of the chosen unit for a count. Null when a field is wrong (the errors are on the fields).
     private NewItem newItem(CountForm form, BindingResult errors) {
         if (form.getNewName() == null) {
             errors.rejectValue("newName", "request.form.error.nameRequired");
         } else if (form.getNewName().length() > Item.NAME_MAX_LENGTH) {
             errors.rejectValue("newName", "request.form.error.nameTooLong", new Object[] {Item.NAME_MAX_LENGTH}, null);
         }
-        if (form.getNewUnit() == null) {
-            errors.rejectValue("newUnit", "stores.count.add.error.unit");
-        } else if (form.getNewUnit().length() > Item.UNIT_MAX_LENGTH) {
-            errors.rejectValue("newUnit", "request.form.error.unitTooLong", new Object[] {Item.UNIT_MAX_LENGTH}, null);
+        if (!ItemUnits.listed(form.getNewUnit())) {
+            errors.rejectValue("newUnit", "unit.error.notListed");
         }
         if (form.getNewPlace() != null && form.getNewPlace().length() > Item.PLACE_MAX_LENGTH) {
             errors.rejectValue("newPlace", "item.error.tooLong");

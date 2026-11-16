@@ -31,7 +31,7 @@ ask, they decide (21, 22), and gets 403. A request is not an order: only an appr
   - The Chief cook only: the provisions **Out of stock** or **Low** (`StockService`) come first, under **Running
     low**, Out of stock first, each with what is on board and its status badge. Crew members never see stock.
   - The Chief cook only: **Add an item that is not on the list**: Name (required, 100 characters), Unit (optional,
-    20) and Quantity, **Add to request**: it becomes a new-item line under the fields, with its quantity and
+    chosen from the list of `core/form/ItemUnits`) and Quantity, **Add to request**: it becomes a new-item line under the fields, with its quantity and
     **Remove**. Add and Remove post the form and show it again with everything typed kept, so they work without
     JavaScript. A name already on the list ("basmati RICE") is refused: "Basmati rice is on the list: enter its
     quantity there." Something typed there when **Send to the master** is pressed is added first. On approval

@@ -16,6 +16,7 @@ import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemNameTakenException;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.item.StarterItems;
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -31,9 +32,11 @@ public class ItemService {
     private final ShipRepository shipRepository;
     private final AuditService auditService;
     private final ListQueries listQueries;
+    private final StarterItems starterItems;
 
     public ItemService(ItemRepository itemRepository, ShipRepository shipRepository, AuditService auditService,
-                       ListQueries listQueries) {
+                       ListQueries listQueries, StarterItems starterItems) {
+        this.starterItems = starterItems;
         this.itemRepository = itemRepository;
         this.shipRepository = shipRepository;
         this.auditService = auditService;
@@ -99,6 +102,16 @@ public class ItemService {
         itemRepository.save(item);
         auditService.record("ITEM_CREATED", ship, describe(item));
         return item;
+    }
+
+    /**
+     * "Add the standard list": gives a vessel that has no item at all the standard galley list (StarterItems).
+     * Returns the number of items added; none when the vessel has an item already.
+     */
+    @Transactional
+    public int addStarterItems(Long shipId) {
+        Ship ship = getShip(shipId);
+        return itemRepository.countByShipId(shipId) > 0 ? 0 : starterItems.addTo(ship);
     }
 
     /** Throws ItemNameTakenException if another item of the ship has this name. */

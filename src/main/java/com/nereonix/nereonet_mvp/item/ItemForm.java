@@ -21,7 +21,8 @@ public class ItemForm {
     @Size(max = Item.NAME_MAX_LENGTH, message = "{item.error.tooLong}")
     private String name;
 
-    @NotBlank(message = "{item.error.unitRequired}")
+    // Chosen from the list (ItemUnits); ItemController refuses any other unit, except the one the item already has.
+    @NotBlank(message = "{unit.error.notListed}")
     @Size(max = Item.UNIT_MAX_LENGTH, message = "{item.error.tooLong}")
     private String unit;
 

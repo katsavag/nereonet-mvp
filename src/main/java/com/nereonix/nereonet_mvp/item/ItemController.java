@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.confirm.ConfirmPages;
+import com.nereonix.nereonet_mvp.core.form.ItemUnits;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemNameTakenException;
@@ -74,6 +75,7 @@ public class ItemController {
     @PostMapping("/office/ships/{id}/items/new")
     public String create(@PathVariable Long id, @Valid @ModelAttribute("form") ItemForm form, BindingResult result,
                          Model model, RedirectAttributes redirectAttributes) {
+        checkUnit(form, null, result);
         if (result.hasErrors()) {
             return showForm(id, null, model);
         }
@@ -100,6 +102,7 @@ public class ItemController {
                          @Valid @ModelAttribute("form") ItemForm form, BindingResult result, Model model,
                          RedirectAttributes redirectAttributes) {
         Item item = itemService.getItem(id, itemId);
+        checkUnit(form, item, result);
         if (result.hasErrors()) {
             return showForm(id, item, model);
         }
@@ -111,6 +114,17 @@ public class ItemController {
             return showForm(id, item, model);
         }
         redirectAttributes.addFlashAttribute("successMessage", "item.updated");
+        return "redirect:/office/ships/" + id + "/items";
+    }
+
+    // "Add the standard list" on the empty Items tab: the standard galley list, only while the vessel has no item.
+    @PostMapping("/office/ships/{id}/items/starter")
+    public String addStarterItems(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        int added = itemService.addStarterItems(id);
+        if (added > 0) {
+            redirectAttributes.addFlashAttribute("successMessage", "item.starter.added");
+            redirectAttributes.addFlashAttribute("successArgs", new Object[] {added});
+        }
         return "redirect:/office/ships/" + id + "/items";
     }
 
@@ -143,6 +157,15 @@ public class ItemController {
         itemService.setActive(id, itemId, true);
         redirectAttributes.addFlashAttribute("successMessage", "item.activated");
         return "redirect:/office/ships/" + id + "/items";
+    }
+
+    // The unit is one of the list (ItemUnits), or the unit the item already has. item is null when adding.
+    private static void checkUnit(ItemForm form, Item item, BindingResult result) {
+        String unit = form.getUnit();
+        if (unit != null && !unit.isEmpty() && !result.hasFieldErrors("unit") && !ItemUnits.listed(unit)
+                && (item == null || !unit.equals(item.getUnit()))) {
+            result.rejectValue("unit", "unit.error.notListed");
+        }
     }
 
     // item is null when adding.

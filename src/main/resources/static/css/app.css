@@ -6698,7 +6698,7 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .stores-count-error { font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
 .stores-add-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);   /* the unit select shows "Choose a unit" whole at 390px */
     gap: var(--nn-space-4);
 }
 .stores-add-name,

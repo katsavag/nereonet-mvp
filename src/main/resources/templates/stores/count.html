@@ -93,14 +93,13 @@
                     </div>
                     <div>
                         <label for="newUnit" class="form-label" th:text="#{stores.count.add.unit}">Unit</label>
-                        <input type="text" class="form-control" th:field="*{newUnit}" th:errorclass="is-invalid"
-                               autocomplete="off" autocapitalize="none" aria-describedby="newUnitCounter">
-                        <div class="invalid-feedback" th:errors="*{newUnit}"></div>
-                        <div class="form-meta">
-                            <div th:replace="~{layout/parts :: counter(${form}, 'newUnit', 'newUnit')}"></div>
-                        </div>
+                        <!-- Required once a field of the new item is filled (StoresController), so not "required" here. -->
+                        <select th:replace="~{layout/parts :: unitSelect(id='newUnit', name='newUnit', value=*{newUnit},
+                                current=null, required=false, invalid=${#fields.hasErrors('newUnit')},
+                                describedBy=${#fields.hasErrors('newUnit')} ? 'newUnitError' : null)}"></select>
+                        <div class="invalid-feedback" id="newUnitError" th:errors="*{newUnit}"></div>
                     </div>
-                    <!-- The rule of the unit typed beside it (js/quantity.js follows the unit as it is typed). -->
+                    <!-- The rule of the unit chosen beside it (js/quantity.js follows the unit as it changes). -->
                     <div th:with="newRule=${@quantityRules.forUnit(form.newUnit, 'COUNT')},
                                   err=${#fields.hasErrors('newQuantity')}">
                         <label for="newQuantity" class="form-label" th:text="#{stores.count.add.quantity}">Quantity

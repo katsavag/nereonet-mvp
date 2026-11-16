@@ -7,7 +7,7 @@
 //    ([data-quantity-hint] named in aria-describedby); fine again, the hint is empty. data-quantity-kept: the
 //    value already saved, never flagged.
 //  - The rule can change on the page: set data-quantity-max / -decimals / -unit and dispatch "quantity-rule" on the
-//    input (js/item-search.js, Add an item). data-quantity-unit-field="newUnit": the unit is typed in that field, and
+//    input (js/item-search.js, Add an item). data-quantity-unit-field="newUnit": the unit is chosen in that field, and
 //    the rule comes from the units JSON of [data-quantity-texts] (unknown units: countable).
 (function () {
     'use strict';

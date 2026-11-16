@@ -1,0 +1,63 @@
+name;unit;place
+Rice;kg;Dry store
+Pasta;kg;Dry store
+Flour;kg;Dry store
+Sugar;kg;Dry store
+Salt;kg;Dry store
+Lentils;kg;Dry store
+Beans;kg;Dry store
+Chickpeas;kg;Dry store
+Oats;kg;Dry store
+Breakfast cereal;box;Dry store
+Coffee;kg;Dry store
+Tea;box;Dry store
+Olive oil;lt;Dry store
+Sunflower oil;lt;Dry store
+Vinegar;lt;Dry store
+Tomato paste;can;Dry store
+Canned tomatoes;can;Dry store
+Canned tuna;can;Dry store
+Canned corn;can;Dry store
+Honey;kg;Dry store
+Jam;kg;Dry store
+Black pepper;kg;Dry store
+Oregano;kg;Dry store
+Biscuits;pack;Dry store
+Long-life milk;lt;Dry store
+Bottled water;bottle;Dry store
+Orange juice;lt;Dry store
+Soft drinks;can;Dry store
+Fresh milk;lt;Cold room
+Yoghurt;kg;Cold room
+Butter;kg;Cold room
+Margarine;kg;Cold room
+Feta cheese;kg;Cold room
+Yellow cheese;kg;Cold room
+Eggs;pcs;Cold room
+Ham;kg;Cold room
+Potatoes;kg;Cold room
+Onions;kg;Cold room
+Garlic;kg;Cold room
+Tomatoes;kg;Cold room
+Cucumbers;kg;Cold room
+Peppers;kg;Cold room
+Carrots;kg;Cold room
+Cabbage;kg;Cold room
+Lettuce;pcs;Cold room
+Lemons;kg;Cold room
+Oranges;kg;Cold room
+Apples;kg;Cold room
+Bananas;kg;Cold room
+Chicken;kg;Freezer
+Beef;kg;Freezer
+Pork;kg;Freezer
+Minced meat;kg;Freezer
+Lamb;kg;Freezer
+Sausages;kg;Freezer
+Bacon;kg;Freezer
+Fish fillets;kg;Freezer
+Shrimps;kg;Freezer
+Frozen vegetables;kg;Freezer
+Frozen french fries;kg;Freezer
+Bread;pcs;Freezer
+Ice cream;lt;Freezer

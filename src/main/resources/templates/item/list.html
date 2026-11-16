@@ -2,8 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(${ship.name} + ' · ' + #{ship.tab.items}, ~{::main})}">
 <body>
-<!-- The Items tab of the ship page (see ship/ShipFrame). No items yet: the empty state holds Add item and Import,
-     so the tab heading leaves them out. -->
+<!-- The Items tab of the ship page (see ship/ShipFrame). No items yet: the empty state holds Add item, Import and
+     "Add the standard list" (the standard galley list, core/item/StarterItems), so the tab heading leaves them out. -->
 <main th:with="noItems=${list.emptyUnfiltered(items)}">
     <th:block th:replace="~{ship/parts :: header}"></th:block>
     <div th:replace="~{ship/parts :: tabHeading(#{item.list.heading}, ${noItems} ? null : ~{::tabActions})}">
@@ -43,7 +43,14 @@
 
     <div class="card">
         <th:block th:replace="~{layout/parts :: listEmpty(rows=${items}, list=${list}, icon='items',
-                title=#{item.list.empty.title}, text=#{item.list.empty.text}, action=~{::tabActions})}"></th:block>
+                title=#{item.list.empty.title}, text=#{item.list.empty.text}, action=~{::emptyActions})}">
+            <th:block th:fragment="emptyActions">
+                <th:block th:replace="~{::tabActions}"></th:block>
+                <form method="post" class="d-grid" th:action="@{/office/ships/{id}/items/starter(id=${ship.id})}">
+                    <button type="submit" class="btn btn-outline-secondary" th:text="#{item.list.starter}">Add the standard list</button>
+                </form>
+            </th:block>
+        </th:block>
 
         <!-- data-table: the shared list style; data-table-stack: one stacked card per row on phones; table-sticky:
              the header stays visible while the page scrolls. -->
