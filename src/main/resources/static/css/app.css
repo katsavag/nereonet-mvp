@@ -7206,7 +7206,7 @@ html.is-offline .voice-hold {
    The delivery invoice: shiporder/invoice.html and invoice-reading.html; js/invoice.js.
      - .invoice-pages: the pages so far, one card each, phone first (one column; two from 576px, three from 992px):
        the thumbnail on the left (.invoice-thumb: the photo, or "PDF"), "Page 1", a note when the page needs the
-       ship (.invoice-page-note.is-warning: hard to read, could not be read) and Retake / Remove.
+       ship (.invoice-page-note.is-warning: could not be read) and Retake / Remove.
      - .invoice-pick: a label styled as a button around a real file input (works without the script: the input is
        only visually hidden; once a file is chosen without the script, the label says so with a tick and Upload sends
        it). .invoice-pick-main: Take a photo and Choose a file, full width on phones, at least the touch target.

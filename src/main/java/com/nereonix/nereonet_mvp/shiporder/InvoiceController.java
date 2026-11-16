@@ -60,8 +60,8 @@ public class InvoiceController {
 
     static final String BASE = "/ship/orders/{id}/invoice";
 
-    /** One page on the photo page: its file and number, and what the ship should know of its reading. */
-    public record PageRow(OrderReceiptFile file, int number, boolean failed, boolean hard) {
+    /** One page on the photo page: its file and number, and whether the reader could not read it. */
+    public record PageRow(OrderReceiptFile file, int number, boolean failed) {
     }
 
     /** The reading for js/invoice.js: done, the text to show, where to go once done. */
@@ -97,17 +97,14 @@ public class InvoiceController {
         }
         List<OrderReceiptFile> files = receiptService.invoicePages(id);
         List<PageRow> pages = files.stream().map(f -> new PageRow(f, f.getInvoicePage(),
-                f.getInvoicePageStatus() != null && f.getInvoicePageStatus().failed(),
-                f.getInvoicePageStatus() == InvoicePageStatus.HARD_TO_READ)).toList();
+                f.getInvoicePageStatus() != null && f.getInvoicePageStatus().failed())).toList();
         boolean read = invoice != null;
         // Nothing could be read at all (no network to the reader): one message, Read again later.
         boolean notReadNow = read && invoice.getStatus() == DeliveryInvoiceStatus.FAILED
-                && pages.stream().anyMatch(PageRow::failed) && pages.stream().noneMatch(PageRow::hard)
-                && files.stream().noneMatch(f -> f.getInvoicePageStatus() == InvoicePageStatus.READ);
+                && pages.stream().anyMatch(PageRow::failed) && files.stream().noneMatch(InvoiceController::wasRead);
         model.addAttribute("order", order);
         model.addAttribute("pages", pages);
         model.addAttribute("notReadNow", notReadNow);
-        model.addAttribute("otherOrderReference", read && invoice.isOtherOrder() ? invoice.getOrderReference() : null);
         model.addAttribute("maxPages", OrderReceiptService.MAX_INVOICE_PAGES);
         model.addAttribute("canAdd", pages.size() < OrderReceiptService.MAX_INVOICE_PAGES
                 && receiptService.files(id).size() < OrderReceiptService.MAX_FILES);
@@ -275,8 +272,8 @@ public class InvoiceController {
         };
     }
 
-    // Reading: "Reading page 1 of 2"; done: where to go (the count when something was read and nothing needs the
-    // ship's attention, else back to the photo page).
+    // Reading: "Reading page 1 of 2"; done: where to go (the count or the receipt once at least one page was read,
+    // whatever the checks found; back to the photo page only when no page was read: every one failed or timed out).
     private ReadingStatus status(ShipOrder order, User user) {
         Long id = order.getId();
         readingService.giveUpIfStalled(id);
@@ -292,11 +289,14 @@ public class InvoiceController {
             return new ReadingStatus(false, pageService.message("order.invoice.reading.page", current,
                     Math.max(pages.size(), current)), null);
         }
-        boolean attention = invoice.getStatus() == DeliveryInvoiceStatus.FAILED || invoice.isOtherOrder()
-                || pages.stream().anyMatch(p -> p.getInvoicePageStatus() != null
-                        && (p.getInvoicePageStatus().failed() || p.getInvoicePageStatus() == InvoicePageStatus.HARD_TO_READ));
         return new ReadingStatus(true, pageService.message("order.invoice.reading.done"),
-                attention ? photoPage : next(order, user));
+                pages.stream().anyMatch(InvoiceController::wasRead) ? next(order, user) : photoPage);
+    }
+
+    // The reader gave an answer for the page (hard to read is one too: flagged for the office, no stop on board).
+    private static boolean wasRead(OrderReceiptFile page) {
+        return page.getInvoicePageStatus() == InvoicePageStatus.READ
+                || page.getInvoicePageStatus() == InvoicePageStatus.HARD_TO_READ;
     }
 
     // Where the photos lead: the Chief cook's count, the Master's receipt.

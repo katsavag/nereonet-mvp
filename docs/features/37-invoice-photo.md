@@ -25,12 +25,13 @@ invoice only helps: **Count without the invoice** is always there, and a reading
 - **Done: start counting** (`POST .../invoice/read`) reads the pages not yet read, one call to Claude per page
   (`core/order/InvoiceReadingService`, in the background after the commit; `app.invoice.read-in-background` is
   false in the tests), while `/invoice/reading` shows "Reading page 1 of 2" and reloads itself (a meta refresh, or
-  `/invoice/reading/status` with the script). Then on to the count (cook) or the receipt (Master), unless something
-  needs the ship: a page hard to read ("This page is hard to read: retake it flat, in good light, with the whole
-  page in the picture." with **Retake** and **Continue anyway**), a page that could not be read (**Read again**,
-  that page only), nothing read at all ("The invoice could not be read now. Count without it, the photos are
-  kept.") or another order's number on the invoice ("This invoice says order SR-000052. Check it is the right
-  invoice."). A reading the server never finished (a restart) is given up after `app.invoice.reading-stalled-after`
+  `/invoice/reading/status` with the script). Then straight on to the count (cook) or the receipt (Master) once
+  at least one page was read, whatever the checks found (P91): a page hard to read and another order's number on
+  the invoice are stored for the office ([39](39-invoice-comparison.md)) and never said on board. Only a reading
+  with no page read (every page failed or timed out) comes back to the photo page: "The invoice could not be read
+  now. Count without it, the photos are kept." with **Read again**. A page that could not be read beside pages that
+  were shows **Read again** (that page only) on the photo page, when it is opened again with **Retake invoice
+  photo**. A reading the server never finished (a restart) is given up after `app.invoice.reading-stalled-after`
   (15 min): its pages "timed out", to read again. While reading, the pages cannot change (409).
 - **Reading a page** (P70, `core/ai/ClaudeInvoiceReader`): Claude's Messages API through the Anthropic Java SDK,
   one call per page, with the key of counting by voice (`ANTHROPIC_API_KEY`) and its own model and timeout
@@ -84,7 +85,7 @@ invoice only helps: **Count without the invoice** is always there, and a reading
   `core/ai/ClaudeInvoiceReaderTest` (the real client against a local HTTP server: what is sent for a photo and
   for a PDF, the answer as lines in both number formats, a page without a table, a big photo made smaller, HEIC,
   a status, a refusal, a cut or slow answer, no key), `core/order/InvoiceChecksTest` (every rule), `shiporder/InvoiceFlowTest` (both roles, Retake and Remove, the limits and types, hard, failed and
-  unread pages, another order, what is stored, access).
+  unread pages, another order (all on to the count unless nothing was read), what is stored, access).
 - To try it: as in [36](36-delivery-count.md), schedule a delivery. As `cook.demo@example.com` press **Count delivery**: the photo page.
   Upload `samples/invoice/invoice-A-4471-p1-photo.jpg` and `-p2-photo.jpg`, press **Done: start counting**: the
-  count opens with "Invoice: 2 pages photographed". Upload a third page to see "Page 3 is hard to read".
+  count opens with "Invoice: 2 pages photographed". A third page is hard to read (no table): the count opens all the same.

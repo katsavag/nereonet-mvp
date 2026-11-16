@@ -70,8 +70,8 @@ import tools.jackson.databind.JsonNode;
  * Photographing the delivery invoice and reading it: Count delivery (the cook) and Confirm receipt (the Master,
  * without a count to approve) open "Photograph the invoice" first; the pages one at a time (with or without the
  * script), Retake and Remove, at most 6, only photos and PDFs; Done: start counting reads them (FakeInvoiceReader:
- * the sample invoice A-4471) and goes straight on to the count; a page hard to read, a page that failed, nothing read
- * at all and another order's reference come back to the photo page; what was read and flagged is stored, never shown
+ * the sample invoice A-4471) and goes straight on to the count, also with a page hard to read, a page that failed or
+ * another order's reference; only nothing read at all comes back to the photo page; what was read and flagged is stored, never shown
  * on board; who may do what. Signed in as the office unless a request says otherwise.
  */
 @SpringBootTest
@@ -199,7 +199,7 @@ class InvoiceFlowTest {
 
         // The count: the invoice's pages are not among his photos; Count delivery now goes straight there.
         String count = as(cook, get("/ship/orders/{id}/count", id));
-        assertThat(count).contains("Invoice: 2 pages photographed", "href=\"/ship/orders/" + id + "/invoice\"")
+        assertThat(count).contains("Retake invoice photo", "href=\"/ship/orders/" + id + "/invoice\"")
                 .doesNotContain("p1.jpg", "p2.jpg");
         assertThat(as(cook, get("/ship/order?view=progress"))).contains("href=\"/ship/orders/" + id + "/count\"")
                 .doesNotContain("href=\"/ship/orders/" + id + "/invoice\"");
@@ -276,7 +276,7 @@ class InvoiceFlowTest {
     }
 
     @Test
-    void aPageHardToReadAndAnotherOrdersReferenceComeBackToThePhotoPage() throws Exception {
+    void aPageHardToReadAndAnotherOrdersReferenceGoStraightOnToTheCount() throws Exception {
         // Line 7 is lost in a fold of the paper; page 3 shows no table; the invoice names order SR-000052.
         fake.dropLine(7);
         perform(cook, upload("a.jpg", photo1).param("js", "true"));
@@ -284,14 +284,14 @@ class InvoiceFlowTest {
         perform(cook, upload("c.jpg", JPEG).param("js", "true"));
         perform(cook, post("/ship/orders/{id}/invoice/read", id).with(csrf()));
         perform(cook, get("/ship/orders/{id}/invoice/reading", id))
-                .andExpect(redirectedUrl("/ship/orders/" + id + "/invoice"));
+                .andExpect(redirectedUrl("/ship/orders/" + id + "/count"));
+        perform(cook, get("/ship/orders/{id}/invoice/reading/status", id))
+                .andExpect(jsonPath("$.next").value("/ship/orders/" + id + "/count"));
 
+        // Retake invoice photo: the photo page shows the photos, without a warning.
         String page = as(cook, get("/ship/orders/{id}/invoice", id));
-        assertThat(page).contains("Page 1 is hard to read", "Page 3 is hard to read",
-                "This page is hard to read: retake it flat, in good light, with the whole page in the picture.",
-                "Continue anyway", "This invoice says order SR-000052. Check it is the right invoice.",
-                "href=\"/ship/orders/" + id + "/count\">Continue</a>")
-                .doesNotContain("Page 2 is hard to read", "line 7", "add up to", "could not be read");
+        assertThat(page).contains("Page 1", "Page 3", "Retake")
+                .doesNotContain("hard to read", "Continue", "SR-000052", "line 7", "add up to", "could not be read");
 
         DeliveryInvoice invoice = invoiceRepository.findByOrderId(id).orElseThrow();
         assertThat(invoice.getStatus()).isEqualTo(DeliveryInvoiceStatus.PARTLY_READ);
@@ -315,8 +315,9 @@ class InvoiceFlowTest {
         perform(cook, upload("a.jpg", photo1).param("js", "true"));
         perform(cook, upload("b.jpg", photo2).param("js", "true"));
         perform(cook, post("/ship/orders/{id}/invoice/read", id).with(csrf()));
+        // Page 1 was read: on to the count. The photo page (Retake invoice photo) still offers Read again.
         perform(cook, get("/ship/orders/{id}/invoice/reading", id))
-                .andExpect(redirectedUrl("/ship/orders/" + id + "/invoice"));
+                .andExpect(redirectedUrl("/ship/orders/" + id + "/count"));
         DeliveryInvoice invoice = invoiceRepository.findByOrderId(id).orElseThrow();
         assertThat(invoice.getStatus()).isEqualTo(DeliveryInvoiceStatus.PARTLY_READ);
         assertThat(invoiceLineRepository.findAllByInvoiceIdOrderByPageAscIdAsc(invoice.getId())).hasSize(22);

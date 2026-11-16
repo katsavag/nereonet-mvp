@@ -11,11 +11,11 @@
      with Retake (replaces that page) and Remove; up to maxPages. One primary button at a time: Take a photo while
      there is no page, Done: start counting once there is one (the pickers are outline buttons then). Done: start counting reads them (the progress page), Count
      without the invoice goes straight on (next: the cook's count, the Master's receipt).
-     After a reading, only what the ship can act on: a page hard to read (Retake, Continue anyway), a page that could
-     not be read (Read again, Retake), nothing read at all (Read again later), a clearly different order reference
-     (Continue). English only.
-     Model: order, pages (InvoiceController.PageRow), notReadNow, otherOrderReference, maxPages, canAdd, maxFileSize,
-     next, fileTooLarge. -->
+     After a reading, only what the count cannot go on without: a page that could not be read (Read again, Retake),
+     nothing read at all (Read again later). A page hard to read and another order's reference are for the office
+     (the comparison), never said on board. English only.
+     Model: order, pages (InvoiceController.PageRow), notReadNow, maxPages, canAdd, maxFileSize, next,
+     fileTooLarge. -->
 <main class="invoice-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/invoice'}"
       th:data-sending="#{order.invoice.sending('{n}', '{percent}')}" th:data-preparing="#{order.invoice.preparing('{n}')}"
       th:data-failed="#{order.invoice.failed}" th:data-too-large="#{order.invoice.fileTooLarge}"
@@ -42,13 +42,6 @@
         </form>
     </div>
 
-    <!-- The invoice names another order. -->
-    <div th:if="${otherOrderReference != null}" class="alert alert-warning invoice-notice" role="alert">
-        <p class="mb-2" th:text="#{order.invoice.otherOrder(${otherOrderReference})}">This invoice says order SR-000052.
-            Check it is the right invoice.</p>
-        <a class="btn btn-outline-secondary" th:href="@{${next}}" th:text="#{order.invoice.continue}">Continue</a>
-    </div>
-
     <ol th:unless="${pages.isEmpty()}" class="invoice-pages list-unstyled">
         <li th:each="p : ${pages}" class="invoice-page-card card"
             th:with="pageName=#{order.invoice.page(${p.number})}, fileUrl=${baseUrl + '/pages/' + p.file.id}">
@@ -58,13 +51,6 @@
             </a>
             <div class="invoice-page-body">
                 <p class="fw-semibold mb-1" th:text="${pageName}">Page 1</p>
-                <!-- Read, but hard to read: retake it. -->
-                <div th:if="${p.hard}" class="invoice-page-note is-warning" role="note">
-                    <p class="fw-semibold mb-1" th:text="#{order.invoice.hard(${p.number})}">Page 2 is hard to read</p>
-                    <p class="small mb-2" th:text="#{order.invoice.hard.hint}">This page is hard to read: retake it flat, in
-                        good light, with the whole page in the picture.</p>
-                    <a class="btn btn-ghost btn-sm" th:href="@{${next}}" th:text="#{order.invoice.continueAnyway}">Continue anyway</a>
-                </div>
                 <!-- Could not be read (the reader's failure): read it again, or retake it. -->
                 <div th:if="${p.failed and !notReadNow}" class="invoice-page-note is-warning" role="note">
                     <p class="fw-semibold mb-2" th:text="#{order.invoice.pageFailed(${p.number})}">Page 2 could not be read</p>
