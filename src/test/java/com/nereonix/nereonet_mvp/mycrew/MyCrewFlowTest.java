@@ -44,7 +44,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * P31, My crew: who is on board the signed-in person's ship now (active users with a crew role; never invited or
+ * My crew: who is on board the signed-in person's ship now (active users with a crew role; never invited or
  * deactivated people, nor other ships), by department, rank and name, with "· you" on one's own row; a crewmate's
  * page with what they shared, or "<First name> hasn't added anything to their profile yet."; 404 (never 403) for
  * anyone not on board now, and for their photo; no email or join date anywhere in the HTML; a fixed number of
@@ -189,7 +189,7 @@ class MyCrewFlowTest {
                 "<img class=\"photo-large\" src=\"/ship/crew/" + engineer.getId() + "/photo/" + key + "/512\"",
                 "alt=\"Photo of Nikos Pappas\" width=\"512\" height=\"512\">",
                 "<dd>Greek, English, Tagalog</dd>",
-                // P43: the nationality with its flag before the name.
+                // The nationality with its flag before the name.
                 "<span>Greece</span></span></dd>", "/vendor/flags/gr-",
                 "<dd class=\"text-break text-pre-line\">Twenty years at sea.\nAsk me about the purifiers.</dd>",
                 "href=\"/ship/crew\">", "<span>Back to My crew</span>")

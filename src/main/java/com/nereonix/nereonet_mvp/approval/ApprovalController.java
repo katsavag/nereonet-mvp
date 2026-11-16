@@ -37,7 +37,7 @@ public class ApprovalController {
         return "approval/list";
     }
 
-    // The old Decided tab (before P48) held approved and declined requests; its links go to Approved.
+    // ?tab=decided (old bookmarks and links): that tab held approved and declined requests, so it goes to Approved.
     @GetMapping(value = "/ship/approvals", params = "tab=decided")
     public RedirectView decided() {
         RedirectView redirect = new RedirectView("/ship/approvals?tab=approved", true);

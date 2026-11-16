@@ -53,7 +53,7 @@
     --nn-divider: rgba(var(--nn-navy-rgb), .12);  /* rows and lines inside a surface */
     --nn-shadow: 0 1px 2px rgba(var(--nn-navy-rgb), .06);
     --nn-hover: #f7f4ee;             /* hovered row of an action list */
-    /* P58: card headers and table header rows, one step darker than the page (1.21:1 next to the surface);
+    /* Card headers and table header rows, one step darker than the page (1.21:1 next to the surface);
        --nn-text on it 13.3:1, secondary text 6.0:1, the blue 7.5:1. A 1px --nn-divider line under it. */
     --nn-head-bg: #ece7dc;
 
@@ -334,9 +334,9 @@ h1, .h1 {
 
 /* ---------------------------------------------------------------------------------------------------------------
    Forms: one pattern for every form.
-     - .form-box: the form card, at most 720px wide. P59: .form-box-full, as wide as the page's other cards, for a
+     - .form-box: the form card, at most 720px wide. .form-box-full, as wide as the page's other cards, for a
        form that sits under full-width cards (the office's order page); then .form-row-wide uses the room.
-     - .form-row-wide (P59, on the form): from 992px its .form-grid's fields sit side by side in one row with the
+     - .form-row-wide (on the form): from 992px its .form-grid's fields sit side by side in one row with the
        .form-actions at the end of it, the buttons level with the fields; anything else in the form (error summary,
        a picker) keeps its own full-width row. Below 992px the usual one or two columns.
      - .form-grid: the fields, 16px apart, one per row; from 768px a .field-half sits next to the next one
@@ -404,7 +404,7 @@ h1, .h1 {
     }
 }
 
-/* P46: fields as wide as their value. .input-imo: 7 digits plus the padding and border (7.5ch: Inter's tabular
+/* Fields as wide as their value. .input-imo: 7 digits plus the padding and border (7.5ch: Inter's tabular
    digits are a little wider than the 0 that ch measures); .input-flag: 2 letters
    plus room for the browser's list arrow. .code-field: a short field with the country name of its code next to it
    (.code-field-name, filled by js/forms.js). */
@@ -684,7 +684,7 @@ fieldset:disabled button.btn {
         grid-template-columns: 1fr;
         width: 100%;
     }
-    /* An action that is a form of its own (Mark all as read, P23): its button fills the form. */
+    /* An action that is a form of its own (Mark all as read): its button fills the form. */
     .page-actions > form > .btn { width: 100%; }
 }
 
@@ -734,7 +734,7 @@ fieldset:disabled button.btn {
    --------------------------------------------------------------------------------------------------------------- */
 .card {
     --bs-card-bg: var(--nn-surface);
-    --bs-card-cap-bg: var(--nn-head-bg);   /* P58: headers read as headers */
+    --bs-card-cap-bg: var(--nn-head-bg);   /* headers read as headers */
     --bs-card-border-color: var(--nn-border);
     --bs-card-border-radius: var(--nn-radius-card);
     --bs-card-inner-border-radius: calc(var(--nn-radius-card) - 1px);
@@ -743,7 +743,7 @@ fieldset:disabled button.btn {
     --bs-card-cap-padding-x: var(--nn-card-padding);
     box-shadow: var(--nn-shadow);
 }
-/* P58: the header surface, the same on every card (office and crew): --nn-head-bg with a 1px divider under it; the
+/* The header surface, the same on every card (office and crew): --nn-head-bg with a 1px divider under it; the
    title keeps its weight in the text colour. */
 .card > .card-header {
     color: var(--nn-text);
@@ -777,7 +777,7 @@ fieldset:disabled button.btn {
 /* Table text is 14px throughout; "small" in a cell must not shrink it further. */
 .table .small,
 .table small { font-size: inherit; }
-/* P58: header rows on the header surface (--nn-head-bg, as card headers), every table; the cells' own 1px
+/* Header rows on the header surface (--nn-head-bg, as card headers), every table; the cells' own 1px
    --nn-divider bottom border is the line under it. Sticky header rows and sticky first columns keep it, so rows
    never show through. */
 .table > thead > tr > * {
@@ -797,7 +797,7 @@ fieldset:disabled button.btn {
        so card title, column headers and first-column text share one left edge;
      - every body row is at least 52px high, with or without actions (a 32px row button fits without growing it);
        keep each cell on one line so all rows of a table have the same height;
-     - header cells 12px, 600, text colour on the header surface (P58; secondary before), uppercase, letter-spacing .04em;
+     - header cells 12px, 600, text colour on the header surface, uppercase, letter-spacing .04em;
      - hover background on rows; .num cells (counts, quantities) right-aligned with tabular figures;
      - .cell-primary: the record's name, linking to its page; the only bold cell in the row;
      - .cell-status: the status badge (layout/parts :: status);
@@ -826,12 +826,12 @@ fieldset:disabled button.btn {
     letter-spacing: .04em;
     text-transform: uppercase;
     white-space: nowrap;
-    color: var(--nn-text);   /* P58: the text colour on the header surface (secondary before) */
+    color: var(--nn-text);   /* the text colour on the header surface */
 }
 .data-table > tbody > tr.text-body-secondary > * { --bs-table-color-type: var(--nn-text-secondary); }
 .data-table > tbody > tr:hover > * { --bs-table-bg-state: var(--nn-hover); }
 .data-table .num { text-align: right; }
-/* P58: a short code (a currency such as EUR), not an amount: centred under a centred header, tabular figures, on
+/* A short code (a currency such as EUR), not an amount: centred under a centred header, tabular figures, on
    one line. Never .num, which right-aligns amounts. The stacked phone rows keep their label and value layout. */
 .code-cell {
     text-align: center;
@@ -943,7 +943,7 @@ fieldset:disabled button.btn {
     --bs-list-group-active-border-color: var(--nn-blue);
 }
 
-/* The confirmation dialog (P10) is a native <dialog>, not a Bootstrap .modal, but looks the same. */
+/* The confirmation dialog is a native <dialog>, not a Bootstrap .modal, but looks the same. */
 .modal,
 .confirm-dialog {
     --bs-modal-bg: var(--nn-surface);
@@ -1027,7 +1027,7 @@ fieldset:disabled button.btn {
     background-size: 37px 37px;
 }
 
-/* The signed-out frame and the password fields: section "Sign-in and registration (P13)" at the end. */
+/* The signed-out frame and the password fields: section "Sign-in and registration" at the end. */
 .login-box { max-width: var(--nn-auth-card-width); }
 
 
@@ -1144,14 +1144,14 @@ fieldset:disabled button.btn {
 }
 .sidebar-user-role { color: var(--nn-sidebar-muted); }
 
-/* The person's picture in the user block (P43): the shared .person-avatar (photo or initials), the initials white on a
+/* The person's picture in the user block: the shared .person-avatar (photo or initials), the initials white on a
    translucent tint on the navy (the photo keeps its own colours). */
 .sidebar-user > .person-avatar {
     background-color: var(--nn-on-navy-tint);
     color: var(--nn-white);
 }
 
-/* Fixed column from md up, as tall as the window (the 64px rail or the full width, P29: section "Brand, sidebar rail,
+/* Fixed column from md up, as tall as the window (the 64px rail or the full width: section "Brand, sidebar rail,
    language switch and page width"); below md it is an offcanvas opened from the top bar. */
 @media (min-width: 768px) {
     .sidebar {
@@ -1170,8 +1170,8 @@ fieldset:disabled button.btn {
    Layout frame and page header
      - .app-main: the column next to the sidebar. min-width: 0, so a wide table (import review, audit log) scrolls
        inside its card instead of making the whole page wider than the window.
-     - .app-content: the content, the full width next to the sidebar (P29: no cap), with 32px side gutters from 768px
-       and 16px on phones. Form pages keep a 720px column inside it (main.form-page, P29).
+     - .app-content: the content, the full width next to the sidebar (no cap), with 32px side gutters from 768px
+       and 16px on phones. Form pages keep a 720px column inside it (main.form-page).
      - .page-header (layout/parts :: pageHeader): breadcrumbs, eyebrow (real context only: ship name and IMO
        number), h1 with the record count, subtitle, actions on the right. 24px (--nn-section-gap) between the
        header, the filters and the content; filter forms and content cards keep mb-4 (24px).
@@ -1255,7 +1255,7 @@ fieldset:disabled button.btn {
     right: min(0px, calc((100% - var(--nn-touch-target)) / 2));
 }
 
-/* Import review tables (P24): give the inputs room, so the table scrolls sideways on phones instead of squashing them
+/* Import review tables: give the inputs room, so the table scrolls sideways on phones instead of squashing them
    (the name column has a fixed width instead, see "Import from a file"). */
 .import-table .form-control,
 .import-table .form-select { min-width: var(--nn-import-field-width); }
@@ -1273,7 +1273,7 @@ fieldset:disabled button.btn {
        counter as a dot (the number stays in the visually hidden text), and the label as a tooltip on hover and
        focus. The label is position: fixed, so the scrolling navigation never cuts it off; with no top set it stays
        level with its entry. body.sidebar-expanded is the full sidebar with labels.
-     - The toggle (P39): at the top, a 44px icon button right of the brand (under the mark, centred, in the rail): a
+     - The toggle: at the top, a 44px icon button right of the brand (under the mark, centred, in the rail): a
        "panel left" icon whose chevron points the way the sidebar will move. Its words ("Collapse menu" / "Expand
        menu") are its accessible name and a tooltip on hover and keyboard focus, beside the sidebar in both states.
      - Phones: the office menu (offcanvas) has an X at the top right, next to the brand.
@@ -1623,11 +1623,11 @@ fieldset:disabled button.btn {
 /* ---------------------------------------------------------------------------------------------------------------
    Crew navigation on phones: layout/parts :: tabBar and tabItem, for ship users (body.has-tab-bar).
      - .tab-bar: fixed at the bottom below 768px (from 768px the sidebar has the same entries), on the surface with a
-       line above, padded over the safe area of phones with a home indicator. Four equal columns (P47).
+       line above, padded over the safe area of phones with a home indicator. Four equal columns.
      - .tab-bar-link: icon over label, a 56px tap target. Active: navy, semibold and a 3px bar on its top edge,
        aria-current="page", so not by colour alone. Labels 12px in the secondary text colour (6.6:1).
      - .tab-bar-count: the count on a tab's icon (News: not read yet; More: unread notifications and the counters
-       of what is under it, P47, P65), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
+       of what is under it), white on the danger colour (6.7:1); the number is repeated in words for screen readers.
    The page keeps room for the bar: the content ends above it, and the offline banner sits on top of it instead of
    under it. The crew's top bar has the page name only.
    --------------------------------------------------------------------------------------------------------------- */
@@ -1655,7 +1655,7 @@ fieldset:disabled button.btn {
 .tab-bar-list {
     display: grid;
     grid-auto-flow: column;
-    /* Four equal tabs (P47; per role since P65, navigation/ShipNav); a long label ("Vessel order") wraps. */
+    /* Four equal tabs (per role, navigation/ShipNav); a long label ("Vessel order") wraps. */
     grid-auto-columns: minmax(0, 1fr);
     margin: 0;
     padding: 0;
@@ -1765,9 +1765,9 @@ fieldset:disabled button.btn {
 .confirm-dialog .modal-content { box-shadow: var(--nn-shadow-dialog); }
 .confirm-dialog .modal-title { overflow-wrap: anywhere; }
 .confirm-dialog .modal-body p { overflow-wrap: anywhere; }
-/* P50: the optional note of a dialog that asks for one (removing an order line). */
+/* The optional note of a dialog that asks for one (removing an order line). */
 .confirm-dialog-note { margin-top: var(--nn-space-3); }
-/* P58: what will change, listed under the body (resetting a vessel's required documents); the page scrolls it when
+/* What will change, listed under the body (resetting a vessel's required documents); the page scrolls it when
    long. */
 .confirm-dialog-items,
 .confirm-page-items {
@@ -1789,11 +1789,11 @@ fieldset:disabled button.btn {
     overflow-wrap: anywhere;
 }
 
-/* Announcement review (P10): announcement/review.html, the step between the form and sending.
+/* Announcement review: announcement/review.html, the step between the form and sending.
      - .review-stack: recipients, the preview and the actions, 24px apart, in the 720px form column.
      - .review-recipients: the people per ship; a muted IMO number after each name, so ships with similar names are
        told apart; a Total row when there is more than one ship. Also the acknowledgements per ship on the
-       announcement's detail page (P28).
+       announcement's detail page.
      - .review-label: the small heading above the preview, like a table header.
      - .announcement-preview: the title and message as the crew will see them (plain text, line breaks kept). */
 .review-stack {
@@ -1829,7 +1829,7 @@ fieldset:disabled button.btn {
     padding-left: 1.25rem;
 }
 
-/* Announcement target (P28): announcement/form.html, js/ship-picker.js.
+/* Announcement target: announcement/form.html, js/ship-picker.js.
      - .target-option: a radio with its label and a one-line hint, the whole row a touch target; the chosen one has
        the blue border and the checked radio (never the colour alone).
      - .ship-picker: the Selected ships list under the second option: quick filters, the "2 of 5 selected" count with
@@ -1992,7 +1992,7 @@ fieldset:disabled button.btn {
    easy to read out.
    --------------------------------------------------------------------------------------------------------------- */
 .error-page { max-width: 40rem; }
-/* The same quiet box holds the office contact on the "link is invalid or has expired" page (P13). */
+/* The same quiet box holds the office contact on the "link is invalid or has expired" page. */
 .error-reference,
 .support-contact {
     margin-bottom: var(--nn-space-5);
@@ -2184,7 +2184,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     min-height: var(--nn-btn-height);
 }
 .filter-field-check .form-check { margin-bottom: 0; }
-/* A filter with its error under it (P39: the audit log's dates) is taller than the others: the fields then line up
+/* A filter with its error under it (the audit log's dates) is taller than the others: the fields then line up
    by their labels, so the inputs stay on one line; a check or Apply moves down to that line (the label's height). */
 .filter-bar:has(.is-invalid) { align-items: flex-start; }
 .filter-bar:has(.is-invalid) > :is(.filter-field-check, .filter-field-apply) {
@@ -2282,7 +2282,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
         border-bottom-width: 0;
         box-shadow: inset 0 -1px 0 var(--nn-divider);
     }
-    /* The card's rounded corners, now that the table is no longer clipped by its scroll box. */
+    /* The card's rounded corners: the table is not clipped by its scroll box. */
     .card > .table-sticky:first-child > .data-table > thead > tr > th:first-child {
         border-top-left-radius: var(--bs-card-inner-border-radius);
     }
@@ -2461,7 +2461,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        circle, the current one its number in a primary-pair circle and a semibold label (aria-current="step"), the
        next ones an outlined number in secondary text (6.6:1). A line joins the circles, navy once passed. The words
        and the tick carry the state; the colour only repeats it.
-     - .import-template: the template, the easy path, in a card beside the upload card from 1200px (P29, .form-aside).
+     - .import-template: the template, the easy path, in a card beside the upload card from 1200px (.form-aside).
      - .import-sheets: the sheet choice, one bordered option per sheet; the whole option is the radio's label.
      - .import-map: from 768px the field's label on the left and its select on the right; stacked below. The second
        select of a two-column field (Full name: last name) follows the first.
@@ -2527,7 +2527,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     background: var(--nn-divider);
 }
 .import-step.is-done + .import-step::before { background: var(--nn-blue); }
-/* The circles are shared with the Overview's setup checklist (P25, .setup-step-mark). */
+/* The circles are shared with the Overview's setup checklist (.setup-step-mark). */
 .import-step-mark,
 .setup-step-mark {
     display: inline-flex;
@@ -3335,7 +3335,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
        (.overview-side, 5/12); under each other below that, Needs attention first.
      - .attention: the "Needs attention" card. Header: title, the number of open items and Snooze selected
-       (.attention-header-tools; with a chip selected, "Open the full list" too, P65). .attention-chips: the filter chips by category (.chip, with its count; the current
+       (.attention-header-tools; with a chip selected, "Open the full list" too). .attention-chips: the filter chips by category (.chip, with its count; the current
        one filled) and the order (Most urgent / By date, a view-switch). .attention-filter: a vessel filter
        (/office?shipId=...), with the way back to all.
      - .attention-item: one open item, compact: the checkbox of a snoozable item (.attention-select), then the status
@@ -3347,7 +3347,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .attention-empty: "Nothing needs your attention" and the time of the last check.
      - .overview-card: a card of the right column with a header (title and a link on the right), one of:
        .fleet-table (flag and name, type, Safety Score, open items), .recent-list (the audit action,
-       who, the vessel, when). An empty card shows the P25 empty state, compact.
+       who, the vessel, when). An empty card shows the shared empty state, compact.
      - .status-badge-icon: a status badge (layout/parts :: statusIcon) with a 12px icon in place of the dot.
      - .count-zero / .count-link: a count in the fleet table (layout/parts :: countLink); zero is a muted dash.
    Text pairs: context and meta text use --nn-text-secondary (6.6:1 on the surface); the tiles' numbers --nn-text.
@@ -3681,7 +3681,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 .count-zero { color: var(--nn-text-secondary); }
 
-/* A country's flag before its name (P43, layout/parts :: flag and country): 20 x 15px, a 1px subtle border so a
+/* A country's flag before its name (layout/parts :: flag and country): 20 x 15px, a 1px subtle border so a
    white flag (Japan, Finland) stays visible on the surface; the name follows on the same line. */
 :root {
     --nn-flag-width: 20px;
@@ -3727,7 +3727,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .auth-frame: the signed-out frame (sign-in, registration, invalid link, signed-out error pages). From 768px
        the navy brand panel (.auth-brand) is a column on the left; on phones it collapses to a 64px header bar, so
        the form starts above the fold (at 390 x 844 the sign-in button is in view without scrolling).
-       P30: from 768px the panel is narrow (--nn-auth-panel-width: 320px, growing with the window up to 416px), with
+       From 768px the panel is narrow (--nn-auth-panel-width: 320px, growing with the window up to 416px), with
        the brand (layout/parts :: brand, the mark at 56px) at its top left and the organisation (.auth-organisation:
        a spaced-out label, the name, the code; 6.9:1 and white on the navy) at its bottom left. The phone bar has the
        brand at its sidebar size and no organisation. From 768px the form is a card (at most 420px), centred both ways
@@ -4392,7 +4392,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Crew home page: shiphome/home.html.
-     - P58: no Sign out on this page any more (the sidebar and More have it); .home-sign-out and .from-md went.
+     - No Sign out on this page: the sidebar and More have it.
      - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
        home page), card-title size.
      - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
@@ -4483,7 +4483,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     gap: var(--nn-space-2);
     margin: var(--nn-space-2) 0 0;
 }
-/* An announcement's card (P27): the announcements icon in the place, and at the size, of a library type icon. */
+/* An announcement's card: the announcements icon in the place, and at the size, of a library type icon. */
 .read-card-icon {
     display: inline-flex;
     flex-shrink: 0;
@@ -4586,7 +4586,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Crew News: announcement/ship-list.html and
-   ship-detail.html; read receipts (P39, layout/parts :: readTicks, readReceipt) there and on the office's announcement
+   ship-detail.html; read receipts (layout/parts :: readTicks, readReceipt) there and on the office's announcement
    page.
      - main.news-page: one centred column of at most 720px (--nn-news-width), on phones and desktops alike; 16px body
        text at line height 1.5.
@@ -4607,7 +4607,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     --nn-read-measure: 48rem;        /* 768px, about 90 characters a line */
     --nn-read-color: var(--nn-blue);
     --nn-unread-dot: .5rem;          /* 8px, as a notification's */
-    --nn-news-width: 45rem;          /* 720px, the News column (P47) */
+    --nn-news-width: 45rem;          /* 720px, the News column */
 }
 
 .news-page {
@@ -4879,7 +4879,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-text-secondary);
 }
 
-/* My certificates (P39), under the four fields: a heading, who sees them, then the crew home's list of certificates
+/* My certificates, under the four fields: a heading, who sees them, then the crew home's list of certificates
    (crew/parts :: myCertificates, .cert-row) with Open (40px, 44px on phones) where the office attached the file. On
    a phone the badge and Open wrap under the text. */
 .profile-section + .profile-section { margin-top: var(--nn-space-5); }
@@ -4889,7 +4889,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     font-weight: 600;
 }
 
-/* A certificate's file (P39, crew/parts :: certificateFile): a paperclip and "Open", always a button (so at least the
+/* A certificate's file (crew/parts :: certificateFile): a paperclip and "Open", always a button (so at least the
    touch target). In the office's list it follows the type, small and quiet (.cert-file-inline). On the form, the
    current file with Open and Remove sits above the file input. */
 .cert-file-link { white-space: nowrap; }
@@ -4936,7 +4936,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     overflow-wrap: anywhere;
 }
 .more-links { margin-bottom: var(--nn-section-gap); }
-/* P65: the More page's group headings (On board, Supplies), as the sidebar's groups. */
+/* The More page's group headings (On board, Supplies), as the sidebar's groups. */
 .more-group-title {
     margin: var(--nn-section-gap) 0 var(--nn-space-3);
     font-size: var(--nn-font-title);
@@ -5111,7 +5111,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .approval-row: one request, who asked (a .stretched-link, so the whole row opens it) over its number, when it
        was sent and the number of items; on the Approved and Declined tabs the decision badge and its date on the right (below on
        phones).
-     - .more-count: the number on the More page's Notifications (P47) and Approvals rows, the sidebar's quiet pill on the surface.
+     - .more-count: the number on the More page's Notifications and Approvals rows, the sidebar's quiet pill on the surface.
    --------------------------------------------------------------------------------------------------------------- */
 .approval-row {
     display: flex;
@@ -5231,7 +5231,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     justify-content: flex-end;
     gap: var(--nn-space-1) var(--nn-space-2);
 }
-/* P60: the limit ("Up to 2000 kg") and a refused value's error on their own lines under the field, right-aligned.
+/* The limit ("Up to 2000 kg") and a refused value's error on their own lines under the field, right-aligned.
    Also the office's .order-edit-form. The error is red and says what is wrong in words. */
 .order-qty-form > .quantity-hint,
 .order-edit-form > .quantity-hint,
@@ -5251,13 +5251,13 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .order-note { white-space: pre-line; overflow-wrap: anywhere; }
 
-/* The office's changes of a sent order (P50): officeorder/detail.html and the Master's shiporder/parts :: lines.
+/* The office's changes of a sent order: officeorder/detail.html and the Master's shiporder/parts :: lines.
      - .order-office-change: "Changed by office: 50 kg → 40 kg · “Out of season”" under the item's name, in the
        warning pair (the words carry the meaning); the note in the secondary colour.
      - .order-line-removed: a line the office removed, its name and quantity struck through and muted.
      - .order-edit-form: a line's quantity, its optional note and Save on one row (wrapping on narrow screens).
      - .order-edit-pending: "not told yet" and Done editing, a quiet info box above the lines.
-     - "Add an item" (P59; a list box before): .item-picker, below. */
+     - "Add an item": .item-picker, below. */
 .order-office-change {
     margin: 2px 0 0;
     font-size: var(--nn-font-sm);
@@ -5292,7 +5292,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     background-color: var(--nn-info-bg);
     color: var(--nn-info-text);
 }
-/* "Add an item" on the office's order page (P59): officeorder/detail.html, js/item-search.js.
+/* "Add an item" on the office's order page: officeorder/detail.html, js/item-search.js.
      - .item-picker: two panels, "Not on the order" (radios) and "On the order" (for reference), stacked on phones
        and side by side from 768px.
      - .item-picker-panel / .item-picker-title: a bordered panel and its title (the radios' legend, or a heading).
@@ -5431,7 +5431,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .ghg: the GHG Rating, a leaf icon in RightShip's colour of the letter (.ghg-a ... .ghg-e; .ghg-u grey), then
        the letter and Verified / Unverified in the text colour. The colour is on the icon only, so it is never the
        only carrier of the rating.
-     - .vetting-badges: the vessel page header's row of badges (score, GHG, inspection; SIRE 2.0 on a tanker). P43:
+     - .vetting-badges: the vessel page header's row of badges (score, GHG, inspection; SIRE 2.0 on a tanker).
        each badge is a link of its own (.vetting-badge, to the RightShip or SIRE page) with its own hover and focus
        ring; a 40px touch target (44px on phones).
      - .regime-card: a vetting regime on a vessel's Vetting page (RightShip, SIRE 2.0); the title is a
@@ -5535,7 +5535,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     padding: var(--nn-space-1) 0;
     color: var(--nn-text);
 }
-/* Each badge its own link (P43): hover and focus on that badge only; the tap area is the touch target (::after). */
+/* Each badge its own link: hover and focus on that badge only; the tap area is the touch target (::after). */
 .vetting-badge {
     position: relative;
     display: inline-flex;
@@ -6007,8 +6007,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        sideways), with a divider on its right edge. Rank names are turned upright (.req-grid-rank-label, read bottom
        to top) so the columns stay one checkbox wide; each department starts with a divider (.req-grid-group-start).
        Each cell's label (.req-cell) fills the cell, at least the touch target (40px, 44px on phones) in both
-       directions. A row just added (.is-added) has the primary tint. P58: one grid per vessel, so no inherited ticks.
-     - P58 .requirement-grid-header: the title and "Based on the defaults for Bulk carrier." on the left, "Reset to
+       directions. A row just added (.is-added) has the primary tint. One grid per vessel, so no inherited ticks.
+     - .requirement-grid-header: the title and "Based on the defaults for Bulk carrier." on the left, "Reset to
        Bulk carrier defaults" on the right (under them on phones), the hint below; Changed is a neutral badge.
      - .requirement-actions: Save and its hint, under the grid. .requirement-add: Add a document type, under the card.
      - .requirement-card-*, .requirement-row-*: the office crew member page's Required documents card: type, note and
@@ -6142,7 +6142,7 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     background-color: transparent;
 }
 
-/* P43: the row toggle before the type's name, and the Delete row icon button at the row's end. */
+/* The row toggle before the type's name, and the Delete row icon button at the row's end. */
 .req-row-all {
     display: inline-flex;
     align-items: center;
@@ -6172,7 +6172,7 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     height: 18px;
 }
 
-/* The combined filter's combobox (P43, js/requirements.js): the field, and its listbox under it with each option's
+/* The combined filter's combobox (js/requirements.js): the field, and its listbox under it with each option's
    name and kind ("ALDER · Bulk carrier", the kind muted). The active option (arrow keys) and hover share the hover
    tint; the chosen one is semibold. */
 .combobox { position: relative; }
@@ -6545,7 +6545,7 @@ input.supplier-currency { max-width: 7rem; }
      - .receipt-short: "Short by 5 kg" under the item's name; .receipt-note the Master's note on the line.
    --------------------------------------------------------------------------------------------------------------- */
 .receipt-received { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
-/* P60: the limit under the quantity and Not delivered, "Up to 2000 kg". */
+/* The limit under the quantity and Not delivered, "Up to 2000 kg". */
 .receipt-received > .quantity-hint { flex-basis: 100%; margin-top: 0; }
 .receipt-qty { width: 9rem; flex: 0 0 auto; }
 .receipt-qty > .form-control[readonly] { background: var(--nn-page); }
@@ -6576,7 +6576,7 @@ input.supplier-currency { max-width: 7rem; }
 /* ---------------------------------------------------------------------------------------------------------------
    Stores: the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
      - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count, Requests waiting
-       since P54, Next delivery since P55), five per row from 1200px, else two with Next delivery (.stores-fact-wide)
+       Next delivery), five per row from 1200px, else two with Next delivery (.stores-fact-wide)
        across the row; a tile is a link when it leads to a list or an order. .is-low and .is-out tint a tile
        with something in it (the number says it, the tint repeats it).
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
@@ -6733,7 +6733,7 @@ html.is-offline .stores-count-bar { bottom: calc(var(--nn-count-bar-bottom) + va
 /* Room to scroll the last fields clear of the floating "Hold to speak" (4rem and 16px above the bar). */
 .stores-count:has(.voice-hold:not([hidden])) .stores-add { margin-bottom: calc(4rem + var(--nn-space-4)); }
 
-/* Counting by voice (P57): the Count by voice card of stores/count.html (js/stores-voice.js) and the review,
+/* Counting by voice: the Count by voice card of stores/count.html (js/stores-voice.js) and the review,
    stores/voice.html.
      - .voice-heading: the card's title with the microphone icon.
      - .voice-hold: press and hold. It floats: fixed at the bottom right, 16px from the edge and 16px above the Save
@@ -6890,7 +6890,7 @@ html.is-offline .voice-hold {
     align-items: center;
     gap: var(--nn-space-1) var(--nn-space-2);
 }
-/* P60: the limit under the field and its unit ("Up to 2000 kg"), right-aligned with them. */
+/* The limit under the field and its unit ("Up to 2000 kg"), right-aligned with them. */
 .request-pick-qty > .quantity-hint { flex-basis: 100%; margin-top: 0; text-align: end; }
 .request-qty-input { width: 7.5rem; min-height: 2.75rem; text-align: end; }
 .request-pick-unit { min-width: 2.5rem; color: var(--nn-text-secondary); }
@@ -6906,7 +6906,7 @@ html.is-offline .voice-hold {
      - .count-row: one row, the same on phone and desktop: the name, under it the muted reference line (.count-ref,
        ending with the small link "Read wrong?": .count-fix, whose form opens under the line, smaller than the count's),
        the label "Arrived" (.count-arrived), then the input with its
-       unit and the one button side by side, both at least 48px high (P60), the difference in words (.count-diff,
+       unit and the one button side by side, both at least 48px high, the difference in words (.count-diff,
        hidden while empty) and Add a note. The button takes the rest of the line.
      - .count-finish: the box at the bottom: what is left (muted), then .count-finish-actions: the way back to the
        invoice's photos and Finish side by side, 48px high, Finish the wider; when the labels do not fit, Finish

@@ -69,7 +69,7 @@ public class OrderReceiptService {
     /** A receipt has at most this many files. */
     public static final int MAX_FILES = 10;
 
-    /** P62: an invoice has at most this many pages. */
+    /** An invoice has at most this many pages. */
     public static final int MAX_INVOICE_PAGES = 6;
 
     // The kinds of file an invoice page may be, by their first bytes.
@@ -228,7 +228,7 @@ public class OrderReceiptService {
         return Result.DONE;
     }
 
-    /** P62: the invoice's pages, by page number. */
+    /** The invoice's pages, by page number. */
     @Transactional(readOnly = true)
     public List<OrderReceiptFile> invoicePages(Long orderId) {
         return fileRepository.findAllByOrderIdAndInvoicePageNotNullOrderByInvoicePageAsc(orderId);
@@ -382,10 +382,10 @@ public class OrderReceiptService {
      * The Master confirms receipt of a CONFIRMED order of their ship: each line not removed by the office gets
      * its received quantity and note, the order gets receivedAt, receivedBy and the number of lines received short,
      * and is CLOSED; the files uploaded are its receipt. Recorded as "Receipt confirmed"; every enabled office user is
-     * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". P56: each PROVISIONS line received above zero
+     * notified: "MV Demo confirmed receipt of order 12 (2 lines short)". Each PROVISIONS line received above zero
      * adds to the store (StockService.receive; personal items never do), and when any did the ship's enabled Chief
      * cook is told: "Order 12 received: stock updated for 5 items", linking to Stores. NOT_CONFIRMED or NO_FILE:
-     * nothing changed. P61: when the Chief cook's count was sent to the Master, confirming approves it (APPROVED; the
+     * nothing changed. When the Chief cook's count was sent to the Master, confirming approves it (APPROVED; the
      * cook stays the order's countedBy): the audit entry and each RECEIPT movement's note say "Counted by Demo Cook".
      * IllegalArgumentException for a line without a valid received quantity, a too long note, or a receipt time in
      * the future or before the order was sent; 404 and AccessDeniedException as stageFile.
@@ -410,10 +410,10 @@ public class OrderReceiptService {
     /**
      * Approve: the Master approves the Chief cook's count sent to them in one step, as confirmReceipt: what
      * arrived of each row is the Master's change or the cook's count (a row not counted: nothing arrived), in the
-     * item's unit, with the cook's note; receivedAt (P51's rules), by default when the cook sent the count. An
+     * item's unit, with the cook's note; receivedAt (the plain receipt's rules), by default when the cook sent the count. An
      * invoice line matched to a vessel item not on the order becomes a line added on receipt (ordered 0). Each line
      * keeps for the office what the invoice said (invoicedQuantity, invoiceLine) and the marks "match to review" and
-     * "conversion to review"; the uncertain matches the cook confirmed are learned for the supplier (P64 may correct
+     * "conversion to review"; the uncertain matches the cook confirmed are learned for the supplier (the office may correct
      * them). Then CLOSED, stocked and notified as confirmReceipt. NOT_CONFIRMED, NO_COUNT, NO_FILE: nothing changed.
      */
     @Transactional
@@ -631,7 +631,7 @@ public class OrderReceiptService {
         }
     }
 
-    // The order of the Master's ship (or, with cookToo, the Chief cook's: P61, the files of his count), its row
+    // The order of the Master's ship (or, with cookToo, the Chief cook's: the files of his count), its row
     // locked; 404 for another ship's or an OPEN one.
     private ShipOrder lockOrder(User master, Long orderId, boolean cookToo) {
         if (master == null || !master.isEnabled() || master.getShip() == null || !(master.getRole() == Role.MASTER

@@ -1,4 +1,4 @@
-// Form helpers (P05). Only enhancements: without this script every form still shows its limits and help text, the
+// Form helpers. Only enhancements: without this script every form still shows its limits and help text, the
 // error summary still links to the fields, and the forms submit as usual.
 //  - [data-counter-for]: the counter under a field with a character limit, hidden until the text reaches 75 % of
 //    the limit, then "3,200 / 4,000" while typing. Texts come from data-template / data-over-template, where
@@ -9,14 +9,14 @@
 //    data-max-size (bytes; text in data-too-large).
 //  - [data-shown-for]: a field shown only while the select with that id has the value data-shown-value (the item
 //    form's Place, for Provisions). Without this script the field stays visible.
-//  - input[data-input-filter]: digits or letters only, as typed or pasted (P46, see below).
+//  - input[data-input-filter]: digits or letters only, as typed or pasted (see below).
 //  - [data-changed-from]: a field shown only while the select with that id has another value than data-initial-value,
-//    the one it had when the page loaded (P58: on the vessel form, what to do with the required documents when the
+//    the one it had when the page loaded (on the vessel form, what to do with the required documents when the
 //    type changes).
 //    Without this script the field stays visible.
-//  - [data-date-range] (P58, layout/parts :: dateRange): typing a date of the range clears the mark of the quick
+//  - [data-date-range] (layout/parts :: dateRange): typing a date of the range clears the mark of the quick
 //    choice (aria-current), since the dates are no longer that choice.
-//  - button[data-primary-on-change] (P65): an outline button that becomes the page's primary (btn-primary) once a
+//  - button[data-primary-on-change]: an outline button that becomes the page's primary (btn-primary) once a
 //    field of its form differs from what the page loaded with, and goes back when they are the same again (the
 //    office's Save delivery changes). Without this script it stays an outline button and still submits.
 (function () {
@@ -118,7 +118,7 @@
         update(); // a file kept by the browser after going back
     });
 
-    // Rank pickers (P18): the access line under the picker (crew/parts :: accessHint) follows the chosen rank. Each
+    // Rank pickers: the access line under the picker (crew/parts :: accessHint) follows the chosen rank. Each
     // option names its role (data-role); the line holds the text for each role (data-access-<role>, lower case) and
     // data-access-none for no rank. Without this script the line shows the saved rank's access.
     function showAccess(select, hint) {
@@ -139,7 +139,7 @@
         showAccess(select, hint); // a rank kept by the browser after going back
     });
 
-    // P46: input[data-input-filter="digits" | "letters"]: only those characters are kept as they are typed or pasted
+    // Input[data-input-filter="digits" | "letters"]: only those characters are kept as they are typed or pasted
     // (a pasted "IMO 9328716" becomes "9328716"; letters are upper case), the caret staying where the person was
     // typing. A paste is filtered before the field's maxlength applies, so it is not cut short by the dropped text.
     // data-country-name: the id of the element showing the country name of the code (the label of its option in the

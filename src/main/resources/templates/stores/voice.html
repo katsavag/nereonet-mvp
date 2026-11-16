@@ -39,7 +39,7 @@
             <p th:if="${proposal.lines.isEmpty()}" class="card-body text-body-secondary mb-0"
                th:text="#{stores.voice.review.noLines}">No item was recognised for certain.</p>
             <ul th:unless="${proposal.lines.isEmpty()}" class="list-group list-group-flush">
-                <li th:each="line, it : ${proposal.lines}" class="list-group-item voice-row" data-voice-row
+                <li th:each="line, it : ${proposal.lines}" class="list-group-item voice-row"
                     th:with="i=${it.index}, error=${rowErrors.get(it.index)}, low=${line.confidence.name() == 'LOW'},
                              rule=${@quantityRules.forUnit(line.unit, 'COUNT')},
                              tone=${line.confidence.name() == 'HIGH' ? 'ok' : (line.confidence.name() == 'LOW' ? 'warning' : 'neutral')}"
@@ -85,7 +85,7 @@
                     Pick an item and a quantity to count a phrase, or leave it as Don't count.</p>
             </div>
             <ul class="list-group list-group-flush">
-                <li th:each="phrase, it : ${proposal.unmatched}" class="list-group-item voice-row" data-voice-extra
+                <li th:each="phrase, it : ${proposal.unmatched}" class="list-group-item voice-row"
                     th:with="j=${it.index}, error=${extraErrors.get(it.index)}">
                     <p class="voice-row-words mb-0"><q th:id="${'extra-' + j}" th:text="${phrase}">three cans of herring</q></p>
                     <div class="voice-row-fields">

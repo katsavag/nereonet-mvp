@@ -56,7 +56,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P06 page header on every page: one h1, breadcrumbs on every page below the top level (section, record, page; each
+ * The page header on every page: one h1, breadcrumbs on every page below the top level (section, record, page; each
  * a link except the last), the eyebrow only for the ship's name and IMO number, the record count next to the page
  * title instead of in a card header, "Page name · Nereonet" tab titles and the page name in the phone top bar.
  */
@@ -165,7 +165,7 @@ class PageHeaderFlowTest {
         add(pages, "/office/crew/" + crew.getId() + "/certificates/" + certificate.getId() + "/edit", null,
                 "Edit certificate", List.of("Crew", "Crew Member", "Edit certificate"), null);
         add(pages, "/office/crew/import", null, "Import crew", List.of("Crew", "Import crew from a file"), null);
-        // The ship page (P08): every tab has the ship's name as its heading, under Ships; the tab title and the phone
+        // The ship page: every tab has the ship's name as its heading, under Ships; the tab title and the phone
         // top bar name the ship and the tab. No eyebrow: the ship is the heading.
         for (String[] tab : new String[][] {{"", "Overview"}, {"/crew", "Crew"}, {"/certificates", "Certificates"},
                 {"/library", "Library"}, {"/items", "Items"}, {"/announcements", "Announcements"}}) {
@@ -190,8 +190,8 @@ class PageHeaderFlowTest {
                 List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/edit", null, "Publish new version",
                 List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
-        add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/acknowledgements", null, "Acknowledgements",
-                List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy", "Acknowledgements"), SHIP_CONTEXT);
+        add(pages, "/office/ships/" + id + "/library/" + item.getId() + "/acknowledgements", null, "Who has read it",
+                List.of("Vessels", "MV Demo", "Library", "Drug and alcohol policy", "Who has read it"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId(), crew, "Drug and alcohol policy",
                 List.of("Library", "Drug and alcohol policy"), SHIP_CONTEXT);
         add(pages, "/ship/library/new", master, "Add an item", List.of("Library", "Add an item"), SHIP_CONTEXT);
@@ -199,8 +199,8 @@ class PageHeaderFlowTest {
                 List.of("Library", "Edit vessel particulars"), SHIP_CONTEXT);
         add(pages, "/ship/library/" + item.getId() + "/edit", master, "Publish new version",
                 List.of("Library", "Drug and alcohol policy", "Publish new version"), SHIP_CONTEXT);
-        add(pages, "/ship/library/" + item.getId() + "/acknowledgements", master, "Acknowledgements",
-                List.of("Library", "Drug and alcohol policy", "Acknowledgements"), SHIP_CONTEXT);
+        add(pages, "/ship/library/" + item.getId() + "/acknowledgements", master, "Who has read it",
+                List.of("Library", "Drug and alcohol policy", "Who has read it"), SHIP_CONTEXT);
 
         for (Page page : pages.values()) {
             MockHttpServletRequestBuilder get = get(page.url());
@@ -240,9 +240,10 @@ class PageHeaderFlowTest {
         User crew = userService.createUser("crew@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship, null);
         sentOrder(ship, crew);
 
-        // The tabs of the ship page show their count on the tab instead (ShipPageFlowTest).
+        // The tabs of the ship page show their count on the tab instead (ShipPageFlowTest); the audit log shows none.
+        assertThat(html(get("/office/audit"))).doesNotContain("title-count");
         for (String url : List.of("/office/ships", "/office/crew", "/office/users",
-                "/office/audit", "/office/certificates", "/office/announcements", "/office/orders")) {
+                "/office/certificates", "/office/announcements", "/office/orders")) {
             String html = html(get(url));
             Matcher h1 = H1.matcher(html);
             assertThat(h1.find()).as("h1 on " + url).isTrue();
@@ -256,13 +257,13 @@ class PageHeaderFlowTest {
         assertThat(html(get("/office/ships"))).containsPattern("<h1 class=\"page-title\">\\s*<span>Vessels</span>\\s*"
                 + "<span class=\"title-count\"><span aria-hidden=\"true\">·</span> <span class=\"num\">1</span></span>");
 
-        // Export is in the page header; it still submits the list's form without JavaScript (P36).
+        // Export is in the page header; it still submits the list's form without JavaScript.
         String orders = html(get("/office/orders"));
         assertThat(orders).contains("<form id=\"exportForm\" action=\"/office/orders/export\" method=\"post\" data-selection")
                 .containsPattern("<div class=\"page-actions\">\\s*<button type=\"submit\" form=\"exportForm\" class=\"btn btn-primary\"");
     }
 
-    // An order the ship has sent (P36), without lines.
+    // An order the ship has sent, without lines.
     private ShipOrder sentOrder(Ship ship, User sentBy) {
         ShipOrder order = new ShipOrder();
         order.setShip(ship);
@@ -293,7 +294,7 @@ class PageHeaderFlowTest {
     @Test
     void appCssDefinesTheLayoutFrame() throws Exception {
         String css = Files.readString(Path.of("src/main/resources/static/css/app.css"));
-        // P29: the content uses the full width next to the sidebar (no 1280px cap), with 32px side gutters from 768px;
+        // The content uses the full width next to the sidebar (no 1280px cap), with 32px side gutters from 768px;
         // forms keep their 720px column, centred (main.form-page).
         assertThat(css).contains(".app-main { min-width: 0; }", ".app-content { padding: var(--nn-section-gap) var(--nn-gutter); }",
                 ":root { --nn-gutter: var(--nn-space-6); }", "--nn-section-gap: var(--nn-space-5);",
@@ -321,7 +322,7 @@ class PageHeaderFlowTest {
         assertThat(PAGE_HEADER.matcher(html).results().count()).as("one page header" + on).isEqualTo(1);
         assertThat(html).as("old back links" + on).doesNotContain("←", "Back to ships");
 
-        // On office pages the ship eyebrow links to the ship page (P08); compare its text.
+        // On office pages the ship eyebrow links to the ship page; compare its text.
         List<String> eyebrows = EYEBROW.matcher(html).results()
                 .map(m -> EYEBROW_SHIP_LINK.matcher(m.group(1)).replaceAll("$1")).toList();
         if (page.eyebrow() == null) {

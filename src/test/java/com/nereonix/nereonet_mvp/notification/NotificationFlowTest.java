@@ -45,7 +45,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import jakarta.persistence.EntityManager;
 
 /**
- * P23: notifications stay unread until handled. Showing the list marks nothing; opening one, its Mark as read and
+ * Notifications stay unread until handled. Showing the list marks nothing; opening one, its Mark as read and
  * Mark all as read do, and the counters follow. Grouped by UTC day, 25 to a page.
  */
 @SpringBootTest
@@ -170,7 +170,7 @@ class NotificationFlowTest {
         assertThat(unread()).isZero();
     }
 
-    // P43: Mark all as read clears the bell for the signed-in user only; no certificate or vetting state changes,
+    // Mark all as read clears the bell for the signed-in user only; no certificate or vetting state changes,
     // so the Certificates counter (what needs the office) stays as it was.
     @Test
     void markAllAsReadClearsTheBellOnlyAndChangesNoCounter() throws Exception {
@@ -241,7 +241,7 @@ class NotificationFlowTest {
             notification(crew, "Old " + i, null, startOfToday.minus(Duration.ofDays(30)));
         }
 
-        // 10 a page (P43; 25 before).
+        // 10 a page.
         String first = page("/notifications");
         assertThat(first).containsSubsequence(">Today</h2>", "From today", ">Yesterday</h2>", "From yesterday",
                 ">" + date(today.minusDays(6)) + "</h2>", "From last week", ">" + date(today.minusDays(30)) + "</h2>");

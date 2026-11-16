@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
 
-/** P44: pack units turned into item units, so quotes in different packs compare per item unit. */
+/** Pack units turned into item units, so quotes in different packs compare per item unit. */
 class UnitsTest {
 
     @Test

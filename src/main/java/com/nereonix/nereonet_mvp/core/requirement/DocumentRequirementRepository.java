@@ -11,8 +11,6 @@ public interface DocumentRequirementRepository extends JpaRepository<DocumentReq
     @Query("select distinct r from DocumentRequirement r left join fetch r.ranks order by r.id")
     List<DocumentRequirement> findAllWithRanks();
 
-    boolean existsBySuggestionTrue();
-
     // The rows from before requirements were per vessel (no vessel; a vessel type or all vessels), with their
     // ranks, oldest first: what VesselRequirementsMigration moves.
     @Query("select distinct r from DocumentRequirement r left join fetch r.ranks where r.ship is null order by r.id")

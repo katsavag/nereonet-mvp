@@ -47,9 +47,9 @@ public class PeopleQueries {
     private static final String RANK_ORDER = rankCase(rank -> Integer.toString(rank.ordinal()), "999");
 
     // Required documents, the rules of requirement/RequirementRules in SQL, for user u on ship s: the required
-    // (not optional) types of u's vessel (of all vessels or s's type before) whose ranks include u's rank; none
+    // (not optional) types of u's vessel whose ranks include u's rank; none
     // without a rank or a ship.
-    // A type is held by a certificate of the same type (lower case, trimmed) expiring from today to the P39 limit.
+    // A type is held by a certificate of the same type (lower case, trimmed) expiring from today to the certificate form's limit.
     private static final String REQUIRED_TYPES = " from document_requirement r"
             + " join document_requirement_rank rr on rr.requirement_id = r.id"
             + " where rr.rank = u.rank and u.ship_id is not null and r.optional = false"
@@ -78,7 +78,7 @@ public class PeopleQueries {
 
     /**
      * office: the office users (true) or everyone with a ship role (false). shipId, status: the filters, or null.
-     * missingDocuments (P42, the Crew list): only users missing a required document (expired counts as missing); no
+     * missingDocuments (the Crew list): only users missing a required document (expired counts as missing); no
      * invitations then.
      */
     public Page<Row> page(boolean office, Long shipId, CrewStatus status, boolean missingDocuments, ListQuery list) {

@@ -1,6 +1,6 @@
-// "Confirm receipt" (P51), the Master's form (shiporder/receipt.html). Loaded by that page only. Only enhancements:
+// "Confirm receipt", the Master's form (shiporder/receipt.html). Loaded by that page only. Only enhancements:
 // without it the form works as it is (the files go with Review, and the server checks everything).
-//  - "Not delivered" (input[data-receipt-none]) sets the line's quantity (input[data-quantity], P60) to 0 and locks it; unticked, the quantity
+//  - "Not delivered" (input[data-receipt-none]) sets the line's quantity (input[data-quantity]) to 0 and locks it; unticked, the quantity
 //    comes back.
 //  - The files chosen (input[data-receipt-files]) are listed with their size, a warning on one larger than 10 MB.
 //  - Review with files chosen: each file is sent alone first (POST data-upload-url, field "file"), a JPEG or PNG made

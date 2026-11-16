@@ -5,7 +5,7 @@ package com.nereonix.nereonet_mvp.core.vetting;
  * SireSettings.reportCurrentMonths after the inspection (company policy, not an OCIMF rule).
  * <ul>
  *   <li>CURRENT: current until a date more than ENDING_DAYS away (ok);</li>
- *   <li>ENDING: current until today or within ENDING_DAYS (warning, the P02 tone);</li>
+ *   <li>ENDING: current until today or within ENDING_DAYS (the warning tone);</li>
  *   <li>NOT_CURRENT: the date has passed (danger);</li>
  *   <li>NONE: no inspection (neutral).</li>
  * </ul>

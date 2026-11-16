@@ -31,7 +31,7 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
             order by case when r.acknowledgedAt is null then 0 else 1 end, a.createdAt desc, a.id desc""")
     List<AnnouncementRecipient> findAllForUser(String email);
 
-    /** The first rows of findAllForUser, in the same order, limited in the database (the crew's News, P47: 10 a page,
+    /** The first rows of findAllForUser, in the same order, limited in the database (the crew's News: 10 a page,
      *  "Show older"); the Slice says whether there are more. */
     @Query("""
             select r from AnnouncementRecipient r join fetch r.announcement a

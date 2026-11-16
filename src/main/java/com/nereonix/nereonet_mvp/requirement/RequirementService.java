@@ -28,9 +28,9 @@ import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The office's Required documents page: the grid of one vessel (of one vessel type before), and saving it.
+ * The office's Required documents page: the grid of one vessel, and saving it.
  * Rows: every type with a requirement on any vessel, the starter types (CertificateTypes.STARTER) and the types of the
- * certificates on record, one row per type (P20 matching), the starter types first in their order, then the others by
+ * certificates on record, one row per type (CertificateTypes.sameTypeKey), the starter types first in their order, then the others by
  * name. A type the office asks to add (?add=) is shown first until saved.
  * Each vessel has its own requirements, starting with the defaults of its type (StarterRequirements.defaults, copied
  * by startWithDefaults when the vessel is created); saving, Delete row and "Reset to Bulk carrier defaults" change
@@ -104,7 +104,7 @@ public class RequirementService {
     }
 
     /**
-     * Removes the certificate type's requirement from one vessel only (P58: the shown vessel). Recorded as
+     * Removes the certificate type's requirement from one vessel only (the shown vessel). Recorded as
      * "Required documents changed" ("ALDER: Tanker Endorsement removed"). Returns false when there was none.
      */
     @Transactional
@@ -348,8 +348,8 @@ public class RequirementService {
     }
 
     /**
-     * Gives a vessel that has no requirement yet the defaults of its type, as suggestions to review (a new vessel,
-     * P58). Returns the number of rows added; none when the vessel has requirements already.
+     * Gives a vessel that has no requirement yet the defaults of its type, as suggestions to review (a new
+     * vessel). Returns the number of rows added; none when the vessel has requirements already.
      */
     @Transactional
     public int startWithDefaults(Ship ship) {

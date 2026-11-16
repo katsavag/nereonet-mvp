@@ -2,7 +2,7 @@ spring:
   application:
     name: nereonet-mvp
   config:
-    # Local secrets (P45: VESSELAPI_API_KEY=...) in .env in the working directory, KEY=value per line. Gitignored;
+    # Local secrets (VESSELAPI_API_KEY=...) in .env in the working directory, KEY=value per line. Gitignored;
     # optional, and the environment works the same way.
     import: optional:file:.env[.properties]
   datasource:
@@ -25,7 +25,7 @@ spring:
       mail.smtp.starttls.enable: true
       # Never fall back to plain text.
       mail.smtp.starttls.required: true
-      # The sender's address: the Message-ID of every email ends in its domain, not in this computer's name (P30).
+      # The sender's address: the Message-ID of every email ends in its domain, not in this computer's name.
       mail.from: ${app.mail.from}
   messages:
     basename: messages
@@ -50,7 +50,7 @@ spring:
       max-request-size: 11MB
 
 server:
-  # P65: gzip text responses (pages, app.css ~270 KB, Bootstrap's CSS and JS) when the browser accepts it. Not
+  # Gzip text responses (pages, app.css ~270 KB, Bootstrap's CSS and JS) when the browser accepts it. Not
   # images, fonts, PDF or XLS: they are compressed already or gain little.
   compression:
     enabled: true
@@ -66,9 +66,9 @@ app:
   base-url: ${APP_BASE_URL}
   mail:
     from: ${MAIL_FROM}
-    # The name the inbox shows next to the sender's address (P30).
+    # The name the inbox shows next to the sender's address.
     from-name: ${MAIL_FROM_NAME:Nereonix}
-  # Optional: the company this installation serves, shown at the bottom of the sign-in panel (P30), e.g.
+  # Optional: the company this installation serves, shown at the bottom of the sign-in panel, e.g.
   # "Nereonix Bulk Carriers" and "NEREONIX". Not shown when the name is empty.
   organisation:
     name: ${ORGANISATION_NAME:}
@@ -83,11 +83,11 @@ app:
     office-email: ${BOOTSTRAP_OFFICE_EMAIL:}
     office-password: ${BOOTSTRAP_OFFICE_PASSWORD:}
   orders:
-    # P50: the ship is told about the office's changes of an order this long after the last change, unless the office
+    # The ship is told about the office's changes of an order this long after the last change, unless the office
     # presses "Done editing" first (ISO-8601 duration). Checked every minute.
     office-edit-quiet: ${ORDER_OFFICE_EDIT_QUIET:PT10M}
   quantity:
-    # P60: the most one line of a request, order or receipt may hold, by the kind of the item's unit
+    # The most one line of a request, order or receipt may hold, by the kind of the item's unit
     # (core/form/QuantityRules): kg and lt take 3 decimals, g, ml and every countable or unknown unit (pcs, box, can,
     # ...) whole numbers. An item's own "Maximum per request" replaces these.
     max:
@@ -99,7 +99,7 @@ app:
     # A store count holds the whole store: this many times the line maximum.
     store-factor: ${QUANTITY_STORE_FACTOR:10}
   stock:
-    # P52: a provisions item above 0 and below this quantity (in its own unit) is Low on the Chief cook's Stores page.
+    # A provisions item above 0 and below this quantity (in its own unit) is Low on the Chief cook's Stores page.
     # One threshold for every item.
     low-threshold: ${STOCK_LOW_THRESHOLD:10}
   certificates:
@@ -115,7 +115,7 @@ app:
   # Optional free text (e.g. "Crewing department, crewing@example.com, +30 210 000 0000"), shown on the
   # "link is invalid or has expired" page. Not shown when empty.
   support-contact: ${SUPPORT_CONTACT:}
-  # Optional (P40): the RightShip API, read only, for the nightly sync of the vessels' RightShip data and
+  # Optional: the RightShip API, read only, for the nightly sync of the vessels' RightShip data and
   # "Refresh from RightShip". Off while any of the three is empty: then the app makes no request to RightShip and
   # the office enters the data by hand. The OAuth token address defaults to <base-url>/oauth/token.
   rightship:
@@ -125,7 +125,7 @@ app:
     token-url: ${RIGHTSHIP_TOKEN_URL:}
     # The nightly sync (Spring cron), in UTC.
     sync-cron: ${RIGHTSHIP_SYNC_CRON:0 30 2 * * *}
-  # Optional (P45): VesselAPI, read only, for "Look up by IMO" (Add vessel) and "Refresh from VesselAPI" (Edit vessel),
+  # Optional: VesselAPI, read only, for "Look up by IMO" (Add vessel) and "Refresh from VesselAPI" (Edit vessel),
   # called by the server only when a user presses one of them. Off while the key is empty: the buttons are hidden and
   # the app never calls VesselAPI. The key comes from the environment or the local .env; never put it in a checked-in
   # file. fake: true answers with built-in sample data instead (dev screens; core/vesseldata/FakeVesselApiClient).
@@ -133,7 +133,7 @@ app:
     base-url: ${VESSELAPI_BASE_URL:https://api.vesselapi.com/v1}
     api-key: ${VESSELAPI_API_KEY:}
     fake: ${VESSELAPI_FAKE:false}
-  # Optional (P57): counting the Chief cook's store by voice. AssemblyAI turns the recording into text; Claude turns
+  # Optional: counting the Chief cook's store by voice. AssemblyAI turns the recording into text; Claude turns
   # the text into count lines (only the text and the vessel's provisions: id, name, unit). Off while either key is
   # empty: the Count page then has no microphone and the app never calls either. The keys come from the environment or
   # the local .env; never put them in a checked-in file. fake: true answers with built-in rules instead (dev screens;
@@ -157,7 +157,7 @@ app:
     # Tries again after a 429, a 5xx, no connection or a timeout, this many times.
     max-retries: ${CLAUDE_MAX_RETRIES:1}
     fake: ${CLAUDE_FAKE:false}
-  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks), read by Claude
+  # The photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks), read by Claude
   # (core/ai/ClaudeInvoiceReader, app.claude above): only the page's image or PDF is sent. Off while ANTHROPIC_API_KEY
   # is empty (and not fake): the photos are still kept as the receipt's files, nothing is read.
   invoice:
@@ -171,7 +171,7 @@ app:
     reading-stalled-after: ${INVOICE_READING_STALLED_AFTER:15m}
     # Where the fake reader (app.invoice.fake) finds the synthetic sample invoice A-4471.
     sample-dir: ${INVOICE_SAMPLE_DIR:samples/invoice}
-  # SIRE 2.0 (P41): the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
+  # SIRE 2.0: the company's own policy, shown on the SIRE page as such (not OCIMF rules). The data is entered
   # by hand; the app never connects to OCIMF.
   sire:
     # How long a SIRE 2.0 report is treated as current after the inspection, in months.

@@ -41,7 +41,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
 
 /**
- * P29: the invitation email as it leaves the app, parsed back from its bytes: plain text and HTML as two alternative
+ * The invitation email as it leaves the app, parsed back from its bytes: plain text and HTML as two alternative
  * parts, the logo as an inline image the HTML refers to by Content-ID (never a remote URL), the accept link in both
  * parts, and the texts the HTML promises (who invites, to what, the button, the expiry in UTC, the footer). Crew
  * invitations are in English; office invitations follow the language of the office user who sends them.
@@ -91,7 +91,7 @@ class InvitationEmailTest {
 
         Email email = sent();
         assertThat(email.subject).isEqualTo("You are invited to Nereonet");
-        // P30: a sender name, not a bare address; the Message-ID on the sender's domain (session property mail.from).
+        // A sender name, not a bare address; the Message-ID on the sender's domain (session property mail.from).
         assertThat(email.from).isEqualTo("Nereonix <noreply@nereonet.local>");
         assertThat(environment.getProperty("spring.mail.properties.mail.from")).isEqualTo("noreply@nereonet.local");
         assertThat(email.root).startsWith("multipart/related");
@@ -107,7 +107,7 @@ class InvitationEmailTest {
         assertThat(email.logoBytes).isGreaterThan(1000);
         assertThat(email.html).contains("src=\"cid:nereonix-logo\"", "width=\"80\" height=\"56\" alt=\"\"")
                 .doesNotContain("src=\"http")
-                // P30: the preheader is hidden with display:none only, no text in the background colour or 1px high.
+                // The preheader is hidden with display:none only, no text in the background colour or 1px high.
                 .doesNotContain("font-size:1px", "opacity:0", "max-height:0;overflow:hidden;opacity");
 
         // The accept link in both parts, the same link.

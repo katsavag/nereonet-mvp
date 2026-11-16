@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
- * P16: office screens are English and Greek, so every key of messages.properties is also in messages_el.properties,
+ * Office screens are English and Greek, so every key of messages.properties is also in messages_el.properties,
  * except the crew-only and email keys listed in {@link #ENGLISH_ONLY}, which are English only today.
- * P39: the English texts say "Vessel", never "Ship" (only the names in {@link #SHIP_ALLOWED}).
+ * The English texts say "Vessel", never "Ship" (only the names in {@link #SHIP_ALLOWED}).
  */
 class MessageKeysTest {
 
@@ -37,7 +37,7 @@ class MessageKeysTest {
             "certificate.reminder.office.email",
             "certificate.reminder.office.subject",
             // Crew (ship) screens: the library as the crew see it, their navigation, the ship home page and their announcements.
-            // (Download and the file size are on the office's read view too since P22, so they are in Greek.)
+            // (Download and the file size are on the office's read view too, so they are in Greek.)
             "library.empty.crew",
             "library.notification.newRequired",
             "library.notification.reminder",
@@ -67,7 +67,7 @@ class MessageKeysTest {
             "masterhome.orders.heading",
             "masterhome.orders.notConfirmed",
             "masterhome.orders.all",
-            // The crew's announcements and their notification (P27).
+            // The crew's announcements and their notification.
             "announcement.notification",
             "announcement.ship.title",
             "announcement.ship.hint",
@@ -81,9 +81,9 @@ class MessageKeysTest {
             "announcement.ship.group.earlier",
             "announcement.ship.older",
             "announcement.ship.back",
-            // P39: the crew's word for announcements.
+            // The crew's word for announcements.
             "nav.news",
-            // My profile and My crew (P31). The field names, "Not given", the photo's alt text, the office's Profile
+            // My profile and My crew. The field names, "Not given", the photo's alt text, the office's Profile
             // card and the audit actions are on office screens too, so they are in Greek and not listed here.
             "nav.profile",
             "nav.myCrew",
@@ -140,11 +140,11 @@ class MessageKeysTest {
             "mycrew.only.text",
             "mycrew.nothingYet",
             "mycrew.back",
-            // The Master's approvals and the request notification (P33). "New item" is on the office's request page
+            // The Master's approvals and the request notification. "New item" is on the office's request page
             // too, so it is in Greek.
             "nav.approvals",
             "nav.count.approvals",
-            // P37: the crew's Announcements counter.
+            // The crew's Announcements counter.
             "nav.count.announcements",
             "approval.title",
             "approval.hint.pending",
@@ -174,7 +174,7 @@ class MessageKeysTest {
             "request.status.REJECTED",
             "request.status.CANCELLED",
             "request.notification.submitted",
-            // Approving and declining a request, and the requester's notification (P34). The audit actions are on
+            // Approving and declining a request, and the requester's notification. The audit actions are on
             // office screens too, so they are in Greek.
             "approval.approve",
             "approval.decline",
@@ -187,7 +187,7 @@ class MessageKeysTest {
             "approval.notPending",
             "request.notification.approved",
             "request.notification.declined",
-            // The Master's ship order and past orders (P35). The office's notification text is saved in English, as
+            // The Master's ship order and past orders. The office's notification text is saved in English, as
             // every notification; its type and the audit action are on office screens, so they are in Greek.
             "nav.order",
             "nav.count.order",
@@ -218,13 +218,13 @@ class MessageKeysTest {
             "order.send.error.tooLong",
             "order.sent",
             "order.notification.sent",
-            // P51: the delivery scheduled or changed (the ship's notifications), the receipt on board (the Master's
+            // The delivery scheduled or changed (the ship's notifications), the receipt on board (the Master's
             // pages) and the office's notification, saved in English as every notification.
             "order.notification.deliveryScheduled",
             "order.notification.deliveryChanged",
             "order.notification.received",
             "order.notification.receivedShort",
-            // P56: to the Chief cook when a delivery went into the store.
+            // To the Chief cook when a delivery went into the store.
             "order.notification.stocked",
             "order.receipt.action",
             "order.receipt.waiting",
@@ -272,7 +272,7 @@ class MessageKeysTest {
             "order.receipt.error.fileTooLarge",
             "order.receipt.error.tooManyFiles",
             "order.receipt.error.tooLargeTogether",
-            // P50: what the office changed, on the Master's order page, and the ship's notification.
+            // What the office changed, on the Master's order page, and the ship's notification.
             "order.officeChange.changed",
             "order.officeChange.removed",
             "order.officeChange.added",
@@ -291,10 +291,10 @@ class MessageKeysTest {
             "order.confirmedPort",
             "order.deliveryDate",
             "order.past.empty.title",
-            // P42: the crew's own missing required documents, on My profile and the home pages.
+            // The crew's own missing required documents, on My profile and the home pages.
             "profile.required.contact",
             "home.documents.missing",
-            // P52: the Chief cook's store.
+            // The Chief cook's store.
             "nav.stores",
             "nav.count.stores",
             "stores.title",
@@ -326,7 +326,7 @@ class MessageKeysTest {
             "stores.history.note",
             "stores.movement.COUNT",
             "stores.movement.RECEIPT",
-            // P53: counting the store by hand and its history.
+            // Counting the store by hand and its history.
             "stores.count.open",
             "stores.count.title",
             "stores.count.hint",
@@ -356,7 +356,7 @@ class MessageKeysTest {
             "stores.log.page",
             "stores.card.low",
             "stores.card.out",
-            // P54: the Chief cook's and crew's requests to the Master.
+            // The Chief cook's and crew's requests to the Master.
             "nav.requests",
             "nav.count.requests",
             "request.list.title",
@@ -419,13 +419,13 @@ class MessageKeysTest {
             "home.card.requests",
             "home.card.requests.waiting",
             "stores.summary.requestsWaiting",
-            // P55: the Chief cook reads the vessel order, and the next delivery on Stores.
+            // The Chief cook reads the vessel order, and the next delivery on Stores.
             "order.readOnly",
             "order.hint.readOnly",
             "stores.summary.nextDelivery",
             "stores.summary.nextDelivery.value",
             "stores.summary.noDelivery",
-            // P59: the orders in progress on Vessel order, and the Master's Deliveries to receive.
+            // The orders in progress on Vessel order, and the Master's Deliveries to receive.
             "order.progress.delivery",
             "order.progress.overdue",
             "order.progress.sent",
@@ -441,7 +441,7 @@ class MessageKeysTest {
             "order.attention.receive",
             "order.attention.count",
             "masterhome.card.deliveries",
-            // P57: counting the store by voice and its review.
+            // Counting the store by voice and its review.
             "stores.voice.heading",
             "stores.voice.hint",
             "stores.voice.enable",
@@ -494,11 +494,11 @@ class MessageKeysTest {
             "stores.voice.failure.PROVIDER_ERROR",
             "stores.voice.failure.NOTHING_UNDERSTOOD",
             "stores.voice.failure.ITEM_GONE",
-            // P60: the limits of the crew screens (requests and the Master's order, the receipt, the store count).
+            // The limits of the crew screens (requests and the Master's order, the receipt, the store count).
             "quantity.error.max.request",
             "quantity.error.max.receipt",
             "quantity.error.max.count",
-            // P61: the Chief cook's delivery count and the Master's approval (crew screens and notifications).
+            // The Chief cook's delivery count and the Master's approval (crew screens and notifications).
             "order.count.action",
             "order.count.view",
             "order.count.title",
@@ -533,7 +533,7 @@ class MessageKeysTest {
             "order.count.return.noteRequired",
             "order.count.return.noteTooLong",
             "order.count.return.nothing",
-            // P62: photographing the delivery invoice (the Master and the Chief cook).
+            // Photographing the delivery invoice (the Master and the Chief cook).
             "order.invoice.title",
             "order.invoice.heading",
             "order.invoice.hint",
@@ -660,7 +660,7 @@ class MessageKeysTest {
             "order.approve.done",
             "order.approve.noFile",
             "order.notification.countApproved",
-            // P64: to the Chief cook when the office changed a match or a conversion after receipt.
+            // To the Chief cook when the office changed a match or a conversion after receipt.
             "order.notification.countAgain",
             "order.notification.counted",
             "order.notification.countReturned",
@@ -668,7 +668,7 @@ class MessageKeysTest {
             "masterhome.card.deliveries.counted");
 
     /**
-     * P39: names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies
+     * Names that keep the word "ship" in English: the official name of an ISPS document, and the names of companies
      * and products. Matched ignoring case; everything else says "vessel" / "vessels".
      */
     private static final List<String> SHIP_ALLOWED = List.of("Ship Security Plan", "shipping company", "ShipServ",
@@ -702,7 +702,7 @@ class MessageKeysTest {
     }
 
     @Test
-    // P58: in Greek the Safety Score is "Δείκτης ασφάλειας πλοίου" ("Δείκτης ασφάλειας" where space is tight), never
+    // In Greek the Safety Score is "Δείκτης ασφάλειας πλοίου" ("Δείκτης ασφάλειας" where space is tight), never
     // the English name in any case; never typed in capitals (table headers are uppercase through CSS). English keeps
     // RightShip's name.
     void greekSaysDeiktisAsfaleiasNotSafetyScore() throws IOException {

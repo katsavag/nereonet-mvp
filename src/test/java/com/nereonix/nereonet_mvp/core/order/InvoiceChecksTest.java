@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.order.InvoiceChecks.Problem;
 import com.nereonix.nereonet_mvp.core.order.InvoiceChecks.Result;
 
 /**
- * P62: every check of an invoice as read. A line: quantity x price = amount (0.01, or 0.5% for weighed goods); one value
+ * Every check of an invoice as read. A line: quantity x price = amount (0.01, or 0.5% for weighed goods); one value
  * recovered from two sure ones ("corrected"), a lost decimal separator, never a quantity from a suspicious value, never
  * an invented quantity ("quantity not read"); low confidence is "check". A page: its total, its line numbers, a page
  * hard to read. The invoice: the net amount and net + VAT = total.

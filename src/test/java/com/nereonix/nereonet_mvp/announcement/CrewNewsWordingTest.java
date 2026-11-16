@@ -45,7 +45,7 @@ import com.nereonix.nereonet_mvp.core.vetting.SireService;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
- * P47: on the crew side the office's announcements are "News" everywhere. With the dev data and two news items sent
+ * On the crew side the office's announcements are "News" everywhere. With the dev data and two news items sent
  * to the fleet (one of them opened), every crew page a crew member can reach by following links from Home, More and
  * Notifications is rendered, as the Master and as the Chief cook, and none says "Announcement" in what a person reads
  * or hears: the text, the tab title and the attributes a screen reader or a tooltip shows. (Class names, URLs and the
@@ -101,7 +101,7 @@ class CrewNewsWordingTest {
                 List.of(), "office@example.com");
         for (String email : CREW) {
             CurrentUser me = new CurrentUser(userRepository.findByEmail(email).orElseThrow());
-            // One read, one new, so the list shows both groups (opening it reads it, P39).
+            // One read, one new, so the list shows both groups (opening it reads it).
             mockMvc.perform(get("/ship/news/{id}", second.announcement().getId()).with(user(me)));
             Set<String> seen = new LinkedHashSet<>();
             Deque<String> queue = new ArrayDeque<>(START);

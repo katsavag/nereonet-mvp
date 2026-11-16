@@ -35,7 +35,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P25 empty states: on a fresh database (only the bootstrap office user) every list shows its empty state, with an
+ * Empty states: on a fresh database (only the bootstrap office user) every list shows its empty state, with an
  * icon, a title, one sentence of help and an action, and the page header leaves out the actions the empty state
  * shows, so each page keeps one primary button. A filtered list with no rows stays "No results for these filters".
  */

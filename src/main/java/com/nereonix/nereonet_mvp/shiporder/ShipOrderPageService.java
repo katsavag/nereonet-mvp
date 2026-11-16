@@ -39,7 +39,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
  * The ship order pages: the OPEN order of the signed-in user's own ship, and its sent orders. The Master changes
- * and sends the order, and confirms its receipt; since P55 the Chief cook reads the same pages (Vessel order, detail),
+ * and sends the order, and confirms its receipt; the Chief cook reads the same pages (Vessel order, detail),
  * and nothing more: every change is ShipOrderService's or OrderReceiptService's, which refuse anyone but the ship's
  * enabled Master, and the receipt pages (order) and the services' user (master) refuse anyone but the Master here.
  * An order of another ship is a 404, never a 403, so nobody can probe which exist.
@@ -104,7 +104,7 @@ public class ShipOrderPageService {
             return order.getStatus() == ShipOrderStatus.CONFIRMED;
         }
 
-        /** P61: the Chief cook can still count the delivery (scheduled, and his count not with the Master). */
+        /** The Chief cook can still count the delivery (scheduled, and his count not with the Master). */
         public boolean toCount() {
             return toReceive() && order.getDeliveryCountStatus().editable();
         }
@@ -138,18 +138,18 @@ public class ShipOrderPageService {
         this.receiptFileRepository = receiptFileRepository;
     }
 
-    /** P62: the Master's Confirm receipt goes to "Photograph the invoice" first. */
+    /** The Master's Confirm receipt goes to "Photograph the invoice" first. */
     public static boolean invoiceFirstForMaster(ShipOrder order, boolean invoicePhotographed) {
         return order.getStatus() == ShipOrderStatus.CONFIRMED && !order.isCountToApprove() && !invoicePhotographed;
     }
 
-    /** P62: the Chief cook's Count delivery goes to "Photograph the invoice" first. */
+    /** The Chief cook's Count delivery goes to "Photograph the invoice" first. */
     public static boolean invoiceFirstForCook(ShipOrder order, boolean invoicePhotographed) {
         return order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryCountStatus() == DeliveryCountStatus.NONE
                 && !invoicePhotographed;
     }
 
-    /** P62: a page of the order's invoice was photographed. */
+    /** A page of the order's invoice was photographed. */
     @Transactional(readOnly = true)
     public boolean invoicePhotographed(Long orderId) {
         return receiptFileRepository.countByOrderIdAndInvoicePageNotNull(orderId) > 0;
@@ -167,7 +167,7 @@ public class ShipOrderPageService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    /** P62: the enabled Master or Chief cook with this email. AccessDeniedException for anyone else. */
+    /** The enabled Master or Chief cook with this email. AccessDeniedException for anyone else. */
     User crew(String email) {
         return reader(email);
     }

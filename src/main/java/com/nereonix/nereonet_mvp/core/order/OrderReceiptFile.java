@@ -79,12 +79,12 @@ public class OrderReceiptFile {
         return "application/pdf".equals(fileContentType);
     }
 
-    /** P62: a page of the invoice. */
+    /** A page of the invoice. */
     public boolean isInvoicePage() {
         return invoicePage != null;
     }
 
-    /** P62: an image the browser can show as a thumbnail (HEIC only Safari shows: the others get the page's name). */
+    /** An image the browser can show as a thumbnail (HEIC only Safari shows: the others get the page's name). */
     public boolean isImage() {
         return fileContentType != null && fileContentType.startsWith("image/");
     }

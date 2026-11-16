@@ -116,14 +116,14 @@ public class Dates {
         return message("time.hint.expiredDaysAgo", -days);
     }
 
-    /** After "Invitation expired" (P17), how long ago it expired: "today", "1 day ago", "5 days ago". */
+    /** After "Invitation expired", how long ago it expired: "today", "1 day ago", "5 days ago". */
     public String invitationExpiredHint(Instant expiresAt) {
         long days = -daysUntil(LocalDate.ofInstant(expiresAt, ZoneOffset.UTC));
         return days <= 0 ? message("time.hint.today") : message("time.hint.daysAgo", days);
     }
 
     /**
-     * How old a report is (P45, a vessel's last AIS position): "just now" (under a minute, or a time in the future),
+     * How old a report is (a vessel's last AIS position): "just now" (under a minute, or a time in the future),
      * "35 minutes ago", "2 hours ago", "3 days ago"; empty for null.
      */
     public String age(Instant instant) {

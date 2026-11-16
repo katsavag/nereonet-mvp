@@ -50,7 +50,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
-/** Forgot password (P14): request, unknown address, reset, reused link, expired link, and the limits. */
+/** Forgot password: request, unknown address, reset, reused link, expired link, and the limits. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

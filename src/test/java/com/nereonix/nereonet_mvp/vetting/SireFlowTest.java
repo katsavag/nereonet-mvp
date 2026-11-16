@@ -62,7 +62,7 @@ import com.nereonix.nereonet_mvp.core.vetting.SireStatus;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
- * P41: SIRE 2.0 in Vetting. The Vetting list's column and filters, a vessel's card (order by vessel type, the
+ * SIRE 2.0 in Vetting. The Vetting list's column and filters, a vessel's card (order by vessel type, the
  * collapsed line), the SIRE page (report current until, the operator comment deadline, observations by chapter, Open
  * and All, the report), Add / Edit inspection, Add observation and closing one, the sidebar counter and the
  * Overview, 404s for another vessel's records, and the dev data's BIRCH.
@@ -144,7 +144,7 @@ class SireFlowTest {
         assertThat(names(html(get("/office/vetting").param("sort", "sire").param("dir", "desc"))))
                 .containsExactly("CEDAR", "BIRCH", "ALDER", "ELM");
 
-        // Greek office screens: the regime filter is "Σύστημα αξιολόγησης" (P43; "Καθεστώς" before), the vessel
+        // Greek office screens: the regime filter is "Σύστημα αξιολόγησης", the vessel
         // types keep their English names.
         String greek = html(get("/office/vetting").param("lang", "el"));
         assertThat(greek).contains("Δημοσιεύθηκε · ", "Σύστημα αξιολόγησης", ">Tanker<", ">Bulk carrier<")
@@ -179,7 +179,7 @@ class SireFlowTest {
                 .containsSubsequence("id=\"regimeRightShip\"", "id=\"regimeSire\"").contains("Draft received")
                 .doesNotContain("applies to tankers");
 
-        // The vessel page header's badge row: a SIRE badge for tankers only; P43: its own link to the SIRE page.
+        // The vessel page header's badge row: a SIRE badge for tankers only, its own link to the SIRE page.
         assertThat(html(get("/office/ships/{id}", birch.getId())))
                 .containsPattern("(?s)class=\"vetting-badges\".*?<a class=\"vetting-badge\" href=\"/office/vetting/" + birch.getId()
                         + "/sire\">.*?SIRE 2.0.*?Report current until.*?\\(opens SIRE 2.0\\)</span>\\s*</a>");
@@ -279,7 +279,7 @@ class SireFlowTest {
                         "name=\"status\"", "name=\"publishedOn\"", "Operator comments sent")
                 .containsSubsequence(">Vetting</a>", ">BIRCH</a>", ">SIRE 2.0</a>", ">Add inspection</li>");
 
-        // Required fields, the plausible-date rule (P39) and no publication before the inspection.
+        // Required fields, the plausible-date rule and no publication before the inspection.
         assertThat(postForm(post(add).with(csrf()).param("inspectionDate", today.plusDays(3).toString())
                         .param("publishedOn", today.minusDays(400).toString())))
                 .contains("Enter the port.", "Enter the submitting company.", "Choose the report status.",
@@ -548,7 +548,7 @@ class SireFlowTest {
         return shipRepository.save(ship);
     }
 
-    // Someone on board: the Overview shows its work list once there is a vessel and crew (P25).
+    // Someone on board: the Overview shows its work list once there is a vessel and crew.
     private void crew(Ship ship) {
         userService.createUser("crew" + imo++ + "@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship, null);
     }

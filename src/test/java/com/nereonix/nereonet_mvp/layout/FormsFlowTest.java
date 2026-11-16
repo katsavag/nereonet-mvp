@@ -47,7 +47,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import com.nereonix.nereonet_mvp.ship.EditShipForm;
 
 /**
- * P05 form pattern on the rendered forms: error summary, character counters read from the form classes, "(optional)"
+ * The form pattern on the rendered forms: error summary, character counters read from the form classes, "(optional)"
  * labels, read-only values as text, the same actions on every full-page form, file limits, and the invitation
  * success message naming the address.
  */
@@ -149,15 +149,13 @@ class FormsFlowTest {
         Ship ship = ship();
         assertThat(page("/office/ships/" + ship.getId() + "/library/particulars"))
                 .contains("data-counter-for=\"text\"", "data-max=\"20000\"");
-        assertThat(page("/office/ships/" + ship.getId() + "/items/new"))
-                .contains("data-counter-for=\"unit\"", "data-max=\"20\"");
     }
 
     @Test
     void optionalFieldsAreMarkedAndRequiredFieldsHaveNoAsterisk() throws Exception {
         Ship ship = ship();
         User crew = crewMember(ship);
-        // Not the crew forms: since P18 every field there is required (the rank sets the access).
+        // Not the crew forms: every field there is required (the rank sets the access).
         for (String page : List.of("/office/ships",
                 "/office/crew/" + crew.getId() + "/certificates/new", "/office/ships/" + ship.getId() + "/items/new")) {
             String html = page(page);

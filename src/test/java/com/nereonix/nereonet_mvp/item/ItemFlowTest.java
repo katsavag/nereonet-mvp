@@ -82,7 +82,7 @@ class ItemFlowTest {
                         Matchers.containsString("Dry store"))));
     }
 
-    // P32: a personal item. Its place is not kept (only provisions have one), and it is listed under its category.
+    // A personal item. Its place is not kept (only provisions have one), and it is listed under its category.
     @Test
     void officeUserAddsPersonalItemAndItIsListedUnderThatCategory() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -111,7 +111,7 @@ class ItemFlowTest {
                 .contains(">Basmati rice</a>").doesNotContain(">Cigarettes</a>");
     }
 
-    // P60: the optional Maximum per request, in the item's unit (whole numbers for pcs), replaces the unit's maximum.
+    // The optional Maximum per request, in the item's unit (whole numbers for pcs), replaces the unit's maximum.
     @Test
     void anItemMayHaveItsOwnMaximumPerRequest() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -177,7 +177,7 @@ class ItemFlowTest {
         }
     }
 
-    // P24: a purchasing system's export, its own column names and order, a title above them and a column Nereonet does
+    // A purchasing system's export, its own column names and order, a title above them and a column Nereonet does
     // not use. Each row says whether it adds, updates or changes nothing; the mapping is saved with the import.
     @Test
     void aPurchasingFileIsMappedAndAddsAndUpdatesItems() throws Exception {

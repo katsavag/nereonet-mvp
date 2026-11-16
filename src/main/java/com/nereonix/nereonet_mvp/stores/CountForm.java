@@ -36,13 +36,6 @@ public class CountForm {
         return newName != null || newUnit != null || newPlace != null || newQuantity != null;
     }
 
-    public void clearNewItem() {
-        newName = null;
-        newUnit = null;
-        newPlace = null;
-        newQuantity = null;
-    }
-
     private static String typed(String text) {
         return text == null || text.isBlank() ? null : text.strip();
     }

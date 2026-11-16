@@ -5,7 +5,7 @@ import java.util.List;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 
 /**
- * What the Required documents page's vessel filter chose (P58: vessels only, each with its own requirements):
+ * What the Required documents page's vessel filter chose (vessels only, each with its own requirements):
  * one of the company's active vessels, by id (?vessel=12); the first by name when none (or an unknown or inactive one)
  * is chosen.
  *

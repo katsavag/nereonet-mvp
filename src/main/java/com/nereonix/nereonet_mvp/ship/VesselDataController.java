@@ -9,7 +9,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.vesseldata.VesselDataService;
 
 /**
- * The ship page's Vessel data tab (P45, ShipTab.VESSEL): what VesselAPI last returned for the vessel, from the stored
+ * The ship page's Vessel data tab (ShipTab.VESSEL): what VesselAPI last returned for the vessel, from the stored
  * rows only; opening it never calls VesselAPI. "Refresh from VesselAPI" on it posts to ShipController's refresh, which
  * shows Edit vessel with the Saved / VesselAPI table.
  */

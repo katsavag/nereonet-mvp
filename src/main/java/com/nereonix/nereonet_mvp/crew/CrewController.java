@@ -72,7 +72,7 @@ public class CrewController {
 
     // The "Add crew member" form is a modal on the list page. status: the Status filter (CrewStatus key); an unknown
     // value shows every status. documents=missing: only people missing a required document. listRequest:
-    // search, sort and page (P19, core/list/ListQuery).
+    // search, sort and page (core/list/ListQuery).
     @GetMapping("/office/crew")
     public String list(@RequestParam(required = false) Long shipId, @RequestParam(required = false) String status,
                        @RequestParam(required = false) String documents, @ModelAttribute ListRequest listRequest,

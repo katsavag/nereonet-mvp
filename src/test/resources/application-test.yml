@@ -22,22 +22,26 @@ app:
     office-password: office123
   library:
     storage-dir: ${java.io.tmpdir}/nereonet-test-library
-  # P42: no starter template of required documents in tests; RequirementsFlowTest seeds it where it needs it.
+  # No organisation in tests, even with one in the environment or .env. LoginFlowTest sets one where it needs it.
+  organisation:
+    name: ""
+    code: ""
+  # No starter template of required documents in tests; RequirementsFlowTest seeds it where it needs it.
   requirements:
     starter-template: false
-  # P45: never the real VesselAPI in tests, even with a key in the environment or .env. VesselLookupFlowTest switches
+  # Never the real VesselAPI in tests, even with a key in the environment or .env. VesselLookupFlowTest switches
   # the fake on for itself.
   vesselapi:
     api-key: ""
     fake: false
-  # P57: never the real AssemblyAI or Claude in tests, even with a key in the environment or .env: both fakes answer.
+  # Never the real AssemblyAI or Claude in tests, even with a key in the environment or .env: both fakes answer.
   assemblyai:
     api-key: ""
     fake: true
   claude:
     api-key: ""
     fake: true
-  # P62: the invoice's pages are read at once, in the request (and the test's transaction), by FakeInvoiceReader.
+  # The invoice's pages are read at once, in the request (and the test's transaction), by FakeInvoiceReader.
   invoice:
     fake: true
     read-in-background: false

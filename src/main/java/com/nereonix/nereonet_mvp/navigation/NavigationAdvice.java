@@ -14,14 +14,14 @@ import jakarta.servlet.http.HttpServletRequest;
 /**
  * The sidebar of the shared layout (layout/layout.html), on every page of a signed-in user:
  *   navSection  the key of the active entry (NavSection.key()), from the URL; null when no entry matches.
- *   navTab      the ship user's active phone tab (ShipNav.tabOf, P65: the section's own tab, else More); null for
+ *   navTab      the ship user's active phone tab (ShipNav.tabOf: the section's own tab, else More); null for
  *               office users, signed out and on a page with no section.
  *   shipNav     the ship user's navigation per role (ShipNav): the sidebar's On board and Supplies groups, the
  *               phone tab bar and the More page; null for office users and when signed out.
  *   navCounts   the office counters (NavCounts); null for crew and when signed out.
  *   approvalsWaiting  the Master's counter of Approvals: requests of their ship waiting for them; null for
  *               everyone else.
- *   ordersToAct  the Master's counter of Vessel order (orders, not lines, since P59): their ship's OPEN order
+ *   ordersToAct  the Master's counter of Vessel order (orders, not lines): their ship's OPEN order
  *               when it has a line (to send) plus its CONFIRMED orders (to receive); null for everyone else (the Chief
  *               cook reads Vessel order without it).
  *   storesBelowThreshold  the Chief cook's counter of Stores: provisions of their ship that are Low or Out of
@@ -29,7 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
  *   requestsWaiting  the Chief cook's and crew members' counter of Requests: their own requests still waiting
  *               for the Master (also on the cook's Stores summary and the crew home's Requests card); null for the
  *               Master, office users and when signed out.
- *   announcementsToAcknowledge  the crew's counter of Announcements (P37, every ship role): the ones they have not
+ *   announcementsToAcknowledge  the crew's counter of Announcements (every ship role): the ones they have not
  *               acknowledged yet; null for office users and when signed out.
  *   currentPhoto  the signed-in ship user's profile photo URL (96px, CrewProfile.photoUrl) for the user block's
  *               picture; null without a photo, for office users and when signed out.

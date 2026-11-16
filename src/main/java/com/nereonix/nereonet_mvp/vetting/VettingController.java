@@ -39,8 +39,8 @@ import com.nereonix.nereonet_mvp.ship.Countries;
 
 /**
  * Vetting, office only (/office/** in SecurityConfig): how charterers vet a vessel. RightShip and SIRE
- * 2.0 (P41, SireController).
- *   /office/vetting                              every active vessel's RightShip and SIRE 2.0 standing (P19 list)
+ * 2.0 (SireController).
+ *   /office/vetting                              every active vessel's RightShip and SIRE 2.0 standing (a list)
  *   /office/vetting/{shipId}                     one vessel: a card per vetting regime (RightShip, SIRE 2.0)
  *   /office/vetting/{shipId}/rightship           the RightShip dashboard and the official document
  *   /office/vetting/{shipId}/rightship/edit      Edit RightShip data
@@ -55,7 +55,7 @@ public class VettingController {
     static final String LIST = "/office/vetting";
 
     // The list's sorts, the default first: most urgent of both regimes (expired, expiring, lowest score), then
-    // name; P41 adds the latest SIRE 2.0 inspection.
+    // name; also by the latest SIRE 2.0 inspection.
     private static final ListSort[] SORTS = {ListSort.asc(VettingService.SORT_URGENCY), ListSort.asc("name"),
             ListSort.asc("type"), ListSort.asc("score"), ListSort.asc("ghg"), ListSort.asc("inspection"),
             ListSort.desc("sire")};

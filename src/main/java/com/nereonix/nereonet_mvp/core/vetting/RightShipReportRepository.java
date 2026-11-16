@@ -11,6 +11,4 @@ public interface RightShipReportRepository extends JpaRepository<RightShipReport
     List<RightShipReport> findAllByShipIdOrderByDocumentDateDescUploadedAtDescIdDesc(Long shipId);
 
     Optional<RightShipReport> findByIdAndShipId(Long id, Long shipId);
-
-    boolean existsByShipId(Long shipId);
 }

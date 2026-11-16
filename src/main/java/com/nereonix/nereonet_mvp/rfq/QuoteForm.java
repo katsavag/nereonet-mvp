@@ -31,13 +31,13 @@ import jakarta.validation.constraints.Size;
 // "Enter quote" for one supplier of an RFQ: per line the unit price (of one pack), the quantity offered (in
 // packs), the pack size and unit and a note; a line without a price is not offered. Then the quote's currency,
 // delivery cost, delivery date and validity, and optionally the supplier's PDF (at most 10 MB, checked by its first
-// bytes as P39). The rules that need the RFQ line (quantity with a price, a pack unit that compares with the item's)
+// bytes, as a certificate's file). The rules that need the RFQ line (quantity with a price, a pack unit that compares with the item's)
 // are checked by RfqController.checkLines.
 public class QuoteForm {
 
     public static final long MAX_FILE_SIZE = LibraryItemForm.MAX_FILE_SIZE;
 
-    /** P60: the most a unit price or the delivery cost may be, in the quote's currency. */
+    /** The most a unit price or the delivery cost may be, in the quote's currency. */
     public static final String MAX_AMOUNT = "1000000";
 
     private List<@Valid Line> lines = new ArrayList<>();
@@ -67,7 +67,7 @@ public class QuoteForm {
 
         private Long lineId;
 
-        // Above 0, at most 2 decimals, at most MAX_AMOUNT (4 decimals and 0 before).
+        // Above 0, at most 2 decimals, at most MAX_AMOUNT.
         @DecimalMin(value = "0", inclusive = false, message = "{quote.error.price}")
         @Digits(integer = 10, fraction = 2, message = "{quote.error.price}")
         @DecimalMax(value = MAX_AMOUNT, message = "{quote.error.priceMax}")

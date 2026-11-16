@@ -19,12 +19,12 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * The office's required documents, loaded once per page, and how they apply to one seafarer:
  * <ul>
  *   <li>a requirement applies to a person with a rank on a vessel when it is that vessel's (each vessel has its
- *   own; by vessel type before) and its ranks include the rank. Without a rank or a vessel nothing applies;</li>
+ *   own) and its ranks include the rank. Without a rank or a vessel nothing applies;</li>
  *   <li>rows of the same type on one vessel (RequirementService keeps one) are one document: required when any of
  *   them is, optional only when all are; the first note;</li>
  *   <li>a document is held by the certificate of the same type (equal after strip() and toLowerCase) that expires
- *   last. A certificate whose expiry date is past the P39 limit (more than CertificateForm.EXPIRES_YEARS years ahead,
- *   a typing slip from before P39) does not count: the document is Missing until the date is corrected.</li>
+ *   last. A certificate whose expiry date is past the certificate form's limit (more than CertificateForm.EXPIRES_YEARS years ahead,
+ *   a typing slip saved before P39, when the form had no limit) does not count: the document is Missing until the date is corrected.</li>
  * </ul>
  * PeopleQueries applies the same rules in SQL for the Crew list's sort and filter.
  */
@@ -95,7 +95,7 @@ public final class RequirementRules {
         return new Compliance(user, List.copyOf(documents));
     }
 
-    /** The latest expiry date that counts: the P39 limit of the certificate form. */
+    /** The latest expiry date that counts: the limit of the certificate form. */
     public static LocalDate latestExpiry(LocalDate today) {
         return today.plusYears(CertificateForm.EXPIRES_YEARS);
     }

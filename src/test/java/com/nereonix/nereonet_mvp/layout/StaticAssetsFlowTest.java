@@ -49,7 +49,7 @@ class StaticAssetsFlowTest {
                 .anyMatch(u -> u.startsWith("/js/local-time-"))
                 .anyMatch(u -> u.startsWith("/img/brand/favicon-32-"))
                 .anyMatch(u -> u.startsWith("/img/brand/apple-touch-icon-"))
-                // P30: the mark of the sign-in panel; the large logo (49 KB) is only for emails now.
+                // The mark of the sign-in panel; the large logo (49 KB) is only for emails now.
                 .anyMatch(u -> u.startsWith("/img/brand/nereonix-mark-192-"))
                 .noneMatch(u -> u.startsWith("/img/brand/nereonix-logo-on-dark-600-"));
 

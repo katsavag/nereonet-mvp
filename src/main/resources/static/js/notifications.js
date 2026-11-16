@@ -1,10 +1,10 @@
-// Notifications (P23): marking as read without reloading the page, on a slow link. Only an enhancement: without this
+// Notifications: marking as read without reloading the page, on a slow link. Only an enhancement: without this
 // script Mark as read and Mark all as read are ordinary POST forms that come back to the same page with a message.
 //  - A form with data-notification-read (one notification) or data-notification-read-all (the page header) is sent
 //    with fetch and Accept: application/json. The answer is the new unread count and the counters' words
 //    (notification/NotificationController.Unread). The row (every row, for all) loses its dot, bold text, "Unread:"
 //    and its Mark as read button; the sidebar entry's pill (layout/parts :: navItem, data-nav="notifications") and the
-//    phone top bar's bell (#notificationBell, office) or the crew's More tab (P26, P47) show the new count; Mark all as read goes once nothing is unread.
+//    phone top bar's bell (#notificationBell, office) or the crew's More tab show the new count; Mark all as read goes once nothing is unread.
 //    [data-notification-status] says what happened, for screen readers. Focus moves from the button that went to the
 //    next Mark as read button, or to the page heading.
 //  - Offline, or when the answer is not the count (the session expired, an error), the form is sent the ordinary way:
@@ -87,8 +87,8 @@
         pill.nextElementSibling.textContent = data.countLabel;
     }
 
-    // The crew's phone tab bar (P26, layout/parts :: tabBar): More's badge (P47: Notifications is on the More page) is
-    // the unread notifications plus the part that is not notifications (data-more-base, the counters under More, P65), with
+    // The crew's phone tab bar (layout/parts :: tabBar): More's badge (Notifications is on the More page) is
+    // the unread notifications plus the part that is not notifications (data-more-base, the counters under More), with
     // its words from data-more-label; nothing at zero.
     function updateTabBar(data) {
         const bar = document.querySelector('.tab-bar[data-more-base]');

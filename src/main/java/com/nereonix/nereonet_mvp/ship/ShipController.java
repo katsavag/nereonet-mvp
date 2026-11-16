@@ -109,7 +109,7 @@ public class ShipController {
         return showNewPage(model, null);
     }
 
-    // P45 "Look up by IMO": an invalid number or one already in the fleet is a field error and no call; otherwise the
+    // "Look up by IMO": an invalid number or one already in the fleet is a field error and no call; otherwise the
     // three calls, recorded, and the form prefilled (still editable). Not validated otherwise: what was typed stays.
     @PostMapping("/office/ships/new/lookup")
     public String lookup(@ModelAttribute("newForm") NewShipForm form, BindingResult result,
@@ -188,7 +188,7 @@ public class ShipController {
         return "redirect:/office/ships";
     }
 
-    // P45 "Refresh from VesselAPI" from Edit vessel (or the Vessel data tab, which posts no fields: the form is then
+    // "Refresh from VesselAPI" from Edit vessel (or the Vessel data tab, which posts no fields: the form is then
     // the saved vessel). The calls are recorded and the stored data updated now; the vessel's own fields change only
     // on Save, and only the ticked ones.
     @PostMapping("/office/ships/{id}/edit/lookup")

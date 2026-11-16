@@ -45,11 +45,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
             where c.expiresOn <= :until and c.user.ship.id = :shipId""")
     long countExpiringUntil(LocalDate until, Long shipId);
 
-    // Expired or expiring on or before "until", every ship: the sidebar counter of Certificates.
-    long countByExpiresOnLessThanEqual(LocalDate until);
-
     /**
-     * A snooze of the certificate that holds today (P43, AlertSnooze): an EXPIRED snooze of an expired certificate,
+     * A snooze of the certificate that holds today (AlertSnooze): an EXPIRED snooze of an expired certificate,
      * or an EXPIRING snooze of one not yet expired whose level (1 within 30 days, 2 within 60, 3 within 90,
      * AlertLevels) has not dropped below the level remembered at the snooze. The same rule as
      * AlertSnoozeRepository.snoozedCertificateIds, inside a query.
@@ -61,7 +58,10 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
                          or (s.kind = :expiring and c.expiresOn >= :today
                              and s.level <= case when c.expiresOn <= :d30 then 1 when c.expiresOn <= :d60 then 2 else 3 end))) """;
 
-    /** As countByExpiresOnLessThanEqual, without the certificates whose snooze holds: the sidebar counter. */
+    /**
+     * Expired or expiring on or before "until", every ship, without the certificates whose snooze holds: the
+     * sidebar counter of Certificates.
+     */
     @Query("select count(c) from Certificate c where c.expiresOn <= :until and not " + SNOOZED)
     long countOpenUntil(LocalDate until, LocalDate today, LocalDate d30, LocalDate d60, AlertKind expired,
                         AlertKind expiring);

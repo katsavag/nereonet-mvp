@@ -94,11 +94,6 @@ public final class InvoiceComparison {
         public boolean resolved() {
             return decision != null;
         }
-
-        /** Correct and Change both apply (a match, a conversion, a line); a check or the reference only Correct. */
-        public boolean changeable() {
-            return line != null;
-        }
     }
 
     /** One category's rows ("Provisions: 24 lines, all agree"); category null: the invoice lines not ordered. */

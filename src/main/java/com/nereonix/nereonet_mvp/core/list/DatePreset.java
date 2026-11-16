@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 /**
- * One quick choice of a date range (P58, layout/parts :: dateRange): "Last 30 days" is From = today minus 30 days and
+ * One quick choice of a date range (layout/parts :: dateRange): "Last 30 days" is From = today minus 30 days and
  * To = today, both UTC days. A plain link to the page with those dates (and the page's other filters), so it works
  * without JavaScript. current: the dates shown are exactly this choice's, so the link is marked (aria-current); dates
  * typed by hand match none.

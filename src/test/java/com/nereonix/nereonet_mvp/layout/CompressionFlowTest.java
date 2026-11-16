@@ -20,7 +20,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * P65: text responses are gzipped by the server when the browser accepts it. MockMvc skips the servlet container's
+ * Text responses are gzipped by the server when the browser accepts it. MockMvc skips the servlet container's
  * compression, so this runs a real server and reads it with java.net.http, which never decompresses by itself.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

@@ -1,4 +1,4 @@
-// Lists whose rows are acted on (P21, the approved requests list). Only enhancements: without this script the row
+// Lists whose rows are acted on (the approved requests list). Only enhancements: without this script the row
 // checkboxes and the action buttons work as plain form fields, and each row's main link opens it.
 //  - A form with data-selection: its [data-select-all] checkboxes (the table header; on phones, where the header is
 //    hidden, the selection line above the table) check or clear every [data-select-row] checkbox of the page, and
@@ -6,7 +6,7 @@
 //    data-many texts, "{count} selected"; without data-none it is empty while nothing is); it is a live region. The form's buttons with data-needs-selection,
 //    also those outside it (form="..."), are disabled while nothing is selected. [data-selection-only] elements
 //    (select-all, the selection line) are hidden until this script runs. The checkboxes may sit outside the form
-//    element and belong to it by their form attribute (P43: a list whose rows hold forms of their own, such as Undo),
+//    element and belong to it by their form attribute (a list whose rows hold forms of their own, such as Undo),
 //    so the form's elements are read through form.elements and change events through the document.
 //  - A table row with data-row-href opens that page when clicked anywhere except on a control (a link, a button, a
 //    checkbox or the cell around it). Ctrl or Cmd click and middle click open it in a new tab; selecting text does

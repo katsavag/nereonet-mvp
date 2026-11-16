@@ -19,7 +19,7 @@ import com.nereonix.nereonet_mvp.core.announcement.AnnouncementTargetMigration;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.ship.ShipRepository;
 
-// P28: rows saved before targets were a set keep the target they had. A database of its own (the schema is changed
+// Rows saved before targets were a set keep the target they had. A database of its own (the schema is changed
 // and the rows are committed), closed afterwards.
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:announcementMigration;DB_CLOSE_DELAY=-1")
 @ActiveProfiles("test")

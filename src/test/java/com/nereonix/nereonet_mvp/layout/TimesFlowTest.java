@@ -44,7 +44,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P11: every time is shown in UTC and says so, the same text whatever the viewer's time zone (the script only adds
+ * Every time is shown in UTC and says so, the same text whatever the viewer's time zone (the script only adds
  * the viewer's own time as a tooltip); dates without a time have no zone; dates that drive action have a relative
  * hint computed on the server; one date format in English and Greek.
  */
@@ -200,7 +200,7 @@ class TimesFlowTest {
         certificateRepository.save(certificate);
     }
 
-    // An order the ship has sent (P36), without lines.
+    // An order the ship has sent, without lines.
     private ShipOrder order(Ship ship, User sentBy, Instant sentAt) {
         ShipOrder order = new ShipOrder();
         order.setShip(ship);

@@ -67,7 +67,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import tools.jackson.databind.JsonNode;
 
 /**
- * P62, photographing the delivery invoice and reading it: Count delivery (the cook) and Confirm receipt (the Master,
+ * Photographing the delivery invoice and reading it: Count delivery (the cook) and Confirm receipt (the Master,
  * without a count to approve) open "Photograph the invoice" first; the pages one at a time (with or without the
  * script), Retake and Remove, at most 6, only photos and PDFs; Done: start counting reads them (FakeInvoiceReader:
  * the sample invoice A-4471) and goes straight on to the count; a page hard to read, a page that failed, nothing read
@@ -397,7 +397,7 @@ class InvoiceFlowTest {
         assertThat(lines.stream().filter(DeliveryInvoiceLine::isFlagged)).hasSize(4);
         assertThat(audit("ORDER_INVOICE_READ")).extracting(AuditEntry::getDetails)
                 .containsExactly("Order #" + id + ", 22 lines read, 4 flagged");
-        // The ship sees no flags: the page shows the photos only (the office sees the checks, P64).
+        // The ship sees no flags: the page shows the photos only (the office sees the checks).
         assertThat(as(cook, get("/ship/orders/{id}/invoice", id))).doesNotContain("Corrected", "Check this line",
                 "Quantity not read", "flagged", "Onions", "15.00");
     }

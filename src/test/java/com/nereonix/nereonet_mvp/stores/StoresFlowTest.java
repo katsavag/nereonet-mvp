@@ -53,7 +53,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P52, the Chief cook's store: /ship/stores lists the active provisions of the cook's own ship by place with their
+ * The Chief cook's store: /ship/stores lists the active provisions of the cook's own ship by place with their
  * quantity and status (OK, Low below the threshold, Out of stock at 0 or without a row), the summary and the last
  * count, filtered by status and searched by name on the server; an item's page shows its history, newest first. Only
  * the Chief cook, only their own ship, never personal items.
@@ -218,7 +218,7 @@ class StoresFlowTest {
                 .containsExactly("Basmati rice", "Olive oil", "Salt", "Sugar");
     }
 
-    // ---- P53: counting by hand ----------------------------------------------------------------------------------------
+    // ---- Counting by hand ---------------------------------------------------------------------------------------------
 
     @Test
     void theCookCountsSevenWhereTheStoreExpectedTen() throws Exception {
@@ -273,7 +273,7 @@ class StoresFlowTest {
 
     @Test
     void aWrongValueShowsItsErrorNextToThatRowOnly() throws Exception {
-        // P60: the rule of the item's unit for a store count (oil, lt: 3 decimals, up to 20000 lt, 0 allowed).
+        // The rule of the item's unit for a store count (oil, lt: 3 decimals, up to 20000 lt, 0 allowed).
         Map<String, String> wrongs = Map.of("", "quantity.error.required", "abc", "quantity.error.number",
                 "-1", "quantity.error.zeroOrMore", "1.0001", "quantity.error.decimals",
                 "20001", "quantity.error.max.count", "1234567890", "quantity.error.max.count");
@@ -409,7 +409,7 @@ class StoresFlowTest {
         assertThat(page("/ship/stores/history?from=nonsense", cook)).contains("is-invalid", "56 movements");
     }
 
-    // P58: the shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and To. Each choice is
+    // The shared date range (layout/parts :: dateRange): Last 30 / 60 / 90 days above From and To. Each choice is
     // a plain link (so it works without JavaScript) that keeps the type and sets From = today minus N days, To = today
     // (UTC); the one shown is marked; dates typed by hand match none.
     @Test

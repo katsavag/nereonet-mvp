@@ -67,7 +67,7 @@ class RegistrationFlowTest {
     @MockitoBean
     MailService mailService;
 
-    // P13: registered means signed in, on the home page, with no trip through the sign-in form.
+    // Registered means signed in, on the home page, with no trip through the sign-in form.
     @Test
     void inviteeRegistersAndIsSignedIn() throws Exception {
         Ship ship = ship();
@@ -143,7 +143,7 @@ class RegistrationFlowTest {
         assertThat(userRepository.findByEmail("new.crew@example.com")).isEmpty();
     }
 
-    // P13: what the person is joining, the password rules as a checklist, and the language switch that keeps the
+    // What the person is joining, the password rules as a checklist, and the language switch that keeps the
     // invitation.
     @Test
     void formSaysWhatThePersonJoinsAndKeepsTheTokenInTheLanguageSwitch() throws Exception {
@@ -175,7 +175,7 @@ class RegistrationFlowTest {
                 .andExpect(content().string(Matchers.containsString("The password must be 8 to 72 characters.")));
     }
 
-    // P30: the office user who sent an invitation opens its link in the same browser. The form shows on its own (no
+    // The office user who sent an invitation opens its link in the same browser. The form shows on its own (no
     // sidebar, top bar, second brand or second language switch around it), says who is signed in, and creating the
     // account switches the browser to the new account.
     @Test
@@ -201,7 +201,7 @@ class RegistrationFlowTest {
         assertThat(userRepository.findByEmail("second.officer@example.com")).isPresent();
     }
 
-    // P30: the sign-in and password reset pages also never sit inside the signed-in frame.
+    // The sign-in and password reset pages also never sit inside the signed-in frame.
     @Test
     @WithUserDetails("office@example.com")
     void signedOutPagesNeverShowTheSignedInFrame() throws Exception {
@@ -211,7 +211,7 @@ class RegistrationFlowTest {
         }
     }
 
-    // P13: the two causes, and no office contact while app.support-contact is not set.
+    // The two causes, and no office contact while app.support-contact is not set.
     @Test
     void invalidLinkExplainsBothCauses() throws Exception {
         Invitation invitation = invitation("used@example.com", Role.CREW_MEMBER, ship(), null);

@@ -47,7 +47,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P54, the Chief cook's and crew's requests to the Master: the cook sends items from the list and new items, the
+ * The Chief cook's and crew's requests to the Master: the cook sends items from the list and new items, the
  * request waits for the Master (who is notified), and while it waits the person who asked can change or cancel it.
  * Only the person who asked sees it; the Master never asks (403). The cook sees what is running low; crew never see
  * stock.
@@ -168,7 +168,7 @@ class ShipRequestFlowTest {
 
     @Test
     void quantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
-        // P60: each field carries the limit of its item, and the page the script's texts; no limit is shown.
+        // Each field carries the limit of its item, and the page the script's texts; no limit is shown.
         String form = page("/ship/requests/new", cook);
         assertThat(form).doesNotContain("Up to 2000 kg", "Whole numbers, up to 5000 pcs", "kg, lt or pcs")
                 .contains("data-quantity-texts",
@@ -207,7 +207,7 @@ class ShipRequestFlowTest {
                         .param("lines[0].itemId", rice.getId().toString()).param("lines[0].quantity", "2500"))
                 .andExpect(status().is3xxRedirection());
 
-        // A request saved with more than today's limit (from before P60) can still be edited and saved as it is,
+        // A request saved with more than today's limit (before P60, when there was no limit) can still be edited and saved as it is,
         // but not changed to another value above the limit.
         ItemRequest old = submit(cook, line(sugar, "2500"));
         mockMvc.perform(as(post("/ship/requests/" + old.getId() + "/edit"), cook)
@@ -376,7 +376,7 @@ class ShipRequestFlowTest {
         assertThat(page("/ship/stores", cook)).containsPattern(
                 "(?s)href=\"/ship/requests\\?status=waiting\">\\s*<span class=\"stores-fact-label\">Requests waiting</span>"
                         + "\\s*<span class=\"stores-fact-value num\">1</span>");
-        // P65: the Chief cook's Requests is a tab with the number (no card on Home); crew members keep the card.
+        // The Chief cook's Requests is a tab with the number (no card on Home); crew members keep the card.
         assertThat(page("/ship", cook)).doesNotContain("data-card=\"requests\"")
                 .containsPattern("(?s)<a class=\"tab-bar-link\" href=\"/ship/requests\">.*?"
                         + "<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>");

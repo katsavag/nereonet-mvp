@@ -58,7 +58,7 @@ class LoginFlowTest {
                 .andExpect(content().string(Matchers.containsString("John Doe")));
     }
 
-    // P13: "deactivated" only with the right password; a wrong password never tells whether the account exists or
+    // "deactivated" only with the right password; a wrong password never tells whether the account exists or
     // what state it is in.
     @Test
     @Transactional
@@ -84,7 +84,7 @@ class LoginFlowTest {
                 .contains("Ο λογαριασμός έχει απενεργοποιηθεί. Επικοινωνήστε με το γραφείο σας.");
     }
 
-    // P13: show / hide and Caps Lock on the password field. Both start inert (hidden button, empty hint): without the
+    // Show / hide and Caps Lock on the password field. Both start inert (hidden button, empty hint): without the
     // script the field is an ordinary password field. On phones the brand panel is a header bar (authFrame).
     @Test
     void passwordFieldHasToggleAndCapsLockHint() throws Exception {
@@ -100,7 +100,7 @@ class LoginFlowTest {
                 .contains("href=\"?lang=el\"");
     }
 
-    // P30: the panel has the brand (mark and "Nereonix" as text) and, only when app.organisation.name is set, the
+    // The panel has the brand (mark and "Nereonix" as text) and, only when app.organisation.name is set, the
     // organisation; not set here.
     @Test
     void signInPanelHasTheBrandAndNoOrganisationWhenNoneIsSet() throws Exception {

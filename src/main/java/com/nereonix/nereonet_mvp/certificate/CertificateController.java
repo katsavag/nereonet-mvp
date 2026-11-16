@@ -33,7 +33,7 @@ import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
 // Certificates: every certificate, filtered by status (?status=), ship and "active ships only", with an Excel
-// export of the list as filtered (.xls since P40; .xlsx in P39, CSV before). The ship page's Certificates tab is a matrix of the crew on board and the types
+// export of the list as filtered (.xls). The ship page's Certificates tab is a matrix of the crew on board and the types
 // they hold (/office/ships/{id}/certificates), or the list for that ship (/certificates/list), each with its export.
 // A crew member's certificates are listed on the crew edit page. A certificate can have a file, its scan:
 // added, replaced or removed on its form, opened from the lists. Add and edit return to the page they were opened

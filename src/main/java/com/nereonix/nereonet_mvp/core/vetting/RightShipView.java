@@ -28,7 +28,7 @@ public record RightShipView(ShipRightShipStatus status, LocalDate today) {
     public static final int LOW_SCORE = 2;
     public static final int MAX_SCORE = 5;
 
-    /** The Vetting list's Status filter: needs attention, valid, not rated; P43: snoozed (an item put aside). */
+    /** The Vetting list's Status filter: needs attention, valid, not rated, snoozed (an item put aside). */
     public static final String ATTENTION = "attention";
     public static final String VALID = "valid";
     public static final String NOT_RATED = "notrated";

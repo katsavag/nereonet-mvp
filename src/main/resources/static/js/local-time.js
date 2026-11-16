@@ -1,4 +1,4 @@
-// Every time is shown in UTC, so office and ship read the same time for the same event (P11): the server renders
+// Every time is shown in UTC, so office and ship read the same time for the same event: the server renders
 // <time class="local-time" datetime="...Z">21 Oct 2026 · 12:40 UTC</time> (layout/parts :: localTime).
 // This script does not change that text. It adds the viewer's own time, in the page language, as a tooltip and as
 // screen reader text: "Your time: 21 Oct 2026, 14:40". The wording comes from <body data-local-time> (message key

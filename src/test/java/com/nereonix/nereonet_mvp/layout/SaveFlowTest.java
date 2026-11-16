@@ -38,7 +38,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P15: typing a long text and pressing Save is safe on an unstable link. The behaviour itself is js/save.js (no
+ * Typing a long text and pressing Save is safe on an unstable link. The behaviour itself is js/save.js (no
  * JavaScript runs here); these tests check what it relies on: the script on every page, the user's id on the body
  * (drafts are per user), the draft keys on the long-text forms, the marker of a confirmed save, the texts in both
  * office languages, and that a form refused after the session expired leads back to the form with the draft.
@@ -180,7 +180,7 @@ class SaveFlowTest {
 
     @Test
     void aDownloadFormIsNeverMadeBusy() throws Exception {
-        // P36: the order export answers with the file and the page stays, so the form is marked data-file: save.js
+        // The order export answers with the file and the page stays, so the form is marked data-file: save.js
         // leaves its buttons usable (nothing would give them back) and its checked rows are not unsaved changes.
         assertThat(html(get("/office/orders"))).contains("<form id=\"exportForm\" action=\"/office/orders/export\" method=\"post\" data-selection data-file>");
         String script = new ClassPathResource("static/js/save.js").getContentAsString(StandardCharsets.UTF_8);

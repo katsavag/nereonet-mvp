@@ -113,7 +113,7 @@ public class InvoiceReadingService {
         return invoiceRepository.findByOrderId(orderId);
     }
 
-    /** The lines read, by page (P63 shows their quantities in the count; P64 the office's checks). */
+    /** The lines read, by page (the count shows their quantities; the office's comparison their checks). */
     @Transactional(readOnly = true)
     public List<DeliveryInvoiceLine> lines(Long orderId) {
         return invoiceRepository.findByOrderId(orderId)

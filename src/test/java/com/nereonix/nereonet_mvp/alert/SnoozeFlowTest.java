@@ -57,7 +57,7 @@ import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 
 /**
- * P43: snoozing alerts. Snooze from the Certificates list, the Vetting list and the Overview (one row, or several
+ * Snoozing alerts. Snooze from the Certificates list, the Vetting list and the Overview (one row, or several
  * reviewed on the snooze page); the counters, the Overview, the lists and the reminders while a snooze holds; Undo;
  * a snooze ending by itself when its date passes, when the item is resolved and when it gets worse; the limits
  * (reason, Other's note, an expired item for 30 days at most, until it expires). Crew pages are never touched.

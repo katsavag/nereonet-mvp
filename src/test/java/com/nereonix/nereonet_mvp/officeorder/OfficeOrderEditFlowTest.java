@@ -52,7 +52,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P50, the office changes the items of a pending order: quantity, remove (asks first), add an item or add to its line,
+ * The office changes the items of a pending order: quantity, remove (asks first), add an item or add to its line,
  * each with an optional note and audited; the line keeps what the ship sent, and the office's changes show on the
  * office's and the Master's order pages and in the export. The Master and the Chief cook get one notification per
  * editing session: "Done editing", 10 minutes without changes, or confirming the delivery, after which the lines are
@@ -111,7 +111,7 @@ class OfficeOrderEditFlowTest {
     @Test
     void theOfficeChangesRemovesAndAddsAndTheShipIsToldOnce() throws Exception {
         // While pending: each line has its quantity and note, Remove asks first (with a note), and Add an item offers
-        // the vessel's active items not on the order (P59).
+        // the vessel's active items not on the order.
         String page = page("/office/orders/" + order.getId());
         assertThat(page).contains("action=\"/office/orders/" + order.getId() + "/lines/" + riceLine.getId() + "/quantity\"",
                         "name=\"note\"", "data-confirm-title=\"Remove Shower gel from the order?\"",
@@ -155,7 +155,7 @@ class OfficeOrderEditFlowTest {
                 .getResponse().getContentAsString(StandardCharsets.UTF_8))
                 .contains("Αλλαγή από το γραφείο: 50 kg → 40 kg", "Αφαιρέθηκε από το γραφείο", "Τέλος αλλαγών");
 
-        // Done editing: one notification for the Master and the Chief cook (both with the link, P55), nobody else.
+        // Done editing: one notification for the Master and the Chief cook (both with the link), nobody else.
         mockMvc.perform(post("/office/orders/{id}/edits/done", order.getId()).with(csrf()))
                 .andExpect(redirectedUrl("/office/orders/" + order.getId()))
                 .andExpect(flash().attribute("successMessage", "officeorder.edit.done"));
@@ -192,7 +192,7 @@ class OfficeOrderEditFlowTest {
                 Arrays.asList("Shower gel", "pcs", 0.0, 6.0, "removed", "Not available"));
     }
 
-    // P59: two panels. "Not on the order": the active items not on it, by category, each a radio with its name and
+    // Two panels. "Not on the order": the active items not on it, by category, each a radio with its name and
     // unit (no JavaScript needed); "On the order": its lines, read only. A removed line's item is back on the left.
     @Test
     void addAnItemOffersOnlyTheItemsNotOnTheOrder() throws Exception {
@@ -253,7 +253,7 @@ class OfficeOrderEditFlowTest {
 
     @Test
     void anItemAlreadyOnTheOrderAddsToItsLineAndARemovedLineComesBack() throws Exception {
-        // P59: no longer offered on the page, but a stale page may still post it.
+        // No longer offered on the page, but a stale page may still post it.
         add(rice, "10", "Extra for the crossing").andExpect(flash().attribute("successMessage", "officeorder.edit.added"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("60");
         assertThat(riceLine.isAddedByOffice()).isFalse();
@@ -278,7 +278,7 @@ class OfficeOrderEditFlowTest {
 
     @Test
     void addAnItemAndTheLinesFollowTheRuleOfTheItemsUnit() throws Exception {
-        // P60: each item of Add an item carries its limit for the script; the hint says it depends on the unit.
+        // Each item of Add an item carries its limit for the script; the hint says it depends on the unit.
         String page = page("/office/orders/" + order.getId());
         assertThat(page).contains("id=\"addQuantityHint\" data-quantity-hint></span>", "data-quantity-texts")
                 .containsPattern("value=\"" + oil.getId() + "\"[^>]*data-quantity-max=\"2000\" data-quantity-decimals=\"3\"")
@@ -384,7 +384,7 @@ class OfficeOrderEditFlowTest {
         assertThat(riceLine.isRemoved()).isFalse();
     }
 
-    // P65: one primary button per state, the page's next step. Pending: Schedule delivery (Done editing secondary, Add
+    // One primary button per state, the page's next step. Pending: Schedule delivery (Done editing secondary, Add
     // to order an outline primary). Delivery scheduled: none until a field of Save delivery changes changes (js/forms.js
     // promotes it); posted with errors, it is the primary.
     @Test
@@ -450,14 +450,14 @@ class OfficeOrderEditFlowTest {
 
     // ---------------------------------------------------------------------------------------------------------------
 
-    // The Add an item form (P59).
+    // The Add an item form.
     private static String addItemForm(String html) {
         int start = html.indexOf("data-item-picker");
         assertThat(start).as("the Add an item form").isPositive();
         return html.substring(start, html.indexOf("</form>", start));
     }
 
-    // P65: the texts of the filled primary buttons in the page's main content.
+    // The texts of the filled primary buttons in the page's main content.
     static List<String> primaries(String html) {
         String main = html.substring(html.indexOf("<main"), html.indexOf("</main>"));
         return java.util.regex.Pattern.compile("class=\"btn btn-primary\"[^>]*>([^<]*)<").matcher(main).results()

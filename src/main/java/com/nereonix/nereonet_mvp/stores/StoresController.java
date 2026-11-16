@@ -41,8 +41,8 @@ import com.nereonix.nereonet_mvp.stores.StoresService.Stores;
 
 import jakarta.servlet.http.HttpSession;
 
-// The Chief cook's store: the stock of their own ship's provisions, and one item with its history. P53: counting
-// by hand (/ship/stores/count, one form with one "Save count") and the ship's history (/ship/stores/history). P57: counting
+// The Chief cook's store: the stock of their own ship's provisions, and one item with its history. Counting
+// by hand (/ship/stores/count, one form with one "Save count") and the ship's history (/ship/stores/history). Counting
 // by voice from the Count page (VoiceCountController).
 // SecurityConfig limits /ship/stores/** to CHIEF_COOK (the Master and crew members get 403). English only, as every
 // crew screen.
@@ -188,7 +188,7 @@ public class StoresController {
     }
 
     // Every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
-    // date or outside the sensible range shows its error under the field and filters nothing. P58: the quick choices
+    // date or outside the sensible range shows its error under the field and filters nothing. The quick choices
     // of layout/parts :: dateRange (the last 30, 60 and 90 days, links that keep the type).
     @GetMapping(PATH + "/history")
     public String history(@AuthenticationPrincipal CurrentUser currentUser,

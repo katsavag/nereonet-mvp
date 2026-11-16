@@ -55,7 +55,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P31, My profile: each of the four fields (languages, nationality, bio, photo) saved from its own page and back on My
+ * My profile: each of the four fields (languages, nationality, bio, photo) saved from its own page and back on My
  * profile with "Saved."; the limits (five languages, 280 characters, 5 MB, JPEG or PNG); the photo re-encoded without
  * any metadata and served only behind sign-in with a cache header; Delete my profile photo; every change recorded in
  * the audit log; only ever the signed-in person's own profile; the pages work without JavaScript (plain links and
@@ -107,7 +107,7 @@ class ProfileFlowTest {
                 "Your crewmates and the office can see what you fill in.",
                 "href=\"/ship/profile/languages\"", "href=\"/ship/profile/nationality\"",
                 "href=\"/ship/profile/bio\"", "href=\"/ship/profile/photo\"")
-                // No photo: the initials, in the header and (P43) in the sidebar's user block, the one shared fragment.
+                // No photo: the initials, in the header and in the sidebar's user block, the one shared fragment.
                 .containsPattern("<span class=\"person-avatar person-avatar-lg\" aria-hidden=\"true\">\\s*DC\\s*</span>")
                 .doesNotContain("cook@example.com");
         assertThat(sidebarUser(html)).containsPattern("<span class=\"person-avatar person-avatar-sm\" aria-hidden=\"true\">\\s*DC\\s*</span>")
@@ -254,7 +254,7 @@ class ProfileFlowTest {
         assertThat(thumb.getHeight()).isEqualTo(96);
         assertNoMetadata(small);
 
-        // My profile, the crew home header, the Photo page and (P43) the sidebar's user block and More show it, with
+        // My profile, the crew home header, the Photo page and the sidebar's user block and More show it, with
         // the profile's version after the key (?v=, so a new photo shows at once); the audit entry has its size, no
         // image data.
         String photo96 = "/ship/crew/" + cook.getId() + "/photo/" + key + "/96?v=" + profile(cook).getUpdatedAt().getEpochSecond();
@@ -357,7 +357,7 @@ class ProfileFlowTest {
         profile.setBio("Line one.\nLine two.");
         profileRepository.save(profile);
         html = page(get("/office/crew/{id}/edit", cook.getId()));
-        // P43: the nationality with its flag (the image before the name, decorative).
+        // The nationality with its flag (the image before the name, decorative).
         assertThat(html).contains("<span>English, Greek</span>", "<span>Greece</span>",
                 "<span class=\"text-break text-pre-line\">Line one.\nLine two.</span>")
                 .containsPattern("<img class=\"flag-icon\" src=\"/vendor/flags/gr-[0-9a-f]{32}\\.svg\" alt=\"\" width=\"20\" height=\"15\"");
@@ -469,7 +469,7 @@ class ProfileFlowTest {
         return m.group();
     }
 
-    // The sidebar's user block (P43): the person's picture, name and role.
+    // The sidebar's user block: the person's picture, name and role.
     private static String sidebarUser(String html) {
         Matcher m = Pattern.compile("(?s)<div class=\"sidebar-user\">.*?</form>\\s*</div>").matcher(html);
         assertThat(m.find()).isTrue();

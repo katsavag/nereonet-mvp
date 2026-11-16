@@ -31,8 +31,8 @@ public class AuditLogController {
         this.dates = dates;
     }
 
-    // filter: ship and UTC days; listRequest: search, sort, page and page size (10 a page as every list since
-    // P43). A day outside the sensible range (@PlausibleDate) or not a date shows its error under the field and
+    // filter: ship and UTC days; listRequest: search, sort, page and page size (10 a page as on every
+    // list). A day outside the sensible range (@PlausibleDate) or not a date shows its error under the field and
     // filters nothing.
     @GetMapping("/office/audit")
     public String list(@Validated @ModelAttribute("filter") AuditFilterForm filter, BindingResult bindingResult,

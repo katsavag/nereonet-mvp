@@ -1,4 +1,4 @@
-// Quantity fields (P60, layout/parts :: quantityInput, quantityHint, quantityTexts). Only an enhancement: the server
+// Quantity fields (layout/parts :: quantityInput, quantityHint, quantityTexts). Only an enhancement: the server
 // checks every quantity (core/form/QuantityRules) and every form posts without this script.
 //  - input[data-quantity]: what is typed or pasted keeps only digits and one decimal separator; a comma becomes a dot
 //    (Greek keyboards). Letters, spaces and signs are dropped as they are typed.

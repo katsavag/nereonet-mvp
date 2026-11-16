@@ -20,7 +20,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /** Sets a new password (P14, password reset). Only its hash is stored. */
+    /** Sets a new password (password reset). Only its hash is stored. */
     @Transactional
     public void changePassword(User user, String rawPassword) {
         user.setPasswordHash(passwordEncoder.encode(rawPassword));

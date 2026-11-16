@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
-/** P11: one date format in both languages, times in UTC with the zone, relative hints in whole UTC days. */
+/** One date format in both languages, times in UTC with the zone, relative hints in whole UTC days. */
 class DatesTest {
 
     private static final Instant NOW = Instant.parse("2026-10-21T12:40:00Z");
@@ -27,7 +27,7 @@ class DatesTest {
         LocaleContextHolder.resetLocaleContext();
     }
 
-    // P47: a news item's meta line drops the year when it is this year (UTC).
+    // A news item's meta line drops the year when it is this year (UTC).
     @Test
     void shortDateLeavesOutThisYear() {
         LocaleContextHolder.setLocale(Locale.ENGLISH);
@@ -88,7 +88,7 @@ class DatesTest {
         assertThat(dates.invitationHint(NOW.plus(Duration.ofDays(2)))).isEqualTo("λήγει σε 2 ημέρες");
     }
 
-    // P17: after "Invitation expired".
+    // After "Invitation expired".
     @Test
     void invitationExpiredHintSaysHowLongAgo() {
         LocaleContextHolder.setLocale(Locale.ENGLISH);

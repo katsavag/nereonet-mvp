@@ -85,7 +85,7 @@ class InvitationFlowTest {
         ship.setName("MV Test");
         ship.setCreatedAt(Instant.now());
         shipRepository.save(ship);
-        // The former invitation page leads to the Crew tab's Add crew member modal (P17).
+        // The former invitation page leads to the Crew tab's Add crew member modal.
         mockMvc.perform(get("/office/ships/{id}/invitations/new", ship.getId()))
                 .andExpect(redirectedUrl("/office/ships/" + ship.getId() + "/crew?add=true"));
 
@@ -127,7 +127,7 @@ class InvitationFlowTest {
                 .send(eq("new.office@example.com"), anyString(), contains("/register?token="), anyString());
     }
 
-    // P07: office invitations are listed on the Office users page, with Resend and Cancel; the old page redirects.
+    // Office invitations are listed on the Office users page, with Resend and Cancel; the old page redirects.
     @Test
     void officeUsersPageListsPendingInvitations() throws Exception {
         mockMvc.perform(get("/office/invitations")).andExpect(redirectedUrl("/office/users"));
@@ -152,7 +152,7 @@ class InvitationFlowTest {
                 .doesNotContain(">New Office</td>");
     }
 
-    // P17: a crew invitation is resent (expired or not) and cancelled with the same endpoints as an office invitation,
+    // A crew invitation is resent (expired or not) and cancelled with the same endpoints as an office invitation,
     // from the ship page's Crew tab, which it returns to; both are in the audit log with the ship.
     @Test
     void crewInvitationIsResentAndCancelledFromTheShipCrewTab() throws Exception {

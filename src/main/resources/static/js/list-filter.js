@@ -1,4 +1,4 @@
-// Lists (P19): the filter bar of layout/parts :: filterBar. Without this script it is an ordinary GET form with an
+// Lists: the filter bar of layout/parts :: filterBar. Without this script it is an ordinary GET form with an
 // Apply button (Enter in the search sends it too). With it:
 //   - Apply is hidden;
 //   - a filter (select, checkbox, date) applies as soon as it changes;

@@ -16,7 +16,7 @@ public interface StockMovementRepository extends Repository<StockMovement, Long>
     List<StockMovement> findAllByItemIdOrderByAtDescIdDesc(Long itemId);
 
     /** The movements of the ship's items with one of these types, at or after start and before end, newest first
-     *  (P53, StockService.history). The item and who in the same query. */
+     *  (StockService.history). The item and who in the same query. */
     @Query(value = """
             select m from StockMovement m join fetch m.item i left join fetch m.by
             where i.ship.id = :shipId and m.type in :types and m.at >= :start and m.at < :end

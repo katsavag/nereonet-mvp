@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * The grid of one vessel as posted (P58: per vessel, by its id in "vessel"): a plain form, so it saves without JavaScript. One row per certificate
+ * The grid of one vessel as posted (per vessel, by its id in "vessel"): a plain form, so it saves without JavaScript. One row per certificate
  * type: rows[i].type (hidden), rows[i].ranks (a checkbox per rank, its value the Rank), rows[i].optional and
  * rows[i].note. An unticked checkbox sends nothing, so ranks is empty and optional false unless sent.
  */

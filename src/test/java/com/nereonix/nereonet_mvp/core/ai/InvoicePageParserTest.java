@@ -15,7 +15,7 @@ import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 import tools.jackson.databind.JsonNode;
 
 /**
- * P62: the markdown table parser and the number formats. The sample invoice A-4471 (samples/invoice/) written out as
+ * The markdown table parser and the number formats. The sample invoice A-4471 (samples/invoice/) written out as
  * the fake writes it is read back line for line as its expected JSON says; English and Greek headers; 1,234.56 and
  * 1.234,56; a table given apart with a placeholder; totals in the text and in the table; a description going on to
  * the next row; a cell that is not a number is not read.

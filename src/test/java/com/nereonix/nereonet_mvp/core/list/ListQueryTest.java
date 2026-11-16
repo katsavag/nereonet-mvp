@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-/** P19: the list state read from the URL and every link built from it. */
+/** The list state read from the URL and every link built from it. */
 class ListQueryTest {
 
     private static final ListSort[] SORTS = {ListSort.asc("name"), ListSort.desc("sentAt")};
@@ -20,7 +20,7 @@ class ListQueryTest {
         assertThat(list.getSort()).isEqualTo("name");
         assertThat(list.isDescending()).isFalse();
         assertThat(list.getPage()).isZero();
-        // P43: 10 a page by default, on every list; 20, 50 and 100 on request.
+        // 10 a page by default, on every list; 20, 50 and 100 on request.
         assertThat(list.getSize()).isEqualTo(10);
         assertThat(ListQuery.DEFAULT_SIZE).isEqualTo(10);
         assertThat(list.getSizes()).containsExactly(10, 20, 50, 100);

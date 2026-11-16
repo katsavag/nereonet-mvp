@@ -1,4 +1,4 @@
-// Password fields (P13): sign-in and registration. Only enhancements: without this script the fields are ordinary
+// Password fields: sign-in and registration. Only enhancements: without this script the fields are ordinary
 // password fields, the rules under the registration password are a plain list, and the forms submit as usual.
 //  - [data-password-toggle]: the "Show" / "Hide" button inside a .password-field (layout/parts :: passwordToggle).
 //    Hidden in the markup, shown here. Switches the field between type=password and type=text; its accessible name

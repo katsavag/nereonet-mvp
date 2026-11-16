@@ -116,7 +116,7 @@ class AnnouncementFlowTest {
         assertThat(list).contains("Safety drill").contains("1 of 2 read");
     }
 
-    // P10: the form's button is Review; the review page shows the target, the people per ship and the text as the crew
+    // The form's button is Review; the review page shows the target, the people per ship and the text as the crew
     // will see it, and saves nothing. Back to edit keeps the text; Send counts the recipients again.
     @Test
     void sendingGoesThroughTheReviewPage() throws Exception {
@@ -201,7 +201,7 @@ class AnnouncementFlowTest {
                 .with(csrf()))).contains("Nobody would receive it", "Send to 0 people on 1 vessel");
     }
 
-    // P16, FR-GEN-008: the form and the review page say it is no emergency channel, right above their buttons.
+    // FR-GEN-008: the form and the review page say it is no emergency channel, right above their buttons.
     @Test
     void formAndReviewSayItIsNotAnEmergencyChannel() throws Exception {
         String notice = "Nereonix is not an emergency or safety channel. In an emergency, follow the vessel&#39;s "
@@ -229,7 +229,7 @@ class AnnouncementFlowTest {
                 .doesNotContain("Review announcement");
     }
 
-    // P27, P39: sending notifies each recipient; the crew list their own news items newest first. Opening one reads it
+    // Sending notifies each recipient; the crew list their own news items newest first. Opening one reads it
     // (no button): the first time the server records when, with an audit entry; opening it again changes nothing. The
     // office then sees who has read it, with the two ticks and the time.
     @Test
@@ -251,7 +251,7 @@ class AnnouncementFlowTest {
         assertThat(notification.getReadAt()).isNull();
         assertThat(notificationRepository.countByUserEmailAndReadAtIsNull("anna@example.com")).isEqualTo(2);
 
-        // The list (P47): "News · 2 new"; both under New, newest first (a dot, "New" for screen readers, a bold title),
+        // The list: "News · 2 new"; both under New, newest first (a dot, "New" for screen readers, a bold title),
         // each with a one-line preview and "Office · <day>"; no Earlier group yet.
         String list = html(get("/ship/news").with(user(new CurrentUser(cook))));
         assertThat(list).contains("<title>News · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
@@ -301,7 +301,7 @@ class AnnouncementFlowTest {
                 .orElseThrow().getAcknowledgedAt()).isEqualTo(readAt);
         assertThat(auditRepository.findAll()).filteredOn(e -> e.getAction().equals("ANNOUNCEMENT_ACKNOWLEDGED")).hasSize(1);
 
-        // The "I have read this" endpoint is gone.
+        // There is no "I have read this" endpoint.
         mockMvc.perform(post("/ship/announcements/{id}/acknowledge", galley.getId())
                         .with(user(new CurrentUser(cook))).with(csrf()))
                 .andExpect(status().isNotFound());
@@ -333,7 +333,7 @@ class AnnouncementFlowTest {
                 .contains("1 από 2 διάβασαν", "Δεν διαβάστηκε ακόμη", "<span>Διαβάστηκε</span>");
     }
 
-    // P47: the News list loads 10 at a time; "Show older" adds the next 10 below them. A long text is cut to one line.
+    // The News list loads 10 at a time; "Show older" adds the next 10 below them. A long text is cut to one line.
     @Test
     void newsLoadsTenAtATimeWithShowOlder() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
@@ -360,7 +360,7 @@ class AnnouncementFlowTest {
                 "<li class=\"news-row")).isEqualTo(10);
     }
 
-    // P39: the old crew URLs (bookmarks, older notifications) move to /ship/news for good.
+    // The old crew URLs (bookmarks, older notifications) move to /ship/news for good.
     @Test
     void theOldCrewUrlsRedirectToNews() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
@@ -381,7 +381,7 @@ class AnnouncementFlowTest {
                 "<span class=\"sidebar-link-label\">Announcements</span>").doesNotContain(">News<");
     }
 
-    // P37, P39: the office sends two news items to the Master's ship. The Master's list puts the ones not read yet
+    // The office sends two news items to the Master's ship. The Master's list puts the ones not read yet
     // first, and the sidebar, the tab bar and the Master's home count them; opening the newer one reads it: it moves
     // below the older one, the counters drop, and the office's detail page lists the Master as read.
     @Test
@@ -399,7 +399,7 @@ class AnnouncementFlowTest {
                 .doesNotContain("newsGroupEarlier");
         assertThat(count(list, "news-row is-unread")).isEqualTo(2);
         // The counter, in the sidebar: the number and the same in words. On phones News is under More for the Master
-        // (P65), so More's counter includes it.
+        //, so More's counter includes it.
         assertThat(list).containsPattern("(?s)data-nav=\"announcements\".*?<span class=\"nav-count num\" aria-hidden=\"true\">2</span>"
                         + "\\s*<span class=\"visually-hidden\">2 unread</span>")
                 .contains("data-more-base=\"2\"").doesNotContain("tab-bar-link active\" href=\"/ship/news\"");
@@ -440,7 +440,7 @@ class AnnouncementFlowTest {
         assertThat(officeDetail).doesNotContain("unread</span>");
     }
 
-    // P27: someone who is not a recipient (another ship, joined later, or no such announcement) gets 404, never the text.
+    // Someone who is not a recipient (another ship, joined later, or no such announcement) gets 404, never the text.
     @Test
     void aNonRecipientGetsNotFound() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
@@ -468,7 +468,7 @@ class AnnouncementFlowTest {
         mockMvc.perform(get("/ship/news/{id}", drill.getId())).andExpect(status().isForbidden());
     }
 
-    // P28: one announcement to two of three ships reaches only their crew; the review page lists the two ships with the
+    // One announcement to two of three ships reaches only their crew; the review page lists the two ships with the
     // people on each and the total; the list says "2 ships" (names in the title and on the phone card); the detail
     // page splits "0 of 3 acknowledged" by ship; the audit entry lists the target ship ids.
     @Test
@@ -512,7 +512,7 @@ class AnnouncementFlowTest {
         User gina = userRepository.findByEmail("gina@example.com").orElseThrow();
         mockMvc.perform(get("/ship/news/{id}", announcement.getId()).with(user(new CurrentUser(gina))))
                 .andExpect(status().isNotFound());
-        // Beta's crew see their own vessel as the target, never the other vessels; opening it reads it (P39).
+        // Beta's crew see their own vessel as the target, never the other vessels; opening it reads it.
         User bill = userRepository.findByEmail("bill@example.com").orElseThrow();
         assertThat(html(get("/ship/news/{id}", announcement.getId()).with(user(new CurrentUser(bill)))))
                 .contains("<p class=\"eyebrow\">MV Beta · IMO 9176187</p>").doesNotContain("MV Alpha", "2 vessels");
@@ -531,7 +531,7 @@ class AnnouncementFlowTest {
                 .doesNotContain("MV Gamma");
     }
 
-    // P28: Selected ships with no box ticked, or no target at all, is an error on the target field.
+    // Selected ships with no box ticked, or no target at all, is an error on the target field.
     @Test
     void selectedShipsWithNoShipTickedIsAnError() throws Exception {
         ship("9074729", "MV Alpha");
@@ -549,7 +549,7 @@ class AnnouncementFlowTest {
         assertThat(announcementRepository.count()).isZero();
     }
 
-    // P28: a ship deactivated between the form and sending is named on the review page and left out; with none left,
+    // A ship deactivated between the form and sending is named on the review page and left out; with none left,
     // sending is blocked.
     @Test
     void aShipDeactivatedBeforeSendingIsLeftOut() throws Exception {
@@ -600,7 +600,7 @@ class AnnouncementFlowTest {
         assertThat(announcementRepository.count()).isEqualTo(1);
     }
 
-    // P28: the fleet list's ship filter and each ship's Announcements tab show an announcement to all ships and every
+    // The fleet list's ship filter and each ship's Announcements tab show an announcement to all ships and every
     // announcement with that ship among its targets; New announcement on the tab ticks that ship.
     @Test
     void aShipsTabListsTheAnnouncementsItIsATargetOf() throws Exception {

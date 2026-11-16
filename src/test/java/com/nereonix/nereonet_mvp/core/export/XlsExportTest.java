@@ -13,7 +13,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.junit.jupiter.api.Test;
 
 /**
- * P40: the office exports are .xls files (Excel 97-2003): at most 65,535 data rows and 256 columns, else the export is
+ * The office exports are .xls files (Excel 97-2003): at most 65,535 data rows and 256 columns, else the export is
  * refused ("Too many rows for one file: narrow the filters"); a text over 32,767 characters is shortened with "…".
  */
 class XlsExportTest {

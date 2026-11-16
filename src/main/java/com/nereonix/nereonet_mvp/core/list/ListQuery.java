@@ -22,7 +22,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
  * <ul>
  *   <li>q: the search text, trimmed, at most 100 characters; null when empty;</li>
  *   <li>sort and dir: one of the list's ListSorts (the first is the default), asc or desc;</li>
- *   <li>page (1-based in the URL) and size: 10 (the default, P43; 25 before, and 20 on the audit log), 20, 50 or
+ *   <li>page (1-based in the URL) and size: 10 (the default), 20, 50 or
  *   100, the same on every list.</li>
  * </ul>
  * Changing the search, a filter, the sort or the page size goes back to page 1.

@@ -27,7 +27,7 @@ import lombok.Setter;
 
 // The consolidated order of a ship: the approved requests added up, one line per item. A ship has at most one
 // OPEN order (ShipOrderService.addApprovedRequest finds or creates it). The ship sends it to the office (SENT), the
-// office schedules the delivery, port and date (CONFIRMED, P51: "Delivery scheduled"), and the Master confirms receipt
+// office schedules the delivery, port and date (CONFIRMED, shown as "Delivery scheduled"), and the Master confirms receipt
 // on board with the delivery receipt (CLOSED, "Received"); only the vessel closes an order.
 // While OPEN the Master can change a line's quantity or remove a line; once SENT it is read-only for the ship,
 // and the office can change its lines until it confirms the delivery.
@@ -38,7 +38,7 @@ public class ShipOrder {
 
     public static final int PORT_MAX_LENGTH = 100;
     public static final int NOTE_MAX_LENGTH = 1000;
-    /** P61: the cook's note to the Master, and the Master's note sending a count back. */
+    /** The cook's note to the Master, and the Master's note sending a count back. */
     public static final int COUNT_NOTE_MAX_LENGTH = 500;
 
     @Id
@@ -69,7 +69,7 @@ public class ShipOrder {
 
     private Instant sentAt;
 
-    // Set by the office when scheduling the delivery ("confirming" before).
+    // Set by the office when scheduling the delivery (hence "confirmed" in the names).
     @Column(length = PORT_MAX_LENGTH)
     private String confirmedPort;
 
@@ -135,7 +135,7 @@ public class ShipOrder {
     private Instant countReturnedAt;
 
     // The office's comparison of order, delivery and invoice, for an order received with a read invoice (null:
-    // none, the P51 shortage flow applies). invoiceDiffLines: the lines that differ (InvoiceComparison), kept up to
+    // none, the shortage flow applies). invoiceDiffLines: the lines that differ (InvoiceComparison), kept up to
     // date by InvoiceComparisonService for the Overview and the list; who marked it matched, and when.
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -177,14 +177,14 @@ public class ShipOrder {
     }
 
     /**
-     * Received with lines short, and no office user has marked them handled yet. P64: an order with a read
+     * Received with lines short, and no office user has marked them handled yet. An order with a read
      * invoice is handled by matching the invoice instead.
      */
     public boolean isShortageOpen() {
         return status == ShipOrderStatus.CLOSED && shortLines > 0 && shortageHandledAt == null && invoiceStatus == null;
     }
 
-    /** P64: received with a read invoice the office has not marked matched yet. */
+    /** Received with a read invoice the office has not marked matched yet. */
     public boolean isInvoiceToMatch() {
         return status == ShipOrderStatus.CLOSED && invoiceStatus == InvoiceMatchStatus.TO_MATCH;
     }

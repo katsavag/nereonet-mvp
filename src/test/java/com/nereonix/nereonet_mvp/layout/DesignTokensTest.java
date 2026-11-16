@@ -31,7 +31,7 @@ class DesignTokensTest {
     }
 
     @Test
-    // P58: card headers and table header rows share one header surface, darker than the card, with the text colour
+    // Card headers and table header rows share one header surface, darker than the card, with the text colour
     // on it at 4.5:1 or more and a visible step next to the surface.
     void headerSurfaceIsATokenWithReadableText() throws IOException {
         String css = Files.readString(APP_CSS);
@@ -47,7 +47,7 @@ class DesignTokensTest {
         String th = css.substring(css.indexOf(".data-table > thead > tr > th {"));
         assertThat(th.substring(0, th.indexOf('}'))).contains("color: var(--nn-text);")
                 .doesNotContain("--nn-text-secondary");
-        // No card header is made transparent any more, in the stylesheet or the templates.
+        // No card header is made transparent, in the stylesheet or the templates.
         try (Stream<Path> files = Files.walk(Path.of("src/main/resources/templates"))) {
             for (Path file : files.filter(f -> f.toString().endsWith(".html")).toList()) {
                 assertThat(Files.readString(file)).as(file.toString())
@@ -89,8 +89,8 @@ class DesignTokensTest {
 
     @Test
     void largeButtonsOnlyWhereTheyAreFullWidth() throws IOException {
-        // Sign-in, registration, forgot password (P14) and signed-out error pages (w-100; the error pages' button is in
-        // layout/parts :: errorPage, P12).
+        // Sign-in, registration, forgot password and signed-out error pages (w-100; the error pages' button is in
+        // layout/parts :: errorPage).
         Path templates = Path.of("src/main/resources/templates");
         List<String> allowed = List.of("login/login.html", "registration/register.html", "registration/invalid.html",
                 "passwordreset/forgot.html", "passwordreset/sent.html", "passwordreset/reset.html", "passwordreset/invalid.html",
@@ -112,7 +112,7 @@ class DesignTokensTest {
     }
 
     @Test
-    // Except the emails (templates/email, P29): mail clients ignore stylesheets, so emails are styled inline.
+    // Except the emails (templates/email): mail clients ignore stylesheets, so emails are styled inline.
     void templatesHaveNoInlineStyles() throws IOException {
         List<String> found = new ArrayList<>();
         try (Stream<Path> files = Files.walk(Path.of("src/main/resources/templates"))) {

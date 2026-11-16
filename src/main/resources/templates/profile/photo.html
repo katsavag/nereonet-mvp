@@ -26,8 +26,7 @@
                 </div>
             </div>
 
-            <form th:action="@{/ship/profile/photo}" method="post" enctype="multipart/form-data" novalidate
-                  data-photo-form>
+            <form th:action="@{/ship/profile/photo}" method="post" enctype="multipart/form-data" novalidate>
                 <div>
                     <label for="photo" class="form-label" th:text="#{profile.photo.label}">Choose a photo</label>
                     <input type="file" id="photo" name="photo" class="form-control" accept="image/jpeg,image/png"

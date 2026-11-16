@@ -21,7 +21,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The office's decision on one point of an order's invoice comparison (P64, InvoiceComparison): a difference of a line
+ * The office's decision on one point of an order's invoice comparison (InvoiceComparison): a difference of a line
  * accepted with a note, or an item to review confirmed or changed. itemKey names the point ("diff:o12" a line,
  * "match:45" an invoice line's product, "check:Page 1: ..." a failed check); one decision per point, the latest.
  * detail is what the point was when decided (a difference's words and numbers): a difference that changes afterwards

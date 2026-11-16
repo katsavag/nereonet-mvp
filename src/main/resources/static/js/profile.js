@@ -1,4 +1,4 @@
-// My profile (P31). Loaded only by the Languages and Photo pages (profile/languages.html, profile/photo.html), not by
+// My profile. Loaded only by the Languages and Photo pages (profile/languages.html, profile/photo.html), not by
 // the layout, so My crew and every other page stay without it. Only enhancements: without it both pages work as they
 // are (the server filters on Find, and receives the original photo).
 //  - Languages, form[data-language-search]: the results (li[data-search], every language is in the page) filter as the

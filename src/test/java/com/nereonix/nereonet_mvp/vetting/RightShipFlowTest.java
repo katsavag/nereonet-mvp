@@ -62,7 +62,7 @@ import com.nereonix.nereonet_mvp.core.vetting.Subscore;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 /**
- * P40: the office's Vetting section. The list, a vessel's Vetting and RightShip pages (rated, not rated, sanctioned),
+ * The office's Vetting section. The list, a vessel's Vetting and RightShip pages (rated, not rated, sanctioned),
  * Edit RightShip data, Upload report and its preview, the vessel page's badges, the Overview's items and the Vessels
  * list's Safety Score; the API sync with a fake RightShip (no request at all while it is not configured; the
  * nightly job updates only the changed vessels and keeps the manual subscores; a failure is shown, never a 500).
@@ -120,7 +120,7 @@ class RightShipFlowTest {
                         "data-row-href=\"/office/vetting/" + expiring.getId() + "\"")
                 .contains("SIRE 2.0");
 
-        // Filters and sorting (P19).
+        // Filters and sorting.
         assertThat(names(html(get("/office/vetting").param("status", "attention"))))
                 .containsExactly("EXPIRED", "EXPIRING", "LOW");
         assertThat(names(html(get("/office/vetting").param("status", "notrated")))).containsExactly("NOT RATED");
@@ -327,7 +327,7 @@ class RightShipFlowTest {
         Ship ship = vessel("ALDER");
         alder(ship);
 
-        // P43: each badge is its own link (own hover and focus); the three RightShip badges open the RightShip page.
+        // Each badge is its own link (own hover and focus); the three RightShip badges open the RightShip page.
         String page = html(get("/office/ships/{id}", ship.getId()));
         String rightShip = "/office/vetting/" + ship.getId() + "/rightship";
         assertThat(page).containsPattern("(?s)<div class=\"vetting-badges\">.*?"
@@ -350,7 +350,7 @@ class RightShipFlowTest {
         String overview = html(get("/office"));
         assertThat(overview).contains("RightShip inspection", "Expires in 38 days", "Open RightShip",
                 "href=\"/office/vetting/" + alder.getId() + "/rightship\"", "<span>Vetting</span>");
-        // P65: the Vetting chip selected, the full list of the vessels needing attention.
+        // The Vetting chip selected, the full list of the vessels needing attention.
         assertThat(html(get("/office").param("type", "vetting")))
                 .contains("href=\"/office/vetting?status=attention\">Open the full list</a>");
 
@@ -529,7 +529,7 @@ class RightShipFlowTest {
     }
 
     // ALDER of the demo data: 3/5, subscores 4 2 3 4 4 5, GHG C unverified, inspection valid for 38 more days.
-    // Someone on board: the Overview shows its work list once there is a vessel and crew (P25).
+    // Someone on board: the Overview shows its work list once there is a vessel and crew.
     private void crew(Ship ship) {
         userService.createUser("crew" + imo + "@example.com", "Crew Member", "secret123", Role.CREW_MEMBER, ship, null);
     }

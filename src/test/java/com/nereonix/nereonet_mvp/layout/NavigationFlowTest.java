@@ -51,7 +51,7 @@ import com.nereonix.nereonet_mvp.navigation.NavSection;
 import jakarta.servlet.http.Cookie;
 
 /**
- * P07 sidebar: the navigation groups, Overview one click away, exactly one active entry (its section, also on the
+ * The sidebar: the navigation groups, Overview one click away, exactly one active entry (its section, also on the
  * pages below it), the counters, and the brand linking to the user's home page.
  */
 @SpringBootTest
@@ -106,7 +106,7 @@ class NavigationFlowTest {
         assertActive(get("/office"), "/office", "Overview");
         assertActive(get("/office/crew/{id}/edit", crew.getId()), "/office/crew", "Crew");
         assertActive(get("/office/ships/{id}/items", ship.getId()), "/office/ships", "Vessels");
-        // P40: the pages below Vetting.
+        // The pages below Vetting.
         assertActive(get("/office/vetting/{id}/rightship", ship.getId()), "/office/vetting", "Vetting");
         // And for the crew: a page below Library.
         assertActive(get("/ship/library/new").with(user(new CurrentUser(master))), "/ship/library", "Library");
@@ -134,7 +134,7 @@ class NavigationFlowTest {
                 "/office", "/office/ships", "/office/crew", "/office/certificates", "/office/vetting",
                 "/office/announcements", "/office/orders", "/office/suppliers", "/office/users", "/office/requirements",
                 "/office/audit", "/notifications");
-        // The language switch moved to the top bar (P29).
+        // The language switch is in the top bar, not in the sidebar.
         assertThat(nav).containsSubsequence(">Operations</p>", ">Administration</p>", ">Account</p>").doesNotContain("lang=el")
                 .contains("aria-labelledby=\"navGroupOperations\"", "aria-labelledby=\"navGroupAdministration\"",
                         "aria-labelledby=\"navGroupAccount\"")
@@ -148,13 +148,13 @@ class NavigationFlowTest {
                 .containsExactly("/ship", "/ship/news", "/ship/library", "/ship/crew", "/ship/requests", "/ship/profile",
                         "/notifications");
         assertThat(nav).contains(">On board</p>", ">Account</p>").doesNotContain("/office", "lang=el");
-        // The ship home page is Home (P26).
+        // The ship home page is Home.
         assertActive(get("/ship").with(user(new CurrentUser(crew))), "/ship", "Home");
-        // The crew's announcements (P27), News since P39.
+        // The crew's announcements, called News.
         assertActive(get("/ship/news").with(user(new CurrentUser(crew))), "/ship/news", "News");
     }
 
-    // P65: under On board Home, News, Library and My crew; the supply pages in their own group "Supplies", in the order
+    // Under On board Home, News, Library and My crew; the supply pages in their own group "Supplies", in the order
     // of the work (Requests, Approvals, Vessel order, Stores), each to the roles that see it.
     @Test
     void theSupplyPagesAreGroupedPerRole() throws Exception {
@@ -195,7 +195,7 @@ class NavigationFlowTest {
         certificate(today.plusDays(30));   // expiring within 30 days
         certificate(today.plusDays(31));   // not yet
         order(ShipOrderStatus.SENT, null);              // Pending
-        order(ShipOrderStatus.CONFIRMED, Instant.now()); // Delivery scheduled, exported: still counted (P51)
+        order(ShipOrderStatus.CONFIRMED, Instant.now()); // Delivery scheduled, exported: still counted
         order(ShipOrderStatus.CLOSED, null);            // received on board: not counted, even never exported
         order(ShipOrderStatus.OPEN, null);              // still on board: not counted
         rightShip(today.minusDays(1));     // inspection expired
@@ -211,7 +211,7 @@ class NavigationFlowTest {
                 .containsPattern("(?s)href=\"/office/orders\">.*?>Orders</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
                         + "<span class=\"visually-hidden\">2 open</span>")
-                // P40: Vetting, right after Certificates, counts the vessels whose inspection expired or expires within
+                // Vetting, right after Certificates, counts the vessels whose inspection expired or expires within
                 // 60 days.
                 .containsPattern("(?s)href=\"/office/certificates\">.*?href=\"/office/vetting\">.*?>Vetting</span>\\s*"
                         + "<span class=\"nav-count num\" aria-hidden=\"true\">2</span>\\s*"
@@ -256,7 +256,7 @@ class NavigationFlowTest {
         assertThat(layout).contains("class=\"offcanvas-md offcanvas-start").doesNotContain("data-bs-keyboard=\"false\"");
     }
 
-    // P29: from 768px the sidebar is a 64px rail until this browser chooses the full sidebar; the choice is a cookie the
+    // From 768px the sidebar is a 64px rail until this browser chooses the full sidebar; the choice is a cookie the
     // server reads, so the page is rendered in that state (no flash).
     @Test
     void theSidebarIsARailUntilTheBrowserChoosesTheFullOne() throws Exception {
@@ -267,7 +267,7 @@ class NavigationFlowTest {
                         + "<input type=\"hidden\" name=\"returnTo\" value=\"/office/crew\\?shipId=" + ship.getId() + "\">\\s*"
                         + "<button type=\"submit\" class=\"sidebar-toggle\" aria-controls=\"sidebar\" data-sidebar-toggle"
                         + "[^>]*aria-expanded=\"false\">.*?<span class=\"sidebar-label\">Expand menu</span>");
-        // P39: the toggle is at the top, right after the brand (in the rail under the mark), before the navigation.
+        // The toggle is at the top, right after the brand (in the rail under the mark), before the navigation.
         assertThat(first).containsSubsequence("class=\"sidebar-head\"", "class=\"sidebar-brand\"", "data-sidebar-toggle",
                 "class=\"sidebar-close\"", "class=\"sidebar-nav\"", "class=\"sidebar-user\"", "</aside>");
         // Icon only: the "panel left" icon with its chevron, the words visually hidden as its name and tooltip.
@@ -314,13 +314,13 @@ class NavigationFlowTest {
             mockMvc.perform(post("/preferences/sidebar").param("state", "expanded").param("returnTo", elsewhere).with(csrf()))
                     .andExpect(redirectedUrl("/"));
         }
-        // A POST like every other: without the CSRF token it is refused (sent to sign in, P12) and sets nothing.
+        // A POST like every other: without the CSRF token it is refused (sent to sign in) and sets nothing.
         mockMvc.perform(post("/preferences/sidebar").param("state", "expanded"))
                 .andExpect(redirectedUrl("/login?expired"))
                 .andExpect(cookie().doesNotExist("sidebar"));
     }
 
-    // Phones (P29): the office menu has a visible close button next to the brand; Bootstrap's offcanvas keeps its
+    // Phones: the office menu has a visible close button next to the brand; Bootstrap's offcanvas keeps its
     // backdrop (a tap outside closes it), Esc and the scroll lock; js/sidebar.js closes it when an entry is chosen.
     @Test
     void thePhoneMenuHasACloseButtonAndClosesOnATapOutside() throws Exception {
@@ -383,7 +383,7 @@ class NavigationFlowTest {
         orderRepository.save(order);
     }
 
-    // P40: a vessel of its own whose RightShip inspection is valid until that date.
+    // A vessel of its own whose RightShip inspection is valid until that date.
     private void rightShip(LocalDate inspectionValidUntil) {
         Ship vessel = new Ship();
         vessel.setImoNumber(String.valueOf(9_300_000 + shipRepository.count()));

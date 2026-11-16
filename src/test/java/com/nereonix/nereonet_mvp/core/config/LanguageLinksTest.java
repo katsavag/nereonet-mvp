@@ -9,7 +9,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.WebUtils;
 
-/** P16: the links of the language switch, for the cases a MockMvc page does not reach. */
+/** The links of the language switch, for the cases a MockMvc page does not reach. */
 class LanguageLinksTest {
 
     private final LanguageLinks links = new LanguageLinks();

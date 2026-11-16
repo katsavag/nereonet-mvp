@@ -73,8 +73,8 @@ public class ReceiptForm {
     private List<Long> removeFileIds = new ArrayList<>();
 
     /**
-     * The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). (P63:
-     * a count of the Chief cook waiting for the Master is approved on its own page, not here.)
+     * The form as it opens: every line not removed by the office, received as ordered, now (UTC, to the minute). (A
+     * count of the Chief cook waiting for the Master is approved on its own page, not here.)
      */
     static ReceiptForm of(ShipOrder order) {
         ReceiptForm form = new ReceiptForm();
@@ -91,7 +91,7 @@ public class ReceiptForm {
         return form;
     }
 
-    /** P63: a time as a datetime-local input's value (UTC, to the minute); empty for none. */
+    /** A time as a datetime-local input's value (UTC, to the minute); empty for none. */
     public static String inputValue(Instant instant) {
         return instant == null ? "" : INPUT.format(LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
                 .truncatedTo(ChronoUnit.MINUTES));
@@ -112,7 +112,7 @@ public class ReceiptForm {
         return INPUT.format(LocalDateTime.now(ZoneOffset.UTC).toLocalDate().atTime(23, 59));
     }
 
-    /** P60: the earliest a receipt time can be, for the input's min: when the order was sent (UTC, to the minute);
+    /** The earliest a receipt time can be, for the input's min: when the order was sent (UTC, to the minute);
      *  null when it has no sent time. */
     public static String minFor(ShipOrder order) {
         return order.getSentAt() == null ? null

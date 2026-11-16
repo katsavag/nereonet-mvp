@@ -53,9 +53,9 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 // The orders the ships have sent, as the office sees them: the list, one order, scheduling its delivery (port
-// and date; "confirming" until P51) and changing it until the Master confirms receipt, and the export (an Excel
-// workbook since P39). P51: a received order shows the receipt (its files, ordered vs received per line) and, when
-// lines were short, "Shortage handled" with a note. P64: received with a read invoice, the card "Order, delivery and
+// and date) and changing it until the Master confirms receipt, and the export (an Excel
+// workbook). A received order shows the receipt (its files, ordered vs received per line) and, when
+// lines were short, "Shortage handled" with a note. Received with a read invoice, the card "Order, delivery and
 // invoice" (InvoiceComparisonService; its actions in OfficeInvoiceController) replaces "Shortage handled". The logic is ShipOrderService's. While an order is SENT
 // the office can change its lines (quantity, remove, add an item; OfficeOrderEditService), each a plain POST form.
 // /office/** is limited to OFFICE_USER in SecurityConfig. An OPEN order (still being put together on board) is a 404.
@@ -67,7 +67,7 @@ public class OfficeOrderController {
     // The list has one order: newest sent first.
     private static final ListSort[] SORTS = {ListSort.desc("sentAt")};
 
-    // P64: the "Invoice" filter's value for "Lines differ" (?invoice=differ): received, the invoice not matched yet,
+    // The "Invoice" filter's value for "Lines differ" (?invoice=differ): received, the invoice not matched yet,
     // with lines that differ.
     static final String INVOICE_DIFFER = "differ";
 
@@ -75,7 +75,7 @@ public class OfficeOrderController {
     public record LineGroup(ItemCategory category, List<ShipOrderLine> lines) {
     }
 
-    /** One category's active items, by name: the choices of "Add an item" (P59: only those not on the order). */
+    /** One category's active items, by name: the choices of "Add an item" (only those not on the order). */
     public record ItemGroup(ItemCategory category, List<Item> items) {
     }
 
@@ -107,7 +107,7 @@ public class OfficeOrderController {
         this.comparisonService = comparisonService;
     }
 
-    // shipId, status (sent, delivery_scheduled, closed; P65: confirmed and delivery_pending still mean
+    // shipId, status (sent, delivery_scheduled, closed; confirmed and delivery_pending, in saved links, mean
     // delivery_scheduled) and invoice=differ (the invoice's
     // lines differ, not matched yet) filter the list; anything else in status or invoice filters nothing.
     // listRequest: search and page.
@@ -330,7 +330,7 @@ public class OfficeOrderController {
 
     /**
      * The workbook of the checked orders (the list), or of one order (its page): a .xls download, one row per order
-     * line (.xlsx in P39, CSV before). It marks them exported now. Too many lines for one .xls sheet: back to the
+     * line. It marks them exported now. Too many lines for one .xls sheet: back to the
      * list with "Too many rows for one file", nothing marked. Nothing checked, or none of them an order the ships sent:
      * back to the list with a message.
      */
@@ -422,7 +422,7 @@ public class OfficeOrderController {
         return userRepository.findById(currentUser.getId()).orElseThrow();
     }
 
-    // "sent", "delivery_scheduled", "closed" (Pending, Delivery scheduled, Received); P65: the older "confirmed" and
+    // "sent", "delivery_scheduled", "closed" (Pending, Delivery scheduled, Received); the older "confirmed" and
     // "delivery_pending" still mean Delivery scheduled, so saved links keep working. null for anything else (and OPEN,
     // which the office never sees).
     private static ShipOrderStatus status(String value) {

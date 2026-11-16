@@ -50,9 +50,9 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P20: certificates the office can plan with. The Status filter, the Overview's and the sidebar's counts linking to
+ * Certificates the office can plan with. The Status filter, the Overview's and the sidebar's counts linking to
  * exactly that many certificates, the type suggestions and the case-insensitive match on save, the ship's matrix,
- * the exports (Excel since P39) and the forms going back to where they were opened.
+ * the exports (Excel) and the forms going back to where they were opened.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -167,8 +167,8 @@ class CertificatePlanningFlowTest {
     void eachCertificateCountOnTheOverviewLinksToAListOfExactlyThatCount() throws Exception {
         String overview = html(get("/office"));
 
-        // a. The Certificates chip (P43): certificates expired or expiring within 30 days, crew of active ships; with
-        // it selected, "Open the full list" (P65; the By category card before) lists exactly that many.
+        // a. The Certificates chip: certificates expired or expiring within 30 days, crew of active ships; with
+        // it selected, "Open the full list" lists exactly that many.
         Matcher chip = Pattern.compile("(?s)<span>Certificates</span>\\s*<span class=\"chip-count num\">(\\d+)</span>")
                 .matcher(overview);
         assertThat(chip.find()).isTrue();
@@ -178,7 +178,7 @@ class CertificatePlanningFlowTest {
         assertThat(full.find()).isTrue();
         assertThat(count(html(url(full.group(1))))).isEqualTo(3);
 
-        // b. The Fleet card (P43): each active ship's open items link to the Overview filtered to that ship, which
+        // b. The Fleet card: each active ship's open items link to the Overview filtered to that ship, which
         // lists exactly that many.
         Matcher fleet = Pattern.compile("class=\"count-link\" href=\"(/office\\?shipId=\\d+)\">(\\d+)</a>").matcher(overview);
         int links = 0;
@@ -288,7 +288,7 @@ class CertificatePlanningFlowTest {
         assertThat(html(get("/office/ships/{id}/certificates", alpha.getId())))
                 .doesNotContain("Add Passport for Dana Cadet");
 
-        // A ship without crew says so, and leads to its Crew tab instead of offering Add certificate (P25).
+        // A ship without crew says so, and leads to its Crew tab instead of offering Add certificate.
         Long emptyId = ship("MV Empty", "1000004", true).getId();
         assertThat(html(get("/office/ships/{id}/certificates", emptyId)))
                 .contains("class=\"empty-state\"", "No active crew on board",
@@ -297,7 +297,7 @@ class CertificatePlanningFlowTest {
                 .doesNotContain("/office/ships/" + emptyId + "/certificates/new", "/certificates/export");
     }
 
-    // 5. Excel exports (CSV until P39; .xls since P40) ---------------------------------------------------------------
+    // 5. Excel exports (.xls) ---------------------------------------------------------------------------------------
 
     @Test
     void theListAndTheMatrixExportAsExcel() throws Exception {
@@ -368,7 +368,7 @@ class CertificatePlanningFlowTest {
                 .contains("href=\"/office/crew/" + bob.getId() + "/edit\">Cancel</a>");
     }
 
-    // 7. Sensible dates (P39) -------------------------------------------------------------------------------------------
+    // 7. Sensible dates -------------------------------------------------------------------------------------------
 
     @Test
     void anExpiryOutsideThirtyYearsEitherSideIsRefusedWithTheLimits() throws Exception {
@@ -405,7 +405,7 @@ class CertificatePlanningFlowTest {
                 .isEqualTo(today().minusDays(5));
     }
 
-    // 8. The certificate's file, and My certificates (P39) --------------------------------------------------------------
+    // 8. The certificate's file, and My certificates --------------------------------------------------------------
 
     private static final byte[] PDF = "%PDF-1.7\n% a scan\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 0, 0, 0, 0};

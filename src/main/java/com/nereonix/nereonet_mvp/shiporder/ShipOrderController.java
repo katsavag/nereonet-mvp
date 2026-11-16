@@ -39,7 +39,7 @@ public class ShipOrderController {
     /** The model flag: true for the Master (edit, send, confirm receipt), false for the Chief cook (read only). */
     static final String CAN_MANAGE = "canManage";
 
-    /** P61: true for the Chief cook, who counts a scheduled delivery (DeliveryCountController). */
+    /** True for the Chief cook, who counts a scheduled delivery (DeliveryCountController). */
     static final String CAN_COUNT = "canCount";
 
     private final ShipOrderPageService pageService;

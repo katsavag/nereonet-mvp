@@ -37,7 +37,7 @@ public class MasterHomeService {
             return new Card(key, icon, count, url, false);
         }
 
-        /** P61: a line under the label (masterhome.card.<noteKey>, with noteCount), or none when noteKey is null. */
+        /** A line under the label (masterhome.card.<noteKey>, with noteCount), or none when noteKey is null. */
         public boolean hasNote() {
             return noteKey != null && noteCount > 0;
         }

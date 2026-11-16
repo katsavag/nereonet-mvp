@@ -25,7 +25,7 @@ import lombok.Setter;
 
 /**
  * A required document: one row of the office's grid. A certificate type (the same type list and spelling rules
- * as certificates, P20: two types are one when equal after strip() and toLowerCase), the ranks it applies to, whether
+ * as certificates: two types are one when equal after strip() and toLowerCase), the ranks it applies to, whether
  * it is only optional (shown, never counted) and an optional note ("needed before joining").
  * Each row belongs to one vessel (ship). A vessel starts with the defaults of its type (StarterRequirements),
  * copied when it is created; changes on its grid apply to it alone. At most one row per type and vessel

@@ -40,7 +40,7 @@ public record ImportField(String key, String labelKey, boolean required, List<St
     }
 
     /**
-     * Matches the values of one field to a fixed list (P24, e.g. "C/E" to Chief Engineer). A value matched exactly is
+     * Matches the values of one field to a fixed list (e.g. "C/E" to Chief Engineer). A value matched exactly is
      * used as it is; every other distinct value is asked about once, with the suggestion chosen.
      */
     public interface ValueMatcher {

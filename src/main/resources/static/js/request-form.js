@@ -1,4 +1,4 @@
-// New request and Edit request (P54, templates/shiprequest/form.html). Only an enhancement: without this script the
+// New request and Edit request (templates/shiprequest/form.html). Only an enhancement: without this script the
 // whole list shows and every button posts the form as it is.
 //  - [data-request-search] (hidden until this script runs) filters the rows ([data-request-row], by data-name) by
 //    name, ignoring case; a group ([data-request-group]) with no match is hidden. What is typed stays in the hidden

@@ -34,7 +34,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P44, the suppliers the office asks for quotes: the list (empty state, active and inactive), adding one with its
+ * The suppliers the office asks for quotes: the list (empty state, active and inactive), adding one with its
  * checks, editing it (a name taken by another supplier is refused) and the audit entries. Office users only.
  */
 @SpringBootTest
@@ -114,7 +114,7 @@ class SupplierFlowTest {
     }
 
     @Test
-    // P58: the currency is a code, not an amount: centred (code-cell) under a centred, still sortable header; never
+    // The currency is a code, not an amount: centred (code-cell) under a centred, still sortable header; never
     // the right-aligned .num.
     void theCurrencyColumnIsCentred() throws Exception {
         supplier("VANOS (Piraeus)", "EUR", true);

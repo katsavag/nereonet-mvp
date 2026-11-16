@@ -33,7 +33,7 @@ import jakarta.persistence.LockModeType;
 /**
  * The stock of a ship's provisions, shared by the Chief cook's Stores pages and, later, the request page, the
  * receipt on board and the office. Only PROVISIONS items have stock; personal items never appear. An item without a
- * StockLevel row has quantity 0. P53: the Chief cook counts an item by hand (count). P56: a delivery the Master
+ * StockLevel row has quantity 0. The Chief cook counts an item by hand (count). A delivery the Master
  * received adds to the store (receive, called by OrderReceiptService.confirmReceipt).
  * Every change of an item's stock locks the item's row first, so two changes of one item never interleave.
  * app.stock.low-threshold (default 10, one threshold for every item, in the item's unit) splits LOW from OK.

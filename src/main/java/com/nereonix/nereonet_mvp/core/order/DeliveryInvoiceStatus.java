@@ -1,6 +1,6 @@
 package com.nereonix.nereonet_mvp.core.order;
 
-/** Where the reading of an order's invoice stands (P62, DeliveryInvoice.status). */
+/** Where the reading of an order's invoice stands (DeliveryInvoice.status). */
 public enum DeliveryInvoiceStatus {
     /** Its pages are being read (InvoiceReadingService). */
     READING,

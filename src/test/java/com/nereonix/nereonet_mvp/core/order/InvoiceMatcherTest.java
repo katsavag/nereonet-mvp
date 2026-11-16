@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.order.InvoiceMatcher.Conversion;
 import com.nereonix.nereonet_mvp.core.order.InvoiceMatcher.Outcome;
 
 /**
- * P63, matching invoice lines to the order: names normalised (case, accents, punctuation, plurals) with pack sizes
+ * Matching invoice lines to the order: names normalised (case, accents, punctuation, plurals) with pack sizes
  * apart; MATCHED only when clearly ahead, CHECK when likely, nothing (PICK) otherwise; the pack factor from the
  * description; the supplier by its name.
  */

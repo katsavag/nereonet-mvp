@@ -244,10 +244,7 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     - without the script (or in a browser without `<dialog>`) nothing is submitted silently: the form has no submit
       button and its trigger is a link to the action's own URL, where a GET shows the same question as a plain page
       (`confirm/confirm.html`, built by `core/confirm/ConfirmPages` from the same message keys) with the confirm
-      button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`);
-    - an action that asks only sometimes keeps its submit button and adds `data-confirm-when="<selector>"`: the dialog opens when an element of
-      the form matches it, and Confirm sends the form with `confirmed=true`. Without the script the POST itself
-      answers with the plain confirmation page, which posts the same fields with `confirmed=true`.
+      button and the way back to where it started (e.g. `/office/ships/3/deactivate?tab=crew`).
 
   - times and dates (P11): office and ship read the same time for the same event, so every time is shown in UTC
     and says so. One format in both languages, from one place, the `@dates` bean (`core/time/Dates`); month names

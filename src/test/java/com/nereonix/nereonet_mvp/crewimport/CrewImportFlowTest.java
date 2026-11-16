@@ -90,7 +90,7 @@ class CrewImportFlowTest {
     @Test
     void officeUserImportsCrewListAndInvitesEveryone() throws Exception {
         ship();
-        // P18: no Role column; the rank sets the role.
+        // No Role column; the rank sets the role.
         MockHttpSession session = new MockHttpSession();
         upload(session, "crew.csv", """
                 Full name,Email,Rank,Ship IMO
@@ -132,7 +132,7 @@ class CrewImportFlowTest {
         assertThat(importMappingRepository.findAll()).isEmpty();
     }
 
-    // Acceptance (P24): samples/crew-sample.xlsx with its columns renamed and reordered imports without editing it.
+    // Acceptance: samples/crew-sample.xlsx with its columns renamed and reordered imports without editing it.
     @Test
     void theSampleWithRenamedAndReorderedColumnsImportsWithoutEditing() throws Exception {
         ship();
@@ -173,7 +173,7 @@ class CrewImportFlowTest {
                         tuple("rodel.tagaytay@example.com", Rank.STEWARD));
     }
 
-    // Acceptance (P24): "C/E" in the rank column is asked about once, and the answer goes to every such row.
+    // Acceptance: "C/E" in the rank column is asked about once, and the answer goes to every such row.
     @Test
     void aShortRankIsAskedAboutOnceForEveryRowWithIt() throws Exception {
         ship();
@@ -356,7 +356,7 @@ class CrewImportFlowTest {
         mockMvc.perform(get(BASE + "/done").session(session)).andExpect(redirectedUrl("/office/crew"));
     }
 
-    // P39: the review checks its cells as they are corrected (js/import-check.js). The markup carries each cell's local
+    // The review checks its cells as they are corrected (js/import-check.js). The markup carries each cell's local
     // rules and the server's own error; the counts of all rows; the import button and its hint for the script to
     // follow. Without the script the page works as before: the server's errors and Check again.
     @Test
@@ -447,7 +447,7 @@ class CrewImportFlowTest {
         assertThat(review(csv)).contains("value=\"Bruno Exemplo\"", "value=\"bruno.exemplo@example.com\"");
     }
 
-    // P18: a file with a Role column (the template from before) is accepted; the column is ignored and the review page
+    // A file with a Role column (the template from before) is accepted; the column is ignored and the review page
     // says so.
     @Test
     void anOldFileWithARoleColumnIsAcceptedAndTheColumnIgnored() throws Exception {
@@ -477,7 +477,7 @@ class CrewImportFlowTest {
                         tuple("bruno.exemplo@example.com", Role.CHIEF_COOK));
     }
 
-    // P18: the rank is required, and the one active Master / Chief Cook per ship rule is reported on the rank.
+    // The rank is required, and the one active Master / Chief Cook per ship rule is reported on the rank.
     @Test
     void rankErrorsAreReportedOnTheRank() throws Exception {
         Ship ship = ship();
@@ -514,7 +514,7 @@ class CrewImportFlowTest {
     }
 
     // The one-Master rule is checked through UserService.checkShipRoleFree, which throws. Outside a test transaction
-    // that exception used to mark the review's transaction rollback-only, and the review page failed (500).
+    // that exception must not mark the review's transaction rollback-only (the review page would fail with 500).
     @Test
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     void theReviewReportsATakenMasterWithoutFailing() throws Exception {
@@ -534,7 +534,7 @@ class CrewImportFlowTest {
         }
     }
 
-    // P18: the template has no Role column; its Instructions list each rank with the access it gives.
+    // The template has no Role column; its Instructions list each rank with the access it gives.
     @Test
     void theTemplateHasNoRoleColumn() throws Exception {
         ship();

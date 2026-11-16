@@ -65,10 +65,10 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P51, the Master confirms receipt on board with the delivery receipt: only for a CONFIRMED order (delivery
+ * The Master confirms receipt on board with the delivery receipt: only for a CONFIRMED order (delivery
  * scheduled), the form prefilled with what was ordered, the receipt's files (PDF, JPEG or PNG; sent with the form or one
  * at a time by js/receipt.js), the review step, then CLOSED with what arrived; the office is notified and sees the
- * receipt, shortages stay in the Overview until "Shortage handled". P56: the provisions received go into the Chief
+ * receipt, shortages stay in the Overview until "Shortage handled". The provisions received go into the Chief
  * cook's store. Signed in as the office unless a request says otherwise.
  */
 @SpringBootTest
@@ -139,7 +139,7 @@ class OrderReceiptFlowTest {
 
     @Test
     void theMasterConfirmsReceiptWithTheDeliveryReceiptAndTheOfficeSeesIt() throws Exception {
-        // The order page: Confirm receipt, the one primary action; the invoice's photos first (P62).
+        // The order page: Confirm receipt, the one primary action; the invoice's photos first.
         assertThat(asMaster(get("/ship/orders/{id}", order.getId()))).contains("Delivery scheduled",
                 "href=\"/ship/orders/" + order.getId() + "/invoice\">Confirm receipt</a>");
 
@@ -206,7 +206,7 @@ class OrderReceiptFlowTest {
                         "/office/orders/" + order.getId() + "/receipt/" + files.getFirst().getId(), ">Received</span>",
                         "Short by 5 kg", "Not delivered", "Two bags torn", "/shortage-handled\"")
                 .doesNotContain("id=\"confirmTitle\"");
-        // P65: received with the shortage open, Shortage handled is the page's one primary button.
+        // Received with the shortage open, Shortage handled is the page's one primary button.
         assertThat(java.util.regex.Pattern.compile("class=\"btn btn-primary\"[^>]*>([^<]*)<")
                 .matcher(office.substring(office.indexOf("<main"), office.indexOf("</main>"))).results()
                 .map(m -> m.group(1).strip()).toList()).containsExactly("Shortage handled");
@@ -341,7 +341,7 @@ class OrderReceiptFlowTest {
 
     @Test
     void theReceivedQuantitiesFollowTheRuleOfTheItemsUnit() throws Exception {
-        // P60: each field carries the limit of its unit; 0 is Not delivered.
+        // Each field carries the limit of its unit; 0 is Not delivered.
         String form = asMaster(get("/ship/orders/{id}/receipt", order.getId()));
         assertThat(form).contains("data-quantity-max=\"2000\"", "data-quantity-max=\"5000\"", "data-quantity-texts")
                 .doesNotContain("Up to 2000 kg", "Whole numbers, up to 5000 pcs");
@@ -361,7 +361,7 @@ class OrderReceiptFlowTest {
 
     @Test
     void theQuantityOrderedIsAlwaysAcceptedEvenAboveTheLimit() throws Exception {
-        // An order line from before P60, above today's limit: received as ordered, it is accepted.
+        // An order line saved before P60 (when there was no limit), above today's limit: received as ordered, it is accepted.
         riceLine.setQuantity(new BigDecimal("2500"));
         receive("2500", "10", "6");
         assertThat(riceLine.getReceivedQuantity()).isEqualByComparingTo("2500");
@@ -443,7 +443,7 @@ class OrderReceiptFlowTest {
                 .andExpect(status().isConflict());
         order.setStatus(ShipOrderStatus.CONFIRMED);
 
-        // The Chief cook reads the order (P55) but has no receipt pages; another ship's Master gets a 404; the office
+        // The Chief cook reads the order but has no receipt pages; another ship's Master gets a 404; the office
         // cannot close an order.
         mockMvc.perform(get("/ship/orders/{id}/receipt", order.getId()).with(user(new CurrentUser(cook))))
                 .andExpect(status().isForbidden());

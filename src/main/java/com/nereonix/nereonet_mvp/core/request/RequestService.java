@@ -25,7 +25,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 import jakarta.persistence.EntityManager;
 
-// Item requests, for any feature. The Chief cook's and the crew's request pages (P54, shiprequest) call submit,
+// Item requests, for any feature. The Chief cook's and the crew's request pages (shiprequest) call submit,
 // and while a request is PENDING the person who asked can change it (update) or cancel it; the Master decides on
 // /ship/approvals (approve, decline). A decision, a change and a cancel all lock the request's row first
 // (ItemRequestRepository.findForDecision), so they never interleave.

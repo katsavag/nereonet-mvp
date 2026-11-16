@@ -19,7 +19,7 @@ import jakarta.validation.constraints.Size;
 /**
  * "Add observation" and an observation's edit form: where in the VIQ, its type and text as the report gives
  * them, and the follow-up (operator comment, corrective action, owner, target date, closed date). A closed date
- * closes it. The dates follow the P39 plausible-date rule: a target within 5 years either way, a closed date within
+ * closes it. The dates follow the plausible-date rule: a target within 5 years either way, a closed date within
  * the last 20 years and not in the future. The owner is checked by the controller (an office user).
  */
 public class SireObservationForm {

@@ -14,12 +14,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// The add and edit certificate form. P39: an optional file, the scan of the certificate (PDF, JPEG or PNG, at most
+// The add and edit certificate form. An optional file, the scan of the certificate (PDF, JPEG or PNG, at most
 // 10 MB); on edit a new file replaces the current one, and removeFile removes it. The multipart limits in
 // application.yml match CertificateFileStorage.MAX_FILE_SIZE.
 public class CertificateForm {
 
-    /** The P39 limits of Expires on, either way from today; a later date does not count for required documents. */
+    /** The limits of Expires on, either way from today; a later date does not count for required documents. */
     public static final int EXPIRES_YEARS = 30;
 
     @NotBlank(message = "{certificate.error.typeRequired}")

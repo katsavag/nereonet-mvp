@@ -29,7 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 /**
- * The office's exports as Excel 97-2003 workbooks (.xls, P40; .xlsx in P39, CSV before), so the files open everywhere:
+ * The office's exports as Excel 97-2003 workbooks (.xls), so the files open everywhere:
  * one sheet named after the list (at most 31 characters), the header row bold and frozen with an autofilter, then one
  * row per record. Cell types follow the values: a LocalDate is a real date cell shown "dd MMM yyyy", an Instant a date
  * and time cell in UTC ("dd MMM yyyy hh:mm"), a number a number, anything else text (an IMO number stays text, as an

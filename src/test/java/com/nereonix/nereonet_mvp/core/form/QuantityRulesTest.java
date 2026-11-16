@@ -11,7 +11,7 @@ import com.nereonix.nereonet_mvp.core.form.QuantityRules.Kind;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.item.Item;
 
-/** P60: one rule for every quantity, by the kind of the item's unit. */
+/** One rule for every quantity, by the kind of the item's unit. */
 class QuantityRulesTest {
 
     // The defaults of application.yml.

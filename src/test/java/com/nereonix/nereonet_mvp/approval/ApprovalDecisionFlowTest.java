@@ -48,7 +48,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P34, the Master approves or declines a request as a whole. Approving adds its lines to the ship's one OPEN order
+ * The Master approves or declines a request as a whole. Approving adds its lines to the ship's one OPEN order
  * (creating the items asked for by name), declining keeps the reason; either notifies the person who asked, records
  * the decision and goes back to the list. Only a PENDING request can be decided, only by the Master of its ship.
  */

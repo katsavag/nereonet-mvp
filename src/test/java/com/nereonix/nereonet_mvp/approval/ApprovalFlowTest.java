@@ -58,7 +58,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P33, the Master's approvals: RequestService.submit saves a PENDING request, records it and notifies the Master;
+ * The Master's approvals: RequestService.submit saves a PENDING request, records it and notifies the Master;
  * /ship/approvals lists the ship's waiting requests (oldest first) and decided ones; a request shows its lines by
  * category with "New item" badges and, when declined, the reason. Only the Master, and only their own ship.
  */
@@ -247,7 +247,7 @@ class ApprovalFlowTest {
         assertThat(fromCrew.getLines()).extracting(RequestLine::getName, RequestLine::getCategory)
                 .containsExactly(tuple("Shower gel", ItemCategory.PERSONAL_ITEMS), tuple("Eggs", ItemCategory.PROVISIONS));
         assertThat(notificationRepository.findAllByUserEmailOrderByCreatedAtDescIdDesc(master.getEmail())).hasSize(2);
-        // P52: the demo store, once (one row per item): several OK, two Low and two Out of stock.
+        // The demo store, once (one row per item): several OK, two Low and two Out of stock.
         List<StockService.Level> levels = stockService.levels(ship);
         assertThat(levels).hasSize(10);
         assertThat(stockLevelRepository.findAllByItemShipId(ship.getId())).hasSize(10);
@@ -256,7 +256,7 @@ class ApprovalFlowTest {
         assertThat(levels).filteredOn(l -> l.status() == StockStatus.OUT).extracting(l -> l.item().getName())
                 .containsExactlyInAnyOrder("Sugar", "Butter");
         assertThat(stockService.lastCount(ship)).isNotNull();
-        // P44: the two suppliers, once; VANOS with a test address only.
+        // The two suppliers, once; VANOS with a test address only.
         assertThat(supplierRepository.findAll()).extracting(s -> s.getName(), s -> s.getEmail(), s -> s.getCurrency())
                 .containsExactlyInAnyOrder(tuple("VANOS (Piraeus)", "quotes.vanos@example.com", "EUR"),
                         tuple("Harbour Provisions (Test)", "sales.harbour@example.com", "USD"));

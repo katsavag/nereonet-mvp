@@ -52,7 +52,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P10: every deactivate, delete, cancel and retire action asks first, with the same dialog: its form opts in with
+ * Every deactivate, delete, cancel and retire action asks first, with the same dialog: its form opts in with
  * data-confirm-* attributes and has no submit button, and its trigger is a link to the plain confirmation page (the
  * same URL with GET), which is where it leads when js/confirm.js did not load.
  */
@@ -160,7 +160,7 @@ class ConfirmFlowTest {
         actions.addAll(confirmForms(get("/office/users")));
         actions.addAll(confirmForms(get("/office/crew/" + crew.getId() + "/edit")));
         actions.addAll(confirmForms(get("/office/ships/" + ship.getId() + "/items")));
-        // Retire is on the item's read view (P22), for the office as for the Master.
+        // Retire is on the item's read view, for the office as for the Master.
         actions.addAll(confirmForms(get("/office/ships/" + ship.getId() + "/library/" + libraryItem.getId())));
         actions.addAll(confirmForms(get("/ship/library/" + libraryItem.getId()).with(user(new CurrentUser(master)))));
 
@@ -174,7 +174,7 @@ class ConfirmFlowTest {
                 "/office/ships/" + ship.getId() + "/library/" + libraryItem.getId() + "/retire",
                 "/ship/library/" + libraryItem.getId() + "/retire");
 
-        // The dialog is on every signed-in page, once, with the script; the bespoke retire modal is gone.
+        // The dialog is on every signed-in page, once, with the script; Retire has no modal of its own.
         String page = html(get("/office/ships"));
         assertThat(page).containsOnlyOnce("<dialog id=\"confirmDialog\"")
                 .containsPattern("<script src=\"/js/confirm(-[0-9a-f]+)?\\.js\" defer></script>");

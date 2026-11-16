@@ -461,7 +461,7 @@ public class InvoiceComparisonService {
                 line.getPackUnitOne(), line.getPackUnitMany(), false);
     }
 
-    // The order lines keep what the invoice says of them (P63's invoicedQuantity and invoiceLine), for the export.
+    // The order lines keep what the invoice says of them (invoicedQuantity and invoiceLine), for the export.
     private void syncInvoiced(ShipOrder order, List<DeliveryInvoiceLine> invoiceLines) {
         for (ShipOrderLine orderLine : order.getLines()) {
             if (orderLine.isRemoved()) {

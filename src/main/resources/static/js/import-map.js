@@ -1,4 +1,4 @@
-// Import from a file, Map columns step (P24, templates/importfile/map.html). Only an enhancement: without this script
+// Import from a file, Map columns step (templates/importfile/map.html). Only an enhancement: without this script
 // the preview's "To: ..." labels and the "Not imported" list show the mapping the page opened with, and Continue
 // checks the mapping as chosen.
 //  - form[data-import-map]: when a select[data-import-column] changes, each preview column header

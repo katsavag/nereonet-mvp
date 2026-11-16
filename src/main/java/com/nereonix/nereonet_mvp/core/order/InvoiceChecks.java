@@ -239,7 +239,7 @@ public final class InvoiceChecks {
         return WEIGHED.contains(u);
     }
 
-    // A recovered quantity has at most 3 decimals for weighed goods, none for counted ones (P60's rule).
+    // A recovered quantity has at most 3 decimals for weighed goods, none for counted ones (the rule of QuantityRules).
     private static int maxScale(boolean weighed) {
         return weighed ? 3 : 0;
     }

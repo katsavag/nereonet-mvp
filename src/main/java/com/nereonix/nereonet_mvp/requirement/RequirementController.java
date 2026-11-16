@@ -23,7 +23,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import jakarta.validation.Valid;
 
 // /office/** is limited to OFFICE_USER in SecurityConfig.
-// Required documents, Administration in the sidebar: which certificate types each rank needs. P58: per vessel
+// Required documents, Administration in the sidebar: which certificate types each rank needs. Per vessel
 // (?vessel=12; the first active vessel by name without one), each starting with its type's defaults. The row toggle
 // per type, Delete row and "Reset to Bulk carrier defaults" act on the shown vessel only and ask first.
 // A plain form of checkboxes, so it saves without JavaScript; Save comes back to the same vessel with "Required

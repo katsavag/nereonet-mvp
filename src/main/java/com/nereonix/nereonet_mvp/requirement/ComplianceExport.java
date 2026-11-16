@@ -10,7 +10,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.User;
 
 /**
- * The required documents of a list of people as an Excel workbook (P42, the P39/P40 export conventions: .xls, a
+ * The required documents of a list of people as an Excel workbook (the exports' conventions: .xls, a
  * frozen bold header, real date cells), sheet "Required documents", one row per person and document, in the order
  * the documents are shown on the person's page (required first, missing first): imo_number, ship_name, crew_member,
  * rank (Rank's name), requirement (the certificate type), required (yes, or no for an optional one), state (missing,

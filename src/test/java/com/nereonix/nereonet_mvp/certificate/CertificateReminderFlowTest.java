@@ -99,7 +99,7 @@ class CertificateReminderFlowTest {
         assertThat(notifications).hasSize(1);
         assertThat(notifications.getFirst().getReadAt()).isNull();
         assertThat(notifications.getFirst().getText()).startsWith("Your certificate STCW Basic Safety expires in 60 days");
-        // P23: a certificate notification naming the person and the ship.
+        // A certificate notification naming the person and the ship.
         assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.CERTIFICATE);
         assertThat(notifications.getFirst().getSubject()).isEqualTo("Crew Member · MV Demo");
 

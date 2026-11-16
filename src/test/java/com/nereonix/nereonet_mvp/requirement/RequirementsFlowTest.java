@@ -54,7 +54,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * P42: required documents per rank; P58: per vessel, each starting with its type's defaults (a new vessel, the
+ * Required documents per rank and per vessel, each vessel starting with its type's defaults (a new vessel, the
  * filter of vessels only, Changed, Reset, a type change, the migration from rules by vessel type). The grid (starter template, ticking, adding a type, a note too
  * long, the audit entry), a seafarer with all, some and none of their documents, the Chief Officer on a tanker without
  * a Tanker Endorsement shown Missing on the office's page, the Crew list, the vessel's matrix, the Overview and their
@@ -136,7 +136,7 @@ class RequirementsFlowTest {
         assertThat(rows.getFirst()).containsExactly("Tanker Endorsement", "Missing");
         assertThat(rows.subList(1, 11)).allSatisfy(r -> assertThat(r[1]).isEqualTo("Valid"));
         assertThat(summary(page)).isEqualTo("10 of 11");
-        // P58: "Change what is required" opens her vessel's grid.
+        // "Change what is required" opens her vessel's grid.
         assertThat(page).contains("/office/crew/" + olga.getId() + "/certificates/new?type=Tanker%20Endorsement&amp;returnTo=/office/crew/"
                 + olga.getId() + "/edit", "aria-label=\"Add certificate: Tanker Endorsement\"",
                 "href=\"/office/requirements?vessel=" + tanker.getId() + "\"");
@@ -240,7 +240,7 @@ class RequirementsFlowTest {
                 .andExpect(flash().attribute("errorMessage", "requirement.error.noVessel"));
     }
 
-    // P43: the row toggle; P58: it acts on the shown vessel only.
+    // The row toggle: it acts on the shown vessel only.
     @Test
     void theRowToggleTicksEveryRankOfThisVesselAlsoWithoutJavaScript() throws Exception {
         String grid = html(get("/office/requirements"));
@@ -340,7 +340,7 @@ class RequirementsFlowTest {
         assertThat(audit("REQUIREMENTS_UPDATED")).hasSize(1);
     }
 
-    // P58: a new vessel starts with its type's defaults; its changes are its own; Reset brings the defaults back.
+    // A new vessel starts with its type's defaults; its changes are its own; Reset brings the defaults back.
     @Test
     void eachVesselHasItsOwnRequirementsStartingWithItsTypesDefaults() throws Exception {
         Ship alder = newVessel("9300001", "ALDER");
@@ -389,7 +389,7 @@ class RequirementsFlowTest {
         assertThat(grid).doesNotContain("status-neutral\">Changed</span>");
     }
 
-    // P58: when a vessel's type changes, the office chooses to keep its requirements (the default) or reset them.
+    // When a vessel's type changes, the office chooses to keep its requirements (the default) or reset them.
     @Test
     void aTypeChangeKeepsTheRequirementsUnlessResetIsChosen() throws Exception {
         Ship alder = newVessel("9300001", "ALDER");
@@ -423,11 +423,11 @@ class RequirementsFlowTest {
         assertThat(audit("REQUIREMENTS_RESET")).hasSize(1);
     }
 
-    // P58: the rules by vessel type become each vessel's own, and no seafarer's documents change.
+    // The rules by vessel type become each vessel's own, and no seafarer's documents change.
     @Test
     void theMigrationGivesEveryVesselTheRulesThatAppliedToIt() throws Exception {
         requirementRepository.deleteAll();
-        // Before P58: all vessels (null) and per vessel type rows, no vessel. Counted before: Carl (Cook, tanker):
+        // Rows saved before P58: all vessels (null) and per vessel type rows, no vessel. Counted before: Carl (Cook, tanker):
         // Passport and Tanker Endorsement required, Yellow Fever optional for him; Olga (Chief Officer, tanker): Tanker
         // Endorsement and Yellow Fever; Bob (Bosun, bulker): Passport; Nora (Able Seaman, bulker): nothing.
         legacy("Passport", null, false, null, Rank.COOK, Rank.BOSUN);
@@ -467,8 +467,7 @@ class RequirementsFlowTest {
         assertThat(listSummary(list, "Carl Cook")).isEqualTo("2 of 6");
         assertThat(listSummary(list, "Nora New")).isEqualTo("0 of 5");
         assertThat(listSummary(list, "Rex Norank")).isNull();
-        assertThat(list).contains("all held and valid", "4 missing or expired", "5 missing or expired",
-                "Without a rank and a vessel, no required documents apply to them.");
+        assertThat(list).contains("all held and valid", "4 missing or expired", "5 missing or expired");
 
         // Carl: missing and expired first, then expiring, then valid.
         List<String[]> carlRows = cardRows(html(get("/office/crew/{id}/edit", carl.getId())));
@@ -496,7 +495,7 @@ class RequirementsFlowTest {
                         ">Medical Fitness Certificate</a>")
                 .contains("/office/crew/" + nora.getId() + "/edit#requiredDocuments\">Nora New</a>","4 required documents missing", "5 required documents missing")
                 .doesNotContain("/office/crew/" + bob.getId() + "/edit#requiredDocuments");
-        // P65: the Required documents chip selected, the full list of the crew with documents missing.
+        // The Required documents chip selected, the full list of the crew with documents missing.
         assertThat(html(get("/office").param("type", "documents")))
                 .contains("href=\"/office/crew?status=active&amp;documents=missing\">Open the full list</a>");
     }
@@ -555,8 +554,8 @@ class RequirementsFlowTest {
             certificate(extra, "Passport", 100);
         }
         long large = queriesOfCrewList();
-        // The whole page, layout included; P42 adds two: the requirements and the certificates of the page's people.
-        assertThat(small).isEqualTo(15);
+        // The whole page, layout included; two of them: the requirements and the certificates of the page's people.
+        assertThat(small).isEqualTo(13);
         assertThat(large).isEqualTo(small);
     }
 
@@ -633,7 +632,7 @@ class RequirementsFlowTest {
         return grid.substring(row, grid.indexOf("</th>", row));
     }
 
-    // A Bulk carrier added through Add vessel (P58: it starts with the Bulk carrier defaults).
+    // A Bulk carrier added through Add vessel (it starts with the Bulk carrier defaults).
     private Ship newVessel(String imo, String name) throws Exception {
         mockMvc.perform(post("/office/ships/new").param("imoNumber", imo).param("name", name)
                         .param("type", "BULK_CARRIER").with(csrf()))

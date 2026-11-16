@@ -53,7 +53,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P57, counting the store by voice, with both fakes (application-test.yml): the fake transcript "Five kilos of
+ * Counting the store by voice, with both fakes (application-test.yml): the fake transcript "Five kilos of
  * tomatoes, eight kilos of chicken, thirty eggs, three cans of herring." gives Tomatoes 5 (High), Chicken breast 8 (Low,
  * by one word of its name), Eggs 30 (High) and "three cans of herring" not matched. Posting a recording only proposes;
  * Confirm applies the rows through StockService.count with the note "Voice count"; failures leave the stock alone.

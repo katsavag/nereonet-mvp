@@ -11,7 +11,7 @@ can still confirm receipt without one (no cook on board, or he is busy).
   up to 500), `count_returned_at`; `ship_order_line.counted_quantity` (numeric 12,3) and `count_note` (up to 200).
   The order keeps status CONFIRMED throughout. `core/order/DeliveryCountService` (`saveDraft`, `send`, `sendBack`)
   locks the order's row on every change, like the receipt.
-- **The count** (`shiporder/DeliveryCountController`, `DeliveryCountForm`, `shiporder/count.html`, phone first):
+- **The count** (`shiporder/DeliveryCountController`, `shiporder/count.html`, phone first):
   **Count delivery** on the cook's In progress card ([23](23-ship-order.md), P59) and on the order page. `/ship/orders/{id}/count`
   has one block per line the office did not remove, by category: the item, "Ordered 25 kg", **Received** (empty
   until counted; the receipt's rule of P60, 0 = nothing arrived) with **All arrived** (the quantity ordered;

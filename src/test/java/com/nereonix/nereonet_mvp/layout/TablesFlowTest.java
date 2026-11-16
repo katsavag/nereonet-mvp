@@ -39,7 +39,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P04 tables and row actions on the office lists, with rows in every table: one shared table style, the count next
+ * Tables and row actions on the office lists, with rows in every table: one shared table style, the count next
  * to the card title, one bold primary cell per row, at most one visible row action plus a "more" menu named after
  * the record with destructive entries last, status badges, emails on one line, and stacked cards on phones (all
  * lists except the audit log).
@@ -124,10 +124,13 @@ class TablesFlowTest {
             // The audit log keeps its columns and scrolls sideways on phones; the other lists stack.
             assertThat(html.contains("data-table-stack")).as("stacked on phones" + on)
                     .isEqualTo(!page.getKey().equals("/office/audit"));
-            // A tab of the ship page has its count on the tab (P08), the other lists after the page title.
-            assertThat(html).as("count next to the title" + on)
-                    .contains(page.getKey().startsWith("/office/ships/") ? "class=\"ship-tab-count" : "class=\"title-count\"")
-                    .doesNotContain("font-monospace small text-body-secondary");
+            // A tab of the ship page has its count on the tab, the other lists after the page title; the audit log
+            // shows no count.
+            if (!page.getKey().equals("/office/audit")) {
+                assertThat(html).as("count next to the title" + on).contains(
+                        page.getKey().startsWith("/office/ships/") ? "class=\"ship-tab-count" : "class=\"title-count\"");
+            }
+            assertThat(html).as("no old count style" + on).doesNotContain("font-monospace small text-body-secondary");
 
             Matcher body = TBODY.matcher(html);
             assertThat(body.find()).as("table rows" + on).isTrue();
@@ -156,7 +159,7 @@ class TablesFlowTest {
         }
 
         // The primary column links to the record's page.
-        // A ship's name opens the ship page (P08).
+        // A ship's name opens the ship page.
         assertThat(html("/office/ships")).contains("href=\"/office/ships/" + ship.getId() + "\">MV Demo</a>",
                 "status-badge status-ok", "data-label=\"Vessel code\"");
         String crewList = html("/office/crew");

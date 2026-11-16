@@ -3,7 +3,6 @@ package com.nereonix.nereonet_mvp.item;
 import java.math.BigDecimal;
 
 import com.nereonix.nereonet_mvp.core.form.PlausibleQuantity;
-import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 
@@ -51,11 +50,6 @@ public class ItemForm {
     BigDecimal maxPerRequestValue() {
         return maxPerRequest == null || maxPerRequest.isEmpty() ? null
                 : new BigDecimal(maxPerRequest.replace(',', '.')).stripTrailingZeros();
-    }
-
-    /** The rule of the unit as typed, for the hint (the unit's own maximum). */
-    public QuantityRules.Kind unitKind() {
-        return QuantityRules.kindOf(unit);
     }
 
     public String getName() { return name; }

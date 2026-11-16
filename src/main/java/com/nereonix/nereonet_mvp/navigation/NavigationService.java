@@ -50,7 +50,7 @@ public class NavigationService {
 
     @Transactional(readOnly = true)
     public NavCounts officeCounts() {
-        // UTC days, as the certificate badges and the reminder job. P43: certificates and vessels whose snooze holds
+        // UTC days, as the certificate badges and the reminder job. Certificates and vessels whose snooze holds
         // are left out.
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         LocalDate until = today.plusDays(CERTIFICATE_DAYS);
@@ -66,7 +66,7 @@ public class NavigationService {
     }
 
     /**
-     * The Master's counter of Vessel order (orders, not lines, since P59): the orders of the ship of the user with
+     * The Master's counter of Vessel order (orders, not lines): the orders of the ship of the user with
      * this email that need the Master, the OPEN one when it has a line (to send) and the CONFIRMED ones (to receive).
      * SENT orders wait for the office and are not counted.
      */

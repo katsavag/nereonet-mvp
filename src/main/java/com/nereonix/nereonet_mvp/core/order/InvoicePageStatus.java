@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.order;
 
 /**
- * Where the reading of one photographed invoice page stands (P62, OrderReceiptFile.invoicePageStatus). The three
+ * Where the reading of one photographed invoice page stands (OrderReceiptFile.invoicePageStatus). The three
  * failures are the reader's (InvoiceReadingException.Reason); HARD_TO_READ is a page that was read but showed no
  * table, or fewer lines than its line numbers suggest.
  */

@@ -14,7 +14,7 @@ import com.nereonix.nereonet_mvp.ship.Countries;
 
 // The office home page. /office/** is limited to OFFICE_USER in SecurityConfig.
 // type and shipId filter the "Needs attention" list (one kind, or one ship's open items):
-// /office?type=acknowledgements&shipId=3. Values: AttentionType.Group.param(). P43: the list is paged (P19, 10 a
+// /office?type=acknowledgements&shipId=3. Values: AttentionType.Group.param(). The list is paged (10 a
 // page) and sorted by urgency (the default) or by date (?sort=date); its state travels as returnTo with the actions.
 @Controller
 public class DashboardController {

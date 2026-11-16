@@ -69,7 +69,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P44, requests for quotes: from a vessel order the office has been sent, the request (port, dates, suppliers, a
+ * Requests for quotes: from a vessel order the office has been sent, the request (port, dates, suppliers, a
  * review before anything is sent), one email per supplier with the items and the .xls file, the quotes typed in, the
  * sealed comparison (per item unit, Not offered, the cheapest complete quote, other currencies apart), the award
  * (the others told, the order's Confirm form prefilled), declines, no reply, failed emails, cancelling, the Overview

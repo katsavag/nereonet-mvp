@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.stores;
 import java.util.ArrayList;
 import java.util.List;
 
-// The review of a voice count (P57, POST /ship/stores/count/voice/confirm), by position in the session's Proposal:
+// The review of a voice count (POST /ship/stores/count/voice/confirm), by position in the session's Proposal:
 // rows[i] is the proposal's line i (its item comes from the session, never from the form), extras[j] its unmatched
 // phrase j. A row: the quantity counted (editable) and removed. An extra: the item picked (blank: dropped) and its
 // quantity. Quantities are text, so a wrong one comes back as typed.

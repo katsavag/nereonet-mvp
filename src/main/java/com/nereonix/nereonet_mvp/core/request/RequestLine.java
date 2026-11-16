@@ -20,7 +20,7 @@ import lombok.Setter;
 
 // One line of an item request: an item of the ship's list, or (item null) a new item the Chief cook asks for that is
 // not in the list yet, by name and unit. Exactly one of the two (RequestService.submit checks it). The quantity is
-// in the item's unit. Before P33 every line had an item; RequestSchemaMigration drops the old not null on item_id.
+// in the item's unit. On a database from before P33 item_id is still not null; RequestSchemaMigration drops that.
 @Entity
 @Getter
 @Setter

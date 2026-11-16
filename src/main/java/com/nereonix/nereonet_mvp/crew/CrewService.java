@@ -132,7 +132,7 @@ public class CrewService {
 
     /**
      * Saves a crew member. Changing the ship moves them to that ship (it must be active). The role becomes the rank's
-     * (Rank.role()), also for a user whose rank and role disagreed until now.
+     * (Rank.role()), also for a user whose rank and role disagreed (User.rankNeedsReview).
      * Throws ShipRoleTakenException if the ship already has an enabled MASTER or CHIEF_COOK and that is the role.
      */
     @Transactional

@@ -1,7 +1,7 @@
 package com.nereonix.nereonet_mvp.core.order;
 
 /**
- * How a line read from the invoice was matched to the order (P63, DeliveryInvoiceLine.match). Null until matched
+ * How a line read from the invoice was matched to the order (DeliveryInvoiceLine.match). Null until matched
  * (InvoiceMatchService.ensureMatched, when the count or the approval opens).
  */
 public enum InvoiceMatch {

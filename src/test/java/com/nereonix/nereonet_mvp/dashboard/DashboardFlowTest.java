@@ -79,8 +79,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
-// The office Overview (P09, P43): the stat tiles, the "Needs attention" work list (paged, filter chips, sortable by
-// date; P65: with a chip selected, the link to the kind's full list), the Fleet and Recent activity
+// The office Overview: the stat tiles, the "Needs attention" work list (paged, filter chips, sortable by
+// date; with a chip selected, the link to the kind's full list), the Fleet and Recent activity
 // cards, and a fixed number of queries.
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -141,7 +141,7 @@ class DashboardFlowTest {
                 .doesNotContain("attention-list", "attention-footer", "Showing the first");
         assertThat(html).contains("<span class=\"visually-hidden\">Open items:</span>")
                 .containsPattern("(?s)attention-total.*?<span class=\"num\">0</span>");
-        // P43: the four tiles instead of a summary line; each a link with a detail line.
+        // The four tiles; each a link with a detail line.
         assertThat(tiles(html)).containsExactly(
                 "1 Active vessels none with open items",
                 "2 Crew on board no invitations waiting",
@@ -151,7 +151,7 @@ class DashboardFlowTest {
                 "<a class=\"overview-tile-link\" href=\"/office/crew?status=active\">",
                 "<a class=\"overview-tile-link\" href=\"#attention\">",
                 "<a class=\"overview-tile-link\" href=\"/office/orders?status=sent\">");
-        // Every card has its empty state (P25). P65: no By category card, which repeated the chips' counts.
+        // Every card has its empty state. No By category card: it would repeat the chips' counts.
         assertThat(html).doesNotContain("By category", "category-tile");
         assertThat(html).contains("Nothing recorded yet",
                 "id=\"fleetTitle\"", "MV Calm");
@@ -178,7 +178,7 @@ class DashboardFlowTest {
         Invitation expired = invitation(ship, "Eve Expired", Rank.OILER, days(-1));
         Invitation waiting = invitation(ship, "Wes Waiting", null, days(4));     // sent 3 days ago (valid 7 days)
         invitation(ship, "Fay Fresh", null, days(7).minus(Duration.ofHours(1))); // sent an hour ago
-        // c. orders (P36)
+        // c. orders
         ShipOrder order = order(ship, bosun, days(-1), null);
         order(ship, bosun, days(-2), days(-1)); // exported
         // a. and b. certificates
@@ -199,7 +199,7 @@ class DashboardFlowTest {
                 "7 Items needing attention none snoozed",
                 "2 Pending orders 1 not exported yet");
         assertThat(html).containsPattern("(?s)attention-total.*?<span class=\"num\">7</span>");
-        // The filter chips (P43), each with its count, links that work without JavaScript.
+        // The filter chips, each with its count, links that work without JavaScript.
         assertThat(html).contains("<a class=\"chip is-current\" href=\"/office\" aria-current=\"true\">",
                         "href=\"/office?type=certificates\"", "href=\"/office?type=documents\"",
                         "href=\"/office?type=vetting\"", "href=\"/office?type=orders\"",
@@ -237,7 +237,7 @@ class DashboardFlowTest {
         assertThat(list).contains("status-badge-icon", "<svg viewBox=\"0 0 24 24\"")
                 .contains("aria-describedby=\"attention0\"", "id=\"attention0\"")
                 .doesNotContain("btn-primary");
-        // The chips of each kind. P65: with a chip selected, the header of Needs attention links to the kind's full
+        // The chips of each kind. With a chip selected, the header of Needs attention links to the kind's full
         // list (what the By category card linked to); All, and a kind without a full list, have no such link.
         assertThat(html).contains("href=\"/office?type=invitations\"", "href=\"/office?type=acknowledgements\"")
                 .doesNotContain("Open the full list");
@@ -252,7 +252,7 @@ class DashboardFlowTest {
         }
     }
 
-    // P28: an announcement to several ships is one item as before (counted per recipient); its context names the
+    // An announcement to several ships is one item (counted per recipient); its context names the
     // target as "2 ships" (one ship by its name).
     @Test
     void anAnnouncementToSelectedShipsIsOneItem() throws Exception {
@@ -274,8 +274,8 @@ class DashboardFlowTest {
                         + "\\s*<p class=\"attention-context\">\\s*<span class=\"attention-ship\">MV Beta</span>");
     }
 
-    // P40: the dev data adds, once, three bulk carriers with RightShip data and each its sample report; ALDER's
-    // inspection expires in 38 days, so the sidebar counts it and the Overview lists it. P41: and the tanker BIRCH
+    // The dev data adds, once, three bulk carriers with RightShip data and each its sample report; ALDER's
+    // inspection expires in 38 days, so the sidebar counts it and the Overview lists it. And the tanker BIRCH
     // with its SIRE 2.0 inspection, whose overdue observation makes the sidebar show Vetting 2 (see SireFlowTest).
     @Test
     void theDevDataSeedsThreeRightShipVesselsOnce() throws Exception {
@@ -297,7 +297,7 @@ class DashboardFlowTest {
         assertThat(attentionList(html)).contains("RightShip inspection", "ALDER", "Expires in 38 days");
     }
 
-    // P36: the office works on the orders the ships send, no longer on single approved requests.
+    // The office works on the orders the ships send, not on single approved requests.
     @Test
     void aSentOrderIsOpenUntilExportedAndAnOpenOrApprovedRequestNever() throws Exception {
         // The dev data seeds only requests waiting for the Master: nothing for the office yet.
@@ -315,7 +315,7 @@ class DashboardFlowTest {
         String html = html(get("/office"));
         assertThat(count(attentionList(html), ">Vessel order</span>")).isEqualTo(1);
         assertThat(attentionList(html)).contains("Order #" + sent.getId()).doesNotContain("Order #" + open.getId());
-        // The Fleet card (P43): the ship's open items link to the Overview filtered to it; the Orders tile counts the
+        // The Fleet card: the ship's open items link to the Overview filtered to it; the Orders tile counts the
         // order sent and not confirmed.
         assertThat(group(FLEET_TABLE, html)).contains("class=\"count-link\" href=\"/office?shipId=" + ship.getId() + "\">1</a>");
         assertThat(tiles(html)).contains("1 Pending orders 1 not exported yet");
@@ -345,7 +345,7 @@ class DashboardFlowTest {
                 .andExpect(redirectedUrl("/office/users"));
     }
 
-    // P43: 10 a page with the P19 pager; a chip filters to one kind, the vessel filter to one ship.
+    // 10 a page with the shared pager; a chip filters to one kind, the vessel filter to one ship.
     @Test
     void theListIsPagedTenAtATimeAndTheChipsFilterIt() throws Exception {
         Ship ship = ship("MV Alpha");
@@ -461,7 +461,7 @@ class DashboardFlowTest {
                         "Πρόσφατη δραστηριότητα");
     }
 
-    // First run (P25) ------------------------------------------------------------------------------------------------
+    // First run ------------------------------------------------------------------------------------------------
 
     @Test
     void onAFreshInstallationTheSetupChecklistTakesThePlaceOfTheWorkList() throws Exception {
@@ -543,9 +543,9 @@ class DashboardFlowTest {
         long large = queriesOfLoad();
 
         assertThat(dashboardService.load().openItems()).isEqualTo(5 * 6);
-        // P43: the ships with their crew (one), the certificates, the required documents' rules (none set here:
+        // The ships with their crew (one), the certificates, the required documents' rules (none set here:
         // nobody is then checked, so no queries for them), the RightShip rows, SIRE 2.0 (two), the orders, the open
-        // requests for quotes (P44), the invitations, the announcements, the library items, the snoozes and the
+        // requests for quotes, the invitations, the announcements, the library items, the snoozes and the
         // newest audit entries: 13.
         assertThat(small).isEqualTo(13);
         assertThat(large).isEqualTo(small);
@@ -585,7 +585,7 @@ class DashboardFlowTest {
         return group(ATTENTION_LIST, html);
     }
 
-    // P65: the header of the "Needs attention" card, up to the filter chips.
+    // The header of the "Needs attention" card, up to the filter chips.
     private static String attentionHeader(String html) {
         int start = html.indexOf("class=\"card-header attention-header\"");
         return html.substring(start, html.indexOf("class=\"attention-chips\"", start));

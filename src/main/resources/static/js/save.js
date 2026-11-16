@@ -1,9 +1,9 @@
-// Saving on a bad connection (P15): typing a long text and pressing Save is safe on an unstable satellite link.
+// Saving on a bad connection: typing a long text and pressing Save is safe on an unstable satellite link.
 // Only enhancements: without this script every form still submits as before.
 //  - Every POST form: once sent, its submit buttons are disabled and the one pressed shows a spinner and "Saving…"
 //    (data-busy on layout/parts :: offlineBanner; a button can say otherwise with data-busy-label), so a second press
 //    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. A form whose answer is a file
-//    download (data-file, the office's order export, P36) leaves the page as it is, so it is never made busy: its
+//    download (data-file, the office's order export) leaves the page as it is, so it is never made busy: its
 //    buttons stay usable, and no timer has to give them back.
 //  - Drafts: a form with data-draft="<its page's URL>" keeps its fields in localStorage while the user types, under
 //    that URL and the signed-in user (<body data-user>), so another user on the same PC never sees it. Never file
@@ -13,7 +13,7 @@
 //    server confirms the save: sending the form (or a form with data-draft-for="<the same URL>", e.g. the announcement
 //    review page) notes the draft in sessionStorage, and the next page removes it if it shows the success message
 //    ([data-flash="success"]). Any other page (the form with errors, the sign-in page after the session expired)
-//    keeps it, so after signing in again the form opens with the text (P12).
+//    keeps it, so after signing in again the form opens with the text.
 //  - Leaving a page never asks anything: text typed in a form without data-draft and not sent is lost, as on any web
 //    form.
 //  - Offline: while the browser reports no connection, a banner at the bottom says so (layout/parts :: offlineBanner)
@@ -174,7 +174,7 @@
 
     // ---- Drafts -----------------------------------------------------------------------------------------------------
 
-    // "12:40 UTC" today, "21 Oct 2026 · 12:40 UTC" another day: the app's format for times (P11).
+    // "12:40 UTC" today, "21 Oct 2026 · 12:40 UTC" another day: the app's format for times.
     function formatTime(date) {
         const two = n => String(n).padStart(2, '0');
         const time = two(date.getUTCHours()) + ':' + two(date.getUTCMinutes()) + ' UTC';

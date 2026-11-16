@@ -1,4 +1,4 @@
-// Import from a file, Review step (P39; crewimport/review.html, item/import-review.html): each cell checks itself as
+// Import from a file, Review step (crewimport/review.html, item/import-review.html): each cell checks itself as
 // it is corrected, and the error count and the import button follow, so the person can continue without "Check
 // again". Only help: the server checks every row again on submit, and without this script the page works as before
 // (the server's errors, Check again).

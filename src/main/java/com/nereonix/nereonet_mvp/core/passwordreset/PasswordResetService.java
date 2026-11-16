@@ -98,7 +98,7 @@ public class PasswordResetService {
         String fullName = user.getFullName();
         Instant expiresAt = reset.getExpiresAt();
         // On another thread: sending takes seconds over SMTP, which would tell a known address from an unknown one. The
-        // HTML version (P29, the invitation's template) is rendered there too, in the language of the page.
+        // HTML version (the invitation's template) is rendered there too, in the language of the page.
         mailExecutor.execute(() -> {
             try {
                 ActionEmail message = resetEmails.email(fullName, normalized, url, expiresAt, locale);

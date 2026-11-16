@@ -67,7 +67,7 @@ public class CertificateService {
     public record Filter(Long shipId, boolean activeShips, CertificateStatus status) {
     }
 
-    // The export's columns (an Excel workbook since P39, .xls since P40, the same columns): a file format, never translated.
+    // The export's columns (an Excel workbook, .xls): a file format, never translated.
     private static final List<String> LIST_HEADER = List.of("imo_number", "ship_name", "crew_member", "rank", "type",
             "number", "expires_on", "days_left", "status");
 
@@ -310,7 +310,7 @@ public class CertificateService {
     }
 
     /**
-     * The list as an Excel workbook (.xls since P40, .xlsx in P39), sheet "Certificates", one row per certificate:
+     * The list as an Excel workbook (.xls), sheet "Certificates", one row per certificate:
      * imo_number, ship_name, crew_member, rank (Rank's name), type, number, expires_on (a date), days_left (a number,
      * negative once expired) and status (expired, 30_days, 60_days, 90_days or valid: the badge). name: the file name
      * before the date, e.g. "certificates".

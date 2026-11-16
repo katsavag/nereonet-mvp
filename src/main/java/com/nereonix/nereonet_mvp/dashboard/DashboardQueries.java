@@ -38,8 +38,8 @@ public class DashboardQueries {
     /**
      * An order the office works on: sent and never exported (an open item), sent and not yet confirmed
      * (the "Orders waiting" tile), or
-     * received with lines short and the shortage not handled (P51, an open item), or received with an invoice to match
-     * (P64, an open item).
+     * received with lines short and the shortage not handled (an open item), or received with an invoice to match
+     * (an open item).
      */
     public record OrderRow(Long id, Long shipId, String sentBy, Rank rank, Instant sentAt, long lines,
                            ShipOrderStatus status, Instant exportedAt, Instant receivedAt,
@@ -135,7 +135,7 @@ public class DashboardQueries {
     /**
      * The orders of active ships the office works on: sent and never exported, sent and not yet confirmed,
      * or received with lines short and the
-     * shortage not handled, or received with an invoice not matched yet, with their number of lines (lines removed by the office, P50, not counted).
+     * shortage not handled, or received with an invoice not matched yet, with their number of lines (lines removed by the office not counted).
      */
     List<OrderRow> orders() {
         return entityManager.createQuery("""

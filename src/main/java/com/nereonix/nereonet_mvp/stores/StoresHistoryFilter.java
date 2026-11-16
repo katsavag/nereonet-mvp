@@ -7,7 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import com.nereonix.nereonet_mvp.core.form.PlausibleDate;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 
-// Filters of the store's history (P53, GET /ship/stores/history). Every field is optional. type: COUNT or RECEIPT
+// Filters of the store's history (GET /ship/stores/history). Every field is optional. type: COUNT or RECEIPT
 // (anything else: all); dates are UTC days, both included, as the audit log's.
 public class StoresHistoryFilter {
 

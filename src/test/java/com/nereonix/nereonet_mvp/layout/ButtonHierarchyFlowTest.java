@@ -35,7 +35,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P03 button hierarchy on the rendered office screens, with rows in every table: at most one filled primary button
+ * The button hierarchy on the rendered office screens, with rows in every table: at most one filled primary button
  * outside modals, and danger buttons only in a row's overflow menu or in a modal, never directly in a row.
  */
 @SpringBootTest

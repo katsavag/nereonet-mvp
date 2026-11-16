@@ -259,7 +259,7 @@ public class OfficeOrderEditService {
         String text = message("order.notification.officeChanged", order.getId(), String.join(", ", parts));
         for (Role role : List.of(Role.MASTER, Role.CHIEF_COOK)) {
             for (User user : userRepository.findAllByShipAndRoleAndEnabledTrue(ship, role)) {
-                // The order page, as for "Delivery scheduled"; the Chief cook reads it since P55.
+                // The order page, as for "Delivery scheduled"; the Chief cook reads it too.
                 notificationService.notify(user, NotificationType.ORDER, ship.getName(), text,
                         "/ship/orders/" + order.getId());
             }

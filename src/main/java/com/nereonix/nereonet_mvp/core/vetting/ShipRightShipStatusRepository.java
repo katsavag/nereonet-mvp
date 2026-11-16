@@ -23,7 +23,7 @@ public interface ShipRightShipStatusRepository extends JpaRepository<ShipRightSh
 
     /**
      * The sidebar counter of Vetting: active vessels whose inspection is expired or valid until "until" at most. Ids,
-     * so VettingService counts each vessel once together with its SIRE 2.0 items. P43: not the vessels whose
+     * so VettingService counts each vessel once together with its SIRE 2.0 items. Not the vessels whose
      * VETTING_INSPECTION snooze holds, at the inspection's level today (0 expired, 1 within 30 days, else 2;
      * AlertLevels).
      */
@@ -35,6 +35,4 @@ public interface ShipRightShipStatusRepository extends JpaRepository<ShipRightSh
                                 and a.level <= case when s.inspectionValidUntil < :today then 0
                                                     when s.inspectionValidUntil <= :d30 then 1 else 2 end)""")
     List<Long> findShipIdsInspectionDueUntil(LocalDate until, LocalDate today, LocalDate d30, AlertKind kind);
-
-    boolean existsByShipId(Long shipId);
 }

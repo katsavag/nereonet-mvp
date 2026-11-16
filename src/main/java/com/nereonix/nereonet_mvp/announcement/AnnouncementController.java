@@ -139,7 +139,7 @@ public class AnnouncementController {
     }
 
     // Review and send take only POST. A form sent from a page with one of these URLs (the form shown again with its
-    // errors, or the review page) after the session expired comes back here after signing in (P12, ReturnTo): show the
+    // errors, or the review page) after the session expired comes back here after signing in (ReturnTo): show the
     // form, where js/save.js restores the text from the browser's draft.
     @GetMapping({"/office/announcements/review", "/office/announcements/send"})
     public String backToForm() {

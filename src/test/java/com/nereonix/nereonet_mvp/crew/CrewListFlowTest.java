@@ -36,7 +36,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
- * P19 on Crew, its ship tab and Office users: search, filters, sort and pages, all in the URL and queried in the
+ * The list behaviour on Crew, its ship tab and Office users: search, filters, sort and pages, all in the URL and queried in the
  * database. Users and pending invitations are one list.
  */
 @SpringBootTest

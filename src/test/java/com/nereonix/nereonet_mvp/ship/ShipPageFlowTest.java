@@ -46,7 +46,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 import com.nereonix.nereonet_mvp.dashboard.DashboardService;
 
 /**
- * P08 ship page: /office/ships/{id} and its tabs. Every tab, for an active and an inactive ship, shows the same ship
+ * The ship page: /office/ships/{id} and its tabs. Every tab, for an active and an inactive ship, shows the same ship
  * header (name, IMO number, type, flag, status, Edit, the "more" menu) and tab bar, with the ship fixed; actions started
  * on a tab keep the ship and return to the tab; unknown ids give 404; every ship name in the office links to the page.
  */
@@ -63,7 +63,7 @@ class ShipPageFlowTest {
     private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"ship-tabs\"[^>]*>(.*?)</nav>");
     private static final Pattern TAB = Pattern.compile(
             "(?s)<a class=\"ship-tab( active)?\" href=\"([^\"]+)\"[^>]*>\\s*<span>([^<]+)</span>\\s*"
-                    // P45: the Vessel data tab has no count.
+                    // The Vessel data tab has no count.
                     + "(?:<span class=\"ship-tab-count num[^\"]*\" aria-hidden=\"true\">(\\d+)</span>)?");
 
     @Autowired
@@ -212,12 +212,12 @@ class ShipPageFlowTest {
             String html = html(get(url));
             assertThat(html).as("no ship filter on " + url).doesNotContain("id=\"filterShipId\"");
             if (!tab.equals("/crew")) {
-                // The Crew tab's Add crew member modal has the ship field, preselected (P17).
+                // The Crew tab's Add crew member modal has the ship field, preselected.
                 assertThat(html).as("no ship field on " + url).doesNotContain("name=\"shipId\"");
             }
             assertThat(html).as("no ship column on " + url).doesNotContain("<th scope=\"col\">Ship</th>", "sort=ship");
             assertThat(html).as("only this ship on " + url).doesNotContain("Elsa Where", "Elsewhere cert");
-            // Other ships only as choices of the Crew tab's Add crew member modal (P17).
+            // Other ships only as choices of the Crew tab's Add crew member modal.
             assertThat(html.replaceAll("<option [^>]*>[^<]*</option>", "")).as("only this ship on " + url)
                     .doesNotContain("MV Other");
         }
@@ -228,7 +228,7 @@ class ShipPageFlowTest {
         assertThat(html(get("/office/crew"))).contains("href=\"/office/crew?sort=ship&amp;dir=asc\"", "Elsa Where");
     }
 
-    // P17: the Crew tab has the Crew page's Add crew member modal with the ship preselected; the former invitation
+    // The Crew tab has the Crew page's Add crew member modal with the ship preselected; the old invitation
     // page redirects to the tab with the modal open.
     @Test
     void addingCrewFromTheCrewTabPreselectsTheShip() throws Exception {
@@ -297,13 +297,14 @@ class ShipPageFlowTest {
     @Test
     void newAnnouncementFromTheTabHasTheShipPreselectedAndReturnsThere() throws Exception {
         String form = html(get("/office/announcements/new").param("shipId", demo.getId().toString()));
-        // Selected ships, with this ship ticked (P28).
+        // Selected ships, with this ship ticked.
         assertThat(form).containsPattern("id=\"targetShips\" name=\"target\"[^>]*checked=\"checked\"")
                 .containsPattern("name=\"shipIds\"[^>]*value=\"" + demo.getId() + "\"[^>]*checked=\"checked\"")
                 .contains("<span class=\"ship-pick-name\">MV Demo</span>")
                 .contains("<input type=\"hidden\" name=\"returnShipId\" value=\"" + demo.getId() + "\">");
-        // Opened elsewhere, nothing is preselected.
-        assertThat(html(get("/office/announcements/new"))).doesNotContainPattern("<input[^>]*checked")
+        // Opened elsewhere, no target and no ship is preselected.
+        assertThat(html(get("/office/announcements/new")))
+                .doesNotContainPattern("<input[^>]*name=\"(target|shipIds)\"[^>]*checked")
                 .doesNotContain("returnShipId");
 
         mockMvc.perform(post("/office/announcements/send").param("target", "ships").param("shipIds", demo.getId().toString())
@@ -396,7 +397,7 @@ class ShipPageFlowTest {
         Matcher h1 = H1.matcher(html);
         assertThat(h1.find()).as("h1" + on).isTrue();
         assertThat(h1.group(1)).as("ship name as the heading" + on).isEqualTo(ship.getName());
-        // P43: "Flag [image] Greece (GR)", the flag's image before the country, decorative (alt="").
+        // "Flag [image] Greece (GR)", the flag's image before the country, decorative (alt="").
         assertThat(html).as("ship facts" + on).contains("<span class=\"num\">IMO 9074729</span>", "Bulk carrier",
                         "class=\"page-header ship-header\"")
                 .containsPattern("(?s)<span class=\"ship-flag\"><span>Flag</span>\\s*<span class=\"country\">"

@@ -1,4 +1,4 @@
-// The sidebar (P29, layout/layout.html).
+// The sidebar (layout/layout.html).
 //  - From 768px, "Expand menu" / "Collapse menu" (layout/parts :: sidebarToggle) switches between the 64px icon rail
 //    and the full sidebar in place: body.sidebar-collapsed / sidebar-expanded, the button's aria-expanded and label,
 //    and the cookie sidebar=expanded|collapsed that the server reads on the next page, so the choice is kept per

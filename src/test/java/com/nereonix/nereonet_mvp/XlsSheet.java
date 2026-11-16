@@ -17,7 +17,7 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
 /**
- * The one sheet of an exported workbook (P39; Excel 97-2003, .xls, since P40), read back with POI's HSSFWorkbook for
+ * The one sheet of an exported workbook (Excel 97-2003, .xls), read back with POI's HSSFWorkbook for
  * the export tests: its name, and each row's cells as values: text as a String, a number as a Double, a date cell as
  * a LocalDate (date only) or LocalDateTime (with a time), an empty cell as null. of(...) also checks the export's
  * form: an .xls file with one sheet, a bold header row that is frozen and has the autofilter, dates shown

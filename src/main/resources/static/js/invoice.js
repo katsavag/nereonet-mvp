@@ -1,4 +1,4 @@
-// "Photograph the invoice" (P62, shiporder/invoice.html) and its progress page (shiporder/invoice-reading.html).
+// "Photograph the invoice" (shiporder/invoice.html) and its progress page (shiporder/invoice-reading.html).
 // Only enhancements: without it each page goes with its Upload button and the progress page reloads itself.
 //  - A photo or file chosen (input.invoice-file) is sent at once, alone (POST its form's action with js=true, field
 //    "file", and "replace" for Retake), with "Sending page 2: 60%" and a progress bar; then the page comes back with it

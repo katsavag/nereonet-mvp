@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.mail.HtmlEmails;
 import com.nereonix.nereonet_mvp.core.time.Dates;
 
 /**
- * The password reset email, with the HTML version of P29 in the invitation's template: the button to set a new
+ * The password reset email, with its HTML version in the invitation's template: the button to set a new
  * password, the link as text, when it stops working (UTC), and why the person got it. In the language of the page the
  * link was asked for on.
  */
@@ -27,7 +27,7 @@ public class PasswordResetEmails {
         this.htmlEmails = htmlEmails;
     }
 
-    /** The plain text, as before P29. */
+    /** The plain text version. */
     public String text(String fullName, String url, Locale locale) {
         return message("passwordReset.email.text", locale, fullName, url, PasswordResetService.VALID_FOR.toMinutes());
     }

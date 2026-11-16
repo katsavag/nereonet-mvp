@@ -1,4 +1,4 @@
-// Counting the store by voice (P57), the Count by voice card of stores/count.html. Loaded only when the server offers
+// Counting the store by voice, the Count by voice card of stores/count.html. Loaded only when the server offers
 // it. Without this script the card says that counting by voice needs JavaScript; this script removes that line and
 // enables "Enable microphone".
 //  - "Hold to speak" floats at the bottom right of the screen (app.css, .voice-hold). It is shown only while the

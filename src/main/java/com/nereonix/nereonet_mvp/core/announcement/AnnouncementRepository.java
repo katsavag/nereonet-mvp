@@ -3,7 +3,7 @@ package com.nereonix.nereonet_mvp.core.announcement;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-// The Announcements list is queried page by page in announcement/AnnouncementService (P19, core/list/ListQueries).
+// The Announcements list is queried page by page in announcement/AnnouncementService (core/list/ListQueries).
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
     /** Sent to all ships, or to this ship (alone or with others): the ship page's Announcements tab. */

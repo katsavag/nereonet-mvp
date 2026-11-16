@@ -12,7 +12,7 @@ import com.nereonix.nereonet_mvp.core.ai.CountExtractor.Item;
 import com.nereonix.nereonet_mvp.core.ai.CountExtractor.Line;
 
 /**
- * P57: the model's answer is checked by our code. Only items sent, valid store quantities, each item once; the rest
+ * The model's answer is checked by our code. Only items sent, valid store quantities, each item once; the rest
  * goes to unmatched by its words. Not JSON: nothing understood. And the fake's simple rules.
  */
 class CountAnswerTest {

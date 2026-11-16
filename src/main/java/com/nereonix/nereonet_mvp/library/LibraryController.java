@@ -155,7 +155,7 @@ public class LibraryController {
                 .show(model);
     }
 
-    // "Send reminder" on the acknowledgement overview (P22).
+    // "Send reminder" on the acknowledgement overview.
     @PostMapping("/ship/library/{id}/acknowledgements/remind")
     public String remind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
                          RedirectAttributes redirectAttributes) {

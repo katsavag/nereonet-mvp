@@ -2,7 +2,6 @@ package com.nereonix.nereonet_mvp.core.invitation;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -147,13 +146,6 @@ public class InvitationService {
         return true;
     }
 
-    /** PENDING office invitations, expired or not, by name. Listed on the Office users page. */
-    @Transactional(readOnly = true)
-    public List<Invitation> findPendingOfficeInvitations() {
-        return invitationRepository.findAllByStatusAndRoleOrderByFullNameAsc(Invitation.Status.PENDING,
-                Role.OFFICE_USER);
-    }
-
     /** The PENDING invitation with this id (expired or not), if there is one. */
     @Transactional(readOnly = true)
     public Optional<Invitation> findPending(Long id) {
@@ -169,11 +161,5 @@ public class InvitationService {
         ActionEmail email = invitationEmails.email(invitation, url, locale);
         mailService.send(invitation.getEmail(), email.subject(),
                 invitationEmails.text(invitation, url, validDays, locale), htmlEmails.render(email));
-    }
-
-    // Inactive ships cannot get new crew, so they are not found here.
-    @Transactional(readOnly = true)
-    public Optional<Ship> findActiveShip(Long id) {
-        return shipRepository.findById(id).filter(Ship::isActive);
     }
 }

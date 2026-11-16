@@ -50,7 +50,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
  * The Master's home page (/ship as MASTER): the ship's name and IMO number; cards with a number each (Requests to
- * approve, Ship order, Deliveries to receive since P59, Announcements to acknowledge, Library to acknowledge, Crew on
+ * approve, Ship order, Deliveries to receive, Announcements to acknowledge, Library to acknowledge, Crew on
  * board), quiet at zero and highlighted with something to do; the three most recently sent orders. The Chief cook and Crew members keep the crew
  * home page.
  */
@@ -101,7 +101,7 @@ class MasterHomeFlowTest {
         String html = home(master);
         assertThat(html).contains("<title>Home · Nereonet</title>", ">MV Demo</span>",
                 "<p class=\"page-subtitle\">IMO 9074729</p>");
-        // P65: no Approvals card; the number waiting is on the Approvals tab (phones) and sidebar entry.
+        // No Approvals card; the number waiting is on the Approvals tab (phones) and sidebar entry.
         assertThat(html).doesNotContain("data-card=\"approvals\"")
                 .containsPattern("(?s)<a class=\"tab-bar-link\" href=\"/ship/approvals\">.*?"
                         + "<span class=\"tab-bar-count num\" aria-hidden=\"true\">1</span>.*?<span class=\"tab-bar-label\">Approvals</span>")
@@ -155,7 +155,7 @@ class MasterHomeFlowTest {
                 .containsExactly("order", "deliveries", "announcements", "library", "crew");
     }
 
-    // P59: the scheduled deliveries (CONFIRMED) of the Master's ship; one opens its receipt, more open Vessel order.
+    // The scheduled deliveries (CONFIRMED) of the Master's ship; one opens its receipt, more open Vessel order.
     @Test
     void deliveriesToReceiveCountsTheScheduledDeliveries() throws Exception {
         Instant now = Instant.now();
@@ -209,8 +209,8 @@ class MasterHomeFlowTest {
         for (User u : List.of(cook, crewMember)) {
             assertThat(home(u)).contains("toReadTitle", "My certificates").doesNotContain("data-card=\"approvals\"");
         }
-        // P52: the Chief cook has a Stores card (in the Master's card style); P54: crew members have a Requests card
-        // (P65: the Chief cook no longer, Requests is their tab with the same number).
+        // The Chief cook has a Stores card (in the Master's card style); crew members have a Requests card
+        // (not the Chief cook: Requests is their tab, with the same number).
         assertThat(home(cook)).containsOnlyOnce("data-card=").contains("data-card=\"stores\"");
         assertThat(home(crewMember)).containsOnlyOnce("data-card=").contains("data-card=\"requests\"");
     }

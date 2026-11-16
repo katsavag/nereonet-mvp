@@ -61,7 +61,7 @@ class ShipFlowTest {
                 .andExpect(content().string(Matchers.containsString("MV Aegean Spirit")));
     }
 
-    // P45: without a VesselAPI key (the test profile has none) no lookup or refresh is offered, a note says why, and
+    // Without a VesselAPI key (the test profile has none) no lookup or refresh is offered, a note says why, and
     // the lookup action makes no call (VesselLookupFlowTest covers the configured case).
     @Test
     void withoutVesselApiTheLookupIsHiddenAndExplained() throws Exception {
@@ -85,7 +85,7 @@ class ShipFlowTest {
                 .andExpect(content().string(Matchers.not(Matchers.containsString("/edit/lookup\""))));
     }
 
-    // P46: the IMO number takes at most 7 digits and the flag at most 2 letters, in the browser and on the server.
+    // The IMO number takes at most 7 digits and the flag at most 2 letters, in the browser and on the server.
     @Test
     void imoAndFlagFieldsTakeOnlyValidInput() throws Exception {
         String page = mockMvc.perform(get("/office/ships/new")).andReturn().getResponse().getContentAsString();

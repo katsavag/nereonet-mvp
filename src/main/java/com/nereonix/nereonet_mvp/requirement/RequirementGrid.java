@@ -8,7 +8,7 @@ import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.user.Rank;
 
 /**
- * The Required documents page for one vessel (one vessel type before): certificate types as rows, ranks
+ * The Required documents page for one vessel: certificate types as rows, ranks
  * grouped by department as columns. suggestions: some row of this vessel is still a default it was given and the
  * office has not saved (the notice at the top). resetChanges: what "Reset to Bulk carrier defaults" would change, one
  * line each in the request's language (empty: the vessel has its type's defaults).
@@ -24,7 +24,7 @@ public record RequirementGrid(Ship ship, List<Rank.Group> groups, List<Row> rows
     public record Row(String type, Set<Rank> ranks, boolean optional, String note, boolean suggestion, boolean added,
                       boolean changed) {
 
-        /** The type's key (P20 matching), for the note errors of a posted grid. */
+        /** The type's key (CertificateTypes.sameTypeKey), for the note errors of a posted grid. */
         public String key() {
             return CertificateTypes.sameTypeKey(type);
         }
@@ -32,10 +32,6 @@ public record RequirementGrid(Ship ship, List<Rank.Group> groups, List<Row> rows
         public boolean ticked(Rank rank) {
             return ranks.contains(rank);
         }
-    }
-
-    public int rankCount() {
-        return groups.stream().mapToInt(g -> g.ranks().size()).sum();
     }
 
     /** Whether the vessel differs from its type's defaults at all. */

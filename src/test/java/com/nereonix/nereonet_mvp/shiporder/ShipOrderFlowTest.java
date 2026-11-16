@@ -64,10 +64,10 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P35, the Master's ship order: the OPEN order shows its lines by category with who asked for each; a line's quantity
+ * The Master's ship order: the OPEN order shows its lines by category with who asked for each; a line's quantity
  * is changed or the line removed, each saved at once; "Send to office" makes it SENT and read-only, records it and
  * notifies every enabled office user. Only the Master of the ship changes
- * it; P55: the Chief cook reads the same pages, with nothing to act on, and the services refuse them. Vessel order
+ * it; the Chief cook reads the same pages, with nothing to act on, and the services refuse them. Vessel order
  * has three views: the current order, the orders in progress (sent, delivery scheduled; most urgent first, the
  * Master's scheduled deliveries with Confirm receipt) and the received ones; the sidebar counter counts the orders
  * that need the Master, not lines.
@@ -227,7 +227,7 @@ class ShipOrderFlowTest {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         String range = "Enter a date between " + DAY.format(today) + " and " + DAY.format(today.plusYears(2)) + ".";
 
-        // P39: from today to two years ahead, the shared date rule; the picker offers the same days.
+        // From today to two years ahead, the shared date rule; the picker offers the same days.
         String html = send("  ", today.minusDays(1).toString(), "")
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(html).contains("Enter the requested port.", range)
@@ -437,7 +437,7 @@ class ShipOrderFlowTest {
         assertThat(card(main, waiting)).doesNotContain("is-overdue", "was due");
     }
 
-    // P59: the sidebar counter of Vessel order counts the orders that need the Master: the OPEN order once it has a
+    // The sidebar counter of Vessel order counts the orders that need the Master: the OPEN order once it has a
     // line (to send) and the scheduled deliveries (to receive); not lines, not the orders waiting for the office.
     @Test
     void theOrderCounterCountsTheOrdersThatNeedTheMaster() throws Exception {
@@ -478,7 +478,7 @@ class ShipOrderFlowTest {
         assertThat(orderCounter(otherMaster)).isZero();
     }
 
-    // Security does not depend on the pages: the services refuse the Chief cook too (P55).
+    // Security does not depend on the pages: the services refuse the Chief cook too.
     @Test
     void theServicesRefuseAnyoneButTheMaster() throws Exception {
         ShipOrder order = openOrderWithTwoLines();
@@ -496,7 +496,7 @@ class ShipOrderFlowTest {
                     .isInstanceOf(AccessDeniedException.class);
             assertThatThrownBy(() -> receiptService.confirmReceipt(other, order.getId(),
                     new OrderReceiptService.Receipt(Instant.now(), Map.of()))).isInstanceOf(AccessDeniedException.class);
-            // P61: the Chief cook stages and removes his own photos of a delivery note (DeliveryCountFlowTest).
+            // The Chief cook stages and removes his own photos of a delivery note (DeliveryCountFlowTest).
             if (other != cook) {
                 assertThatThrownBy(() -> receiptService.removeFiles(other, order.getId(), List.of()))
                         .isInstanceOf(AccessDeniedException.class);

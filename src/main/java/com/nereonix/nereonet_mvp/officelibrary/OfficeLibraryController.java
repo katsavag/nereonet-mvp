@@ -100,7 +100,7 @@ public class OfficeLibraryController {
                 .show(model);
     }
 
-    // "Send reminder" on the acknowledgement overview (P22).
+    // "Send reminder" on the acknowledgement overview.
     @PostMapping("/office/ships/{shipId}/library/{id}/acknowledgements/remind")
     public String remind(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long shipId,
                          @PathVariable Long id, RedirectAttributes redirectAttributes) {

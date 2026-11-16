@@ -19,7 +19,7 @@ import com.nereonix.nereonet_mvp.core.vesseldata.VesselApiClient.Fetch;
 import com.sun.net.httpserver.HttpServer;
 
 /**
- * P45: the real client against a local HTTP server: the three paths with filter.idType=imo, Accept and the Bearer
+ * The real client against a local HTTP server: the three paths with filter.idType=imo, Accept and the Bearer
  * key, each status mapped to its result, a body that is not JSON, the 5 s read timeout, and the key never in a
  * result or in the settings' text.
  */

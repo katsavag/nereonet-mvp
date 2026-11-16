@@ -118,7 +118,7 @@ public class ConfirmPages {
             return this;
         }
 
-        /** P58: what will change, listed under the body (texts already in the user's language). */
+        /** What will change, listed under the body (texts already in the user's language). */
         public Builder items(List<String> lines) {
             items = List.copyOf(lines);
             return this;

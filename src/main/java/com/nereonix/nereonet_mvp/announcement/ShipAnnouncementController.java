@@ -17,7 +17,7 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
-// The crew's announcements (P27, SecurityConfig: /ship/** is for ship roles), called News on the crew side since P39
+// The crew's announcements (SecurityConfig: /ship/** is for ship roles), called News on the crew side
 // (/ship/news; the office keeps "Announcements"). Each person sees only the news items they are a recipient of, and
 // only their own read state: never who else has or has not read them. One they did not receive is a 404. Opening one
 // marks it read (no button). English only, as every crew screen.
@@ -84,7 +84,7 @@ public class ShipAnnouncementController {
         return "announcement/ship-detail";
     }
 
-    // The URLs before P39 (bookmarks, links in older notifications and emails): moved for good.
+    // The old /ship/announcements URLs (bookmarks, links in notifications and emails already sent) redirect for good.
     @GetMapping("/ship/announcements")
     public RedirectView oldList() {
         return moved(NEWS);

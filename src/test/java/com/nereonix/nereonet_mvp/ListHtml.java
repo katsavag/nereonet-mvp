@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 
-/** Reading an office list page in the P19 flow tests: the page's HTML and the rows of its table. */
+/** Reading an office list page in the flow tests of the lists: the page's HTML and the rows of its table. */
 public final class ListHtml {
 
     private static final Pattern TBODY = Pattern.compile("(?s)<tbody>(.*?)</tbody>");

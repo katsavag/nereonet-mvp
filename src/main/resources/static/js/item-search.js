@@ -1,4 +1,4 @@
-// "Add an item" on the office's order page (P50, radios since P59; templates/officeorder/detail.html). Only an
+// "Add an item" on the office's order page (radios; templates/officeorder/detail.html). Only an
 // enhancement: without this script the items not on the order are plain radios (name="itemId") grouped by category,
 // and the form posts as it is.
 //  - [data-item-search] (hidden until this script runs) filters the rows ([data-item-option]) of the list it names in
@@ -10,7 +10,7 @@
 //  - [data-item-summary] (hidden until this script runs, then the quantity's description) says what is being added:
 //    "Adding: Basmati rice (kg)" from its data-text and the chosen radio's data-label, or its data-empty text.
 //  - [data-item-quantity-label] reads "Quantity (kg)" (its data-text and the radio's data-unit) once an item is chosen.
-//  - P60: the quantity field (input[data-quantity]) takes the chosen item's rule (the radio's data-quantity-max and
+//  - The quantity field (input[data-quantity]) takes the chosen item's rule (the radio's data-quantity-max and
 //    -decimals, and its unit) and js/quantity.js shows its live error in the hint; nothing chosen, the
 //    hint is empty.
 (function () {

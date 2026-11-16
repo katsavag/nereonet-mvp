@@ -32,7 +32,7 @@ public class InvitationEmails {
         return invitation.getRole() == Role.OFFICE_USER ? HtmlEmails.officeLocale(senderLocale) : Locale.ENGLISH;
     }
 
-    /** The plain text, as before P29. */
+    /** The plain text version. */
     public String text(Invitation invitation, String url, int validDays, Locale locale) {
         return message("invitation.email.text", locale, invitation.getFullName(), url, validDays);
     }

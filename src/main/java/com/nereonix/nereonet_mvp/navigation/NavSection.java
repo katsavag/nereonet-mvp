@@ -17,7 +17,7 @@ public enum NavSection {
     CERTIFICATES("certificates", List.of("/office/certificates")),
     // How charterers vet a vessel: RightShip, SIRE 2.0.
     VETTING("vetting", List.of("/office/vetting")),
-    // The office list and, for the crew, their own announcements, called News since P39 (/ship/news; the old
+    // The office list and, for the crew, their own announcements, called News (/ship/news; the old
     // /ship/announcements URLs redirect there): the same entry key and icon.
     ANNOUNCEMENTS("announcements", List.of("/office/announcements", "/ship/news", "/ship/announcements")),
     // The orders the ships have sent.
@@ -32,13 +32,13 @@ public enum NavSection {
     // Ship. Home is /ship itself only, see of().
     HOME("home", List.of()),
     LIBRARY("library", List.of("/ship/library")),
-    // The Master's approvals. On phones a tab of the Master's since P65 (ShipNav).
+    // The Master's approvals. On phones a tab of the Master's (ShipNav).
     APPROVALS("approvals", List.of("/ship/approvals")),
-    // The Master's ship order and past orders. On phones a tab of the Master's since P65.
+    // The Master's ship order and past orders. On phones a tab of the Master's.
     ORDER("order", List.of("/ship/order", "/ship/orders")),
-    // The Chief cook's store. On phones a tab of the Chief cook's since P65.
+    // The Chief cook's store. On phones a tab of the Chief cook's.
     STORES("stores", List.of("/ship/stores")),
-    // The Chief cook's and crew's own requests to the Master. On phones a tab of the Chief cook's since P65,
+    // The Chief cook's and crew's own requests to the Master. On phones a tab of the Chief cook's,
     // under More for crew members.
     REQUESTS("requests", List.of("/ship/requests")),
     // Ship, Account: My profile. More (/ship/more) is the phone tab bar's list of what is not a tab and

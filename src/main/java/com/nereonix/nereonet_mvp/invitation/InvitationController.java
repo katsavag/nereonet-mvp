@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.nereonix.nereonet_mvp.ship.ShipTab;
 
-// The former "Invite crew member" page of a ship (P17 removed it). Crew members are added with the Add crew member
+// Redirects for the old "Invite crew member" page of a ship (bookmarks). Crew members are added with the Add crew member
 // modal, on the Crew page or on a ship page's Crew tab (crew/CrewController); office users on the Office users page
 // (crew/OfficeUserController). /office/** is limited to OFFICE_USER in SecurityConfig.
 @Controller

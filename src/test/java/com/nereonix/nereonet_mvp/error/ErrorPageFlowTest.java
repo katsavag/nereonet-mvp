@@ -37,7 +37,7 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.Cookie;
 
 /**
- * P12: specific error pages, inside the normal frame when signed in, and the sign-in round trip after a form was sent
+ * Specific error pages, inside the normal frame when signed in, and the sign-in round trip after a form was sent
  * with an expired session or an invalid CSRF token.
  * MockMvc does not forward to /error as the server does; renderError() makes that second request with the status
  * and URL the first one ended with, as the server would.
@@ -92,7 +92,7 @@ class ErrorPageFlowTest {
         assertThat(html).contains("<title>Page not found · Nereonet</title>", "Error 404",
                         "This page doesn&#39;t exist or was removed.", "href=\"/ship\" class=\"btn btn-primary\"")
                 .contains("href=\"/ship/library\"")
-                // The page keeps the section it failed under active (P07).
+                // The page keeps the section it failed under active.
                 .containsPattern("<a class=\"nav-link sidebar-link active\" href=\"/ship/library\" aria-current=\"page\">");
     }
 

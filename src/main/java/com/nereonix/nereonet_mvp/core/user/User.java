@@ -44,8 +44,8 @@ public class User {
     @ManyToOne
     private Ship ship;
 
-    // Ship roles only. Null for OFFICE_USER. Required in every form since P18 (it sets the role), but users from
-    // before may have none (see rankNeedsReview).
+    // Ship roles only. Null for OFFICE_USER. Required in every form (it sets the role); users saved
+    // before P18 may have none (see rankNeedsReview).
     @Enumerated(EnumType.STRING)
     private Rank rank;
 

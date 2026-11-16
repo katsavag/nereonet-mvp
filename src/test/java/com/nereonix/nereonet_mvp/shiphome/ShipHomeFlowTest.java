@@ -43,7 +43,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P26: the crew home page (/ship). Header with name, rank and ship; "To read" (Required items not acknowledged in the
+ * The crew home page (/ship). Header with name, rank and ship; "To read" (Required items not acknowledged in the
  * current version, oldest first; "You are up to date." once done); the person's own certificates, expired and expiring
  * first; Sign out next to the name; the phone tab bar instead of the offcanvas menu; no images and no script of its
  * own. Seen as Chief cook and Crew member; the Master has their own home page (MasterHomeFlowTest).
@@ -106,7 +106,7 @@ class ShipHomeFlowTest {
     @Test
     void chiefCookSeesWhatToReadUntilAcknowledged() throws Exception {
         String html = home(cook);
-        // Header: name, rank, ship with IMO number. P58: no Sign out in the page at any width (no header actions);
+        // Header: name, rank, ship with IMO number. No Sign out in the page at any width (no header actions);
         // the sidebar's user block (from 768px) still signs out, and More does on phones (ProfileFlowTest).
         assertThat(html).contains("<title>Home · Nereonet</title>", "<p class=\"eyebrow\">MV Demo · IMO 9074729</p>",
                 ">Demo Cook</span>", "<p class=\"page-subtitle\">Chief Cook</p>")
@@ -134,7 +134,7 @@ class ShipHomeFlowTest {
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");
     }
 
-    // P27: announcements not yet read join To read, in date order with the library items, until opened (P39: News,
+    // Announcements not yet read join To read, in date order with the library items, until opened (News,
     // read by opening it).
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew
@@ -189,7 +189,7 @@ class ShipHomeFlowTest {
                 "/ship/library/" + policy.getId());
         String html = home(crew);
 
-        // The tab bar (P47): for crew members Home (active), News, Library and More, four tabs; Notifications is on
+        // The tab bar: for crew members Home (active), News, Library and More, four tabs; Notifications is on
         // the More page, and its unread count is on the More tab, in words too.
         String tabBar = section(TAB_BAR, html);
         assertThat(tabs(tabBar)).containsExactly("/ship", "/ship/news", "/ship/library", "/ship/more");
@@ -211,7 +211,7 @@ class ShipHomeFlowTest {
                 .doesNotContain("data-bs-toggle=\"offcanvas\"", "id=\"notificationBell\"");
 
         // No images, and no script beyond the shared ones of the layout. The one exception is the Nereonix mark of the
-        // sidebar (P29): lazy, so a phone, where the sidebar is hidden, never loads it.
+        // sidebar: lazy, so a phone, where the sidebar is hidden, never loads it.
         assertThat(html).containsPattern("<img class=\"brand-mark\" src=\"/img/brand/nereonix-mark-192-[0-9a-f]{32}\\.png\""
                 + " width=\"32\" height=\"32\" alt=\"\" loading=\"lazy\">");
         assertThat(html.replaceAll("<img class=\"brand-mark\"[^>]*>", ""))
@@ -219,7 +219,7 @@ class ShipHomeFlowTest {
         assertThat(scripts(html)).isEqualTo(scripts(html(get("/ship/library").with(user(new CurrentUser(crew))))));
     }
 
-    // P65: four tabs per role, Home first and More last; whatever left the bar is on the More page under the sidebar's
+    // Four tabs per role, Home first and More last; whatever left the bar is on the More page under the sidebar's
     // headings, with its counter, and the More tab adds up what is under it.
     @Test
     @WithUserDetails("office@example.com") // sends the announcement; the pages are opened as the crew

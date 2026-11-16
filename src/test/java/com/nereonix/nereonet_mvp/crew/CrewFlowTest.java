@@ -147,7 +147,7 @@ class CrewFlowTest {
         assertThat(registered.isActorDeleted()).isTrue();
     }
 
-    // P17: the Status filter, a query parameter (/office/crew?status=expired), with the ship filter.
+    // The Status filter, a query parameter (/office/crew?status=expired), with the ship filter.
     @Test
     void crewListFiltersByStatus() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
@@ -188,7 +188,7 @@ class CrewFlowTest {
                 ">Η πρόσκληση έληξε</option>");
     }
 
-    // P17: Resend and Cancel invitation on the Crew list; both return to it with its filters.
+    // Resend and Cancel invitation on the Crew list; both return to it with its filters.
     @Test
     void crewInvitationIsResentAndCancelledFromTheCrewList() throws Exception {
         Ship demo = ship("9074729", "MV Demo");
@@ -230,7 +230,7 @@ class CrewFlowTest {
                 .allSatisfy(e -> assertThat(e.getShip().getId()).isEqualTo(demo.getId()));
     }
 
-    // P18: the office picks a rank; the role is the rank's. A role sent with the form is ignored.
+    // The office picks a rank; the role is the rank's. A role sent with the form is ignored.
     @Test
     void theRankSetsTheRole() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -241,7 +241,7 @@ class CrewFlowTest {
         for (String[] c : cases) {
             mockMvc.perform(post("/office/crew/new")
                             .param("fullName", "Crew " + c[0]).param("email", c[1]).param("rank", c[0])
-                            // Not a field of the form any more: never bound.
+                            // Not a field of the form: never bound.
                             .param("role", "MASTER")
                             .param("shipId", ship.getId().toString()).with(csrf()))
                     .andExpect(redirectedUrl("/office/crew"));
@@ -292,7 +292,7 @@ class CrewFlowTest {
         assertThat(userRepository.findById(crew.getId()).orElseThrow().getRank()).isEqualTo(Rank.BOSUN);
     }
 
-    // One active Master and one active Chief Cook per ship; since P18 the error is on the rank field.
+    // One active Master and one active Chief Cook per ship; the error is on the rank field.
     @Test
     void oneMasterPerShipIsReportedOnTheRankField() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -324,7 +324,7 @@ class CrewFlowTest {
         assertThat(userRepository.findById(crew.getId()).orElseThrow().getRole()).isEqualTo(Role.MASTER);
     }
 
-    // P18: no role picker; the rank picker is grouped by department and says what access the rank gives.
+    // No role picker; the rank picker is grouped by department and says what access the rank gives.
     @Test
     void noFormLetsTheOfficeChooseARole() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -360,7 +360,7 @@ class CrewFlowTest {
                         ">Πρόσβαση: ορίζεται από τον βαθμό</p>");
     }
 
-    // P18: the Role column is gone; the Rank column shows only the rank, without an access badge.
+    // No Role column; the Rank column shows only the rank, without an access badge.
     @Test
     void listsShowOnlyTheRankInTheRankColumn() throws Exception {
         Ship ship = ship("9074729", "MV Demo");
@@ -380,7 +380,7 @@ class CrewFlowTest {
         }
     }
 
-    // P18: users from before whose rank and role disagree, or who have no rank, keep their role; the edit form says
+    // Users saved before P18 whose rank and role disagree, or who have no rank, keep their role; the edit form says
     // which access they have now, and saving it applies the rank's role. The Crew list has no notice about them.
     @Test
     void usersWhoseRankDoesNotSetTheirRoleKeepItUntilSaved() throws Exception {

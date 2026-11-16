@@ -35,9 +35,9 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P16: the English / Greek switch changes only the language. Its links keep the page and every query parameter
+ * The English / Greek switch changes only the language. Its links keep the page and every query parameter
  * (ship and status filters, page number, token), and never carry what a form posted.
- * P29: it reads "EN | ΕΛ" and sits at the right of the top bar on every office page (never in the sidebar), at the
+ * It reads "EN | ΕΛ" and sits at the right of the top bar on every office page (never in the sidebar), at the
  * top right of the form side on the signed-out pages, and nowhere on crew pages. The current language is marked.
  */
 @SpringBootTest
@@ -112,7 +112,7 @@ class LanguageSwitchFlowTest {
         assertThat(link(html, "Ελληνικά")).isEqualTo("?lang=el");
     }
 
-    // P29: "EN | ΕΛ" at the right of the top bar, after the page name, on every office page; one switch per page.
+    // "EN | ΕΛ" at the right of the top bar, after the page name, on every office page; one switch per page.
     @Test
     void everyOfficePageHasTheSwitchAtTheRightOfTheTopBar() throws Exception {
         List<String> pages = List.of("/office", "/office/ships", "/office/ships/" + demo.getId(),

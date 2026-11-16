@@ -66,7 +66,7 @@ class AuditLogFlowTest {
                 .andExpect(content().string(Matchers.containsString("MV Aegean Spirit")));
     }
 
-    // P43: the audit log shows 10 entries a page (20, 50 or 100 on request; 20 since P39) with the P19 pager under
+    // The audit log shows 10 entries a page (20, 50 or 100 on request) with the shared pager under
     // the table; the search, filters and sort stay when the page changes, and a new filter starts again at page 1.
     @Test
     void theAuditLogShows10EntriesAPageAndKeepsTheFilters() throws Exception {
@@ -101,11 +101,11 @@ class AuditLogFlowTest {
         String fifty = html(get("/office/audit").param("q", "paged").param("size", "50"));
         assertThat(rows(fifty)).isEqualTo(45);
         assertThat(fifty).contains("1 to 45 of 45", "<input type=\"hidden\" name=\"size\" value=\"50\">");
-        // 25 is not a size any more: the default, 10.
+        // 25 is not a size: the default, 10.
         assertThat(rows(html(get("/office/audit").param("q", "paged").param("size", "25")))).isEqualTo(10);
     }
 
-    // P39: the From and To filters take a day within 30 years back and 1 year ahead, as their pickers do; another day
+    // The From and To filters take a day within 30 years back and 1 year ahead, as their pickers do; another day
     // shows the limits under the field and filters nothing.
     @Test
     void anImpossibleDayInTheFiltersIsShownWithTheLimits() throws Exception {

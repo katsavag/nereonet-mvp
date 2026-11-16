@@ -1,4 +1,4 @@
-// The Selected ships list of the announcement form (P28, templates/announcement/form.html). Only enhancements: without
+// The Selected ships list of the announcement form (templates/announcement/form.html). Only enhancements: without
 // this script every active ship is listed with its checkbox, the radios choose the target, and the server ignores the
 // ticked ships for All ships.
 //  - [data-ship-picker] is shown only while its form's "ships" radio (aria-controls) is checked.

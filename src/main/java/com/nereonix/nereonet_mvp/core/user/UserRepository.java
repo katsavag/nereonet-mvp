@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.nereonix.nereonet_mvp.core.ship.Ship;
-import com.nereonix.nereonet_mvp.core.ship.ShipCount;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -19,10 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     List<User> findAllByRoleOrderByFullNameAsc(Role role);
-
-    List<User> findAllByRoleNotOrderByFullNameAsc(Role role);
-
-    List<User> findAllByShipOrderByFullNameAsc(Ship ship);
 
     // Every user on the ship, enabled or not: the Crew tab of the ship page.
     long countByShip(Ship ship);
@@ -51,13 +46,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             order by u.id""")
     List<User> findRankedCrewOnActiveShips(Role office);
 
-    // Users by id with their ship, in one query (the Crew list's page, P42: a fixed number of queries).
+    // Users by id with their ship, in one query (the Crew list's page: a fixed number of queries).
     @Query("select u from User u left join fetch u.ship where u.id in :ids")
     List<User> findAllWithShipByIdIn(Collection<Long> ids);
-
-    // Enabled users per ship (ship roles only: office users have no ship).
-    @Query("""
-            select new com.nereonix.nereonet_mvp.core.ship.ShipCount(u.ship.id, count(u))
-            from User u where u.enabled = true and u.ship is not null group by u.ship.id""")
-    List<ShipCount> countEnabledByShip();
 }

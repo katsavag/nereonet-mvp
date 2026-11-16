@@ -64,7 +64,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * with a progress bar, so a dropped connection loses one file at most. The form keeps a draft, and the files
  * uploaded wait on the order, so nothing typed or sent is lost.
  * When the Chief cook's count waits for the Master, /receipt is "Approve the delivery" instead (one short page,
- * shiporder/receipt-approve.html) and the P51 form's posts lead back to it:
+ * shiporder/receipt-approve.html) and the plain receipt form's posts lead back to it:
  * <pre>
  *   GET  /ship/orders/{id}/receipt?change=o12       that one row's input (?all: in the full list)
  *   GET  /ship/orders/{id}/receipt?all              Show all: every row, read only, Change per row
@@ -179,8 +179,8 @@ public class OrderReceiptController {
     }
 
     /**
-     * Approve: P51's confirm in one step. The time received is when the cook sent the count unless Change date
-     * gave another (P51's rules). Back to the order, or to the approval with what is wrong.
+     * Approve: the plain receipt's confirm in one step. The time received is when the cook sent the count unless Change date
+     * gave another (the plain receipt's rules). Back to the order, or to the approval with what is wrong.
      */
     @PostMapping(BASE + "/approve")
     public String approve(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,

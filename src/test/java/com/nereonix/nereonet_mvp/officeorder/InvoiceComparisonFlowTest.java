@@ -72,8 +72,8 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P64, the office compares order, delivery and invoice: the Chief cook counts against the invoice and the Master
- * approves (P63), then the office sees the summary, the points to review and the lines that differ with the money at
+ * The office compares order, delivery and invoice: the Chief cook counts against the invoice and the Master
+ * approves, then the office sees the summary, the points to review and the lines that differ with the money at
  * stake and the quoted prices, accepts the differences, confirms or changes the points (a changed match or conversion
  * never moves the store: the cook is asked to count), corrects a line read wrong, and marks it matched. The Overview,
  * the list and the export follow. Signed in as the office unless a request says otherwise.
@@ -447,7 +447,7 @@ class InvoiceComparisonFlowTest {
         rfq.setAwardedQuote(quote);
     }
 
-    // The invoice read from the order's photo (P62): one page, its total off by 10 (a check that failed).
+    // The invoice read from the order's photo: one page, its total off by 10 (a check that failed).
     private DeliveryInvoice invoice() {
         DeliveryInvoice invoice = new DeliveryInvoice();
         invoice.setOrder(order);

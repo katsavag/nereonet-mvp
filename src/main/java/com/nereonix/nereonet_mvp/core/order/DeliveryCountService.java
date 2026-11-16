@@ -24,7 +24,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 /**
- * The Chief cook counts a delivery, the Master approves it (P63: row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
+ * The Chief cook counts a delivery, the Master approves it (row by row against the invoice, CountSheet). While an order is CONFIRMED (delivery scheduled) the
  * vessel's enabled Chief cook counts what arrived of each line (saveDraft, as often as he likes), then sends the count
  * to the Master (send, once every row is counted): the Master is notified and Confirm receipt opens with the cook's numbers. The Master either
  * confirms receipt (OrderReceiptService.confirmReceipt, which marks the count APPROVED) or sends it back with a note

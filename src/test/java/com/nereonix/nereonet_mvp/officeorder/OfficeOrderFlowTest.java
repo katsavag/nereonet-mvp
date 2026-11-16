@@ -54,9 +54,9 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P36, the office's ship orders: the orders the ships have sent (never OPEN ones), one order with its lines by
- * category, scheduling the delivery, port and date (P51; "confirming" before; the Master and the Chief cook are
- * notified each time, until the vessel confirms receipt), and the export (Excel since P39), which marks the orders
+ * The office's ship orders: the orders the ships have sent (never OPEN ones), one order with its lines by
+ * category, scheduling the delivery, port and date (the Master and the Chief cook are
+ * notified each time, until the vessel confirms receipt), and the export (Excel), which marks the orders
  * exported. Office users only.
  */
 @SpringBootTest
@@ -114,7 +114,7 @@ class OfficeOrderFlowTest {
         assertThat(list).contains("href=\"/office/orders/" + order.getId() + "\">Order #" + order.getId() + "</a>",
                         "MV Demo", "Ship Master", "Rotterdam", "25 Nov 2026", ">Pending</span>")
                 .doesNotContain("Order #" + open.getId() + "<", "Not yet");
-        // The order: its note and its lines by category; while pending the office can change them (P50).
+        // The order: its note and its lines by category; while pending the office can change them.
         String detail = page("/office/orders/" + order.getId());
         assertThat(detail).contains("Deliver to the gangway", "Schedule delivery", "Not yet",
                         "name=\"confirmedPort\" value=\"Rotterdam\"", "action=\"/office/orders/export\"")
@@ -133,7 +133,7 @@ class OfficeOrderFlowTest {
         assertThat(order.getConfirmedBy().getEmail()).isEqualTo("office@example.com");
         // Scheduled: the lines are read-only again.
         assertThat(page("/office/orders/" + order.getId())).contains(">25<", ">2.5<").doesNotContain("name=\"quantity\"");
-        // The Master and the Chief cook are notified, both with a link to the order (read only for the cook, P55);
+        // The Master and the Chief cook are notified, both with a link to the order (read only for the cook);
         // nobody else on board.
         assertThat(notifications(master)).singleElement().satisfies(n -> {
             assertThat(n.getType()).isEqualTo(NotificationType.ORDER);
@@ -244,7 +244,7 @@ class OfficeOrderFlowTest {
     void aSentOrderIsPendingForTheOfficeAndForTheShip() throws Exception {
         ShipOrder order = sentOrderWithTwoLines();
 
-        // P49: the office's status label, filter option and filter chip say Pending; Greek: Σε εκκρεμότητα.
+        // The office's status label, filter option and filter chip say Pending; Greek: Σε εκκρεμότητα.
         assertThat(page("/office/orders")).contains(">Pending</span>", ">Pending</option>").doesNotContain(">Sent<");
         assertThat(page("/office/orders?status=sent")).contains("Order #" + order.getId() + "<", "Pending");
         assertThat(page("/office/orders/" + order.getId())).contains(">Pending</span>");
@@ -260,7 +260,7 @@ class OfficeOrderFlowTest {
         int column = EXPORT_HEADER.indexOf("status");
         assertThat(sheet.body()).extracting(row -> row.get(column)).containsExactly("pending", "pending");
 
-        // P65: the ship reads Pending too ("Sent to office" before), with whom it waits for under it.
+        // The ship reads Pending too, with whom it waits for under it.
         assertThat(mockMvc.perform(get("/ship/orders/{id}", order.getId()).with(user(new CurrentUser(master))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
                 .contains(">Pending</span>", "Waiting for the office to schedule the delivery").doesNotContain("Sent to office");

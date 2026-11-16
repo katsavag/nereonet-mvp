@@ -43,7 +43,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P19 on Certificates, Items, Orders (P36), Announcements and the Audit log, and the same lists in the ship tabs: a
+ * The list behaviour on Certificates, Items, Orders, Announcements and the Audit log, and the same lists in the ship tabs: a
  * search, one filter, a sort and page 2, each from the URL alone (Crew and Office users: crew/CrewListFlowTest).
  */
 @SpringBootTest
@@ -117,7 +117,7 @@ class ListsFlowTest {
         assertThat(names(html(get("/office/certificates").param("sort", "type").param("dir", "desc"))))
                 .startsWith("Old Pass", "Medical", "Cert 27");
 
-        // 10 a page (P43), 20, 50 or 100 on request.
+        // 10 a page, 20, 50 or 100 on request.
         String first = html(get("/office/certificates"));
         assertThat(names(first)).hasSize(10).startsWith("Old Pass", "Cert 01");
         assertThat(first).contains("1 to 10 of 29", "href=\"/office/certificates?page=2\"",
@@ -174,7 +174,7 @@ class ListsFlowTest {
         assertThat(html(get(tab).param("q", "caviar"))).contains("No results for these filters");
     }
 
-    // Orders (P36) ---------------------------------------------------------------------------------------------------
+    // Orders ---------------------------------------------------------------------------------------------------
 
     @Test
     void orders_searchFilterAndPages() throws Exception {
@@ -189,7 +189,7 @@ class ListsFlowTest {
         assertThat(names(html(get("/office/orders").param("q", "beta")))).containsExactly(number(exported.getId()));
         assertThat(names(html(get("/office/orders").param("q", "#" + firstId)))).containsExactly(number(firstId));
         assertThat(names(html(get("/office/orders").param("q", "#" + open.getId())))).isEmpty();
-        // P65: delivery_scheduled, the select's value; delivery_pending and confirmed, older links, still filter it.
+        // Delivery_scheduled, the select's value; delivery_pending and confirmed, older links, still filter it.
         for (String value : List.of("delivery_scheduled", "delivery_pending", "confirmed")) {
             assertThat(names(html(get("/office/orders").param("status", value))))
                     .containsExactly(number(exported.getId()));
@@ -256,7 +256,7 @@ class ListsFlowTest {
         assertThat(byWho.getFirst()).contains("p19 beta entry");
 
         String first = html(get("/office/audit").param("q", "p19"));
-        // 10 a page on the audit log too (P43; 20 since P39).
+        // 10 a page on the audit log too.
         assertThat(rows(first)).hasSize(10);
         assertThat(first).contains("1 to 10 of 27", "href=\"/office/audit?q=p19&amp;page=2\"");
         assertThat(rows(html(get("/office/audit").param("q", "p19").param("page", "3")))).hasSize(7);

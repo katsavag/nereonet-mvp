@@ -43,7 +43,7 @@ public class ImportSteps {
         this.messageSource = messageSource;
     }
 
-    /** A distinct value of a matched field that is not exact (P24, "C/E"), asked about once for every row with it. */
+    /** A distinct value of a matched field that is not exact ("C/E"), asked about once for every row with it. */
     public record ValueQuestion(int index, ImportField field, String value, int rows, String chosen, boolean saved,
                                 boolean suggested) {
     }

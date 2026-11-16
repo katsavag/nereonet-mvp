@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Item.category was free text ("Dry goods", or null) and is now an ItemCategory. Hibernate (ddl-auto: update)
  * keeps the old column as it is, so on startup every item whose category is missing or not an ItemCategory name
- * becomes PROVISIONS (every item before P32 was a galley provision), and the column is made not null. Plain SQL, before
+ * becomes PROVISIONS (every item saved before P32 is a galley provision), and the column is made not null. Plain SQL, before
  * anything loads an Item. Changes nothing on a new database or once done, so it simply runs on every startup.
  */
 @Component

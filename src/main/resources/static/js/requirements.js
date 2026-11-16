@@ -1,4 +1,4 @@
-// Required documents (P43): requirement/grid.html. Only enhancements: without this script the row toggle is submitted
+// Required documents: requirement/grid.html. Only enhancements: without this script the row toggle is submitted
 // and applied by the server, and the filter is a select with Show.
 //  - Row toggle: in a [data-requirement-row], the [data-row-all] checkbox ("Select all ranks for Passport") ticks or
 //    clears every [data-row-rank] checkbox of the row; it shows the mixed state while only some are ticked (then it

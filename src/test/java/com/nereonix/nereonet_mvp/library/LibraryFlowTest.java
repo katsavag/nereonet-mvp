@@ -345,7 +345,7 @@ class LibraryFlowTest {
                         "Read (1)", "reader@example.com", "Not read yet (1)", "late@example.com")));
     }
 
-    // P16, FR-SIN-002: next to the file input of the add and new version forms (crew and office), named by the input.
+    // FR-SIN-002: next to the file input of the add and new version forms (crew and office), named by the input.
     @Test
     @WithUserDetails("office@example.com") // seeded by BootstrapData
     void fileInputsWarnAgainstSecuritySensitiveMaterial() throws Exception {
@@ -390,7 +390,7 @@ class LibraryFlowTest {
                 .contains("Μην ανεβάζετε υλικό ευαίσθητο για την ασφάλεια του πλοίου");
     }
 
-    // P22: the office reads an item without entering an edit form; New version and Retire are actions on that view.
+    // The office reads an item without entering an edit form; New version and Retire are actions on that view.
     @Test
     @WithUserDetails("office@example.com") // seeded by BootstrapData
     void officeReadsItemOnItsReadView() throws Exception {
@@ -400,7 +400,7 @@ class LibraryFlowTest {
         LibraryItem item = textItem(ship, "Drug and alcohol policy", true, "1", "No alcohol on board.");
 
         // The list: the title links to the read view, the row has the Required badge and the date published (UTC);
-        // there is no edit link any more.
+        // there is no edit link.
         String list = mockMvc.perform(get("/office/ships/{id}/library", ship.getId()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -438,7 +438,7 @@ class LibraryFlowTest {
                 .andExpect(redirectedUrl(itemUrl));
     }
 
-    // P22: the version history is for the Master and the office; other crew do not see it.
+    // The version history is for the Master and the office; other crew do not see it.
     @Test
     void onlyTheMasterSeesTheVersionHistoryOnBoard() throws Exception {
         Ship ship = ship();
@@ -454,7 +454,7 @@ class LibraryFlowTest {
                 .andExpect(content().string(Matchers.not(Matchers.containsString("Version history"))));
     }
 
-    // P22: a PDF opens in the browser (inline, in a new tab) with Download as a second action; DOCX stays a download.
+    // A PDF opens in the browser (inline, in a new tab) with Download as a second action; DOCX stays a download.
     @Test
     @WithUserDetails("office@example.com")
     void pdfOpensInlineAndDownloadsOnRequest() throws Exception {
@@ -520,7 +520,7 @@ class LibraryFlowTest {
                 .contains("Download");
     }
 
-    // P22: Send reminder notifies who has not acknowledged, at most once per 24 hours per item, and is audited.
+    // Send reminder notifies who has not acknowledged, at most once per 24 hours per item, and is audited.
     @Test
     @WithUserDetails("office@example.com")
     void officeSendsReminderOncePerDay() throws Exception {

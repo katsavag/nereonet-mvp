@@ -67,7 +67,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
 import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
- * P61 and P63, the Chief cook counts what arrived and the Master approves it. Without a read invoice the order is the
+ * The Chief cook counts what arrived and the Master approves it. Without a read invoice the order is the
  * reference ("Ordered 30 pcs", Arrived prefilled with 30); with one, its lines are matched to the order and guide the count in the
  * invoice's unit ("Basmati rice, 10 kg bag · Invoice 12 bags"), the lines nothing was found for are chosen by the
  * cook ("Choose the product", learned for the supplier), the Master approves the differences in one step, and the
@@ -143,7 +143,7 @@ class DeliveryCountFlowTest {
         mockMvc.perform(row("o" + tomatoLine.getId(), "23", "2 kg rotten, sent back"));
         assertThat(tomatoLine.getCountedQuantity()).isEqualByComparingTo("23");
         assertThat(tomatoLine.getCountNote()).isEqualTo("2 kg rotten, sent back");
-        // P60: pcs are whole numbers; the error under the row, nothing saved.
+        // Pcs are whole numbers; the error under the row, nothing saved.
         assertThat(as(cook, row("o" + gelLine.getId(), "2.5", ""))).contains("Use whole numbers for pcs.");
         assertThat(gelLine.getCountedQuantity()).isNull();
         assertThat(movements()).isEmpty();
@@ -233,7 +233,7 @@ class DeliveryCountFlowTest {
         assertThat(tomatoLine.getCountedQuantity()).isEqualByComparingTo("23");
         assertThat(notifications("cook@example.com")).singleElement().satisfies(n ->
                 assertThat(n.getText()).isEqualTo("Order " + id + ": the Master sent the delivery count back: Count the shower gel"));
-        // No count waits now: P51's form, prefilled as ordered.
+        // No count waits now: the plain receipt form, prefilled as ordered.
         assertThat(as(master, get("/ship/orders/{id}/receipt", id))).doesNotContain("Approve the delivery")
                 .contains("value=\"25\"");
 
@@ -247,7 +247,7 @@ class DeliveryCountFlowTest {
                 .andExpect(flash().attribute("successMessage", "order.count.sent"));
         assertThat(order.getCountNote()).isNull();
 
-        // P51's form posts lead to the approval while a count waits.
+        // The plain receipt form's posts lead to the approval while a count waits.
         mockMvc.perform(post("/ship/orders/{id}/receipt/confirm", id).with(user(new CurrentUser(master))).with(csrf()))
                 .andExpect(redirectedUrl("/ship/orders/" + id + "/receipt"));
         // Approve without any file: the receipt needs one.
@@ -622,7 +622,7 @@ class DeliveryCountFlowTest {
         return supplierRepository.save(supplier);
     }
 
-    // An invoice read from the order's photos (P62).
+    // An invoice read from the order's photos.
     private DeliveryInvoice invoice(ShipOrder of, String supplier) {
         DeliveryInvoice invoice = new DeliveryInvoice();
         invoice.setOrder(of);

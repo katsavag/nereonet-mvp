@@ -62,16 +62,16 @@ import com.nereonix.nereonet_mvp.core.vetting.Subscore;
 import com.nereonix.nereonet_mvp.core.vetting.VettingService;
 
 // Dev profile only: creates one demo ship if there are no ships yet, a demo Master on the first ship while there are
-// no requests and it has none, and two library items on that ship (one of them required) if its library is empty. P31: the demo
+// no requests and it has none, and two library items on that ship (one of them required) if its library is empty. The demo
 // Master and Chief cook get their ranks if they have none, and three more crew members (two with a profile) are on
-// board, so My crew shows its departments. P33: while that ship has no PENDING request, two waiting for its Master:
+// board, so My crew shows its departments. While that ship has no PENDING request, two waiting for its Master:
 // one from the Chief cook (three provisions) and one from a crew member (a personal item, and eggs as in the cook's
-// request). P36: no approved requests are seeded any more; the Master approves these and sends the ship order.
+// request). No approved requests are seeded: the Master approves these and sends the ship order.
 // Once, three bulk carriers with RightShip data and sample reports (ALDER, LAUREL, ROWAN; see vettingDemo).
 // Once, the tanker BIRCH with a SIRE 2.0 inspection, its observations and sample report (see sireDemo).
 // While the demo ship has no stock at all, its provisions get some, counted by the Chief cook two days ago: most
 // OK, two Low and two Out of stock, one without a place (see stockDemo).
-// P58: @Order(2), after VesselRequirementsMigration and before StarterRequirements (3), so the demo vessels get the
+// @Order(2), after VesselRequirementsMigration and before StarterRequirements (3), so the demo vessels get the
 // defaults of their type on a new database.
 @Component
 @Profile("dev")
@@ -387,7 +387,7 @@ public class DevData implements ApplicationRunner {
         return line;
     }
 
-    // Ranks for the demo Master and Chief cook (created without one before), and three crew members, each once.
+    // Ranks for the demo Master and Chief cook when they have none, and three crew members, each once.
     private void demoCrew(Ship ship) {
         demoRank("master.demo@example.com", Rank.MASTER);
         demoRank("cook.demo@example.com", Rank.CHIEF_COOK);

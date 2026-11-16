@@ -25,7 +25,7 @@ public class ShipHomeService {
 
     /**
      * user: the signed-in ship user (name, rank, ship).
-     * photoUrl: their profile photo's 96px URL (P31, CrewProfile.photoUrl), for the header; null without one.
+     * photoUrl: their profile photo's 96px URL (CrewProfile.photoUrl), for the header; null without one.
      * toRead: their Required library items not opened in the current version and the Required announcements they
      * have not opened, together, oldest first.
      * certificates: their own certificates, soonest expiry first (so expired, then expiring soon).

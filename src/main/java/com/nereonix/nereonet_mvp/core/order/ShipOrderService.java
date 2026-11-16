@@ -44,11 +44,11 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 
 // Ship orders, for any feature. RequestService.approve adds each approved request to the ship's OPEN order; the
-// Master edits its lines and sends it to the office (P35, shiporder). Every change of the ship locks the ship's row
+// Master edits its lines and sends it to the office (shiporder). Every change of the ship locks the ship's row
 // first, so an approval, an edit and a send never interleave: an approval made while the order is sent goes into a
-// new OPEN order. The office (P36, officeorder) lists the sent orders, schedules the delivery (port and date; P51,
-// "confirms" before) and exports them; until it schedules, it can correct the lines (P50, OfficeOrderEditService).
-// Only the vessel closes an order, by confirming receipt (P51, OrderReceiptService).
+// new OPEN order. The office (officeorder) lists the sent orders, schedules the delivery (port and date)
+// and exports them; until it schedules, it can correct the lines (OfficeOrderEditService).
+// Only the vessel closes an order, by confirming receipt (OrderReceiptService).
 @Service
 public class ShipOrderService {
 
@@ -63,7 +63,7 @@ public class ShipOrderService {
     /** The orders still on the office's desk: Pending and Delivery scheduled, the sidebar's Orders counter. */
     public static final List<ShipOrderStatus> NOT_RECEIVED = List.of(ShipOrderStatus.SENT, ShipOrderStatus.CONFIRMED);
 
-    /** The columns of the office's export (an Excel workbook since P39, .xls since P40, the same columns), one row per order
+    /** The columns of the office's export (an Excel workbook, .xls), one row per order
      *  line. A file format: never translated. */
     static final List<String> EXPORT_HEADER = List.of("imo_number", "ship_name", "order_id", "status", "sent_at",
             "requested_port", "needed_by", "confirmed_port", "delivery_date", "category", "item_name", "unit",
@@ -311,7 +311,7 @@ public class ShipOrderService {
     }
 
     /**
-     * The ship's next delivery (P55, the Chief cook's Stores): its order whose delivery the office scheduled and that is
+     * The ship's next delivery (the Chief cook's Stores): its order whose delivery the office scheduled and that is
      * not received yet (CONFIRMED), the earliest delivery date first; empty when there is none.
      */
     @Transactional(readOnly = true)
@@ -319,7 +319,7 @@ public class ShipOrderService {
         return orderRepository.findFirstByShipIdAndStatusOrderByDeliveryDateAscIdAsc(shipId, ShipOrderStatus.CONFIRMED);
     }
 
-    /** Orders Pending or Delivery scheduled, every ship: the office's sidebar counter (not exported before). */
+    /** Orders Pending or Delivery scheduled, every ship: the office's sidebar counter. */
     @Transactional(readOnly = true)
     public long countNotReceived() {
         return orderRepository.countByStatusIn(NOT_RECEIVED);
@@ -354,10 +354,10 @@ public class ShipOrderService {
     }
 
     /**
-     * An office user schedules the delivery of a SENT order, or changes the port or date of a CONFIRMED one (P36;
-     * "confirm" until P51): confirmedPort, deliveryDate, confirmedBy and CONFIRMED. Recorded as "Delivery scheduled" or
+     * An office user schedules the delivery of a SENT order, or changes the port or date of a CONFIRMED one
+     * (the fields and the status keep "confirm" in their names): confirmedPort, deliveryDate, confirmedBy and CONFIRMED. Recorded as "Delivery scheduled" or
      * "Delivery changed"; the ship's enabled Master and Chief cook are notified each time, both linking to the order
-     * (the Chief cook reads it since P55): "Delivery scheduled: Rotterdam, 20 Nov 2026" or "Delivery changed: ...". RECEIVED (nothing changed) once the Master confirmed receipt;
+     * (the Chief cook reads it too): "Delivery scheduled: Rotterdam, 20 Nov 2026" or "Delivery changed: ...". RECEIVED (nothing changed) once the Master confirmed receipt;
      * NOT_FOUND for an OPEN order or no such order. The order's row is locked, so two at the same time are saved one
      * after the other. IllegalArgumentException for a missing or too long port or a missing date;
      * AccessDeniedException when the user is not an enabled office user.
@@ -406,12 +406,12 @@ public class ShipOrderService {
 
     /**
      * The office exports the orders among ids that the ships have sent (other ids are ignored): an Excel 97-2003 workbook
-     * (.xls since P40; .xlsx in P39, CSV before), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
+     * (.xls), sheet "Orders", one row per order line, the orders newest sent first, each order's lines by
      * category (Provisions, then Personal items) and item name; status as the office sees it (pending,
-     * delivery_scheduled (delivery_pending before), received); quantity is what to deliver (0 for a line the office removed), sent_quantity
+     * delivery_scheduled, received); quantity is what to deliver (0 for a line the office removed), sent_quantity
      * what the ship sent (empty for a line the office added), office_change changed, removed, added or empty,
-     * office_note the office's note; received_quantity what arrived on board and received_at when (P51, empty until
-     * the Master confirmed receipt); P64, for an order received with a read invoice: invoiced_quantity (the item's
+     * office_note the office's note; received_quantity what arrived on board and received_at when (empty until
+     * the Master confirmed receipt); for an order received with a read invoice: invoiced_quantity (the item's
      * unit), invoice_unit, invoice_unit_price and invoice_amount (the invoice's), difference (received minus invoiced),
      * and a row per invoice line not ordered (office_change not_ordered, quantity 0, the invoice's unit); order_id and
      * the quantities are numbers, sent_at and received_at a date and
@@ -514,7 +514,7 @@ public class ShipOrderService {
         return received.subtract(invoiced);
     }
 
-    /** The status column of the export: pending, delivery_scheduled (delivery_pending before) and received. */
+    /** The status column of the export: pending, delivery_scheduled and received. */
     static String exportStatus(ShipOrderStatus status) {
         return switch (status) {
             case SENT -> "pending";

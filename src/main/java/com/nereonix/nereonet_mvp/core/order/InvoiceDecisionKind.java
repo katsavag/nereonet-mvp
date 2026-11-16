@@ -1,6 +1,6 @@
 package com.nereonix.nereonet_mvp.core.order;
 
-/** What the office decided about one point of an invoice comparison (P64, InvoiceDecision.kind). */
+/** What the office decided about one point of an invoice comparison (InvoiceDecision.kind). */
 public enum InvoiceDecisionKind {
     /** A difference accepted, with a note ("Credit note requested from the supplier"). */
     ACCEPTED,

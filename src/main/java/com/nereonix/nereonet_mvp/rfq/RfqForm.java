@@ -18,7 +18,7 @@ import jakarta.validation.constraints.Size;
 
 // "Request quotes" on a vessel order: the port and delivery date (prefilled from the order's requested port
 // and needed by date), the reply-by date and the suppliers to ask (at least one). Shown again on the review page in
-// hidden fields. Dates follow the P39 plausible-date rule.
+// hidden fields. Dates follow the plausible-date rule (@PlausibleDate).
 public class RfqForm {
 
     /** The reply-by date starts this many days from today (not after the delivery date). */

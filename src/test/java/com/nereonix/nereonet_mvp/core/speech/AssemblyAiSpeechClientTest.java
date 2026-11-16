@@ -23,7 +23,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * P57: the real AssemblyAI client against a local HTTP server: the upload (raw bytes, the key as is), the transcript
+ * The real AssemblyAI client against a local HTTP server: the upload (raw bytes, the key as is), the transcript
  * request (audio_url, language_code en, keyterms_prompt), polling until completed, and the transcript deleted at the
  * end whatever happened; a transcript in error, a status and the timeout are failures without the key.
  */

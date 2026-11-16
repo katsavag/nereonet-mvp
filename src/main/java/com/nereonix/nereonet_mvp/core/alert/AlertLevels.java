@@ -8,7 +8,7 @@ import java.time.temporal.ChronoUnit;
  * and ends by itself when the level drops ("it got worse"). Lower is worse.
  * <ul>
  *   <li>Dates (a certificate's expiry, an inspection's valid until, a SIRE report's current until, a target date):
- *       the reminder thresholds of P12. {@link #EXPIRED} once the date has passed, then 1 within 30 days, 2 within
+ *       the thresholds of the reminders. {@link #EXPIRED} once the date has passed, then 1 within 30 days, 2 within
  *       60, 3 within 90, {@link #NONE} beyond (nothing to alert about). So a snoozed "expiring in 45 days" ends when
  *       the 30-day threshold is crossed, and an "expiring" one when it expires.</li>
  *   <li>A Safety Score: the score itself (it drops).</li>

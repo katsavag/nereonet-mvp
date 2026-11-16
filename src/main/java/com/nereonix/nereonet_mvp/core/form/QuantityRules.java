@@ -275,11 +275,6 @@ public class QuantityRules {
         return value instanceof BigDecimal number ? number.toPlainString() : value.toString();
     }
 
-    /** The line maximum of a kind (without an item's own maximum). */
-    public BigDecimal lineMax(Kind kind) {
-        return lineMax.get(kind);
-    }
-
     /**
      * For js/quantity.js, where the unit is typed on the page (a new item of a request): every unit it knows, by
      * name, with its decimals and maximum for this use, as JSON: {"kg":[3,"2000"],...}; any other unit is countable.

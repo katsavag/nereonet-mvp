@@ -10,7 +10,7 @@ import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 /**
- * A quantity typed as text must follow the rule of its unit (P60, {@link QuantityRules}): on a form class, quantity
+ * A quantity typed as text must follow the rule of its unit ({@link QuantityRules}): on a form class, quantity
  * names the text property and unit the property holding the unit, both of the same form. Blank is valid (use
  * {@code @NotBlank} for a required one). The error goes on the quantity property, e.g. "Use whole numbers for pcs.".
  * Used by the item form's "Maximum per request", which has no upper limit of its own (limit = false).
