@@ -130,6 +130,43 @@ class InvoiceMatcherTest {
     }
 
     @Test
+    void aNewItemIsNamedAfterTheProductAndCountedByThePack() {
+        // The name: the description without its pack size, in sentence case.
+        assertThat(InvoiceMatcher.productName("BLACK PEPPER 500G")).isEqualTo("Black pepper");
+        assertThat(InvoiceMatcher.productName("TUNA IN OIL 1.7KG")).isEqualTo("Tuna in oil");
+        assertThat(InvoiceMatcher.productName("WATER 6X1.5LT")).isEqualTo("Water");
+        assertThat(InvoiceMatcher.productName("Olive oil 5 lt, extra virgin")).isEqualTo("Olive oil, extra virgin");
+        // Not a weight or a volume, or no pack at all: the description.
+        assertThat(InvoiceMatcher.productName("TEA BAGS 100S")).isEqualTo("Tea bags 100s");
+        assertThat(InvoiceMatcher.productName("POTATOES")).isEqualTo("Potatoes");
+        // Nothing left without the pack: the whole description.
+        assertThat(InvoiceMatcher.productName("500G")).isEqualTo("500g");
+        assertThat(InvoiceMatcher.productAndPack("BLACK PEPPER 500G")).isEqualTo("Black pepper, 500 g");
+        assertThat(InvoiceMatcher.productAndPack("POTATOES")).isEqualTo("Potatoes");
+
+        // Packs of a weight: an item in kg, counted in the invoice's pieces, 0.5 kg each.
+        assertThat(InvoiceMatcher.newItemPack("BLACK PEPPER 500G", "PCS")).satisfies(p -> {
+            assertThat(p.itemUnit()).isEqualTo("kg");
+            assertThat(p.conversion().factor()).isEqualByComparingTo("0.5");
+            assertThat(p.conversion().pack()).isEqualTo("500 g");
+            assertThat(p.conversion().unitOne()).isEqualTo("pcs");
+            assertThat(p.conversion().unitMany()).isEqualTo("pcs");
+        });
+        // Packs of a volume: an item in lt; 6 x 1.5 lt are 9 lt, counted in packs.
+        assertThat(InvoiceMatcher.newItemPack("WATER 6X1.5LT", "PACK")).satisfies(p -> {
+            assertThat(p.itemUnit()).isEqualTo("lt");
+            assertThat(p.conversion().factor()).isEqualByComparingTo("9");
+            assertThat(p.conversion().unitMany()).isEqualTo("packs");
+        });
+        assertThat(InvoiceMatcher.newItemPack("TUNA IN OIL 1.7KG", "CAN").conversion().unitMany()).isEqualTo("cans");
+        // The invoice counts in a measure, the description has no weight or volume, or there is no unit: as it is.
+        assertThat(InvoiceMatcher.newItemPack("POTATOES", "KG")).isNull();
+        assertThat(InvoiceMatcher.newItemPack("SUGAR 1KG", "KG")).isNull();
+        assertThat(InvoiceMatcher.newItemPack("TEA BAGS 100S", "BOX")).isNull();
+        assertThat(InvoiceMatcher.newItemPack("BLACK PEPPER 500G", null)).isNull();
+    }
+
+    @Test
     void aLearnedFactorIsUsedAndNeverReviewedAgain() {
         assertThat(InvoiceMatcher.learned("RICE 10KG", "BAG", "kg", new BigDecimal("10"))).satisfies(c -> {
             assertThat(c.factor()).isEqualByComparingTo("10");

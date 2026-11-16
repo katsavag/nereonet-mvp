@@ -330,8 +330,8 @@ class InvoiceComparisonFlowTest {
         mockMvc.perform(get("/ship/orders/{id}/count", id).with(user(new CurrentUser(cook))))
                 .andExpect(status().isOk());
         saveCount(Map.of(key1, quantity1, "note-" + key1, "One bag torn", key2, quantity2));
-        mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, notOrdered.getId()).param("choice", "none")
-                .with(user(new CurrentUser(cook))).with(csrf()));
+        // A line marked "Not ordered", as a cook could on board before P92.
+        notOrdered.setMatch(InvoiceMatch.NOT_ORDERED);
         sendAndApprove();
     }
 

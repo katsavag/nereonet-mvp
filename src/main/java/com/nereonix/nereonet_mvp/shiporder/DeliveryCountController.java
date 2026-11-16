@@ -44,8 +44,7 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
  *   POST /ship/orders/{id}/count/lines             Add a line from the paper invoice: item (its id), quantity
  *   POST /ship/orders/{id}/count/lines/{lineId}/remove    Not on the invoice: remove (an invoice line left out)
  *   POST /ship/orders/{id}/count/lines/{lineId}/restore   Put back
- *   GET  /ship/orders/{id}/count/choose/{lineId}   "It is an item we have": the item of an invoice line (?q= narrows)
- *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
+ *   POST /ship/orders/{id}/count/lines/{lineId}/unmatch   Not this item (a line Claude matched: a new item again)
  *   GET  /ship/orders/{id}/count/send              the summary with Send to Master; back to the list while rows are
  *                                                  still to do
  *   POST /ship/orders/{id}/count/send              Send to Master, with an optional note; refused while rows are
@@ -220,7 +219,8 @@ public class DeliveryCountController {
         return "redirect:/ship/orders/" + id + "/count#" + row.getAnchor();
     }
 
-    @GetMapping({BASE + "/invoice", BASE + "/lines", BASE + "/lines/{lineId}/remove", BASE + "/lines/{lineId}/restore"})
+    @GetMapping({BASE + "/invoice", BASE + "/lines", BASE + "/lines/{lineId}/remove", BASE + "/lines/{lineId}/restore",
+            BASE + "/lines/{lineId}/unmatch"})
     public String toCount(@PathVariable Long id) {
         return "redirect:/ship/orders/" + id + "/count";
     }
@@ -322,76 +322,30 @@ public class DeliveryCountController {
         return "redirect:/ship/orders/" + id + "/count" + (row == null ? "" : "#" + row.getAnchor());
     }
 
-
-    /** Choose the product: the order's lines nothing is matched to yet, then the vessel's items, or Not ordered. */
-    @GetMapping(BASE + "/choose/{lineId}")
-    public String choices(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                          @PathVariable Long lineId, @RequestParam(required = false) String q, Model model,
-                          RedirectAttributes redirectAttributes) {
-        ShipOrder order = prepare(currentUser.getUsername(), id);
-        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
-            return notCountable(order, redirectAttributes);
-        }
-        if (!order.getDeliveryCountStatus().editable()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "order.count.alreadySent");
-            return "redirect:/ship/orders/" + id + "/count";
-        }
-        DeliveryInvoiceLine line = invoiceLine(order, lineId);
-        model.addAttribute("order", order);
-        model.addAttribute("line", line);
-        model.addAttribute("q", q == null ? "" : q.strip());
-        model.addAttribute("choices", matchService.choices(order, line, q));
-        return "shiporder/count-choose";
-    }
-
-    @PostMapping(BASE + "/choose/{lineId}")
-    public String choose(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                         @PathVariable Long lineId, @RequestParam(required = false) String choice,
-                         RedirectAttributes redirectAttributes) {
+    /**
+     * Not this item: what Claude matched an invoice line to is undone; the line is a new item's row again, and the
+     * page comes back at it.
+     */
+    @PostMapping(BASE + "/lines/{lineId}/unmatch")
+    public String unmatchLine(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                              @PathVariable Long lineId, RedirectAttributes redirectAttributes) {
         String email = currentUser.getUsername();
         ShipOrder order = prepare(email, id);
-        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
-            return notCountable(order, redirectAttributes);
+        String refused = notEditable(order, redirectAttributes);
+        if (refused != null) {
+            return refused;
         }
-        invoiceLine(order, lineId);
-        Long orderLineId = null;
-        Long itemId = null;
-        String value = choice == null ? "" : choice.strip();
-        try {
-            if (value.startsWith("o")) {
-                orderLineId = Long.valueOf(value.substring(1));
-            } else if (value.startsWith("i")) {
-                itemId = Long.valueOf(value.substring(1));
-            } else if (!value.equals("none")) {
-                redirectAttributes.addFlashAttribute("errorMessage", "order.count.choose.required");
-                return "redirect:/ship/orders/" + id + "/count/choose/" + lineId;
-            }
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-        DeliveryCountService.Result result;
-        try {
-            result = countService.choose(pageService.cook(email), id, lineId, orderLineId, itemId);
-        } catch (IllegalArgumentException e) {
-            // A product gone meanwhile (matched to another line, the office's change): choose again.
-            redirectAttributes.addFlashAttribute("errorMessage", "order.count.choose.gone");
-            return "redirect:/ship/orders/" + id + "/count/choose/" + lineId;
-        }
+        DeliveryInvoiceLine line = invoiceLine(order, lineId);
+        DeliveryCountService.Result result = countService.unmatch(pageService.cook(email), id, lineId);
         if (result != DeliveryCountService.Result.DONE) {
             return refused(order, result, redirectAttributes);
         }
-        redirectAttributes.addFlashAttribute("successMessage", value.equals("none") ? "order.count.choose.notOrdered"
-                : "order.count.choose.saved");
-        if (orderLineId != null || itemId != null) {
-            // The row it now is, to count.
-            CountSheet.Row row = matchService.sheet(order).getRows().stream()
-                    .filter(r -> r.getInvoiceLines().stream().anyMatch(l -> l.getId().equals(lineId)))
-                    .findFirst().orElse(null);
-            if (row != null) {
-                return "redirect:/ship/orders/" + id + "/count#" + row.getAnchor();
-            }
+        CountSheet.Row row = matchService.sheet(order).rowOf(lineId);
+        if (row != null && row.isNewItem()) {
+            redirectAttributes.addFlashAttribute("successMessage", "order.count.line.unmatched");
+            redirectAttributes.addFlashAttribute("successArgs", new Object[] {line.getDescription(), row.getName()});
         }
-        return "redirect:/ship/orders/" + id + "/count";
+        return "redirect:/ship/orders/" + id + "/count" + (row == null ? "" : "#" + row.getAnchor());
     }
 
     /**

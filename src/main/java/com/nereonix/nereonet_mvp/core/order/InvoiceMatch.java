@@ -19,12 +19,15 @@ public enum InvoiceMatch {
     AI,
     /**
      * Nothing likely: a row of its own, counted as the invoice has it ("On the invoice, not on the order", a new
-     * item). The cook may say it is an item the vessel has (CHOSEN) or that it was not ordered (NOT_ORDERED).
+     * item). Matching it by hand is the office's.
      */
     PICK,
-    /** The cook chose the product, or the Master's approval made the line a new item of the vessel. */
+    /**
+     * A person chose the product (a line the cook added by hand; before P92 also the cook's choice for a line), or the
+     * Master's approval made the line a new item of the vessel.
+     */
     CHOSEN,
-    /** The cook chose "Not ordered": never stocked, it goes to the office. */
+    /** A cook marked the line "Not ordered" (before P92; nobody on board can now): never stocked, it goes to the office. */
     NOT_ORDERED;
 
     /** Linked to an order line or an item: counted as a row. */

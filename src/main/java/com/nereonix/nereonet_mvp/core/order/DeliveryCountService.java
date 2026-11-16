@@ -223,20 +223,24 @@ public class DeliveryCountService {
     }
 
     /**
-     * "It is an item we have": the cook says what an invoice line nothing was found for is: a line of the order not
-     * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
-     * to the office). The product chosen is learned for the supplier. Refusals as saveRows; IllegalArgumentException for
-     * a line of another order's invoice or a product it cannot be.
+     * "Not this item": the cook undoes what Claude matched an invoice line to; the line is a new item's row again
+     * (InvoiceMatchService.unmatch). Recorded as "Invoice line match undone on board"; nothing for a line Claude did
+     * not match. Refusals as saveRows; IllegalArgumentException for a line of another order's invoice.
      */
     @Transactional
-    public Result choose(User cook, Long orderId, Long invoiceLineId, Long orderLineId, Long itemId) {
+    public Result unmatch(User cook, Long orderId, Long invoiceLineId) {
         ShipOrder order = lockForCook(cook, orderId);
         Result refused = refuseCount(order);
         if (refused != null) {
             return refused;
         }
-        matchService.choose(order, invoiceLineId, orderLineId, itemId, cook);
-        touch(order, cook);
+        DeliveryInvoiceLine line = matchService.line(order, invoiceLineId);
+        String item = line.getItem() == null ? null : line.getItem().getName();
+        if (matchService.unmatch(order, invoiceLineId)) {
+            auditService.record("ORDER_INVOICE_LINE_UNMATCHED", order.getShip(), "Order #" + order.getId() + ": "
+                    + describe(line) + " is not " + item, cook);
+            touch(order, cook);
+        }
         return Result.DONE;
     }
 

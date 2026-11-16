@@ -11,7 +11,10 @@ import java.util.List;
  */
 public interface InvoiceLineMatcher {
 
-    /** One invoice line not placed: its number in this request, the description and the unit as the invoice has them. */
+    /**
+     * One invoice line not placed: its number in this request, its product with the pack size after it
+     * (InvoiceMatcher.productAndPack: "Black pepper, 500 g") and the unit as the invoice has it.
+     */
     record Line(int no, String description, String unit) {
     }
 

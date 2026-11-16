@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +31,8 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * Matches the lines read from an order's invoice to the order and keeps the names learned. ensureMatched runs
  * when the count or the approval opens: every invoice line not matched yet (new, or read again) is matched once, by
  * the name learned for its supplier and description (SupplierItemName), else InvoiceMatcher over the order's lines
- * not removed, else over the vessel's other active items, else PICK (a new item's row). The pack factor is worked out per match
+ * not removed, else over the vessel's other active items, else the vessel's item that has the name a new item would
+ * get (CountSheet.newItemName), else PICK (a new item's row). The pack factor is worked out per match
  * (InvoiceMatcher.conversion). Callers hold the order's row lock (DeliveryCountService, OrderReceiptService).
  * At the end of the invoice's reading (InvoiceReadingService) the lines that ended as PICK go to Claude once
  * (claudeRequest, applyClaude): a sure answer links the line as AI, anything else leaves it PICK.
@@ -121,6 +121,16 @@ public class InvoiceMatchService {
                 automatic.add(new Auto(line, "i" + item.getId(), outcome.score()));
                 continue;
             }
+            // A new item whose name the vessel has already is that item, as the approval would make it.
+            String name = CountSheet.newItemName(line.getDescription());
+            Item named = name.isEmpty() ? null : itemRepository
+                    .findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(order.getShip().getId(), name).orElse(null);
+            if (named != null) {
+                link(line, InvoiceMatch.MATCHED, orderLines.stream()
+                        .filter(l -> l.getItem().getId().equals(named.getId())).findFirst().orElse(null), named,
+                        conversion(line, named));
+                continue;
+            }
             unlink(line, InvoiceMatch.PICK);
         }
         // Two lines matched to one product: only the best stays matched, the others are to review.
@@ -176,7 +186,8 @@ public class InvoiceMatchService {
         }
         List<InvoiceLineMatcher.Line> lines = new ArrayList<>();
         for (DeliveryInvoiceLine line : open) {
-            lines.add(new InvoiceLineMatcher.Line(lines.size() + 1, line.getDescription(), line.getUnit()));
+            lines.add(new InvoiceLineMatcher.Line(lines.size() + 1,
+                    InvoiceMatcher.productAndPack(line.getDescription()), line.getUnit()));
         }
         return new ClaudeRequest(List.copyOf(lines), List.copyOf(candidates),
                 open.stream().map(DeliveryInvoiceLine::getId).toList(), List.copyOf(targets));
@@ -232,40 +243,8 @@ public class InvoiceMatchService {
         return linked;
     }
 
-    /** What the cook may choose for an invoice line: the order lines nothing is matched to yet, then the vessel's items. */
+    /** What a line added by hand may be: lines of the order, then the vessel's other items. */
     public record Choices(List<ShipOrderLine> orderLines, List<Item> items) {
-    }
-
-    /**
-     * The choices for an invoice line, optionally only those whose name has the words typed (query). What only this
-     * line is matched to stays a choice ("Not this item" on a line Claude matched: the cook may keep it).
-     */
-    @Transactional(readOnly = true)
-    public Choices choices(ShipOrder order, DeliveryInvoiceLine invoiceLine, String query) {
-        CountSheet sheet = sheet(order);
-        Set<Long> matched = new HashSet<>();
-        sheet.getRows().stream().filter(row -> row.getOrderLine() != null && !row.getInvoiceLines().isEmpty())
-                .filter(row -> !onlyOf(row, invoiceLine))
-                .forEach(row -> matched.add(row.getOrderLine().getId()));
-        // The vessel's items off the order that have a row of their own already.
-        Set<Long> extras = new HashSet<>();
-        sheet.getRows().stream().filter(row -> row.getExtra() != null && !row.isNewItem())
-                .filter(row -> !onlyOf(row, invoiceLine))
-                .forEach(row -> extras.add(row.getItem().getId()));
-        String folded = InvoiceMatcher.fold(query == null ? "" : query.strip());
-        List<ShipOrderLine> lines = order.getLines().stream()
-                .filter(line -> !line.isRemoved() && !matched.contains(line.getId()))
-                .filter(line -> InvoiceMatcher.fold(line.getItem().getName()).contains(folded))
-                .sorted(Comparator.comparing(line -> line.getItem().getName(), String.CASE_INSENSITIVE_ORDER))
-                .toList();
-        List<Item> items = otherItems(order).stream().filter(item -> !extras.contains(item.getId()))
-                .filter(item -> InvoiceMatcher.fold(item.getName()).contains(folded)).toList();
-        return new Choices(lines, items);
-    }
-
-    // The row is made of this invoice line alone.
-    private static boolean onlyOf(CountSheet.Row row, DeliveryInvoiceLine line) {
-        return row.getInvoiceLines().size() == 1 && row.getInvoiceLines().getFirst().getId().equals(line.getId());
     }
 
     /**
@@ -314,33 +293,21 @@ public class InvoiceMatchService {
     }
 
     /**
-     * The cook's choice for an invoice line (the order is locked, the count editable): an order line not removed, a
-     * vessel item not on the order, or neither ("Not ordered"). A product chosen is learned for the supplier
-     * (SupplierItemName, "Invoice line matched by hand"); what was counted on the line's own row before is cleared.
-     * IllegalArgumentException for a line of another order's invoice, or a product the line cannot be.
+     * "Not this item": the cook undoes what Claude matched an invoice line to (the order is locked, the count
+     * editable). The line is matched to nothing again (PICK: a new item's row) and what was counted on its own row is
+     * cleared; Claude is not asked about it again (aiMatchTried stays). False, nothing changed, for a line that is
+     * not matched by Claude; IllegalArgumentException for a line of another order's invoice.
      */
-    void choose(ShipOrder order, Long invoiceLineId, Long orderLineId, Long itemId, User cook) {
+    boolean unmatch(ShipOrder order, Long invoiceLineId) {
         DeliveryInvoiceLine line = line(order, invoiceLineId);
+        if (line.getMatch() != InvoiceMatch.AI) {
+            return false;
+        }
         line.setCountedQuantity(null);
         line.setCountNote(null);
         line.setApprovedQuantity(null);
-        if (orderLineId == null && itemId == null) {
-            unlink(line, InvoiceMatch.NOT_ORDERED);
-            return;
-        }
-        ShipOrderLine orderLine = null;
-        Item item;
-        if (orderLineId != null) {
-            orderLine = order.getLines().stream().filter(l -> l.getId().equals(orderLineId) && !l.isRemoved())
-                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Not a line of this order"));
-            item = orderLine.getItem();
-        } else {
-            item = otherItems(order).stream().filter(i -> i.getId().equals(itemId)).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Not an item of the vessel off the order"));
-        }
-        Conversion conversion = conversion(line, item);
-        link(line, InvoiceMatch.CHOSEN, orderLine, item, conversion);
-        learn(order, line, item, conversion, cook);
+        unlink(line, InvoiceMatch.PICK);
+        return true;
     }
 
     /** An invoice line of the order's invoice; IllegalArgumentException otherwise. */

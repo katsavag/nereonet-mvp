@@ -27,9 +27,11 @@ import com.nereonix.nereonet_mvp.core.form.QuantityRules.Kind;
  *   <li>MATCHED when every word of its name is on the line, its score is at least MATCH_MIN and every other candidate
  *       is MATCH_LEAD behind it (or is a shorter name inside it: "Tomato" against "Tomato paste");</li>
  *   <li>CHECK when its score is at least CHECK_MIN and the next is CHECK_LEAD behind (or a shorter name inside it);</li>
- *   <li>otherwise nothing (PICK): the cook chooses.</li>
+ *   <li>otherwise nothing (PICK): a new item's row.</li>
  * </ul>
  * conversion works out how many of the item's unit one invoice unit holds (a 10 kg bag for an item in kg: 10).
+ * productName and newItemPack say what a line matched to nothing is as a new item: its name without the pack size, and
+ * the pack as its conversion.
  */
 public final class InvoiceMatcher {
 
@@ -105,11 +107,15 @@ public final class InvoiceMatcher {
     // ---- Names -----------------------------------------------------------------------------------------------------
 
     private static final String UNIT = "(kgs?|kgr|grs?|g|ltrs?|lts?|l|ml|cl)";
-    // One token at a time: a multi pack (6X1.5LT: groups 1-3), a pack size (10KG: groups 4-5), or a word.
-    private static final Pattern TOKEN = Pattern.compile(
+    // A pack size: a multi pack (6X1.5LT: groups 1-3) or a single one (10KG: groups 4-5).
+    private static final String PACK_SIZE =
             "(?<![\\p{L}\\d.,])(\\d{1,3})\\s*[x×*]\\s*(\\d+(?:[.,]\\d+)?)\\s*" + UNIT + "(?![\\p{L}\\d])"
-            + "|(?<![\\p{L}\\d.,])(\\d+(?:[.,]\\d+)?)\\s*" + UNIT + "(?![\\p{L}\\d])"
-            + "|[\\p{L}\\p{Nd}]+");
+            + "|(?<![\\p{L}\\d.,])(\\d+(?:[.,]\\d+)?)\\s*" + UNIT + "(?![\\p{L}\\d])";
+    // One token at a time: a pack size, or a word.
+    private static final Pattern TOKEN = Pattern.compile(PACK_SIZE + "|[\\p{L}\\p{Nd}]+");
+    // The pack sizes of a description as it is written (productName).
+    private static final Pattern PACK_SIZE_AS_WRITTEN = Pattern.compile(PACK_SIZE,
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern NOT_WORD = Pattern.compile("[^\\p{L}\\p{Nd}]+");
 
     // Words that say nothing of the product: joining words and the names of units and packs.
@@ -158,6 +164,29 @@ public final class InvoiceMatcher {
         }
         String k = key.toString();
         return new Name(k.length() > 300 ? k.substring(0, 300) : k, words, packs);
+    }
+
+    /**
+     * The product of a description, the name of a new item: the description without its pack sizes, in sentence case
+     * ("BLACK PEPPER 500G": "Black pepper"; "WATER 6X1.5LT": "Water"; "TEA BAGS 100S", not a weight or a volume,
+     * stays "Tea bags 100s"). The whole description when nothing is left without the pack.
+     */
+    public static String productName(String description) {
+        String text = description == null ? "" : description.strip();
+        String product = PACK_SIZE_AS_WRITTEN.matcher(text).replaceAll(" ").replaceAll("\\(\\s*\\)", " ")
+                .replaceAll("\\s+", " ").replaceAll(" ([,;])", "$1").replaceAll("^[\\s,;:/*-]+|[\\s,;:/*-]+$", "");
+        if (product.chars().noneMatch(Character::isLetterOrDigit)) {
+            product = text;
+        }
+        return product.isEmpty() ? product
+                : product.substring(0, 1).toUpperCase(Locale.ROOT) + product.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    /** A description as Claude is given it: the product, then its pack sizes ("Black pepper, 500 g"). */
+    public static String productAndPack(String description) {
+        StringBuilder text = new StringBuilder(productName(description));
+        name(description).packs().forEach(pack -> text.append(", ").append(pack.label()));
+        return text.toString();
     }
 
     /** The key a description is remembered by (SupplierItemName.description). */
@@ -345,6 +374,32 @@ public final class InvoiceMatcher {
             }
         }
         return null;
+    }
+
+    /** A new item counted by the pack: its unit (the measure: "kg" or "lt") and how one invoice unit converts to it. */
+    public record NewItemPack(String itemUnit, Conversion conversion) {
+    }
+
+    /**
+     * How a new item is counted when its invoice line counts packs (PCS, CAN, BOX...) and the description gives the
+     * weight or the volume of one: the item is kept in kg or lt and one invoice unit is the pack ("BLACK PEPPER 500G",
+     * PCS: kg, 0.5, "500 g", counted in pcs; "WATER 6X1.5LT", PACK: lt, 9, counted in packs). Null when the invoice
+     * counts in a measure, has no unit, or the description has no pack size: the item is then in the invoice's unit.
+     */
+    public static NewItemPack newItemPack(String description, String invoiceUnit) {
+        String invoice = unit(invoiceUnit);
+        List<Pack> packs = name(description).packs();
+        if (invoice.isEmpty() || measured(QuantityRules.kindOf(invoice)) || packs.isEmpty()) {
+            return null;
+        }
+        String itemUnit = dimension(packs.getFirst().kind()) == 0 ? "kg" : "lt";
+        Conversion conversion = conversion(description, invoiceUnit, itemUnit);
+        if (conversion == null) {
+            return null;
+        }
+        // Pieces stay "pcs", as the invoice counts them (a matched line says "pack").
+        return new NewItemPack(itemUnit, !PIECES.contains(invoice) ? conversion
+                : new Conversion(conversion.factor(), conversion.pack(), "pcs", "pcs", true));
     }
 
     /**

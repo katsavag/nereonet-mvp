@@ -59,10 +59,11 @@
             <li th:each="r : ${sheet.newItems}" class="list-group-item count-different-line">
                 <span class="count-row-name" th:text="${r.name}">Minced beef frozen</span>
                 <span class="count-different-what"
-                      th:text="#{order.count.line.arrived(${r.text(r.result)}, ${r.unit(r.result)})}">20 kg arrived</span>
+                      th:text="${r.pack != null} ? #{order.approve.new.pack(${r.text(r.result)}, ${r.unit(r.result)}, ${r.pack}, ${r.text(r.resultItem)}, ${r.item.unit})} : #{order.count.line.arrived(${r.text(r.result)}, ${r.unit(r.result)})}">20 kg arrived</span>
             </li>
         </ul>
-        <p class="text-meta mt-2" th:text="#{order.approve.new.hint}">Approving adds these to the vessel's items and to the inventory.</p>
+        <p class="text-meta mt-2 mb-0" th:text="#{order.approve.new.hint}">Approving adds these to the vessel's items and to the inventory.</p>
+        <p class="text-meta" th:text="#{order.approve.new.office}">If one of these is an item you already have under another name, the office can match it.</p>
     </section>
 
     <!-- The invoice numbers the Chief cook corrected (the photo read them wrong), also where the count then agrees. -->

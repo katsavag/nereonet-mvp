@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,11 +18,11 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
  * The rows of a delivery count: what the Chief cook counts and the Master approves, built from the order's lines
  * and the invoice's lines as matched (InvoiceMatchService). One row per order line not removed by the office, one
  * per invoice line matched to a vessel item not on the order, and one per invoice line matched to nothing (PICK: a
- * new item, named and counted as the invoice has it, Row.isNewItem). With a read invoice each row's reference is the
+ * new item, named after the invoice's product and counted as the invoice counts it, Row.isNewItem). With a read invoice each row's reference is the
  * invoice's quantity, counted in the invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags"); an order line
  * the invoice does not have is "Not on the invoice", an invoice quantity not read "Invoice: not read". Without a read
  * invoice the reference is the quantity ordered.
- * notOrdered: the invoice lines the cook said were not ordered; removed: the ones he removed (DeliveryInvoiceLine.removedOnBoard),
+ * notOrdered: the invoice lines a cook marked as not ordered (before P92); removed: the ones he removed (DeliveryInvoiceLine.removedOnBoard),
  * which are in no row and no total. Quantities are kept in the item's unit; a row shows them in its own.
  */
 public final class CountSheet {
@@ -81,7 +80,9 @@ public final class CountSheet {
 
         /**
          * An invoice line matched to nothing: getItem is not an item of the vessel yet (no id) but the invoice's
-         * description in sentence case, its unit in the app's spelling, PROVISIONS. The Master's approval makes it one.
+         * product in sentence case (InvoiceMatcher.productName), PROVISIONS, in the invoice's unit in the app's
+         * spelling, or in kg or lt when the invoice counts packs of a weight or a volume (the row is then packed: 2 pcs
+         * of 500 g are 1 kg). The Master's approval makes it one.
          */
         public boolean isNewItem() {
             return extra != null && extra.getItem() == null;
@@ -92,10 +93,13 @@ public final class CountSheet {
         /** One unit of the row is this many of the item's unit (1 when the row counts in the item's unit). */
         public BigDecimal getFactor() { return factor; }
 
-        /** "Basmati rice, 10 kg bag", or the item's name. */
+        /** "Basmati rice, 10 kg bag", or the item's name (a new item's always: its reference says the pack). */
         public String getName() {
-            return pack != null ? item.getName() + ", " + pack + " " + unitOne : item.getName();
+            return pack != null && !isNewItem() ? item.getName() + ", " + pack + " " + unitOne : item.getName();
         }
+
+        /** What one unit of a packed row holds ("500 g", "6 × 1.5 lt"); null when the description did not say. */
+        public String getPack() { return pack; }
 
         /** The row counts in the invoice's unit, not the item's. */
         public boolean isPacked() {
@@ -365,24 +369,31 @@ public final class CountSheet {
     }
 
     // The row of an invoice line matched to nothing: counted in the invoice's unit against the invoice's quantity.
+    // Packs of a weight or a volume ("BLACK PEPPER 500G", PCS) make an item in kg or lt and a packed row.
     private static Row newItemRow(DeliveryInvoiceLine line) {
+        InvoiceMatcher.NewItemPack pack = InvoiceMatcher.newItemPack(line.getDescription(), line.getUnit());
         Item item = new Item();
         item.setName(newItemName(line.getDescription()));
-        item.setUnit(newItemUnit(line.getUnit()));
+        item.setUnit(pack == null ? newItemUnit(line.getUnit()) : pack.itemUnit());
         item.setCategory(ItemCategory.PROVISIONS);
         BigDecimal invoiced = line.getQuantity() == null ? null : sum(List.of(line.getQuantity()));
-        return new Row("i" + line.getId(), item, null, line, List.of(line), BigDecimal.ONE, null, null, null, invoiced,
-                invoiced == null ? Source.NOT_READ : Source.INVOICE);
+        Source source = invoiced == null ? Source.NOT_READ : Source.INVOICE;
+        if (pack == null) {
+            return new Row("i" + line.getId(), item, null, line, List.of(line), BigDecimal.ONE, null, null, null,
+                    invoiced, source);
+        }
+        InvoiceMatcher.Conversion conversion = pack.conversion();
+        return new Row("i" + line.getId(), item, null, line, List.of(line), conversion.factor(), conversion.pack(),
+                conversion.unitOne(), conversion.unitMany(), invoiced, source);
     }
 
-    // The invoice's description in sentence case ("MINCED BEEF FROZEN": "Minced beef frozen"), cut to an item's name.
-    private static String newItemName(String description) {
-        String text = description == null ? "" : description.strip();
-        if (text.length() > Item.NAME_MAX_LENGTH) {
-            text = text.substring(0, Item.NAME_MAX_LENGTH).strip();
-        }
-        return text.isEmpty() ? text
-                : text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1).toLowerCase(Locale.ROOT);
+    /**
+     * The name of the new item an invoice line would be: its product in sentence case ("MINCED BEEF FROZEN 1KG":
+     * "Minced beef frozen"), cut to an item's name.
+     */
+    static String newItemName(String description) {
+        String text = InvoiceMatcher.productName(description);
+        return text.length() > Item.NAME_MAX_LENGTH ? text.substring(0, Item.NAME_MAX_LENGTH).strip() : text;
     }
 
     // The invoice's unit in the app's spelling ("KG", "Kgs": "kg"; "PCS": "pcs"); a unit that is not one of the

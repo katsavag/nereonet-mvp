@@ -59,7 +59,6 @@ import com.nereonix.nereonet_mvp.core.stock.StockMovement;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementRepository;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.supplier.Supplier;
-import com.nereonix.nereonet_mvp.core.supplier.SupplierItemName;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierItemNameRepository;
 import com.nereonix.nereonet_mvp.core.supplier.SupplierRepository;
 import com.nereonix.nereonet_mvp.core.user.Rank;
@@ -305,7 +304,7 @@ class DeliveryCountFlowTest {
         ShipOrderLine riceLine = line(order, item("Basmati rice", "kg", ItemCategory.PROVISIONS), "120");
         ShipOrderLine fetaLine = line(order, item("Feta cheese", "kg", ItemCategory.PROVISIONS), "10");
         Item oil = item("Olive oil", "lt", ItemCategory.PROVISIONS);
-        Item lemonade = item("Lemonade", "pcs", ItemCategory.PROVISIONS);
+        item("Lemonade", "pcs", ItemCategory.PROVISIONS);
         DeliveryInvoice invoice = invoice(order, "KESTREL SHIP SUPPLY S.A.");
         DeliveryInvoiceLine eggs = invoiceLine(invoice, "EGGS LARGE", "PCS", "30");
         DeliveryInvoiceLine tomatoes = invoiceLine(invoice, "TOMATOES / Ντομάτες", "KG", "25");
@@ -322,9 +321,9 @@ class DeliveryCountFlowTest {
                         "Olive oil, 5 lt can", "Invoice 4 cans", "value=\"4\"", "Tomatoes", "Invoice 25 kg",
                         "Shower gel", "Not on the invoice",
                         "On the invoice, not on the order", "Paper napkins", "New item", "Invoice 10 pcs",
-                        "not on the order", "It is an item we have", "Not on the invoice: remove",
+                        "not on the order", "Not on the invoice: remove",
                         "Sparkling drink xyz", "New item", "Invoice 24 pcs")
-                .doesNotContain("120 kg", "value=\"120\"", "1.85", "price");   // 120 alone can be in a script's file hash
+                .doesNotContain("120 kg", "value=\"120\"", "1.85", "price", "It is an item we have");   // 120 alone can be in a script's file hash
         assertThat(eggs.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getOrderLine().getId()).isEqualTo(riceLine.getId());
@@ -359,41 +358,16 @@ class DeliveryCountFlowTest {
                 .andExpect(redirectedUrl("/ship/orders/" + id + "/count#row-i" + napkins.getId()))
                 .andExpect(flash().attribute("errorMessage", "order.count.save.left"));
 
-        // It is an item we have: the order's lines nothing is matched to, the vessel's other items, Not ordered.
-        String choose = as(cook, get("/ship/orders/{id}/count/choose/{l}", id, drink.getId()));
-        assertThat(choose).contains("Choose the product", "SPARKLING DRINK XYZ", "On this order", "Shower gel",
-                        "Other items of the vessel", "Lemonade", "Not ordered")
-                .doesNotContain(">Basmati rice<", ">Olive oil<");
-        mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, drink.getId()).param("choice", "i" + lemonade.getId())
-                        .with(user(new CurrentUser(cook))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/orders/" + id + "/count#row-i" + drink.getId()))
-                .andExpect(flash().attribute("successMessage", "order.count.choose.saved"));
-        assertThat(drink.getMatch()).isEqualTo(InvoiceMatch.CHOSEN);
-        assertThat(drink.getItem().getId()).isEqualTo(lemonade.getId());
-        assertThat(nameRepository.findAll()).singleElement().satisfies(n -> {
-            assertThat(n.getSupplier().getId()).isEqualTo(kestrel.getId());
-            assertThat(n.getDescription()).isEqualTo("sparkling drink xyz");
-            assertThat(n.getItem().getId()).isEqualTo(lemonade.getId());
-            assertThat(n.getPackFactor()).isEqualByComparingTo("1");
-            assertThat(n.getCreatedBy().getId()).isEqualTo(cook.getId());
-        });
-        assertThat(audit("ORDER_INVOICE_LINE_MATCHED")).extracting(AuditEntry::getDetails)
-                .containsExactly("Order #" + id + ": \"SPARKLING DRINK XYZ\" is Lemonade");
-        assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Lemonade", "Invoice 24 pcs", "value=\"24\"");
-        mockMvc.perform(save("i" + drink.getId(), "24"));
-        // Not ordered: never a row, the office sees it.
-        mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, napkins.getId()).param("choice", "none")
-                        .with(user(new CurrentUser(cook))).with(csrf()))
-                .andExpect(flash().attribute("successMessage", "order.count.choose.notOrdered"));
-        assertThat(napkins.getMatch()).isEqualTo(InvoiceMatch.NOT_ORDERED);
+        // The two lines not on the order are counted as new items, as the invoice has them.
+        mockMvc.perform(save("i" + drink.getId(), "24", "i" + napkins.getId(), "10"));
+        assertThat(drink.getCountedQuantity()).isEqualByComparingTo("24");
         assertThat(as(cook, get("/ship/orders/{id}/count", id)))
-                .contains("Not ordered", "PAPER NAPKINS", "Basmati rice, 10 kg bag", "value=\"11\"", "1 fewer than the invoice",
-                        "One bag torn");
-        assertThat(nameRepository.findAll()).hasSize(1);
+                .contains("Basmati rice, 10 kg bag", "value=\"11\"", "1 fewer than the invoice", "One bag torn");
+        assertThat(nameRepository.findAll()).isEmpty();
 
         // All counted: the summary.
         String summary = as(cook, get("/ship/orders/{id}/count/send", id));
-        assertThat(summary).contains("All 7 counted", "same as the invoice", "The 2 that are different")
+        assertThat(summary).contains("All 8 counted", "same as the invoice", "The 2 that are different")
                 .containsSubsequence("Basmati rice, 10 kg bag", "11 of 12 bags arrived", "One bag torn",
                         "Shower gel", "6 pcs arrived, not on the invoice")
                 .doesNotContain("Eggs");
@@ -427,9 +401,9 @@ class DeliveryCountFlowTest {
         assertThat(fetaLine.getInvoicedQuantity()).isEqualByComparingTo("10");
         assertThat(gelLine.getInvoicedQuantity()).isNull();
         assertThat(gelLine.getReceivedQuantity()).isEqualByComparingTo("6");
-        // The vessel's items not on the order: lines added on receipt, ordered 0.
+        // The vessel's items not on the order and the new items: lines added on receipt, ordered 0.
         List<ShipOrderLine> added = lineRepository.findAll().stream().filter(ShipOrderLine::isAddedOnReceipt).toList();
-        assertThat(added).extracting(l -> l.getItem().getName()).containsExactlyInAnyOrder("Olive oil", "Lemonade");
+        assertThat(added).extracting(l -> l.getItem().getName()).containsExactlyInAnyOrder("Olive oil", "Sparkling drink xyz", "Paper napkins");
         assertThat(added).filteredOn(l -> l.getItem().getId().equals(oil.getId())).singleElement().satisfies(l -> {
             assertThat(l.getQuantity()).isZero();
             assertThat(l.getReceivedQuantity()).isEqualByComparingTo("20");
@@ -439,11 +413,14 @@ class DeliveryCountFlowTest {
         });
         assertThat(olive.getOrderLine()).isNotNull();
         // Stocked: the provisions, with the approved numbers; the shower gel never.
-        assertThat(movements()).hasSize(6);
-        // The uncertain match the cook confirmed is learned too.
-        assertThat(nameRepository.findAll()).extracting(SupplierItemName::getDescription)
-                .containsExactlyInAnyOrder("sparkling drink xyz", "feta 2kg");
-        assertThat(audit("ORDER_INVOICE_LINE_MATCHED")).hasSize(2);
+        assertThat(movements()).hasSize(7);
+        // The uncertain match the cook confirmed is learned for the supplier.
+        assertThat(nameRepository.findAll()).singleElement().satisfies(n -> {
+            assertThat(n.getSupplier().getId()).isEqualTo(kestrel.getId());
+            assertThat(n.getDescription()).isEqualTo("feta 2kg");
+            assertThat(n.getCreatedBy().getId()).isEqualTo(cook.getId());
+        });
+        assertThat(audit("ORDER_INVOICE_LINE_MATCHED")).hasSize(1);
 
         // The next invoice of that supplier: matched automatically, no longer to review.
         ShipOrder next = order(ship);
@@ -454,14 +431,15 @@ class DeliveryCountFlowTest {
         as(cook, get("/ship/orders/{id}/count", next.getId()));
         assertThat(nextLine.getMatch()).isEqualTo(InvoiceMatch.LEARNED);
         assertThat(nextLine.getOrderLine().getId()).isEqualTo(nextFeta.getId());
-        assertThat(nextDrink.getMatch()).isEqualTo(InvoiceMatch.LEARNED);
-        assertThat(nextDrink.getItem().getId()).isEqualTo(lemonade.getId());
+        // The new item of the first delivery is an item of the vessel now: matched by its words.
+        assertThat(nextDrink.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
+        assertThat(nextDrink.getItem().getName()).isEqualTo("Sparkling drink xyz");
         // Another supplier's invoice with the same words: not learned from Kestrel.
         ShipOrder third = order(ship);
         line(third, fetaLine.getItem(), "5");
-        DeliveryInvoiceLine otherDrink = invoiceLine(invoice(third, "Atlas Provisions"), "SPARKLING DRINK XYZ", "PCS", "12");
+        DeliveryInvoiceLine otherFeta = invoiceLine(invoice(third, "Atlas Provisions"), "FETA 2KG", "KG", "5");
         as(cook, get("/ship/orders/{id}/count", third.getId()));
-        assertThat(otherDrink.getMatch()).isEqualTo(InvoiceMatch.PICK);
+        assertThat(otherFeta.getMatch()).isEqualTo(InvoiceMatch.CHECK);
     }
 
     @Test
@@ -476,13 +454,6 @@ class DeliveryCountFlowTest {
                 .doesNotContain("trays");
         mockMvc.perform(save("o" + eggLine.getId(), "28"));
         assertThat(eggLine.getCountedQuantity()).isEqualByComparingTo("28");
-        // Learned for an unknown supplier under its name as read.
-        mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, tomatoes.getId())
-                        .param("choice", "o" + gelLine.getId()).with(user(new CurrentUser(cook))).with(csrf()));
-        assertThat(nameRepository.findAll()).singleElement().satisfies(n -> {
-            assertThat(n.getSupplier()).isNull();
-            assertThat(n.getSupplierName()).isEqualTo("atlas provisions");
-        });
     }
 
     @Test

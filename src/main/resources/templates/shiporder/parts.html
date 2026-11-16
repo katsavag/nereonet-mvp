@@ -122,12 +122,13 @@
      Invoice 12 bags" (the invoice's quantity in its own unit; after a person's correction "Invoice 21 bags (corrected,
      photo read 12)"), "Invoice: not read", "Not on the invoice"; without a read invoice only "Ordered 12 kg".
      A row with a line the cook added by hand says "Invoice 5 kg (added by hand)". A new item's row (r.newItem: an
-     invoice line matched to nothing) says "Invoice 20 kg · not on the order" and, with fix, ends with two small links
-     in place of "Read wrong?": "It is an item we have" (the choose page) and "Not on the invoice: remove" (a submit
-     button of 'countLineForm' that looks like a link).
+     invoice line matched to nothing) says "Invoice 20 kg · not on the order", or with the size of one pack (r.pack)
+     "Invoice 2 pcs of 500 g · not on the order", and, with fix, ends with one small action in place of "Read
+     wrong?": "Not on the invoice: remove" (a submit button of 'countLineForm' that looks like a link).
      A row with a line Claude matched (r.claudeLine) is an ordinary row of its item; its line shows the invoice's own
      wording in brackets and the note "Matched by Claude" ("Invoice 20 kg (MINCED BEEF FROZEN) · Matched by Claude"),
-     and with fix the small link "Not this item" (the choose page for that invoice line) before "Read wrong?".
+     and with fix the small action "Not this item" before "Read wrong?" (a submit button of 'countLineForm' as well:
+     it undoes the match, and the line is a new item's row).
      fix (true on the cook's count; false: the Master's and the read-only lines): the line ends with the small link
      "Read wrong?" ("Enter it" for a quantity not read): the summary of a details element, which opens "The paper
      invoice says", the number and Correct invoice under the line (only for a row with one invoice line,
@@ -144,7 +145,8 @@
     <span th:if="${r.ordered != null}" th:text="#{order.count.ref.ordered(${r.text(r.orderedShown)}, ${r.orderedUnit})}">Ordered 10 bags</span>
     <th:block th:unless="${src == 'NO_INVOICE'}">
         <span th:if="${r.ordered != null}" aria-hidden="true">·</span>
-        <span th:if="${src == 'INVOICE'}" th:text="#{order.count.ref.invoice(${r.text(r.invoiced)}, ${r.unit(r.invoiced)})}">Invoice 12 bags</span>
+        <span th:if="${src == 'INVOICE'}"
+              th:text="${r.newItem and r.pack != null} ? #{order.count.ref.invoicePack(${r.text(r.invoiced)}, ${r.unit(r.invoiced)}, ${r.pack})} : #{order.count.ref.invoice(${r.text(r.invoiced)}, ${r.unit(r.invoiced)})}">Invoice 12 bags</span>
         <span th:if="${src == 'INVOICE' and r.corrected}"
               th:text="${r.photoRead != null} ? #{order.count.ref.corrected(${r.text(r.photoRead)})} : #{order.count.ref.entered}">(corrected, photo read 12)</span>
         <span th:if="${r.addedByHand}" th:text="#{order.count.ref.added}">(added by hand)</span>
@@ -158,19 +160,15 @@
         <th:block th:if="${r.newItem}"><span aria-hidden="true">·</span>
             <span th:text="#{order.count.ref.notOnOrder}">not on the order</span></th:block>
     </th:block>
-    <th:block th:if="${fix and r.newItem}">
-        <!-- The dot is inside each link's box so it never ends a line on its own. -->
-        <span class="count-ref-link"><span aria-hidden="true">·</span>
-            <a th:href="@{/ship/orders/{id}/count/choose/{line}(id=${order.id}, line=${r.extra.id})}"
-               th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.ref.haveIt}">It is an item we have</a></span>
-        <span class="count-ref-link"><span aria-hidden="true">·</span>
-            <button type="submit" form="countLineForm"
-                    th:formaction="@{/ship/orders/{id}/count/lines/{line}/remove(id=${order.id}, line=${r.extra.id})}"
-                    th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button></span>
-    </th:block>
+    <!-- The dot is inside the action's box so it never ends a line on its own. -->
+    <span th:if="${fix and r.newItem}" class="count-ref-link"><span aria-hidden="true">·</span>
+        <button type="submit" form="countLineForm"
+                th:formaction="@{/ship/orders/{id}/count/lines/{line}/remove(id=${order.id}, line=${r.extra.id})}"
+                th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button></span>
     <span th:if="${fix and r.claudeLine != null}" class="count-ref-link"><span aria-hidden="true">·</span>
-        <a th:href="@{/ship/orders/{id}/count/choose/{line}(id=${order.id}, line=${r.claudeLine.id})}"
-           th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.ref.notThis}">Not this item</a></span>
+        <button type="submit" form="countLineForm"
+                th:formaction="@{/ship/orders/{id}/count/lines/{line}/unmatch(id=${order.id}, line=${r.claudeLine.id})}"
+                th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.ref.notThis}">Not this item</button></span>
     <th:block th:if="${fix and !r.newItem and !r.invoiceLines.isEmpty()}">
         <details class="count-fix" th:open="${fixErr}">
             <!-- The dot is inside the summary so it never ends a line on its own. -->

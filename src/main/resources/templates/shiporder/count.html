@@ -4,13 +4,13 @@
 <!-- "Count what arrived", the Chief cook's, phone first: one list and one Save. Under the title one line of help.
      One form around every row (core/order/CountSheet) by category: each order line not removed by the office, and each
      invoice line matched to a vessel item not on the order; then a last group "On the invoice, not on the order": each
-     invoice line matched to nothing, a row like the others with the badge "New item", the invoice's name and unit, and
-     at the end of its reference the links "It is an item we have" and "Not on the invoice: remove". A row (shiporder/parts :: countRow) has its name, under it
+     invoice line matched to nothing, a row like the others with the badge "New item", the invoice's product and unit, and
+     at the end of its reference "Not on the invoice: remove". A row (shiporder/parts :: countRow) has its name, under it
      the reference ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read, and "Add a
      note"), the input "Arrived" and "Did not arrive". The input holds the saved count; a row never saved holds the
      invoice's quantity (the quantity ordered without an invoice; nothing when there is none to go by). After the rows,
-     only when there are any: "Not ordered" (the lines he said were not ordered, with Change and the quiet "Not on the
-     invoice: remove", as "Read wrong?" has on a row). Then, muted, "Removed invoice
+     only when there are any: "Not ordered" (the lines a cook marked as not ordered before P92, with the quiet "Not on the
+     invoice: remove", as "Read wrong?" has on a row; nobody on board marks a new one). Then, muted, "Removed invoice
      lines (2)" (each line as the photo read it, with Put back; hidden while there are none) and, with a read invoice,
      "Add a line from the paper invoice": the item (the order's first, then the vessel's others), the quantity and
      Add line, one line from 768px. js/count.js shows the chosen item's unit beside the quantity.
@@ -94,8 +94,6 @@
                         <span class="count-ref" th:text="#{order.count.notOrdered.hint}">Not stocked: it goes to the office.</span>
                     </div>
                     <div class="count-row-actions">
-                        <a class="count-change" th:href="@{${baseUrl + '/choose/' + l.id}}"
-                           th:attr="aria-describedby=${'notOrdered-' + l.id}" th:text="#{order.count.change}">Change</a>
                         <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
                                 th:formaction="@{${baseUrl + '/lines/' + l.id + '/remove'}}"
                                 th:attr="aria-describedby=${'notOrdered-' + l.id}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button>

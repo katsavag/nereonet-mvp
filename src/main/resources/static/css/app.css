@@ -7050,7 +7050,7 @@ html.is-offline .voice-hold {
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   The delivery count and the Master's approval: shiporder/count.html, count-choose.html, count-send.html and
+   The delivery count and the Master's approval: shiporder/count.html, count-send.html and
    receipt-approve.html.
      - .count-row: one row of the list (shiporder/parts :: countRow inside it: .count-row-form). On a phone the name
        and under it the muted reference line (.count-ref, ending with the small links "Read wrong?" and "Add a note":
@@ -7061,11 +7061,10 @@ html.is-offline .voice-hold {
        the "Did not arrive" buttons of all rows form straight columns; the words are under the input.
        A row as the invoice says is plain. .is-different (on .count-row-form) gives the row a thin left border in the
        warning colour, .is-empty the same in the danger colour; the words say it. .is-none dims the input (0).
-     - .count-ref-link: the two small links at the end of a new item's reference line ("It is an item we have",
-       "Not on the invoice: remove"; the second is a button that looks like a link) and "Not this item" on a row
-       Claude matched, a touch target high.
-     - .count-row-link: a "Not ordered" row, only a name and Change on its right; with the quiet
-       remove button they are .count-row-actions. .count-line-action: the small ghost buttons "Not on the invoice:
+     - .count-ref-link: the small action at the end of a reference line, a button that looks like a link and is a
+       touch target high: "Not on the invoice: remove" on a new item's row, "Not this item" on a row Claude matched.
+     - .count-row-link: a "Not ordered" row, only a name and on its right the quiet remove button
+       (.count-row-actions). .count-line-action: the small ghost buttons "Not on the invoice:
        remove" and "Put back", a touch target high. .count-fix-lines: the remove buttons under "Read wrong?".
      - .count-removed: "Removed invoice lines", muted: a small heading and plain rows with the list's thin rule.
      - .count-add: "Add a line from the paper invoice": the select, the quantity and Add line stacked on a phone, one
@@ -7189,10 +7188,6 @@ html.is-offline .voice-hold {
 .approve-links { display: flex; flex-wrap: wrap; gap: var(--nn-space-2); }
 .approve-page-photo img { display: block; max-width: 100%; height: auto; border: 1px solid var(--nn-border);
     border-radius: var(--nn-radius-control); }
-.count-choose-find { display: flex; gap: var(--nn-space-2); margin-bottom: var(--nn-space-4); }
-.count-choose-group { margin-bottom: var(--nn-space-4); }
-.count-choice { display: flex; align-items: center; min-height: var(--nn-touch-target); }
-.count-choice .form-check-label { display: flex; flex-wrap: wrap; gap: 0 var(--nn-space-2); padding-left: var(--nn-space-1); }
 .count-return > summary { list-style: none; display: inline-flex; align-items: center; }
 .count-return > summary::-webkit-details-marker { display: none; }
 .receipt-changed-line { color: var(--nn-warning-text); font-size: var(--nn-font-sm); }

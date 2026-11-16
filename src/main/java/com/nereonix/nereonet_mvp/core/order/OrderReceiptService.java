@@ -502,15 +502,20 @@ public class OrderReceiptService {
     }
 
     // The item of a new item's row that arrived: the vessel's item with that name, or a new one (as the approval of a
-    // request makes it: PROVISIONS, active, no storage place, ITEM_CREATED). The invoice line is linked to it, one
-    // invoice unit being one of the item's.
+    // request makes it: PROVISIONS, active, no storage place, ITEM_CREATED). The invoice line is linked to it with the
+    // row's pack conversion (one invoice unit is one of the item's, or a pack of 500 g of an item in kg: 0.5, which
+    // the office reviews as any conversion worked out).
     private Item newItem(ShipOrder order, CountSheet.Row row, User master) {
         Item item = requestService.itemFor(order.getShip(), row.getItem().getName(), row.getItem().getUnit(),
                 row.getItem().getCategory(), master);
         DeliveryInvoiceLine line = row.getExtra();
         line.setMatch(InvoiceMatch.CHOSEN);
         line.setItem(item);
-        line.setPackFactor(BigDecimal.ONE);
+        line.setPackFactor(row.getFactor());
+        line.setPack(row.getPack());
+        line.setPackUnitOne(row.isPacked() ? row.unit(BigDecimal.ONE) : null);
+        line.setPackUnitMany(row.isPacked() ? row.getUnit() : null);
+        line.setConversionToReview(row.isPacked());
         return item;
     }
 
