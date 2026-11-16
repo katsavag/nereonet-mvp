@@ -1,5 +1,9 @@
 // Counting the store by voice (P57), the Count by voice card of stores/count.html. Loaded only when the server offers
-// it. The card stays hidden without this script: counting by hand works as before.
+// it. Without this script the card says that counting by voice needs JavaScript; this script removes that line and
+// enables "Enable microphone".
+//  - "Hold to speak" floats at the bottom right of the screen (app.css, .voice-hold). It is shown only while the
+//    microphone can be used: hidden until it is enabled, and whenever the card says why voice cannot be used.
+//    What goes wrong is said in the card's status line, which is scrolled into view.
 //  - The microphone is asked for when the cook presses "Enable microphone", never during the first hold (the
 //    browser's prompt would break the hold). Where the Permissions API already says "granted", the button is skipped.
 //    The stream is closed again at once: the browser's recording light is on only while the cook holds the button.
@@ -13,8 +17,8 @@
 //    application/json) with "Processing...". The answer is the review's address (the page goes there) or the failure
 //    in plain words; when sending again may help (timeout, provider error, no connection) the recording is kept and
 //    "Try again" sends it again. A new hold replaces it. An answer that is not JSON (the session expired): reload.
-//  - No MediaRecorder, no secure context (HTTPS outside localhost), the microphone blocked or missing: the button stays
-//    off and the card says why.
+//  - No MediaRecorder, no secure context (HTTPS outside localhost), the microphone blocked or missing: there is no
+//    floating button and the card says why.
 (function () {
     'use strict';
 
@@ -31,6 +35,7 @@
     const timer = hold.querySelector('[data-voice-timer]');
     const status = card.querySelector('[data-voice-status]');
     const retry = card.querySelector('[data-voice-retry]');
+    const noScript = card.querySelector('[data-voice-nojs]');
     const MIN_MS = 500;
     const MAX_MS = 120000;
     const TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -43,12 +48,20 @@
     let tick = null;
     let limit = null;
     let pending = null;
+    let used = false;   // the cook has pressed a button of the card: from then on its messages are scrolled to
 
-    card.hidden = false;
+    if (noScript) {
+        noScript.remove();
+    }
+    enable.disabled = false;
 
     function say(message, tone) {
         status.textContent = message || '';
         status.dataset.tone = tone || '';
+        // The button floats at the bottom of the screen: what went wrong must not stay out of sight at the top.
+        if (used && message && (tone === 'error' || tone === 'hint' || tone === 'warning')) {
+            status.scrollIntoView({block: 'nearest'});
+        }
     }
 
     function showEnable(shown) {
@@ -59,6 +72,7 @@
     function off(message) {
         showEnable(false);
         hold.disabled = true;
+        hold.hidden = true;
         retry.hidden = true;
         say(message, 'warning');
     }
@@ -76,6 +90,7 @@
     function ready() {
         showEnable(false);
         hold.disabled = sending;
+        hold.hidden = false;
         if (status.dataset.tone === 'warning') {
             say('');
         }
@@ -102,6 +117,7 @@
         } else {
             showEnable(true);
             hold.disabled = true;
+            hold.hidden = true;
         }
     }
 
@@ -114,6 +130,7 @@
     }
 
     enable.addEventListener('click', () => {
+        used = true;
         navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
             stream.getTracks().forEach(track => track.stop());
             ready();
@@ -140,6 +157,7 @@
             return;
         }
         pressed = true;
+        used = true;
         startedAt = Date.now();
         retry.hidden = true;
         hold.classList.add('is-recording');

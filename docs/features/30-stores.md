@@ -2,8 +2,8 @@
 
 Inventory (P52, counting P53; the Chief cook only): the stock of the vessel's provisions. `core/stock/` (`StockLevel`,
 `StockMovement`, `StockMovementType`, `StockStatus`, `StockService` and the two repositories), `stores/`
-(`StoresController`, `StoresService`, `StoresHistoryFilter`), `templates/stores/`, `js/stores-count.js`; styles in
-`app.css`, "Stores (P52)" and "Counting the store (P53)". English only, as every crew screen. `/ship/stores` and `/ship/stores/**` are for CHIEF_COOK only (`SecurityConfig`, next to
+(`StoresController`, `StoresService`, `StoresHistoryFilter`), `templates/stores/`, `js/stores-changed.js`; styles in
+`app.css`, "Stores (P52)" and "Counting the inventory". English only, as every crew screen. `/ship/stores` and `/ship/stores/**` are for CHIEF_COOK only (`SecurityConfig`, next to
 the Master's rules): the Master and crew members get 403. The pages always show the signed-in cook's own vessel.
 - **The stock** (`core/stock`, shared: the request page, the receipt on board and the office use it later). Only
   PROVISIONS items have stock; personal items never appear in the store.
@@ -43,25 +43,32 @@ the Master's rules): the Master and crew members get 403. The pages always show 
   PROVISIONS, is a 404.
 - **Counting by hand** (P53). `StockService.count(cook, itemId, counted, note)` sets the item's stock to the
   counted quantity at once and saves a COUNT movement: before is what the store expected, after what was counted,
-  by the cook, now. A count equal to what was expected is saved too: it confirms the count. Audit log "Inventory
-  counted on board" with "Flour: 10 -> 7 kg". No approval, no draft, no count session. Checks: zero or more with
+  by the cook, now. A count equal to what was expected is saved too (the count page does not send such a row). Audit log "Inventory
+  counted on board" with "Flour: 10 -> 7 kg". No approval, no count session. Checks: zero or more with
   the store's precision (`isValidQuantity`), a note of at most 200 characters (IllegalArgumentException); the item
-  an active PROVISIONS item of the cook's vessel (otherwise nothing changes, and the page answers 404); the user an
+  an active PROVISIONS item of the cook's vessel (otherwise nothing changes); the user an
   enabled Chief cook with a vessel (AccessDeniedException). The item's row is locked first (PESSIMISTIC_WRITE, as
   the order code locks the vessel's row), so two tabs counting one item are saved one after the other. The lock is
   on the item rather than its `StockLevel` because an item never counted has no `StockLevel` row yet.
   - **Count** (a button on Inventory, only with provisions) opens `/ship/stores/count`: every active provisions item
-    by place, as on Inventory, each row with the quantity the store expects in a number input
-    (`inputmode="decimal"`), its unit and status badge. Each row is its own small form,
-    `POST /ship/stores/items/{id}/count` (`quantity`, "2,5" accepted), as the Master's line quantity on
-    `/ship/order`. With JavaScript (`js/stores-count.js`) a row is sent the moment its input changes, with
-    `Accept: application/json` (`StoresController.Counted`), and updated in place: the quantity as stored, the
-    badge and "Saved" for a few seconds; Save is hidden. Without it, the row's Save posts and the page comes back at
-    the same row (`#item-<id>`) with "Saved". A wrong value (blank, not a number, below zero, too many decimals)
-    saves nothing and shows "Enter a quantity of zero or more, with at most 3 decimals." under that row only, the
-    value kept (JSON: 422). Offline or a dropped connection: "Not saved: no connection…" under the row. There is no
-    Save for the page and nothing to resume: the forms carry `data-autosave`, so `js/save.js` never asks "leave this
-    page?" there.
+    by place, as on Inventory, each row with the quantity the inventory has now in a number input
+    (`inputmode="decimal"`) and its unit. One form for the page (`CountForm`), `POST /ship/stores/count`
+    (`quantities[id]`, "2,5" accepted, and the hidden `shown[id]`, the quantity the page showed), sent by one
+    **Save count** in a bar stuck to the bottom of the screen. Nothing is saved before it. In one transaction
+    (`StoresService.saveCount`): a row whose number is not the one the page showed is saved as a count, a row left
+    as it was writes nothing. Then back to Inventory with "Count saved: 3 items changed." (or "Nothing was changed,
+    so nothing was saved."). A wrong value (blank, not a number, below zero, too many decimals, above the maximum)
+    saves nothing at all: the page comes back with every typed value and the message under each wrong row. With
+    JavaScript (`js/stores-changed.js`) a changed row is marked (a blue left edge and "changed") and the bar says
+    "3 items changed". The form carries `data-draft`, so `js/save.js` keeps what is typed in the browser if the
+    connection drops and removes it once the count is saved.
+  - **Add an item that is not on the list** (P75), at the end of the same form: Name, Unit, Quantity counted and
+    Where it is kept (optional, the vessel's places as suggestions). As soon as one field is filled, name, unit and
+    quantity are required (the lengths of `Item`, the quantity by the rule of the typed unit). The same Save creates
+    the item (`core/item/NewItemService.createProvisions`: PROVISIONS, active, the cook's own vessel, audit "Item
+    created" by the cook) and counts it. A name the vessel already has (ignoring case): "This item is already on the
+    list." and nothing is saved. One new item per save. So the Chief cook adds items to the vessel's list without
+    the Master or the office.
   - **History** (the Last count tile on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
     page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
     difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
@@ -79,8 +86,8 @@ the Master's rules): the Master and crew members get 403. The pages always show 
 - Dev data: while the demo vessel has no stock at all, its provisions get some, counted by Demo Cook two days ago
   (one COUNT movement each): Basmati rice 40 kg, Flour 25 kg, Eggs 180, Tomatoes 12 kg, Chicken breast 30 kg (OK),
   Olive oil 4 lt and Coffee 6.5 kg (Low), Sugar and Butter (Out of stock), and Salt 15 kg without a place (Other).
-- Tests: `stores/StoresFlowTest` (P53 too: counting, the JSON answer, the history); the dev data in `approval/ApprovalFlowTest`.
+- Tests: `stores/StoresFlowTest` (P53 too: counting, the history); the dev data in `approval/ApprovalFlowTest`.
 - To try it: as `cook.demo@example.com` / `crew123`, **Inventory** shows 4 in the sidebar; open it, choose **Low**,
   then open Olive oil for its history. As `master.demo@example.com`, `/ship/stores` is a 403. P53: press **Count**,
-  change Basmati rice to 7 and leave the field: "Saved", and the badge turns Low; type -2 for Eggs for the error.
+  change Basmati rice to 7 and press **Save count**: Inventory shows it as Low; type -2 for Eggs for the error.
   **History** then shows the count, 40 → 7, -33.

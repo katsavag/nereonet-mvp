@@ -28,12 +28,17 @@ anything reaches the store. One recording may name one item or many.
     English words.
 - `stores/VoiceCountService.propose(cook, audio, contentType)`: the vessel's active provisions, the text, the lines,
   checked once more (an item of the list, once, a valid quantity), as a `Proposal` (the text, each line with its
-  item, the quantity heard, what the store expects, the words and High / Medium / Low from 0.8 / 0.5, and the
+  item, the quantity heard, the words and High / Medium / Low from 0.8 / 0.5, and the
   unmatched phrases). It does not touch the stock and keeps nothing: the recording is only in memory for the call.
   `confirm(email, rows)` applies the rows through `StockService.count` with the note "Voice count", in one
   transaction: all or none (an item no longer active: none, "An item is no longer in the inventory").
-- **The microphone** (`js/stores-voice.js`, the Count by voice card on `/ship/stores/count`, shown only while both
-  providers are configured or faked, and only by the script: without JavaScript the page is the hand count of 30).
+- **The microphone** (`js/stores-voice.js`, the Count by voice card on `/ship/stores/count`, always the first thing after
+  the page header). While the two providers are not configured (or faked) the card has only its heading and
+  "Counting by voice is not set up on this server. Count by hand below."; with nothing to count it says so. Without
+  JavaScript **Enable microphone** is disabled and the card says "Counting by voice needs JavaScript."; the script
+  removes the line and enables the button. **Hold to speak** floats at the bottom right of the screen, above the
+  Save bar (and the tab bar on phones): a round button with the microphone and its words, shown only while the
+  microphone can be used.
   **Enable microphone** asks for the microphone once (the browser's prompt would break the first hold; skipped when
   the Permissions API says it is already granted). **Hold to speak** records with `MediaRecorder` from pointerdown
   (or Space / Enter held) to pointerup, pointercancel, the pointer leaving the button, or 2 minutes; while held it
@@ -42,10 +47,10 @@ anything reaches the store. One recording may name one item or many.
   you speak." and nothing is sent. On release it posts `POST /ship/stores/count/voice` (multipart `audio`, the
   form's CSRF token, `Accept: application/json`) with "Processing..."; the answer is the review's address or the
   failure in plain words, and after a timeout, a provider error or no connection the recording is kept with **Try
-  again**. No `MediaRecorder`, no secure context, the microphone blocked or missing: the button stays off and the
-  card says why.
+  again**. No `MediaRecorder`, no secure context, the microphone blocked or missing: there is no floating button
+  and the card says why.
 - **What we heard** (`GET /ship/stores/count/voice`, `stores/voice.html`): the text; one row per item with the
-  counted quantity (editable), what the store expects, the words and the confidence (Low rows highlighted), and
+  counted quantity (editable) and its unit, the words and the confidence (Low rows highlighted), and
   **Remove**; the unmatched phrases, each with **Count as** (the vessel's active provisions, or Don't count) and a
   quantity. **Confirm** (`POST .../confirm`) saves every row kept and every phrase given an item, then back to
   Count with "Voice count saved for 4 items."; a wrong quantity, an item counted twice or nothing left saves nothing

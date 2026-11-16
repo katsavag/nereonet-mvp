@@ -198,8 +198,8 @@ class SaveFlowTest {
     void scriptKeepsNoFilesOrPasswordsAndSurvivesBlockedStorage() throws Exception {
         String script = new ClassPathResource("static/js/save.js").getContentAsString(StandardCharsets.UTF_8);
         assertThat(script).contains("'hidden', 'password', 'file'", "data-draft-skip", "try {", "catch (e)",
-                "'beforeunload'", "'pageshow'", "'online'", "'offline'", "[data-flash=\"success\"]",
-                "user + ':' + url");
+                "'pageshow'", "'online'", "'offline'", "[data-flash=\"success\"]",
+                "user + ':' + url").doesNotContain("beforeunload");
     }
 
     private String body(String html) {

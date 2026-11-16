@@ -6658,77 +6658,157 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 }
 .home-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }
 
-/* Counting the store (P53), stores/count.html: one row per item, the name, its quantity in a small form (the input,
-   the unit and, without JavaScript, Save), the status badge and a short "Saved"; a refused value's error on its own
-   line under the row. The input is wide enough for 123456.125 and tall enough for a finger. */
+/* Counting the inventory, stores/count.html: one form, one Save.
+     - .stores-count-row: one item on one line, the name on the left (it wraps; under it "changed" once the number is
+       changed), the input and its unit on the right, so the inputs of all rows form one column. A refused value's
+       error on its own line under the input. .is-changed (js/stores-changed.js): the primary colour on the left edge.
+       The input is wide enough for 123456.125 and tall enough for a finger.
+     - .stores-add-grid: the fields of "Add an item that is not on the list". Phones: the name, then unit and quantity
+       side by side, then the place; from 768px all four on one line.
+     - .stores-count-bar: "Save count", stuck to the bottom of the screen (above the tab bar on phones), as wide as
+       the content area; the number of changed rows on the left, the button on the right (full width under the text
+       on phones). --nn-count-bar is its height: the floating "Hold to speak" sits above it.
+   .stores-count-status is the Inventory list's (stores/list.html): as wide as the widest badge. */
+.stores-count {
+    --nn-count-bar: 4rem;            /* 64px: the button and 12px above and below */
+    --nn-count-bar-bottom: 0px;
+}
+@media (max-width: 767.98px) {
+    .stores-count { --nn-count-bar: 6.5rem; }   /* 104px: one line of text over the button */
+    .has-tab-bar .stores-count { --nn-count-bar-bottom: var(--nn-tab-bar-room); }
+}
 .stores-count-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--nn-space-2) var(--nn-space-3);
+    justify-content: flex-end;
+    gap: var(--nn-space-1) var(--nn-space-2);
     min-height: 3.5rem;
-    scroll-margin-top: 5rem;   /* back at the row (#item-<id>) below the sticky top bar */
 }
-.stores-count-form { display: flex; align-items: center; gap: var(--nn-space-2); }
-/* P60: the limit of the store count ("Up to 20000 kg") on its own line under the row's field. */
-.stores-count-row > .quantity-hint { flex-basis: 100%; margin-top: 0; }
+/* The left edge as an inset shadow: a flush list group has no side borders, and the row's text does not move. */
+.stores-count-row.is-changed { box-shadow: inset var(--nn-space-1) 0 0 var(--nn-blue); }
+.stores-count-name { flex: 1 1 8rem; min-width: 0; }
+.stores-count-name > .stores-row-name { display: block; }
+.stores-count-row > .quantity-hint,
+.stores-count-error { flex-basis: 100%; margin: 0; text-align: end; }
 .voice-row > .quantity-hint { margin-top: var(--nn-space-1); }
-.stores-count-input { width: 8rem; min-height: 2.75rem; text-align: end; }
-.stores-count-unit { min-width: 2rem; color: var(--nn-text-secondary); }
-.stores-count-status { min-width: 6.5rem; }   /* the widest badge, Out of stock: the inputs line up */
-.stores-count-saved { min-width: 3.5rem; font-size: var(--nn-font-sm); color: var(--nn-ok-text); font-weight: 600; }
-.stores-count-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
-.stores-count-error[hidden] { display: none; }
+.stores-count-input { width: 7rem; min-height: 2.75rem; text-align: end; }
+.stores-count-unit { width: 3rem; color: var(--nn-text-secondary); overflow-wrap: anywhere; }
+.stores-count-status { min-width: 6.5rem; }
+.stores-count-error { font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
+.stores-add-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--nn-space-4);
+}
+.stores-add-name,
+.stores-add-place { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+    .stores-add-grid { grid-template-columns: 2fr 1fr 1fr 2fr; }
+    .stores-add-name,
+    .stores-add-place { grid-column: auto; }
+}
+.stores-count-bar {
+    position: sticky;
+    bottom: var(--nn-count-bar-bottom);
+    z-index: 1020;                   /* over the page, under the tab bar and the offline banner */
+    display: flex;
+    align-items: center;
+    gap: var(--nn-space-2) var(--nn-space-4);
+    box-sizing: border-box;
+    min-height: var(--nn-count-bar);
+    /* As wide as the content area and down to its end: nothing of the page shows beside or under the bar. */
+    margin: var(--nn-section-gap) calc(-1 * var(--nn-gutter)) calc(-1 * var(--nn-section-gap));
+    padding: var(--nn-space-3) var(--nn-gutter);
+    background: var(--nn-surface);
+    border-top: 1px solid var(--nn-divider);
+    box-shadow: var(--nn-shadow-bar);
+}
+.stores-count-bar > .btn { margin-left: auto; }
+html.is-offline .stores-count-bar { bottom: calc(var(--nn-count-bar-bottom) + var(--nn-offline-room)); }
+@media (max-width: 767.98px) {
+    .stores-count-bar { flex-direction: column; align-items: stretch; justify-content: flex-end; }
+    .stores-count-bar > .btn { margin-left: 0; }
+}
+/* Room to scroll the last fields clear of the floating "Hold to speak" (4rem and 16px above the bar). */
+.stores-count:has(.voice-hold:not([hidden])) .stores-add { margin-bottom: calc(4rem + var(--nn-space-4)); }
 
 /* Counting by voice (P57): the Count by voice card of stores/count.html (js/stores-voice.js) and the review,
    stores/voice.html.
-     - .voice-hold: press and hold. Never the long-press menu, a text selection or a scroll while held (touch-action,
-       user-select, -webkit-touch-callout). Tall and wide enough for a thumb. .is-recording: the danger colour, a
-       pulsing dot and the timer; .voice-card.is-busy: processing.
-     - .voice-status: one line under the button; data-tone (set by the script) gives it its colour.
+     - .voice-heading: the card's title with the microphone icon.
+     - .voice-hold: press and hold. It floats: fixed at the bottom right, 16px from the edge and 16px above the Save
+       bar (and the tab bar on phones), a round 64px primary button, the microphone over "Hold to speak". Never the
+       long-press menu, a text selection or a scroll while held (touch-action, user-select). .is-recording: red, it
+       grows sideways into a pill with the pulsing dot, "Release to send" and the timer; .voice-card.is-busy:
+       processing. Hidden (the hidden attribute) until the microphone can be used.
+     - .voice-status: one line in the card; data-tone (set by the script) gives it its colour.
      - .voice-row.is-low: a row the extractor was not sure of, with the warning colour on its left edge. */
-.voice-card[hidden],
 .voice-enable[hidden],
 .voice-enable-hint[hidden],
 .voice-timer[hidden],
 [data-voice-retry][hidden] { display: none; }
+.voice-heading { display: flex; align-items: center; gap: var(--nn-space-2); }
+.voice-heading > svg { flex-shrink: 0; width: 1.25rem; height: 1.25rem; color: var(--nn-blue); }
 .voice-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-3); }
 .voice-hold {
+    position: fixed;
+    right: var(--nn-space-4);
+    bottom: calc(var(--nn-count-bar) + var(--nn-count-bar-bottom) + var(--nn-space-4));
+    z-index: 1025;                   /* over the Save bar, under the tab bar and the offline banner */
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--nn-space-2);
-    min-height: 4rem;
-    min-width: 14rem;
+    gap: 0;
+    width: 4rem;
+    height: 4rem;
+    padding: var(--nn-space-1);
+    border-radius: 2rem;
+    box-shadow: var(--nn-shadow-menu);
+    font-size: var(--nn-font-xs);
     font-weight: 600;
+    line-height: 1.05;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
 }
+html.is-offline .voice-hold {
+    bottom: calc(var(--nn-count-bar) + var(--nn-count-bar-bottom) + var(--nn-offline-room) + var(--nn-space-4));
+}
+.voice-hold-icon { display: flex; }
+.voice-hold-icon > svg { width: 1.25rem; height: 1.25rem; }
+.voice-hold .voice-dot { display: none; }
 .voice-hold.is-recording,
 .voice-hold.is-recording:hover,
 .voice-hold.is-recording:focus {
+    flex-direction: row;
+    gap: var(--nn-space-2);
+    width: auto;
+    padding: 0 var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    white-space: nowrap;
     background-color: var(--nn-danger);
     border-color: var(--nn-danger);
     color: var(--nn-white);
 }
+.voice-hold.is-recording .voice-hold-icon { display: none; }
+.voice-hold.is-recording .voice-dot { display: block; }
 .voice-dot { width: .75rem; height: .75rem; border-radius: 50%; background: currentColor; opacity: .6; }
 .is-recording .voice-dot { opacity: 1; animation: voice-pulse 1s ease-in-out infinite; }
 @keyframes voice-pulse { 50% { transform: scale(1.5); opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .is-recording .voice-dot { animation: none; } }
 .voice-timer { font-variant-numeric: tabular-nums; }
 .voice-card.is-busy .voice-hold { cursor: progress; }
-.voice-status { min-height: 1.5rem; margin: var(--nn-space-3) 0 var(--nn-space-2); font-size: var(--nn-font-sm); }
+.voice-status { min-height: 1.5rem; margin: var(--nn-space-3) 0 var(--nn-space-2); font-size: var(--nn-font-sm);
+    scroll-margin-top: 5rem; }
+.voice-status:empty { display: none; }
 .voice-status[data-tone="recording"] { color: var(--nn-danger-text); font-weight: 600; }
 .voice-status[data-tone="error"] { color: var(--nn-danger-text); }
 .voice-status[data-tone="warning"],
 .voice-status[data-tone="hint"] { color: var(--nn-warning-text); }
 .voice-status[data-tone="busy"] { color: var(--nn-text-secondary); }
 .voice-limit { margin-top: var(--nn-space-2); }
-@media (max-width: 575.98px) {
-    .voice-hold { width: 100%; }
-}
 
 .voice-transcript { font-size: var(--nn-font-body); color: var(--nn-text); }
 .voice-row { display: flex; flex-direction: column; gap: var(--nn-space-2); }
@@ -6743,7 +6823,6 @@ a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
 .voice-qty { width: 8rem; min-height: 2.75rem; text-align: end; }
 .voice-item { width: auto; max-width: 100%; min-height: 2.75rem; }
 .voice-unit { min-width: 2rem; color: var(--nn-text-secondary); }
-.voice-expected { font-size: var(--nn-font-sm); }
 .voice-remove { display: inline-flex; align-items: center; gap: var(--nn-space-2); min-height: var(--nn-touch-target);
     margin-left: auto; cursor: pointer; }
 .voice-error { margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }

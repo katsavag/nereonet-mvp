@@ -89,8 +89,8 @@ public class VoiceCountService {
         }
     }
 
-    /** One line of the review: the item, the quantity heard, what the store expects, the words and the confidence. */
-    public record ProposedLine(Long itemId, String name, String unit, BigDecimal counted, BigDecimal expected,
+    /** One line of the review: the item, the quantity heard, the words and the confidence. */
+    public record ProposedLine(Long itemId, String name, String unit, BigDecimal counted,
                                String words, Confidence confidence) implements Serializable {
     }
 
@@ -131,7 +131,7 @@ public class VoiceCountService {
 
     /**
      * The recording as a proposal, nothing saved. Not in a transaction: the providers may take seconds. The cook's
-     * vessel's active provisions are read once, for the key terms, the extractor and the expected quantities.
+     * vessel's active provisions are read once, for the key terms and the extractor.
      * VoiceCountException for every failure (Failure); AccessDeniedException when the user is not an enabled Chief
      * cook with a vessel.
      */
@@ -163,7 +163,7 @@ public class VoiceCountService {
                 continue;
             }
             lines.add(new ProposedLine(line.itemId(), level.item().getName(), level.item().getUnit(),
-                    line.quantity(), level.quantity(), line.words(), Confidence.of(line.confidence())));
+                    line.quantity(), line.words(), Confidence.of(line.confidence())));
         }
         unmatched.addAll(extraction.unmatched());
         if (lines.isEmpty() && unmatched.isEmpty()) {

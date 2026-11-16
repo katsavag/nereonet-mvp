@@ -40,8 +40,7 @@ Ship orders in the office (P36, office users only). `core/order/ShipOrderService
   `added` or empty, `office_note` the office's note). It sets
   `exportedAt` on the exported orders and records "Orders exported" (counts and ids). An order can be exported
   again. Nothing checked: back to the list with "Select at least one order to export.". The page stays as it is
-  (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy
-  and their checkboxes are not unsaved changes.
+  (reload to see the Exported mark): the forms are `data-file`, so `js/save.js` never makes their buttons busy.
 - P64: received with a read invoice, the card "Order, delivery and invoice", the list's Invoice column and filter
   (`?invoice=differ`) and five more export columns ([39](39-invoice-comparison.md)).
 - **Request quotes** (P44, see [28](28-suppliers-and-quotes.md)): while the order is SENT, ask suppliers for prices; once one is awarded the

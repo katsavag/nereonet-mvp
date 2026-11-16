@@ -17,42 +17,58 @@
 <span th:fragment="quantity(quantity, unit)" class="stores-qty"><span class="num"
         th:text="${quantity.stripTrailingZeros().toPlainString()}">12.5</span> <span th:text="${unit}">kg</span></span>
 
-<!-- Count by voice: hidden until js/stores-voice.js shows it, so
-     without JavaScript there is no recording and counting by hand works as before. "Enable microphone" asks for the
-     microphone once (the browser's prompt would otherwise break the first hold); "Hold to speak" records while held
-     (pointer or Space/Enter) and sends on release to action, with the form's CSRF token. The texts the script shows
-     are in data-* attributes. hint: the line under the heading.
-     Use: <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint})}"></section> -->
-<section th:fragment="voiceCard(action, hint)" class="card mb-4 voice-card" data-voice hidden
-         aria-labelledby="voiceHeading"
-         th:attr="data-release=#{stores.voice.release}, data-hold=#{stores.voice.hold},
+<!-- Count by voice, always on the count page, the first thing after the page header.
+     off: a sentence when voice cannot be used at all (the server is not set up, nothing to count): then only the
+     heading and that sentence, no button, and the page does not load js/stores-voice.js. Otherwise null:
+     - Without JavaScript: "Enable microphone" is disabled and a line says that counting by voice needs JavaScript;
+       js/stores-voice.js removes the line and enables the button when it starts.
+     - "Enable microphone" asks for the microphone once (the browser's prompt would otherwise break the first hold).
+       When voice cannot be used in this browser, the status line says why (the data-off-* texts).
+     - "Hold to speak" (button[data-voice-hold]) floats at the bottom right of the screen, above the Save bar: hidden
+       until the microphone can be used; records while held (pointer or Space/Enter) and sends on release to action,
+       with the form's CSRF token. It follows the card in the Tab order.
+     The texts the script shows are in data-* attributes. hint: the line under the heading.
+     Use: <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint}, null)}"></section> -->
+<section th:fragment="voiceCard(action, hint, off)" class="card mb-4 voice-card" aria-labelledby="voiceHeading"
+         th:attr="data-voice=${off == null} ? 'on' : null,
+                  data-release=#{stores.voice.release}, data-hold=#{stores.voice.hold},
                   data-recording=#{stores.voice.recording}, data-processing=#{stores.voice.processing},
                   data-too-short=#{stores.voice.tooShort}, data-not-sent=#{stores.voice.notSent},
                   data-off-unsupported=#{stores.voice.off.unsupported},
                   data-off-insecure=#{stores.voice.off.insecure}, data-off-denied=#{stores.voice.off.denied},
                   data-off-no-device=#{stores.voice.off.noDevice}">
     <div class="card-body">
-        <h2 class="h5 fw-bold" id="voiceHeading" th:text="#{stores.voice.heading}">Count by voice</h2>
-        <p class="text-body-secondary small" th:text="${hint}">Hold the button and say what you count.</p>
-        <form method="post" enctype="multipart/form-data" data-voice-form
-              th:action="${action}"></form>
-        <div class="voice-controls">
-            <button type="button" class="btn btn-outline-secondary voice-enable" data-voice-enable
-                    aria-describedby="voiceEnableHint" th:text="#{stores.voice.enable}">Enable microphone</button>
-            <span class="voice-enable-hint small text-body-secondary" id="voiceEnableHint" data-voice-enable-hint
-                  th:text="#{stores.voice.enableHint}">The browser asks for the microphone once.</span>
-            <button type="button" class="btn btn-primary voice-hold" data-voice-hold disabled
-                    aria-describedby="voiceStatus voiceLimit">
-                <span class="voice-dot" aria-hidden="true"></span>
-                <span data-voice-label th:text="#{stores.voice.hold}">Hold to speak</span>
-                <span class="voice-timer num" data-voice-timer hidden>0:00</span>
-            </button>
-        </div>
-        <p class="voice-status" id="voiceStatus" role="status" aria-live="polite" data-voice-status></p>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-voice-retry hidden
-                th:text="#{stores.voice.retry}">Try again</button>
-        <p class="voice-limit small text-body-secondary mb-0" id="voiceLimit" th:text="#{stores.voice.limit}">
-            A recording stops by itself after 2 minutes.</p>
+        <h2 class="h5 fw-bold voice-heading" id="voiceHeading">
+            <svg th:replace="~{layout/parts :: icon('mic')}"></svg>
+            <span th:text="#{stores.voice.heading}">Count by voice</span>
+        </h2>
+        <p th:if="${off != null}" class="text-meta" th:text="${off}">Counting by voice is not set up on this server.
+            Count by hand below.</p>
+        <th:block th:if="${off == null}">
+            <p class="text-body-secondary small" th:text="${hint}">Hold the button and say what you count.</p>
+            <form method="post" enctype="multipart/form-data" data-voice-form
+                  th:action="${action}"></form>
+            <div class="voice-controls">
+                <button type="button" class="btn btn-outline-secondary voice-enable" data-voice-enable disabled
+                        aria-describedby="voiceEnableHint" th:text="#{stores.voice.enable}">Enable microphone</button>
+                <span class="voice-enable-hint small text-body-secondary" id="voiceEnableHint" data-voice-enable-hint
+                      th:text="#{stores.voice.enableHint}">The browser asks for the microphone once.</span>
+                <button type="button" class="btn btn-primary voice-hold" data-voice-hold hidden disabled
+                        aria-describedby="voiceStatus voiceLimit">
+                    <span class="voice-hold-icon"><svg th:replace="~{layout/parts :: icon('mic')}"></svg></span>
+                    <span class="voice-dot" aria-hidden="true"></span>
+                    <span class="voice-hold-label" data-voice-label th:text="#{stores.voice.hold}">Hold to speak</span>
+                    <span class="voice-timer num" data-voice-timer hidden>0:00</span>
+                </button>
+            </div>
+            <p class="voice-nojs small text-body-secondary" data-voice-nojs th:text="#{stores.voice.noJs}">
+                Counting by voice needs JavaScript.</p>
+            <p class="voice-status" id="voiceStatus" role="status" aria-live="polite" data-voice-status></p>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-voice-retry hidden
+                    th:text="#{stores.voice.retry}">Try again</button>
+            <p class="voice-limit small text-body-secondary mb-0" id="voiceLimit" th:text="#{stores.voice.limit}">
+                A recording stops by itself after 2 minutes.</p>
+        </th:block>
     </div>
 </section>
 

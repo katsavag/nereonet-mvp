@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
+import com.nereonix.nereonet_mvp.core.item.NewItemService;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
@@ -31,7 +32,7 @@ import com.nereonix.nereonet_mvp.core.user.UserRepository;
 
 /**
  * The Chief cook's Stores pages: the provisions of the signed-in cook's own ship with their stock. An item of
- * another ship, or one that is not PROVISIONS, is a 404, never a 403. P53: counting by hand and the ship's history.
+ * another ship, or one that is not PROVISIONS, is a 404, never a 403. Counting by hand (saveCount) and the ship's history.
  */
 @Service
 public class StoresService {
@@ -59,6 +60,11 @@ public class StoresService {
         public boolean isEmpty() {
             return groups.isEmpty();
         }
+
+        /** The names of the storage places shown, in their order (the choices of "Where it is kept"). */
+        public List<String> places() {
+            return groups.stream().map(PlaceGroup::place).filter(place -> place != null).toList();
+        }
     }
 
     public record ItemDetail(Ship ship, Level level, List<StockMovement> history) {
@@ -68,9 +74,11 @@ public class StoresService {
     private final ItemRepository itemRepository;
     private final StockService stockService;
     private final ShipOrderService shipOrderService;
+    private final NewItemService newItemService;
 
     public StoresService(UserRepository userRepository, ItemRepository itemRepository, StockService stockService,
-                         ShipOrderService shipOrderService) {
+                         ShipOrderService shipOrderService, NewItemService newItemService) {
+        this.newItemService = newItemService;
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
         this.stockService = stockService;
@@ -141,23 +149,26 @@ public class StoresService {
         return new ItemDetail(ship, stockService.level(item), stockService.history(item));
     }
 
-    /** P60: an active provisions item of the cook's ship (what the count takes, for its quantity rule); otherwise 404. */
-    @Transactional(readOnly = true)
-    public Item countable(String email, Long id) {
-        Ship ship = ship(email);
-        return itemRepository.findByIdAndShipId(id, ship.getId())
-                .filter(found -> found.getCategory() == ItemCategory.PROVISIONS && found.isActive())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    /** The item the cook adds while counting: its name, unit, place (null for none) and the quantity counted. */
+    public record NewItem(String name, String unit, String place, BigDecimal quantity) {
     }
 
-    /** The cook counts an item of their ship by hand (P53, StockService.count): its new quantity and status. 404 for
-     *  an item that is not an active provisions item of the cook's ship. IllegalArgumentException for a quantity that
-     *  is not valid. */
+    /**
+     * "Save count" on the count page, all or nothing: every row that was changed is counted (StockService.count: the
+     * stock level, one COUNT movement, one STOCK_COUNTED audit entry), then the new item, when there is one, joins the
+     * vessel's list as an active provisions item (ITEM_CREATED) and is counted too. counts: by item id, already checked
+     * by the rule of the item's unit; an item that is no longer an active provisions item of the vessel is left out.
+     * ItemNameTakenException when the vessel has an item with the new item's name: nothing is saved.
+     */
     @Transactional
-    public Level count(String email, Long itemId, BigDecimal counted) {
+    public void saveCount(String email, Map<Long, BigDecimal> counts, NewItem newItem) {
         User cook = userRepository.findByEmail(email).orElseThrow();
-        return stockService.count(cook, itemId, counted, null)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        counts.forEach((itemId, counted) -> stockService.count(cook, itemId, counted, null));
+        if (newItem != null) {
+            Item item = newItemService.createProvisions(ship(email), newItem.name(), newItem.unit(), newItem.place(),
+                    cook);
+            stockService.count(cook, item.getId(), newItem.quantity(), null);
+        }
     }
 
     /** The movements of the cook's ship, newest first, StockService.HISTORY_PAGE_SIZE a page. */

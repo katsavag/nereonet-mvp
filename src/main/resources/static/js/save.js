@@ -14,9 +14,8 @@
 //    review page) notes the draft in sessionStorage, and the next page removes it if it shows the success message
 //    ([data-flash="success"]). Any other page (the form with errors, the sign-in page after the session expired)
 //    keeps it, so after signing in again the form opens with the text (P12).
-//  - Unsaved changes: leaving a signed-in page with a form whose fields changed asks first (beforeunload), except when
-//    a form is being sent. Fields of a closed pop-up, of a download form (data-file) and of a form saved as it changes
-//    (data-autosave, P53) do not count.
+//  - Leaving a page never asks anything: text typed in a form without data-draft and not sent is lost, as on any web
+//    form.
 //  - Offline: while the browser reports no connection, a banner at the bottom says so (layout/parts :: offlineBanner)
 //    and sending a POST form is stopped with a message next to its button, instead of a failed request.
 // Storage can be full, blocked or missing (private windows, strict settings): every access is wrapped, and without it
@@ -216,16 +215,8 @@
         }
     }
 
-    const tracked = []; // {form, initial}: forms whose changes count for "leave this page?"
-
-    document.querySelectorAll('form').forEach(form => {
-        // A download form's fields (checked rows to export) are a choice, not unsaved work; a form saved as it
-        // changes (data-autosave, the count of the store, P53) has nothing left unsaved.
-        if (form.method !== 'post' || form.hasAttribute('data-file') || form.hasAttribute('data-autosave')) {
-            return;
-        }
-        tracked.push({form: form, initial: valuesOf(userFields(form))});
-        if (!form.dataset.draft || !user || !local) {
+    document.querySelectorAll('form[data-draft]').forEach(form => {
+        if (form.method !== 'post' || !form.dataset.draft || !user || !local) {
             return;
         }
         const key = draftKey(form.dataset.draft);
@@ -257,8 +248,6 @@
     });
 
     // ---- Sending: once only, and never while offline -----------------------------------------------------------
-
-    let sending = false;
 
     function offline() {
         return navigator.onLine === false;
@@ -343,7 +332,6 @@
             return; // a download: the page stays, so nothing would give the buttons back
         }
         form.dataset.sending = 'true';
-        sending = true;
         form.querySelectorAll('.save-blocked').forEach(message => message.remove());
         const draft = form.dataset.draft || form.dataset.draftFor;
         if (draft && user) {
@@ -359,29 +347,8 @@
         if (!event.persisted) {
             return;
         }
-        sending = false;
         document.querySelectorAll('form[data-sending]').forEach(setIdle);
         connection();
-    });
-
-    // ---- Leaving with unsaved changes ------------------------------------------------------------------------------
-
-    function open(form) {
-        const modal = form.closest('.modal');
-        return !modal || modal.classList.contains('show');
-    }
-
-    window.addEventListener('beforeunload', event => {
-        if (sending || !user) {
-            return;
-        }
-        const changed = tracked.some(({form, initial}) => form.isConnected && open(form)
-            && (!same(valuesOf(userFields(form)), initial)
-                || Array.from(form.querySelectorAll('input[type=file]')).some(input => input.files && input.files.length)));
-        if (changed) {
-            event.preventDefault();
-            event.returnValue = ''; // older browsers need it to ask
-        }
     });
 
     // ---- Offline banner --------------------------------------------------------------------------------------------

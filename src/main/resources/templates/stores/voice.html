@@ -3,7 +3,7 @@
 <body>
 <!-- What we heard, the review of a voice count, the Chief cook only. Nothing here has touched the stock yet.
      - What you said: the text as transcribed.
-     - Counted items: one row per item heard, its counted quantity (editable), what the store expects, the words it came
+     - Counted items: one row per item heard, its counted quantity (editable) with its unit, the words it came
        from and the confidence (High, Medium, Low; Low rows highlighted). Remove leaves a row out.
      - Not matched: each phrase no item was found for, with Count as (an item of the store, or Don't count) and a
        quantity.
@@ -64,11 +64,6 @@
                                 invalid=${error != null},
                                 describedBy=${'voice-row-' + i + ' row-' + i + '-hint row-' + i + '-error'})}">
                         <span class="voice-unit" th:text="${line.unit}">kg</span>
-                        <span class="voice-expected">
-                            <span class="text-body-secondary" th:text="#{stores.voice.review.expected}">Store expects</span>
-                            <span class="num" th:text="${line.expected.stripTrailingZeros().toPlainString()}">12</span>
-                            <span th:text="${line.unit}">kg</span>
-                        </span>
                         <label class="voice-remove">
                             <input type="checkbox" class="form-check-input" value="true"
                                    th:name="${'rows[' + i + '].removed'}" th:checked="${form.rows[i].removed}"

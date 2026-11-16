@@ -1,13 +1,14 @@
 package com.nereonix.nereonet_mvp.stores;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.context.MessageSource;
-import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,13 +19,13 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.form.QuantityRules.Use;
 import com.nereonix.nereonet_mvp.core.item.Item;
+import com.nereonix.nereonet_mvp.core.item.ItemNameTakenException;
 import com.nereonix.nereonet_mvp.core.list.DatePreset;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
 import com.nereonix.nereonet_mvp.core.list.ListRequest;
@@ -33,11 +34,14 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
 import com.nereonix.nereonet_mvp.core.stock.StockMovementType;
 import com.nereonix.nereonet_mvp.core.stock.StockService.Level;
 import com.nereonix.nereonet_mvp.core.stock.StockStatus;
+import com.nereonix.nereonet_mvp.stores.StoresService.NewItem;
+import com.nereonix.nereonet_mvp.stores.StoresService.PlaceGroup;
+import com.nereonix.nereonet_mvp.stores.StoresService.Stores;
 
 import jakarta.servlet.http.HttpSession;
 
 // The Chief cook's store: the stock of their own ship's provisions, and one item with its history. P53: counting
-// by hand (/ship/stores/count, each row saved on its own) and the ship's history (/ship/stores/history). P57: counting
+// by hand (/ship/stores/count, one form with one "Save count") and the ship's history (/ship/stores/history). P57: counting
 // by voice from the Count page (VoiceCountController).
 // SecurityConfig limits /ship/stores/** to CHIEF_COOK (the Master and crew members get 403). English only, as every
 // crew screen.
@@ -48,17 +52,6 @@ public class StoresController {
 
     // Grouped by place and by name within a place: there is nothing to sort, but ListQuery needs its default.
     private static final ListSort[] SORTS = {ListSort.asc("name")};
-
-    /** A count the server refused, shown next to its row on the count page: the item, the value sent and
-     *  the error of the quantity rule. */
-    public record CountError(Long itemId, String value, MessageSourceResolvable message) {
-    }
-
-    /** A count saved, for js/stores-count.js: the new quantity, its status (key, badge tone and words) and
-     *  "Saved"; or, refused, only the error. */
-    public record Counted(String quantity, String status, String tone, String statusLabel, String message,
-                          String error) {
-    }
 
     private final StoresService storesService;
     private final VoiceCountService voiceCountService;
@@ -98,51 +91,101 @@ public class StoresController {
         return "stores/item";
     }
 
-    // Every active provisions item by place, each with its expected quantity in its own small form. Flash
-    // attributes after a row's form was posted without JavaScript: countSaved (the item's id) or countError.
-    // VoiceEnabled (both providers configured: the Count by voice card) and voicePending (a proposal waits in the
-    // session for its review).
+    // Every active provisions item by place, each row with the quantity the inventory has now, in one form with one
+    // "Save count". Model: stores, form (CountForm), rowErrors (item id: the message of its refused quantity),
+    // voiceEnabled (both providers configured) and voicePending (a proposal waits in the session for its review).
     @GetMapping(PATH + "/count")
     public String countPage(@AuthenticationPrincipal CurrentUser currentUser, HttpSession session, Model model) {
-        model.addAttribute("stores", storesService.load(currentUser.getUsername(), null, null));
+        model.addAttribute("form", new CountForm());
+        return countPage(storesService.load(currentUser.getUsername(), null, null), Map.of(), session, model);
+    }
+
+    private String countPage(Stores stores, Map<Long, String> rowErrors, HttpSession session, Model model) {
+        model.addAttribute("stores", stores);
+        model.addAttribute("rowErrors", rowErrors);
         model.addAttribute("voiceEnabled", voiceCountService.configured());
         model.addAttribute("voicePending", session.getAttribute(VoiceCountController.SESSION_KEY) != null);
         return "stores/count";
     }
 
-    // One row of the count page, without JavaScript: saved at once, then back to the same row. P60: the rule of the
-    // item's unit for a store count (core/form/QuantityRules: blank, not a number, below zero, too many decimals or
-    // above the store maximum): nothing saved, and the row shows the error with the value sent. An item that is not an
-    // active provisions item of the cook's ship: 404.
-    @PostMapping(PATH + "/items/{id}/count")
-    public String count(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
-                        @RequestParam(required = false) String quantity, RedirectAttributes redirectAttributes) {
-        QuantityRules.Check check = check(currentUser, id, quantity);
-        if (!check.ok()) {
-            redirectAttributes.addFlashAttribute("countError", new CountError(id, quantity, check.message()));
-        } else {
-            storesService.count(currentUser.getUsername(), id, check.value());
-            redirectAttributes.addFlashAttribute("countSaved", id);
+    // "Save count": every row whose number is not the one the page showed is saved as a count, a row left as it was
+    // writes nothing, and the item typed under "Add an item that is not on the list" joins the list and is counted;
+    // all in one transaction (StoresService.saveCount). Each quantity follows the rule of its item's unit for a count
+    // (core/form/QuantityRules: blank, not a number, below zero, too many decimals or above the inventory maximum).
+    // Anything wrong: nothing is saved and the page comes back with every typed value and the message next to each
+    // wrong row or field. Otherwise back to the Inventory with "Count saved: 3 items changed."
+    @PostMapping(PATH + "/count")
+    public String saveCount(@AuthenticationPrincipal CurrentUser currentUser, @ModelAttribute("form") CountForm form,
+                            BindingResult errors, HttpSession session, Model model,
+                            RedirectAttributes redirectAttributes) {
+        Stores stores = storesService.load(currentUser.getUsername(), null, null);
+        Map<Long, String> rowErrors = new HashMap<>();
+        Map<Long, BigDecimal> counts = new LinkedHashMap<>();
+        for (PlaceGroup group : stores.groups()) {
+            for (Level level : group.levels()) {
+                Long id = level.item().getId();
+                String typed = form.getQuantities().get(id);
+                if (typed == null) {
+                    continue;   // added to the list after the page was opened
+                }
+                QuantityRules.Check check = quantityRules.forItem(level.item(), Use.COUNT)
+                        .check(typed, level.quantity());
+                if (!check.ok()) {
+                    rowErrors.put(id, messageSource.getMessage(check.message(), LocaleContextHolder.getLocale()));
+                } else if (check.value().compareTo(shown(form, level)) != 0) {
+                    counts.put(id, check.value());
+                }
+            }
         }
-        return "redirect:" + PATH + "/count#item-" + id;
+        NewItem newItem = form.hasNewItem() ? newItem(form, errors) : null;
+        if (!rowErrors.isEmpty() || errors.hasErrors()) {
+            return countPage(stores, rowErrors, session, model);
+        }
+        try {
+            storesService.saveCount(currentUser.getUsername(), counts, newItem);
+        } catch (ItemNameTakenException e) {
+            errors.rejectValue("newName", "stores.count.add.error.taken");
+            return countPage(stores, rowErrors, session, model);
+        }
+        int changed = counts.size() + (newItem == null ? 0 : 1);
+        if (changed == 0) {
+            redirectAttributes.addFlashAttribute("successMessage", "stores.count.nothing");
+        } else {
+            redirectAttributes.addFlashAttribute("successMessage", "stores.count.changed.saved");
+            redirectAttributes.addFlashAttribute("successArgs", new Object[] {changed});
+        }
+        return "redirect:" + PATH;
     }
 
-    // The same with JavaScript (Accept: application/json, js/stores-count.js): the row is updated in place. A refused
-    // value: 422 with the error.
-    @PostMapping(value = PATH + "/items/{id}/count", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
-    public ResponseEntity<Counted> countInPlace(@AuthenticationPrincipal CurrentUser currentUser,
-                                                @PathVariable Long id,
-                                                @RequestParam(required = false) String quantity) {
-        QuantityRules.Check check = check(currentUser, id, quantity);
-        if (!check.ok()) {
-            return ResponseEntity.unprocessableEntity().body(new Counted(null, null, null, null, null,
-                    messageSource.getMessage(check.message(), LocaleContextHolder.getLocale())));
+    // The quantity the page showed in this row when it was opened; the inventory's own when the field is missing.
+    private static BigDecimal shown(CountForm form, Level level) {
+        try {
+            return new BigDecimal(form.getShown().get(level.item().getId()));
+        } catch (NullPointerException | NumberFormatException e) {
+            return level.quantity();
         }
-        Level level = storesService.count(currentUser.getUsername(), id, check.value());
-        return ResponseEntity.ok(new Counted(level.quantity().stripTrailingZeros().toPlainString(),
-                level.status().key(), level.status().tone(), message(level.status().labelKey()),
-                message("stores.count.saved"), null));
+    }
+
+    // The new item as typed, checked: name, unit and quantity required, the lengths of Item, the quantity by the rule
+    // of the typed unit for a count. Null when a field is wrong (the errors are on the fields).
+    private NewItem newItem(CountForm form, BindingResult errors) {
+        if (form.getNewName() == null) {
+            errors.rejectValue("newName", "request.form.error.nameRequired");
+        } else if (form.getNewName().length() > Item.NAME_MAX_LENGTH) {
+            errors.rejectValue("newName", "request.form.error.nameTooLong", new Object[] {Item.NAME_MAX_LENGTH}, null);
+        }
+        if (form.getNewUnit() == null) {
+            errors.rejectValue("newUnit", "stores.count.add.error.unit");
+        } else if (form.getNewUnit().length() > Item.UNIT_MAX_LENGTH) {
+            errors.rejectValue("newUnit", "request.form.error.unitTooLong", new Object[] {Item.UNIT_MAX_LENGTH}, null);
+        }
+        if (form.getNewPlace() != null && form.getNewPlace().length() > Item.PLACE_MAX_LENGTH) {
+            errors.rejectValue("newPlace", "item.error.tooLong");
+        }
+        QuantityRules.Check check = quantityRules.forUnit(form.getNewUnit(), Use.COUNT).check(form.getNewQuantity());
+        check.reject(errors, "newQuantity");
+        return errors.hasErrors() ? null
+                : new NewItem(form.getNewName(), form.getNewUnit(), form.getNewPlace(), check.value());
     }
 
     // Every movement of the ship, newest first, 50 a page; filtered by type and UTC days. A day that is not a
@@ -190,15 +233,5 @@ public class StoresController {
             url.queryParam("page", page);
         }
         return url.build().toUriString();
-    }
-
-    private String message(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
-    }
-
-    // A count of this item as typed, by the rule of its unit for the store.
-    private QuantityRules.Check check(CurrentUser currentUser, Long id, String quantity) {
-        Item item = storesService.countable(currentUser.getUsername(), id);
-        return quantityRules.forItem(item, Use.COUNT).check(quantity);
     }
 }

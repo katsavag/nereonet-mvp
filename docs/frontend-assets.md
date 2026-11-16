@@ -327,7 +327,7 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
       and "Saving…" (sign-in "Signing in…", sign-out "Signing out…": `data-busy-label`).
       A second click, a double click or Enter sends nothing more. Back to the page (browser Back, `pageshow`) gives
       the buttons back. A form answered with a download (`data-file`, the order export, P36) leaves the page as it
-      is, so it is never made busy and its fields never count as unsaved changes. The
+      is, so it is never made busy. The
       confirmation dialog (P10) sends its form the same way
       (`requestSubmit`);
     - drafts: the long-text forms (new announcement: title and message; library: add an item, publish a new
@@ -344,9 +344,8 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
       sign-in page keep it. So after a session expired (P12) the user signs in, lands on the form and the text is
       back. The review and send URLs of announcements, which only take POST, now redirect a GET to the form
       (`GET /office/announcements/review` → `/office/announcements/new`), so returning there after signing in works;
-    - unsaved changes: leaving a signed-in page with a form whose fields changed (or with a file chosen) asks first
-      (`beforeunload`), except while a form is being sent. Fields of a closed pop-up do not count; signed-out pages
-      never ask;
+    - leaving a page never asks anything (no `beforeunload`): text typed in a form without `data-draft` and not sent
+      is lost, as on any web form;
     - offline: while the browser reports no connection a banner is fixed at the bottom of the window (right of the
       sidebar from 768 px; `layout/parts :: offlineBanner`, a live region): "No connection. Your text is kept on this
       device." on a page with a draft form, "No connection. Wait for it to come back before you save anything."

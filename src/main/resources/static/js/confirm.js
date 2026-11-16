@@ -122,7 +122,7 @@
             confirmed.setAttribute('data-confirm-added', '');
             target.append(confirmed);
         }
-        // requestSubmit fires "submit", so js/save.js sees it: not sent while offline, no "leave this page?" (P15).
+        // requestSubmit fires "submit", so js/save.js sees it: not sent while offline (P15).
         if (typeof target.requestSubmit === 'function') {
             target.requestSubmit(button && button.form === target ? button : undefined);
         } else {

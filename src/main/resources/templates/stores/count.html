@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.count.title}, ~{::main})}">
 <body>
-<!-- Counting the store by hand, the Chief cook only: every active provisions item, by storage place as on Stores
-     ("Other" last), each row with the quantity the store expects in its own small form. Each row is saved on its own
-     the moment it changes: there is no Save for the page, no draft and nothing to resume.
-     - js/stores-count.js sends a row as soon as its input changes (Accept: application/json) and updates it in place:
-       the input, the status badge and a short "Saved"; a refused value shows its error under that row only.
-     - Without it each row's Save posts the form; the page comes back at the same row (#item-<id>) with "Saved", or
-       with the error and the value sent (flash countSaved / countError, StoresController).
-     - Offline or the connection dropped: the row says it was not saved (data-not-sent) and keeps the value typed.
-     data-autosave: js/save.js does not ask "leave this page?" for these forms, everything changed is already stored.
-     Count by voice above the items (js/stores-voice.js), and a link to a voice count waiting for review.
-     English only. Model: stores (StoresService.Stores), countSaved (an item id) or countError (CountError),
-     voiceEnabled, voicePending. Each count follows the rule of the item's unit,
-     0 allowed, up to the store maximum (README 35). -->
-<main class="stores-count" th:with="s=${stores}" data-count-page
-      th:attr="data-not-sent=#{stores.count.notSent}">
+<!-- Counting the inventory by hand, the Chief cook only. One form for the whole page; nothing is saved before
+     "Save count".
+     - Count by voice first (stores/parts :: voiceCard, js/stores-voice.js), always there: when the server is not set
+       up or there is nothing to count it says so and has no button. Then the link to a voice count waiting for review.
+     - Every active provisions item, by storage place as on Inventory ("Other" last): a row is the name, one quantity
+       field with the quantity the inventory has now, and the unit. The hidden shown[id] is the quantity the page
+       showed, so a row left as it was writes nothing.
+     - "Add an item that is not on the list": name, unit, quantity counted and where it is kept (the vessel's places
+       as suggestions). Filled in, the item joins the vessel's list and is counted by the same Save.
+     - The bar at the bottom of the screen: "Save count", always enabled. Anything wrong: the page comes back with
+       every typed value, the message under each wrong row or field, and nothing saved.
+     - js/stores-changed.js marks the rows whose number was changed and says how many in the bar; without it there is
+       no mark and no number.
+     - data-draft: js/save.js keeps what is typed in the browser if the connection drops, and removes it once the
+       count is saved.
+     English only. Model: stores (StoresService.Stores), form (CountForm), rowErrors (item id: message),
+     voiceEnabled, voicePending. Each count follows the rule of the item's unit, 0 allowed, up to the inventory
+     maximum (README 35). -->
+<main class="stores-count" th:with="s=${stores}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{stores.count.title}, crumbs=~{::pageCrumbs},
             eyebrowShip=${s.ship}, subtitle=#{stores.count.hint})}">
         <th:block th:fragment="pageCrumbs">
@@ -23,63 +27,121 @@
         </th:block>
     </header>
 
+    <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint},
+            ${!voiceEnabled} ? #{stores.voice.off.notSetUp} : (${s.total == 0} ? #{stores.voice.failure.NO_ITEMS} : null))}"></section>
+
     <!-- A voice count waiting in the session for its review (VoiceCountController). -->
     <p th:if="${voicePending}" class="alert alert-info voice-pending" role="status">
         <span th:text="#{stores.voice.pending}">A voice count is waiting for your review.</span>
         <a class="alert-link" th:href="@{/ship/stores/count/voice}" th:text="#{stores.voice.pendingLink}">Review it</a>
     </p>
 
-    <!-- Count by voice: only when both providers are configured (or faked) and there is something to count
-         (stores/parts :: voiceCard). -->
-    <th:block th:if="${voiceEnabled and s.total > 0}">
-        <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint})}"></section>
-    </th:block>
-
-    <div th:if="${s.total == 0}" class="card">
-        <div th:replace="~{layout/parts :: emptyState(icon='stores', title=#{stores.empty.title},
-                text=#{stores.empty.text}, action=null)}"></div>
-    </div>
-
-    <section th:each="g, it : ${s.groups}" class="card mb-4" th:with="groupId=${'storesCountPlace' + it.index}"
-             th:attr="aria-labelledby=${groupId}">
-        <div class="card-header d-flex justify-content-between align-items-center py-3">
-            <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
-                th:text="${g.place != null} ? ${g.place} : #{stores.place.other}">Dry store</h2>
-            <span class="font-monospace small text-body-secondary" th:text="${g.levels.size()}">4</span>
+    <form method="post" novalidate class="stores-count-form" data-count-form th:object="${form}"
+          th:action="@{/ship/stores/count}" th:data-draft="@{/ship/stores/count}">
+        <div th:if="${s.total == 0}" class="card mb-4">
+            <div th:replace="~{layout/parts :: emptyState(icon='stores', title=#{stores.empty.title},
+                    text=#{stores.empty.text}, action=null)}"></div>
         </div>
-        <ul class="list-group list-group-flush">
-            <li th:each="l : ${g.levels}" class="list-group-item stores-count-row" th:id="${'item-' + l.item.id}"
-                data-count-row
-                th:with="id=${l.item.id}, failed=${countError != null and countError.itemId == l.item.id},
-                         rule=${@quantityRules.forItem(l.item, 'COUNT')},
-                         saved=${countSaved != null and countSaved == l.item.id}">
-                <label class="stores-row-name" th:for="${'count-' + id}" th:text="${l.item.name}">Basmati rice</label>
-                <form class="stores-count-form" method="post" novalidate data-autosave data-count-form
-                      th:action="@{/ship/stores/items/{id}/count(id=${id})}">
-                    <input th:replace="~{layout/parts :: quantityInput(id=${'count-' + id}, name='quantity',
-                            value=${failed} ? ${countError.value} : ${l.quantity.stripTrailingZeros().toPlainString()},
-                            rule=${rule}, cls='form-control-sm stores-count-input', invalid=${failed},
-                            describedBy=${'count-' + id + '-unit count-' + id + '-hint count-' + id + '-error'})}">
+
+        <section th:each="g, it : ${s.groups}" class="card mb-4" th:with="groupId=${'storesCountPlace' + it.index}"
+                 th:attr="aria-labelledby=${groupId}">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
+                <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
+                    th:text="${g.place != null} ? ${g.place} : #{stores.place.other}">Dry store</h2>
+                <span class="font-monospace small text-body-secondary" th:text="${g.levels.size()}">4</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li th:each="l : ${g.levels}" class="list-group-item stores-count-row" data-count-row
+                    th:with="id=${l.item.id}, error=${rowErrors.get(l.item.id)},
+                             rule=${@quantityRules.forItem(l.item, 'COUNT')},
+                             now=${l.quantity.stripTrailingZeros().toPlainString()}">
+                    <div class="stores-count-name">
+                        <label class="stores-row-name" th:for="${'count-' + id}" th:text="${l.item.name}">Basmati rice</label>
+                        <span class="text-meta" data-count-mark hidden th:text="#{stores.count.changed}">changed</span>
+                    </div>
+                    <input type="hidden" data-count-shown th:name="${'shown[' + id + ']'}"
+                           th:value="${form.shown.get(id) ?: now}">
+                    <input th:replace="~{layout/parts :: quantityInput(id=${'count-' + id},
+                            name=${'quantities[' + id + ']'}, value=${form.quantities.get(id) ?: now},
+                            rule=${rule}, cls='stores-count-input', invalid=${error != null}, kept=${l.quantity},
+                            describedBy=${'count-' + id + '-unit count-' + id + '-hint'
+                                    + (error != null ? ' count-' + id + '-error' : '')})}">
                     <span class="stores-count-unit" th:id="${'count-' + id + '-unit'}" th:text="${l.item.unit}">kg</span>
-                    <button type="submit" class="btn btn-outline-secondary btn-sm" data-count-save
-                            th:text="#{stores.count.save}">Save</button>
-                </form>
-                <span class="stores-count-status" data-count-status><span th:replace="~{stores/parts :: statusBadge(${l.status})}"></span></span>
-                <span class="stores-count-saved" role="status" data-count-saved
-                      th:text="${saved} ? #{stores.count.saved} : ''"></span>
-                <p class="stores-count-error" th:id="${'count-' + id + '-error'}" data-count-error
-                   th:text="${failed} ? ${#messages.msgWithParams(countError.message.codes[0], countError.message.arguments)} : ''"
-                   th:hidden="${!failed}"></p>
-                <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'count-' + id + '-hint'})}"></span>
-            </li>
-        </ul>
-    </section>
+                    <p th:if="${error != null}" class="stores-count-error" th:id="${'count-' + id + '-error'}"
+                       th:text="${error}">Enter zero or more.</p>
+                    <span th:replace="~{layout/parts :: quantityHint(${rule}, ${'count-' + id + '-hint'})}"></span>
+                </li>
+            </ul>
+        </section>
 
-    <p th:if="${s.total > 0}" class="text-body-secondary small" th:text="#{stores.count.done}">
-        Every change is saved as you go. Leave this page whenever you like.</p>
+        <!-- An item on the shelf that is not on the list: saved, and counted, by the same "Save count". -->
+        <section class="card stores-add" aria-labelledby="countAddTitle">
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h5 fw-bold" id="countAddTitle" th:text="#{stores.count.add.heading}">Add an item that is
+                    not on the list</h2>
+                <p class="text-body-secondary small" th:text="#{stores.count.add.hint}">It joins the vessel's list
+                    when you save the count.</p>
+                <div class="stores-add-grid">
+                    <div class="stores-add-name">
+                        <label for="newName" class="form-label" th:text="#{stores.count.add.name}">Name</label>
+                        <input type="text" class="form-control" th:field="*{newName}" th:errorclass="is-invalid"
+                               autocomplete="off" aria-describedby="newNameCounter">
+                        <div class="invalid-feedback" th:errors="*{newName}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'newName', 'newName')}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="newUnit" class="form-label" th:text="#{stores.count.add.unit}">Unit</label>
+                        <input type="text" class="form-control" th:field="*{newUnit}" th:errorclass="is-invalid"
+                               autocomplete="off" autocapitalize="none" aria-describedby="newUnitCounter">
+                        <div class="invalid-feedback" th:errors="*{newUnit}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'newUnit', 'newUnit')}"></div>
+                        </div>
+                    </div>
+                    <!-- The rule of the unit typed beside it (js/quantity.js follows the unit as it is typed). -->
+                    <div th:with="newRule=${@quantityRules.forUnit(form.newUnit, 'COUNT')},
+                                  err=${#fields.hasErrors('newQuantity')}">
+                        <label for="newQuantity" class="form-label" th:text="#{stores.count.add.quantity}">Quantity
+                            counted</label>
+                        <input th:replace="~{layout/parts :: quantityInput(id='newQuantity', name='newQuantity',
+                                value=*{newQuantity}, rule=${newRule}, cls='', invalid=${err},
+                                describedBy=${'newQuantityHint' + (err ? ' newQuantityError' : '')},
+                                unitField='newUnit')}">
+                        <div class="invalid-feedback" id="newQuantityError" th:errors="*{newQuantity}"></div>
+                        <span th:replace="~{layout/parts :: quantityHint(${newRule}, 'newQuantityHint')}"></span>
+                    </div>
+                    <div class="stores-add-place">
+                        <label for="newPlace" class="form-label">[[#{stores.count.add.place}]] <span th:replace="~{layout/parts :: optional}"></span></label>
+                        <input type="text" class="form-control" th:field="*{newPlace}" th:errorclass="is-invalid"
+                               autocomplete="off" list="countPlaces" aria-describedby="newPlaceCounter">
+                        <datalist id="countPlaces">
+                            <option th:each="place : ${s.places()}" th:value="${place}"></option>
+                        </datalist>
+                        <div class="invalid-feedback" th:errors="*{newPlace}"></div>
+                        <div class="form-meta">
+                            <div th:replace="~{layout/parts :: counter(${form}, 'newPlace', 'newPlace')}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <div th:replace="~{layout/parts :: quantityTexts('COUNT', null)}"></div>
-    <script th:src="@{/js/stores-count.js}" defer></script>
+        <!-- The one Save of the page, stuck to the bottom of the screen (above the tab bar on phones). The text is
+             written by js/stores-changed.js: "3 items changed". -->
+        <div class="stores-count-bar">
+            <p class="stores-count-total text-meta" role="status" data-count-total
+               th:data-none="#{stores.count.changed.none}" th:data-one="#{stores.count.changed.one}"
+               th:data-many="#{stores.count.changed.many('{count}')}"></p>
+            <button type="submit" class="btn btn-primary" th:text="#{stores.count.save}">Save count</button>
+        </div>
+    </form>
+
+    <th:block th:with="units=${@quantityRules.unitsJson('COUNT')}">
+        <div th:replace="~{layout/parts :: quantityTexts('COUNT', ${units})}"></div>
+    </th:block>
+    <script th:src="@{/js/stores-changed.js}" defer></script>
     <script th:if="${voiceEnabled and s.total > 0}" th:src="@{/js/stores-voice.js}" defer></script>
 </main>
 </body>

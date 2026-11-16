@@ -114,11 +114,10 @@ class VoiceCountFlowTest {
         assertThat(html).contains("<title>What we heard · Nereonet</title>",
                 "Five kilos of tomatoes, eight kilos of chicken, thirty eggs, three cans of herring.");
         assertThat(row(html, "Tomatoes")).contains("name=\"rows[0].quantity\"", "value=\"5\"", "<q>Five kilos of tomatoes</q>",
-                ">High<", "Store expects", "<span class=\"num\">12</span>").doesNotContain("is-low");
+                ">High<").doesNotContain("is-low", "expects", "<span class=\"num\">12</span>");
         assertThat(row(html, "Chicken breast")).contains("name=\"rows[1].quantity\"", "value=\"8\"",
-                "<q>eight kilos of chicken</q>", ">Low<", "is-low", "<span class=\"num\">30</span>");
-        assertThat(row(html, "Eggs")).contains("name=\"rows[2].quantity\"", "value=\"30\"", ">High<",
-                "<span class=\"num\">0</span>");
+                "<q>eight kilos of chicken</q>", ">Low<", "is-low");
+        assertThat(row(html, "Eggs")).contains("name=\"rows[2].quantity\"", "value=\"30\"", ">High<");
         assertThat(html).contains("Not matched", "<q id=\"extra-0\">three cans of herring</q>",
                 "name=\"extras[0].itemId\"", "<option value=\"\">Don&#39;t count</option>", ">Salt (kg)</option>",
                 ">Confirm</button>", ">Discard</button>");
@@ -290,8 +289,8 @@ class VoiceCountFlowTest {
     @Test
     void theCountPageOffersTheMicrophoneAndAPendingReview() throws Exception {
         String html = page("/ship/stores/count");
-        assertThat(html).contains("data-voice hidden", "Count by voice", ">Enable microphone</button>",
-                        "data-voice-hold disabled", "Hold to speak", "data-too-short=\"Hold the button while you speak.\"",
+        assertThat(html).contains("data-voice=\"on\"", "Count by voice", ">Enable microphone</button>",
+                        "data-voice-hold hidden disabled", "Hold to speak", "Counting by voice needs JavaScript.", "data-too-short=\"Hold the button while you speak.\"",
                         "action=\"/ship/stores/count/voice\"", "name=\"_csrf\"", "/js/stores-voice-")
                 .doesNotContain("A voice count is waiting for your review.");
 
