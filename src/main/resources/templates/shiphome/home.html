@@ -4,7 +4,8 @@
 <!-- The crew home page, for the Chief cook and Crew members (the Master has masterhome/home): what this person is asked to read and whether their certificates are in order, in one
      phone screen. English only, as every crew screen. Read only. No images (but the person's own
      profile photo), no script of its own.
-     Phones: one column (To read, My certificates); from 992px To read on the left, the certificates on the right.
+     One column at every width, at most 56rem wide: the cards, To read, My certificates. Everything that opens is
+     one kind of row (.home-row): icon, title with its small line, chevron.
      The header says who is signed in, their rank and ship. No Sign out on this page at any width; it is in the
      sidebar (from 768px) and under More (phones). The person's profile photo (96px version, with its version so
      a new photo shows at once) or initials before the name. -->
@@ -17,89 +18,91 @@
         </th:block>
     </header>
 
-    <!-- The Chief cook only (stores is null for crew members): the Stores card, one link to /ship/stores with the
-         number of provisions Low and Out of stock. Styled as the cards of the Master's home: tinted, with "to do"
-         for screen readers, while anything is Low or Out of stock.
+    <!-- The Chief cook only (stores is null for crew members): the Stores row, one link to /ship/stores with the
+         number of provisions Low and Out of stock; a number above zero has its status colour, and the row says
+         "to do" for screen readers.
          Crew members (not the Chief cook, whose Requests tab carries the same number): the
-         Requests card, one link to /ship/requests with the number of their requests still waiting for the Master
-         (requestsWaiting, from NavigationAdvice). Not tinted: the waiting is the Master's, not theirs. -->
+         Requests row, one link to /ship/requests with the number of their requests still waiting for the Master
+         (requestsWaiting, from NavigationAdvice). -->
     <section class="home-section" aria-labelledby="homeCardsTitle">
         <h2 class="visually-hidden" id="homeCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
         <ul class="home-cards">
             <li th:if="${stores != null}">
-                <a class="home-card stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
+                <a class="home-card home-row stores-card" th:href="@{/ship/stores}" th:classappend="${stores.any()} ? 'is-due'"
                    data-card="stores">
-                    <span class="home-card-icon" aria-hidden="true"><svg
+                    <span class="home-row-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon('stores')}"></svg></span>
-                    <span class="home-card-label" th:text="#{nav.stores}">Stores</span>
-                    <span class="stores-card-counts">
-                        <span><span class="num" th:text="${stores.low}">2</span> <th:block th:text="#{stores.card.low}">low</th:block></span>
+                    <span class="home-row-main"><span class="home-row-title" th:text="#{nav.stores}">Stores</span></span>
+                    <span class="home-row-aside stores-card-counts">
+                        <span th:classappend="${stores.low > 0} ? 'text-warning-emphasis'"><span class="num" th:text="${stores.low}">2</span> <th:block th:text="#{stores.card.low}">low</th:block></span>
                         <span aria-hidden="true">·</span>
-                        <span><span class="num" th:text="${stores.out}">1</span> <th:block th:text="#{stores.card.out}">out of stock</th:block></span>
+                        <span th:classappend="${stores.out > 0} ? 'text-danger-emphasis'"><span class="num" th:text="${stores.out}">1</span> <th:block th:text="#{stores.card.out}">out of stock</th:block></span>
                     </span>
                     <span th:if="${stores.any()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 5 7 7-7 7"/></svg>
                 </a>
             </li>
             <li sec:authorize="hasRole('CREW_MEMBER')">
-                <a class="home-card" th:href="@{/ship/requests}" data-card="requests">
-                    <span class="home-card-icon" aria-hidden="true"><svg
+                <a class="home-card home-row" th:href="@{/ship/requests}" data-card="requests">
+                    <span class="home-row-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon('requests')}"></svg></span>
-                    <span class="home-card-label" th:text="#{home.card.requests}">My requests</span>
-                    <span class="home-card-count"><span class="num" th:text="${requestsWaiting ?: 0}">1</span>
+                    <span class="home-row-main"><span class="home-row-title" th:text="#{home.card.requests}">My requests</span></span>
+                    <span class="home-row-aside"><span class="num" th:text="${requestsWaiting ?: 0}">1</span>
                         <th:block th:text="#{home.card.requests.waiting}">waiting</th:block></span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 5 7 7-7 7"/></svg>
                 </a>
             </li>
         </ul>
     </section>
 
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <!-- To read: Required library items and Required news items not opened yet, oldest first. Each card
-                 opens the item, which reads it. News and Library themselves are in the navigation. -->
-            <section class="home-section" aria-labelledby="toReadTitle">
-                <h2 class="home-section-title" id="toReadTitle">
-                    <span th:text="#{home.toRead.heading}">To read</span>
-                    <span th:unless="${home.toRead.isEmpty()}" class="title-count"><span aria-hidden="true">·</span>
-                        <span class="num" th:text="${home.toRead.size()}">1</span></span>
-                </h2>
-                <ul th:unless="${home.toRead.isEmpty()}" class="read-list">
-                    <li th:each="r : ${home.toRead}">
-                        <a class="read-card" th:href="@{${r.url}}">
-                            <th:block th:if="${r.version != null}"><span
-                                    th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span></th:block>
-                            <!-- A news item: the sidebar's News icon; the type below says it in words. -->
-                            <span th:if="${r.version == null}" class="read-card-icon" aria-hidden="true"><svg
-                                    th:replace="~{layout/parts :: navIcon('announcements')}"></svg></span>
-                            <span class="read-card-main">
-                                <span class="read-card-type" th:text="#{${'home.toRead.kind.' + r.kind}}">Library</span>
-                                <span class="read-card-title" th:text="${r.title}">Drug and alcohol policy</span>
-                                <span class="read-card-date"><span th:text="#{${'home.toRead.date.' + r.kind}}">Published</span>
-                                    <time th:replace="~{layout/parts :: utcDate(${r.date})}"></time></span>
-                            </span>
-                            <svg class="read-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-                                 focusable="false"><path d="m9 5 7 7-7 7"/></svg>
-                        </a>
-                    </li>
-                </ul>
-                <p th:if="${home.toRead.isEmpty()}" class="up-to-date">
-                    <svg th:replace="~{layout/parts :: icon('check')}"></svg>
-                    <span th:text="#{home.toRead.empty}">You are up to date.</span>
-                </p>
-            </section>
-        </div>
+    <!-- To read: Required library items and Required news items not opened yet, oldest first. Each row
+         opens the item, which reads it. News and Library themselves are in the navigation. -->
+    <section class="home-section" aria-labelledby="toReadTitle">
+        <h2 class="home-section-title" id="toReadTitle">
+            <span th:text="#{home.toRead.heading}">To read</span>
+            <span th:unless="${home.toRead.isEmpty()}" class="title-count"><span aria-hidden="true">·</span>
+                <span class="num" th:text="${home.toRead.size()}">1</span></span>
+        </h2>
+        <ul th:unless="${home.toRead.isEmpty()}" class="home-rows">
+            <li th:each="r : ${home.toRead}">
+                <a class="home-row" th:href="@{${r.url}}">
+                    <th:block th:if="${r.version != null}"><span
+                            th:replace="~{core/library/parts :: typeIcon(${r.version})}"></span></th:block>
+                    <!-- A news item: the sidebar's News icon; the type below says it in words. -->
+                    <span th:if="${r.version == null}" class="home-row-icon" aria-hidden="true"><svg
+                            th:replace="~{layout/parts :: navIcon('announcements')}"></svg></span>
+                    <span class="home-row-main">
+                        <span class="home-row-kind" th:text="#{${'home.toRead.kind.' + r.kind}}">Library</span>
+                        <span class="home-row-title" th:text="${r.title}">Drug and alcohol policy</span>
+                        <span class="home-row-meta"><span th:text="#{${'home.toRead.date.' + r.kind}}">Published</span>
+                            <time th:replace="~{layout/parts :: utcDate(${r.date})}"></time></span>
+                    </span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+        </ul>
+        <p th:if="${home.toRead.isEmpty()}" class="up-to-date">
+            <svg th:replace="~{layout/parts :: icon('check')}"></svg>
+            <span th:text="#{home.toRead.empty}">You are up to date.</span>
+        </p>
+    </section>
 
-        <div class="col-lg-5">
-            <!-- The person's own certificates, soonest expiry first (expired, then expiring soon). Read only. -->
-            <section class="home-section" aria-labelledby="certificatesTitle">
-                <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
-                <!-- "2 required documents missing", to My profile; only when something is. -->
-                <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
-                <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false, null)}"></div>
-                <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>
-            </section>
+    <!-- My certificates, one card: "2 required documents missing", to My profile, only when something is; the
+         person's own certificates, soonest expiry first (expired, then expiring soon), read only; the note. -->
+    <section class="home-section" aria-labelledby="certificatesTitle">
+        <h2 class="home-section-title" id="certificatesTitle" th:text="#{home.certificates.heading}">My certificates</h2>
+        <div class="card home-certificates">
+            <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
+            <div th:replace="~{crew/parts :: myCertificates(${home.certificates}, ${today}, false, null)}"></div>
+            <p th:replace="~{layout/parts :: infoNote(null, #{home.certificates.contact})}"></p>
         </div>
-    </div>
+    </section>
 </main>
 </body>
 </html>

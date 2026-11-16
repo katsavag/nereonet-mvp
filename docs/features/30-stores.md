@@ -22,8 +22,8 @@ the Master's rules): the Master and crew members get 403. The pages always show 
 - **Where**: **Inventory** in the sidebar under Supplies (P65), with the number of provisions Low or Out of stock as a
   pill (one count query, `StockLevelRepository.countBelowOnShipOf`); on phones it is the Chief cook's second tab
   (P65; a row of More before) with the same number as a badge.
-  The cook's Home ([18](18-crew-home.md)) has an **Inventory** card above To read with both counts ("2 low · 1 out of stock"), tinted
-  while either is above zero. The Master's home gets its Inventory card later.
+  The cook's Home ([18](18-crew-home.md)) has an **Inventory** card above To read with both counts ("2 low · 1 out of stock"); a number
+  above zero has its warning or danger text colour. The Master's home gets its Inventory card later.
 - **The store** (`/ship/stores`, titled "Inventory"): a summary first, **Low** and **Out of stock** (each a link to
   that filter, tinted when above zero) and **Last count** (a link to History; the date of the latest COUNT movement, or "Not counted
   yet") and **Requests waiting**: the cook's own requests still waiting for the Master, a link to

@@ -20,7 +20,7 @@
      List filters, sort and pages; View switch; Row selection; Import from a file; Empty states; Snoozing alerts;
      Date range; Facts grid; Stat strip and tiles; Cards that close.
    Features: Vessel page; Overview; Sign-in and registration; Forgot password; Rank and access; Certificates;
-     Library; Notifications; Crew Home; Home cards; Crew News; My profile and My crew; Approvals; Vessel order;
+     Library; Notifications; The Home pages; Crew News; My profile and My crew; Approvals; Vessel order;
      Vetting; SIRE 2.0; Required documents; Suppliers and quotes; Vessel data; Receipt on board; Stores;
      Requests; Delivery count; Delivery invoice; Order, delivery and invoice. */
 
@@ -3197,8 +3197,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
        .is-empty: a value that is words for nothing ("None scheduled"), muted.
        Use: <ul class="stat-strip"><li><a class="stat-chip is-warning" href="..."><span class="stat-chip-label">Low</span>
             <span class="stat-chip-value num">4</span></a></li> ...</ul>
-     - The large tiles keep their own layout in their features: .overview-tile-link (Overview), .home-card (the
-       crew's and the Master's Home) and .count-tile (a delivery count's summary). Here is what they share with each
+     - The large tiles keep their own layout in their features: .overview-tile-link (Overview) and .count-tile (a
+       delivery count's summary). Here is what they share with each
        other and with the strip: the surface, the card's border, radius and shadow (--nn-shadow, as every .card; a
        chip has a button's radius and no shadow), the padding, the label small and muted, the number in the title
        size and bold, the hover of a link (a darker border, the label underlined) and the warning tone.
@@ -3213,7 +3213,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 .stat-chip,
 .overview-tile-link,
-.home-card,
 .count-tile {
     color: var(--nn-text);
     background-color: var(--nn-surface);
@@ -3221,7 +3220,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     text-decoration: none;
 }
 .overview-tile-link,
-.home-card,
 .count-tile {
     padding: var(--nn-space-3) var(--nn-space-4);
     border-radius: var(--nn-radius-card);
@@ -3239,18 +3237,15 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     border-radius: var(--nn-radius-control);
 }
 a.stat-chip:hover,
-.overview-tile-link:hover,
-.home-card:hover {
+.overview-tile-link:hover {
     color: var(--nn-text);
     border-color: var(--nn-field-border);
 }
 a.stat-chip:hover .stat-chip-label,
-.overview-tile-link:hover .overview-tile-label,
-.home-card:hover .home-card-label { text-decoration: underline; }
+.overview-tile-link:hover .overview-tile-label { text-decoration: underline; }
 .stat-chip-label,
 .stat-chip-more,
 .overview-tile-label,
-.home-card-label,
 .count-tile {
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
@@ -3263,7 +3258,6 @@ a.stat-chip:hover .stat-chip-label,
     .stat-chip-value { font-size: var(--nn-font-sm); }
 }
 .overview-tile-number,
-.home-card-count,
 .count-tile-num {
     font-size: var(--nn-font-title);
     font-weight: 700;
@@ -4567,37 +4561,73 @@ a.stat-chip:hover .stat-chip-label,
 
 
 /* ---------------------------------------------------------------------------------------------------------------
-   Crew home page: shiphome/home.html.
-     - No Sign out on this page: the sidebar and More have it.
-     - .home-section-title: the section headings (To read, My certificates; Recent orders on the Master's
-       home page), card-title size.
-     - .read-card: one thing to read, a whole card that is one link, at least 56px high: type icon, type, title, the
-       date published, a chevron. .up-to-date: "You are up to date." in the ok pair with a tick.
+   The Home pages: the crew's (shiphome/home.html) and the Master's (masterhome/home.html).
+     - No Sign out on these pages: the sidebar and More have it.
+     - One column, at most --nn-home-width wide, with the page header's left edge.
+     - .home-section: one rhythm. 24px above every heading (the page header's margin above the first), 12px between
+       a heading and its first row, the visually hidden "On board" heading included; rows 8px apart.
+     - .home-section-title: the section headings (To read, My certificates, Recent orders), card-title size, the
+       count after it muted (.title-count).
+     - .home-row: everything that opens, a whole card that is one link, at least 56px high: an icon in a 32px
+       column (a library type icon, or .home-row-icon), .home-row-main (.home-row-kind small above, .home-row-title
+       in bold, .home-row-meta small under), .home-row-aside or .home-card-count on the right (a count, a status),
+       then the chevron (.profile-row-chevron).
+     - .home-rows: a list of rows, one per line. .home-cards: the "On board" cards (.home-card), one per line on
+       phones, two from 576px, three from 992px; the cards of the last line fill it, so one card alone is a
+       full-width row. .is-due (something to do): the number in the primary text colour.
+     - .home-certificates: My certificates as one card: the "required documents missing" row, the certificates
+       (or the sentence that there are none, muted), then the note, small and muted; dividers between the rows, the
+       text in the title column of the rows above.
+     - .up-to-date: "You are up to date." in the ok pair with a tick.
      - .cert-row: a certificate, its type and expiry on the left, the expiry badge on the right.
    --------------------------------------------------------------------------------------------------------------- */
 :root {
-    --nn-read-card-height: 3.5rem;   /* 56px */
+    --nn-home-width: 56rem;
+    --nn-home-row-height: 3.5rem;    /* 56px */
+    /* Where the text of a row starts: the row's padding, the icon column and the gap after it. */
+    --nn-home-row-indent: calc(var(--nn-space-4) + var(--nn-file-type-width) + var(--nn-space-3));
 }
 
-.home-section + .home-section { margin-top: var(--nn-section-gap); }
+.crew-home,
+.master-home { max-width: var(--nn-home-width); }
+/* flow-root: the 12px above the first row add to the 24px under the page header instead of collapsing into them. */
+.home-section { display: flow-root; }
+.home-section + .home-section { margin-top: var(--nn-space-5); }
 .home-section-title {
-    margin-bottom: var(--nn-space-3);
+    margin: 0;
     font-size: var(--nn-font-title);
     font-weight: 700;
 }
+.home-section > h2 + * { margin-top: var(--nn-space-3); }
+.home-section > .home-row + .home-cards { margin-top: var(--nn-space-2); }
 
-.read-list {
-    display: grid;
+.home-rows,
+.home-cards {
     gap: var(--nn-space-2);
     margin: 0;
     padding: 0;
     list-style: none;
 }
-.read-card {
+.home-rows { display: grid; }
+.home-cards {
+    display: flex;
+    flex-wrap: wrap;
+}
+.home-cards > li {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+@media (min-width: 576px) {
+    .home-cards > li { flex-basis: calc(50% - var(--nn-space-2)); }
+}
+@media (min-width: 992px) {
+    .home-cards > li { flex-basis: calc(33.333% - var(--nn-space-2)); }
+}
+.home-row {
     display: flex;
     align-items: center;
     gap: var(--nn-space-3);
-    min-height: var(--nn-read-card-height);
+    min-height: var(--nn-home-row-height);
     padding: var(--nn-space-3) var(--nn-space-4);
     background-color: var(--nn-surface);
     border: 1px solid var(--nn-border);
@@ -4606,35 +4636,76 @@ a.stat-chip:hover .stat-chip-label,
     color: var(--nn-text);
     text-decoration: none;
 }
-.read-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
-.read-card:hover .read-card-title { text-decoration: underline; }
-.read-card-main {
+.home-row:hover { color: var(--nn-text); background-color: var(--nn-hover); }
+.home-row:hover .home-row-title { text-decoration: underline; }
+.home-card { height: 100%; }
+.home-row-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--nn-file-type-width);
+    color: var(--nn-text-secondary);
+}
+.home-row-icon > svg {
+    width: 24px;
+    height: 24px;
+}
+.home-row-main {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     min-width: 0;
 }
-.read-card-type {
+.home-row-kind {
     font-size: var(--nn-font-xs);
     font-weight: 600;
     letter-spacing: .04em;
     text-transform: uppercase;
     color: var(--nn-text-secondary);
 }
-.read-card-title {
+.home-row-title {
     font-weight: 600;
     overflow-wrap: anywhere;
 }
-.read-card-date {
+.home-row-meta {
     font-size: var(--nn-font-sm);
     color: var(--nn-text-secondary);
 }
-.read-card-chevron {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
+.home-row-aside,
+.home-card-count {
+    flex: none;
+    text-align: end;
+    white-space: nowrap;
+}
+.home-card-count { font-weight: 700; }
+.home-card.is-due .home-card-count { color: var(--nn-primary-text); }
+
+.home-certificates { overflow: hidden; }
+.home-certificates > .home-row,
+.home-certificates > .card {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+.home-certificates > .home-row { border-bottom: 1px solid var(--nn-divider); }
+.home-certificates > .card > .card-body {
+    padding: var(--nn-space-3) var(--nn-space-4) 0 var(--nn-home-row-indent);
     color: var(--nn-text-secondary);
 }
+.home-certificates > .card > .list-group:last-child { border-bottom: 1px solid var(--nn-divider); }
+.home-certificates .cert-row {
+    padding-inline: var(--nn-home-row-indent) var(--nn-space-4);
+}
+.home-certificates > .info-note {
+    gap: var(--nn-space-3);
+    margin: 0;
+    padding: var(--nn-space-2) var(--nn-space-4) var(--nn-space-3);
+    background: none;
+    color: var(--nn-text-secondary);
+    border-radius: 0;
+}
+.home-certificates > .info-note > svg { margin-inline: var(--nn-space-2); }
 
 .up-to-date {
     display: flex;
@@ -4659,20 +4730,6 @@ a.stat-chip:hover .stat-chip-label,
     gap: var(--nn-space-2);
     margin: var(--nn-space-2) 0 0;
 }
-/* An announcement's card: the announcements icon in the place, and at the size, of a library type icon. */
-.read-card-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: var(--nn-file-type-width);
-    height: var(--nn-file-type-height);
-    color: var(--nn-blue);
-}
-.read-card-icon > svg {
-    width: 24px;
-    height: 24px;
-}
 
 .cert-row {
     display: flex;
@@ -4691,58 +4748,6 @@ a.stat-chip:hover .stat-chip-label,
     font-weight: 600;
     overflow-wrap: anywhere;
 }
-
-
-/* ---------------------------------------------------------------------------------------------------------------
-   Home cards: the Master's home (masterhome/home.html) and the crew Home's cards (shiphome/home.html).
-     - .home-cards: one column on phones, two from 768px.
-     - .home-card: a whole card that is one link, at least 72px high: icon, label, the number on the right;
-       .is-due (something to do) has the primary tint. The look it shares with the other tiles is in "Stat strip
-       and tiles".
-   --------------------------------------------------------------------------------------------------------------- */
-:root {
-    --nn-home-card-height: 4.5rem;   /* 72px */
-}
-
-.home-cards {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--nn-space-3);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-@media (min-width: 768px) {
-    .home-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-.home-card {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-3);
-    height: 100%;
-    min-height: var(--nn-home-card-height);
-}
-.home-card-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: var(--nn-text-secondary);
-}
-.home-card-icon > svg {
-    width: 24px;
-    height: 24px;
-}
-.home-card-label {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-.home-card-count { flex-shrink: 0; }
-.home-card.is-due {
-    background-color: var(--nn-primary-bg);
-    border-color: var(--nn-primary-border);
-}
-.home-card.is-due .home-card-icon,
-.home-card.is-due .home-card-count { color: var(--nn-primary-text); }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -6178,8 +6183,8 @@ a.stat-chip:hover .stat-chip-label,
      - .cert-matrix-missing: a required cell not held shows the Missing badge in place of the muted dash.
      - .cert-row-required: on My profile, a missing or expired required document, with a danger rule on its start
        edge (the badge says it in words); .cert-row-contact: "Contact the office to add it."
-     - .documents-missing-link: crew Home and the Master's home, "2 required documents missing": one link in the
-       danger pair with the warning triangle and a chevron, at least 44px high.
+     - .documents-missing-link: crew Home and the Master's home, "2 required documents missing": a .home-row with
+       the warning triangle and the words in the danger text colour.
    Text pairs: names 15:1, hints 6.6:1 on the surface (6.0:1 on the header surface); badges and the danger pair as
    everywhere.
    --------------------------------------------------------------------------------------------------------------- */
@@ -6444,34 +6449,8 @@ label.req-cell:hover { background-color: var(--nn-hover); }
     font-weight: 500;
 }
 
-.documents-missing-link {
-    display: flex;
-    align-items: center;
-    gap: var(--nn-space-2);
-    min-height: 44px;
-    margin-bottom: var(--nn-space-3);
-    padding: var(--nn-space-2) var(--nn-space-4);
-    background-color: var(--nn-danger-bg);
-    color: var(--nn-danger-text);
-    border: 1px solid var(--nn-danger-border);
-    border-radius: var(--nn-radius-card);
-    font-weight: 600;
-    text-decoration: none;
-}
-.documents-missing-link:hover {
-    color: var(--nn-danger-text);
-    text-decoration: underline;
-}
-.documents-missing-link > svg {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-}
-.documents-missing-link > .profile-row-chevron {
-    margin-inline-start: auto;
-    color: currentColor;
-}
-.master-home > .documents-missing-link { margin-bottom: var(--nn-space-4); }
+.documents-missing-link .home-row-icon,
+.documents-missing-link .home-row-title { color: var(--nn-danger-text); }
 @media (max-width: 767.98px) {
     :root { --nn-req-type-width: 10rem; }
 }
@@ -6776,7 +6755,6 @@ input.supplier-currency { max-width: 7rem; }
     gap: var(--nn-space-1);
     white-space: nowrap;
 }
-.home-card.is-due .stores-card-counts { color: var(--nn-primary-text); font-weight: 600; }
 
 /* Counting the inventory, stores/count.html: one form, one Save.
      - .stores-count-row: one item on one line, the name on the left (it wraps; under it "changed" once the number is
@@ -7095,7 +7073,6 @@ html.is-offline .voice-hold {
        say it). Their look is in "Stat strip and tiles".
      - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
      - .receipt-changed-line: the Master's "Changed from 23", in words and bold.
-     - .home-card-note: the line under the Master's Deliveries card label.
    --------------------------------------------------------------------------------------------------------------- */
 .count-row { padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); scroll-margin-top: 5rem; }
 .count-row:has(> .count-row-form.is-different) { box-shadow: inset var(--nn-space-1) 0 0 var(--nn-warning); }
@@ -7216,8 +7193,6 @@ html.is-offline .voice-hold {
 .count-return > summary::-webkit-details-marker { display: none; }
 .receipt-changed-line { color: var(--nn-warning-text); font-size: var(--nn-font-sm); }
 .order-progress-count { margin-top: var(--nn-space-1); }
-.home-card-note { display: block; margin-top: var(--nn-space-1); font-size: var(--nn-font-sm); font-weight: 400;
-    color: var(--nn-text-secondary); }
 @media (min-width: 576px) {
     .count-send-button, .approve-button { width: auto; min-width: 14rem; }
 }

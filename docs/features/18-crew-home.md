@@ -10,9 +10,9 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   **More** in the tab bar on phones ([20](20-my-profile-and-my-crew.md)).
 - **To read**: the Required library items of the person's ship that they have not opened in the current
   version and the Required news they have not opened yet (P27, P39, P73, see [19](19-crew-news.md)), together, oldest first, with their number
-  after the heading. Each is a full-width card (at least 56 px) with the type icon (the announcements icon for an
+  after the heading. Each is a full-width row (at least 56 px) with the type icon (the announcements icon for an
   announcement), the type ("Library" or "News item"), the title and "Published 12 Nov 2026" or "Sent 12 Nov
-  2026" (UTC date), and opens the library item or the news item (both read by opening them). Retired items and items of
+  2026" (UTC date), a chevron, and opens the library item or the news item (both read by opening them). Retired items and items of
   other ships never show. A new version puts the item back on the list. Nothing left: "You are up to date."
   No links to News or the Library follow the list (P73): both are in the navigation.
 - **My certificates**: the person's own certificates, soonest expiry first (so expired, then expiring soon, then
@@ -20,13 +20,13 @@ PC); crew screens are English only. `shiphome/ShipHomeController`, `ShipHomeServ
   lists (Expired, 30 / 60 / 90 days, Valid; words and icon, not colour alone). Read only, with the note "Contact the
   office to update a certificate." Without any: "No certificates on record." (`crew/parts :: myCertificates`,
   shared with My profile, 20, which adds the file links.) P42 (see [26](26-required-documents.md)): when required documents are missing or
-  expired, one line above them, "2 required documents missing", links to My profile; the Master's home has it too.
+  expired, the first row of the card, "2 required documents missing" in the danger text colour, links to My profile; the Master's home has it as a row above its cards. The link, the certificates and the note are one card.
 - **Crew acknowledgements** (the Master only): the Required items that not everyone on board has acknowledged in
   the current version, oldest first, each with "1 of 3 acknowledged" and its bar, linking to the item's
   acknowledgement overview ([16](16-ship-library.md)). When everyone has: "Everyone on board has acknowledged every required document."
 - **Inventory** (P52, the Chief cook only, see [30](30-stores.md)): above To read, one card linking to `/ship/stores` with the number
-  of provisions Low and Out of stock ("2 low · 1 out of stock"), tinted while either is above zero.
-- From 992 px To read (and the Master's card) and the certificates sit side by side.
+  of provisions Low and Out of stock ("2 low · 1 out of stock"); a number above zero has its warning or danger text colour.
+- Both Home pages (the crew's and the Master's) are one column at every width, at most 56 rem wide, and everything that opens is one kind of row: a white card with an icon, the title in bold with its small muted line, and a chevron. The "On board" cards are one per row on phones, two from 576 px and three from 992 px; the cards of the last row fill it, so one card alone is a full-width row.
 - **Navigation for the crew on phones** (below 768 px): a tab bar fixed at the bottom of the screen (`layout/parts
   :: tabBar`) with four tabs per role since P65, Home first and **More** last: the Master **Home**, **Approvals**
   and **Vessel order**; the Chief cook **Home**, **Inventory** and **Requests**; crew members **Home**, **News** (P27;

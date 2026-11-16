@@ -58,7 +58,7 @@ class ShipHomeFlowTest {
     private static final Pattern CERTIFICATES =
             Pattern.compile("(?s)<section [^>]*aria-labelledby=\"certificatesTitle\">.*?</section>");
     private static final Pattern TAB_BAR = Pattern.compile("(?s)<nav class=\"tab-bar d-md-none\".*?</nav>");
-    private static final Pattern READ_CARD_TITLE = Pattern.compile("<span class=\"read-card-title\">([^<]+)</span>");
+    private static final Pattern READ_CARD_TITLE = Pattern.compile("<span class=\"home-row-title\">([^<]+)</span>");
     private static final Pattern SCRIPT = Pattern.compile("<script src=\"/([^\"]+?)(-[0-9a-f]{32})?\\.js\"");
 
     @Autowired
@@ -118,7 +118,7 @@ class ShipHomeFlowTest {
 
         String toRead = section(TO_READ, html);
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy");
-        assertThat(toRead).contains("href=\"/ship/library/" + policy.getId() + "\"", "class=\"read-card-type\">Library<",
+        assertThat(toRead).contains("href=\"/ship/library/" + policy.getId() + "\"", "class=\"home-row-kind\">Library<",
                         "Published")
                 .doesNotContain("You are up to date.", "home-links", "All news", "Open the Library");
 
@@ -146,8 +146,8 @@ class ShipHomeFlowTest {
         String toRead = section(TO_READ, home(cook));
         // The policy was published two days ago, the announcement sent now: oldest first.
         assertThat(titles(toRead)).containsExactly("Drug and alcohol policy", "Safety drill");
-        assertThat(toRead).contains("href=\"/ship/news/" + id + "\"", "class=\"read-card-type\">News item<",
-                        "<span>Sent</span>", "<span class=\"read-card-icon\" aria-hidden=\"true\">");
+        assertThat(toRead).contains("href=\"/ship/news/" + id + "\"", "class=\"home-row-kind\">News item<",
+                        "<span>Sent</span>", "<span class=\"home-row-icon\" aria-hidden=\"true\">");
 
         mockMvc.perform(get("/ship/news/{id}", id).with(user(new CurrentUser(cook)))).andExpect(status().isOk());
         assertThat(titles(section(TO_READ, home(cook)))).containsExactly("Drug and alcohol policy");

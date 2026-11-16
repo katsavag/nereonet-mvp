@@ -107,14 +107,15 @@
     </p>
 </section>
 
-<!-- Crew Home and the Master's home: one line, "2 required documents missing" (expired included), linking to My
-     profile's My certificates, where they are listed; nothing when none is missing. A warning triangle and the words,
-     the whole line one link at least 44px high. English only. count: the number missing. -->
+<!-- Crew Home (the first row of the My certificates card) and the Master's home (a row above its cards): "2 required
+     documents missing" (expired included), linking to My profile's My certificates, where they are listed; nothing
+     when none is missing. A row as the others of Home (.home-row): the warning triangle and the words in the danger
+     text colour, a chevron. English only. count: the number missing. -->
 <th:block th:fragment="documentsMissingLink(count)">
-    <a th:if="${count != null and count > 0}" class="documents-missing-link" th:href="@{/ship/profile} + '#myCertificatesTitle'">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-             stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></svg>
-        <span th:text="#{home.documents.missing(${count})}">2 required documents missing</span>
+    <a th:if="${count != null and count > 0}" class="home-row documents-missing-link" th:href="@{/ship/profile} + '#myCertificatesTitle'">
+        <span class="home-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+             stroke-linejoin="round" focusable="false"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></svg></span>
+        <span class="home-row-main"><span class="home-row-title" th:text="#{home.documents.missing(${count})}">2 required documents missing</span></span>
         <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
     </a>

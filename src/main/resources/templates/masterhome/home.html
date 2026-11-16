@@ -4,36 +4,41 @@
 <!-- The Master's home page (/ship as MASTER): what waits for them on board, as cards, and the latest orders sent.
      English only, as every crew screen. Read only. Model: home (MasterHomeService.MasterHome).
      Header: the ship's name and IMO number.
-     Cards: one link each, at least 72px high, with its label and number. A zero is quiet (muted number, no tint); a card
-     with something to do has the primary tint and "to do" in words for screen readers. Crew on board only informs, so it
-     is never tinted. Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
+     One column, at most 56rem wide. Everything that opens is one kind of row (.home-row): icon, title with its
+     small line, chevron.
+     Cards: one link each, with its label and number. A zero is quiet; a card with something to do has its number in
+     the primary colour and "to do" in words for screen readers. Crew on board only informs, so it never has.
+     Deliveries to receive counts the scheduled deliveries (CONFIRMED) and opens Vessel order, or
      the receipt itself when there is exactly one. With deliveries the Chief cook counted, "Counted by the Chief
-     cook, to approve" under its label. One column on phones, two from 768px. A Stores card joins them once the inventory exists.
+     cook, to approve" under its label. One per row on phones, two from 576px, three from 992px; the last row's cards
+     fill it. A Stores card joins them once the inventory exists.
      Recent orders: the three most recently sent, newest first, each with its status, confirmed port and delivery date
-     (or "Not confirmed yet"), linking to the order; then All orders. -->
+     (or "Not confirmed yet"), each a row linking to the order; then All orders. -->
 <main class="master-home" th:with="h=${home}">
     <header th:replace="~{layout/parts :: pageHeader(heading=${h.ship.name},
             subtitle=#{ship.codeValue(${h.ship.imoNumber})})}"></header>
 
-    <!-- The Master's own required documents missing, to My profile; only when something is. -->
-    <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
-
     <section class="home-section" aria-labelledby="masterCardsTitle">
         <h2 class="visually-hidden" id="masterCardsTitle" th:text="#{masterhome.cards.heading}">On board</h2>
+        <!-- The Master's own required documents missing, to My profile; only when something is. -->
+        <th:block th:replace="~{crew/parts :: documentsMissingLink(${documentsMissing})}"></th:block>
         <ul class="home-cards">
             <li th:each="c : ${h.cards}">
-                <a class="home-card" th:href="@{${c.url}}" th:classappend="${c.highlighted()} ? 'is-due'"
+                <a class="home-card home-row" th:href="@{${c.url}}" th:classappend="${c.highlighted()} ? 'is-due'"
                    th:attr="data-card=${c.key}">
-                    <span class="home-card-icon" aria-hidden="true"><svg
+                    <span class="home-row-icon" aria-hidden="true"><svg
                             th:replace="~{layout/parts :: navIcon(${c.icon})}"></svg></span>
-                    <span class="home-card-label">
-                        <span th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
+                    <span class="home-row-main">
+                        <span class="home-row-title" th:text="#{${'masterhome.card.' + c.key}}">Requests to approve</span>
                         <!-- The deliveries the Chief cook counted, to approve. -->
-                        <span th:if="${c.hasNote()}" class="home-card-note"
+                        <span th:if="${c.hasNote()}" class="home-row-meta"
                               th:text="#{${'masterhome.card.' + c.noteKey}(${c.noteCount})}">Counted by the Chief cook, to approve</span>
                     </span>
                     <span class="home-card-count num" th:text="${c.count}">1</span>
                     <span th:if="${c.highlighted()}" class="visually-hidden" th:text="#{masterhome.card.toDo}">to do</span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 5 7 7-7 7"/></svg>
                 </a>
             </li>
         </ul>
@@ -41,27 +46,31 @@
 
     <section class="home-section" aria-labelledby="recentOrdersTitle">
         <h2 class="home-section-title" id="recentOrdersTitle" th:text="#{masterhome.orders.heading}">Recent orders</h2>
-        <div class="card">
-            <p th:if="${h.recentOrders.isEmpty()}" class="card-body mb-0" th:text="#{order.past.empty.title}">No orders sent yet</p>
-            <ul th:unless="${h.recentOrders.isEmpty()}" class="list-group list-group-flush">
-                <li th:each="o : ${h.recentOrders}" class="list-group-item list-group-item-action approval-row">
-                    <div class="approval-row-main">
-                        <a class="approval-row-title stretched-link" th:href="@{/ship/orders/{id}(id=${o.id})}"
-                           th:text="#{order.number(${o.id})}">Order #12</a>
-                        <p class="approval-row-meta">
+        <div th:if="${h.recentOrders.isEmpty()}" class="card">
+            <p class="card-body text-meta" th:text="#{order.past.empty.title}">No orders sent yet</p>
+        </div>
+        <ul th:unless="${h.recentOrders.isEmpty()}" class="home-rows">
+            <li th:each="o : ${h.recentOrders}">
+                <a class="home-row" th:href="@{/ship/orders/{id}(id=${o.id})}">
+                    <span class="home-row-icon" aria-hidden="true"><svg
+                            th:replace="~{layout/parts :: navIcon('orders')}"></svg></span>
+                    <span class="home-row-main">
+                        <span class="home-row-title" th:text="#{order.number(${o.id})}">Order #12</span>
+                        <span class="home-row-meta">
                             <span th:if="${o.confirmedPort != null}" th:text="#{order.confirmedAt(${o.confirmedPort})}">Confirmed: Antwerp</span>
                             <span th:if="${o.confirmedPort != null and o.deliveryDate != null}" aria-hidden="true">·</span>
                             <span th:if="${o.deliveryDate != null}">[[#{order.deliveryDate}]] <time th:replace="~{layout/parts :: localDate(${o.deliveryDate})}"></time></span>
                             <span th:if="${o.confirmedPort == null and o.deliveryDate == null}"
                                   th:text="#{masterhome.orders.notConfirmed}">Not confirmed yet</span>
-                        </p>
-                    </div>
-                    <div class="approval-row-decision">
-                        <span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span>
-                    </div>
-                </li>
-            </ul>
-        </div>
+                        </span>
+                    </span>
+                    <span class="home-row-aside"><span th:replace="~{shiporder/parts :: statusBadge(${o.status})}"></span></span>
+                    <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                         focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+        </ul>
         <p class="home-links">
             <a class="btn btn-ghost" th:href="@{/ship/order(view='received')}" th:text="#{masterhome.orders.all}">All orders</a>
         </p>

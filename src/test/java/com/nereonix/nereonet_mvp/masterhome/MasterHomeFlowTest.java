@@ -62,7 +62,7 @@ class MasterHomeFlowTest {
 
     private static final Pattern RECENT_ORDERS =
             Pattern.compile("(?s)<section [^>]*aria-labelledby=\"recentOrdersTitle\">.*?</section>");
-    private static final Pattern ORDER_TITLE = Pattern.compile("stretched-link\" href=\"/ship/orders/\\d+\">([^<]+)</a>");
+    private static final Pattern ORDER_TITLE = Pattern.compile("<span class=\"home-row-title\">(Order #\\d+)</span>");
 
     @Autowired MockMvc mockMvc;
     @Autowired ShipRepository shipRepository;
