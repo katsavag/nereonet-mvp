@@ -25,9 +25,6 @@
     <th:block th:if="${s.workListShown()}">
     <ul th:replace="~{dashboard/parts :: tiles(${d})}"></ul>
 
-    <!-- The snooze form of Needs attention: the checked rows' items go to the snooze page. -->
-    <form th:replace="~{alert/parts :: snoozeForm('snoozeForm', ${overviewUrl})}"></form>
-
     <div class="overview-columns">
     <section th:replace="~{dashboard/parts :: attention(${d}, ${list}, ${groups}, ${overviewUrl})}"></section>
 

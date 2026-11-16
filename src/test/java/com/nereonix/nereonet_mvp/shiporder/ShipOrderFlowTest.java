@@ -129,7 +129,7 @@ class ShipOrderFlowTest {
         ShipOrderLine riceLine = line(order, rice);
         assertThat(page("/ship/order")).contains("Vessel order", "1 order needs you");
 
-        changeQuantity(riceLine, "12").andExpect(redirectedUrl("/ship/order"))
+        changeQuantity(riceLine, "12").andExpect(redirectedUrl("/ship/order?view=current"))
                 .andExpect(flash().attribute("successMessage", "order.quantity.saved"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("12");
 
@@ -161,11 +161,11 @@ class ShipOrderFlowTest {
         String detail = page("/ship/orders/" + order.getId());
         assertThat(detail).contains(">Pending</span>", "Waiting for the office to schedule the delivery", "Rotterdam", "Deliver to the gangway", "Basmati rice")
                 .doesNotContain("/ship/order/lines/");
-        // The sent order is in progress; the current order is empty.
+        // The sent order is in progress, where the page now opens; the current order is empty.
         assertThat(main(page("/ship/order?view=progress"))).containsSubsequence("Order #" + order.getId(),
                 ">Pending</span>", "2 items", "waiting for the office to schedule the delivery");
-        assertThat(main(page("/ship/order"))).containsSubsequence("Current order", "In progress", ">1<",
-                "Nothing to order yet", "Approved requests are collected here.");
+        assertThat(main(page("/ship/order?view=current"))).containsSubsequence("Current order", "In progress", ">1<",
+                "Nothing to order yet", "Requests the Master approves are added here.");
         changeQuantity(riceLine, "1").andExpect(flash().attribute("errorMessage", "order.notOpen"));
         assertThat(riceLine.getQuantity()).isEqualByComparingTo("12");
 
@@ -190,7 +190,7 @@ class ShipOrderFlowTest {
     void withoutAnOpenOrderThereIsNothingToOrder() throws Exception {
         String html = page("/ship/order");
 
-        assertThat(html).contains("Nothing to order yet", "Approved requests are collected here.")
+        assertThat(html).contains("Nothing to order yet", "Requests the Master approves are added here.")
                 .doesNotContain("/ship/order/send");
         send("Rotterdam", LocalDate.now(ZoneOffset.UTC).toString(), "")
                 .andExpect(flash().attribute("errorMessage", "order.nothingToSend"));
@@ -214,7 +214,7 @@ class ShipOrderFlowTest {
 
         mockMvc.perform(post("/ship/order/lines/" + soapLine.getId() + "/remove")
                         .with(user(new CurrentUser(master))).with(csrf()))
-                .andExpect(redirectedUrl("/ship/order"))
+                .andExpect(redirectedUrl("/ship/order?view=current"))
                 .andExpect(flash().attribute("successMessage", "order.line.removed"));
 
         assertThat(order.getLines()).singleElement().satisfies(l -> assertThat(l.getItem().getId()).isEqualTo(rice.getId()));
@@ -260,7 +260,7 @@ class ShipOrderFlowTest {
                 .doesNotContain("Send to office", "status-ok");
         assertThat(html.indexOf("Order #" + second.getId())).isLessThan(html.indexOf("Order #" + first.getId()));
         mockMvc.perform(get("/ship/orders/" + openOrderAfter().getId()).with(user(new CurrentUser(master))))
-                .andExpect(redirectedUrl("/ship/order"));
+                .andExpect(redirectedUrl("/ship/order?view=current"));
     }
 
     @Test

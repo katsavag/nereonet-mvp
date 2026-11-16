@@ -29,7 +29,7 @@ column, the tiles two per row.
   (ship · person and rank, or "2 of 5 not read" · date) and one action: **Open certificate**, **Open order**
   (the order page, where the delivery is scheduled and the order exported, see [24](24-office-orders.md); or where a shortage is marked
   handled, P51), **Resend invitation** (new link and expiry date, back to the Overview with "Invitation sent again") or **View who
-  has not read it**. A certificate or vetting row also has a checkbox and **Snooze** (P43, see [27](27-snoozing.md)); snoozed
+  has not read it**. A certificate or vetting row also has **Snooze** (P43, see [27](27-snoozing.md)); snoozed
   items are left out. The list is paged, 10 rows at a time (20, 50 or 100, the P19 pager; `?page=2`), and sorted
   most urgent first or, with **By date** (`?sort=date`), by the date that drives each row, earliest first. Above
   the rows a line of filter chips, **All** and one per category with its count (Certificates, Required documents,

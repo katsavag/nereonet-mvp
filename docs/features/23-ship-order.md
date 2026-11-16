@@ -11,13 +11,16 @@ The ship order and "Send to office" (P35, the Master only; the Chief cook reads 
 - **`/ship/order`**: the ship's OPEN order, its lines by category (Provisions, then Personal items), each with the
   item name, quantity and unit and, under it, who asked for it: "Chief Cook 6, A. Santos 4" (the Master and the
   Chief cook by rank, others as initial and surname, each person once with what they asked for in all). Without an
-  OPEN order, or with no lines: "Nothing to order yet. Approved requests are collected here."
+  OPEN order, or with no lines: a compact card, "Nothing to order yet. Requests the Master approves are added here."; for the Master with requests
+  waiting, also a link to Approvals ("3 requests are waiting for you").
 - **Three views** (P74), switched by links under the header (`layout/parts :: viewSwitch`, `?view=`): **Current
-  order** (the default, also for an unknown value: the OPEN order and Send to office), **In progress**
+  order** (`?view=current`, also for an unknown value: the OPEN order and Send to office), **In progress**
   (`?view=progress`) and **Received** (`?view=received`), the last two with their count on the tab when above zero.
+  Without `?view=` the page opens on Current order while it has lines, else on In progress when there are orders in
+  progress, else on Current order; the line changes and the send form come back to `?view=current`.
   `ShipOrderPageService.page` loads only the chosen view. When an order in progress needs the user (the Master: a
-  scheduled delivery to receive; the Chief cook: one to count), the Current order view says so in one warning
-  line above the order, "1 delivery to receive", a link to In progress.
+  scheduled delivery to receive; the Chief cook: one to count), the Current order view says so in one full-width
+  warning row above the order, "1 delivery to receive", a link to In progress.
 - **In progress** (P59, its own view since P74): one card per order of the vessel that is SENT ("Pending") or
   CONFIRMED ("Delivery scheduled"), most urgent first: the scheduled deliveries by delivery date (earliest first),
   then the orders waiting for the office by sent date (waiting longest first). Each card: "Order #12", the status

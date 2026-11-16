@@ -368,7 +368,7 @@ class DashboardFlowTest {
         assertThat(ATTENTION_ROW.matcher(attentionList(last)).results().count()).isEqualTo(2);
         assertThat(last).contains("51 to 52 of 52", "Eve Expired", "Certificate 0<");
         // The actions and the certificate form come back to the same page.
-        assertThat(last).contains("returnTo=/office?page%3D6", "name=\"returnTo\" value=\"/office?page=6\"");
+        assertThat(last).contains("returnTo=/office?page%3D6");
 
         String certificates = html(get("/office").param("type", "certificates"));
         assertThat(certificates).contains("1 to 10 of 51", "<a class=\"chip is-current\" href=\"/office?type=certificates\" aria-current=\"true\">",

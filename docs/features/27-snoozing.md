@@ -11,9 +11,7 @@ vetting item aside for a while, with a reason, so the counters and the Overview 
   observations past their target date (one item each; `AlertKind`). Orders, invitations, announcements and
   required documents cannot be snoozed: they have an action of their own.
 - **Where**: the Certificates list ([12](12-certificates.md)), the Vetting list ([25](25-vetting.md)) and the Overview's Needs attention list ([4](04-overview.md)) have a
-  checkbox per row and a **Snooze** link per row; **Snooze selected** in the header (with JavaScript, `js/list-rows.js`:
-  the count of checked rows, select all on the page, the button disabled while nothing is checked; without it the
-  checkboxes still post, through the `form` attribute of a GET form). Both open the snooze page.
+  **Snooze** link per row (on the Vetting list it takes every open item of the vessel). It opens the snooze page.
 - **The snooze page** (`/office/alerts/snooze?items=CERTIFICATE_EXPIRING:12,…&returnTo=…`): the items reviewed
   (type, person or vessel, how far the date is; with several, each a ticked checkbox so one can be left out), the
   **Reason** (Renewal in progress, Crew member signs off before expiry, Not needed on this vessel, Other with a

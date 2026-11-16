@@ -56,7 +56,7 @@ unchanged (`MessageKeysTest`).
 - Elsewhere: the vessel page header's badge row (5; P43: each badge a link to this page), the Vessels list's Safety
   Score column ([5](05-ships.md)) and two kinds of Overview item ([4](04-overview.md)): inspection expired, unacceptable or expiring within 60 days,
   and Safety Score 2 or below, right after expired certificates, each with **Open RightShip**. P43: the Vetting
-  list shows each vessel's flag under its name, its rows have a checkbox and **Snooze** for the vessel's open
+  list shows each vessel's flag under its name, its rows have **Snooze** for the vessel's open
   vetting items (the inspection, the score, the SIRE 2.0 report, comments and observations; one item each), a
   snoozed row is muted with the snooze note and **Undo**, and the Status filter has **Snoozed** (see [27](27-snoozing.md)).
 - **RightShip API sync** (optional, read only, off by default): set `RIGHTSHIP_BASE_URL`, `RIGHTSHIP_CLIENT_ID` and

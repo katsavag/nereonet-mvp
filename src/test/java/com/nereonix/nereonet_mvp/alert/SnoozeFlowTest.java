@@ -114,10 +114,10 @@ class SnoozeFlowTest {
     void snoozingACertificateLowersTheCounterAndRemovesItFromTheOverviewUntilUndone() throws Exception {
         String key = "CERTIFICATE_EXPIRING:" + stcw.getId();
         String list = html(get("/office/certificates"));
-        // The row has its checkbox and Snooze; the sidebar counts both certificates within 30 days.
-        assertThat(list).contains("name=\"items\" value=\"" + key + "\" form=\"snoozeForm\"",
-                "href=\"/office/alerts/snooze?items=" + key + "&amp;returnTo=/office/certificates\"", ">Snooze selected</span>",
+        // The row has Snooze and no checkbox; the sidebar counts both certificates within 30 days.
+        assertThat(list).contains("href=\"/office/alerts/snooze?items=" + key + "&amp;returnTo=/office/certificates\"",
                 "href=\"/office/crew/" + jane.getId() + "/edit\">Jane Doe</a>");
+        assertThat(list).doesNotContain("name=\"items\"", "snoozeForm");
         assertThat(navCertificates(list)).isEqualTo("2");
         assertThat(attentionRows(html(get("/office")))).isEqualTo(3); // the expired one, the two within 30 days... no: passport, stcw, and ALDER's inspection
 
@@ -243,8 +243,8 @@ class SnoozeFlowTest {
         String key = "VETTING_INSPECTION:" + alder.getId();
         String vetting = html(get("/office/vetting"));
         assertThat(navVetting(vetting)).isEqualTo("1");
-        assertThat(vetting).contains("name=\"items\" value=\"" + key + "\" form=\"snoozeForm\"",
-                "href=\"/office/alerts/snooze?items=" + key + "&amp;returnTo=/office/vetting\"", "Expires in 38 days");
+        assertThat(vetting).doesNotContain("name=\"items\"", "snoozeForm");
+        assertThat(vetting).contains("href=\"/office/alerts/snooze?items=" + key + "&amp;returnTo=/office/vetting\"", "Expires in 38 days");
         assertThat(html(get("/office"))).contains("RightShip inspection", "Expires in 38 days");
 
         mockMvc.perform(post("/office/alerts/snooze").param("items", key).param("returnTo", "/office/vetting")
@@ -330,15 +330,14 @@ class SnoozeFlowTest {
     }
 
     @Test
-    void theOverviewOffersSnoozeOnItsRowsAndSnoozeSelected() throws Exception {
+    void theOverviewOffersSnoozeOnItsRows() throws Exception {
         String overview = html(get("/office"));
         String stcwKey = "CERTIFICATE_EXPIRING:" + stcw.getId();
-        assertThat(overview).contains("name=\"items\" value=\"" + stcwKey + "\" form=\"snoozeForm\"",
-                        "name=\"items\" value=\"VETTING_INSPECTION:" + alder.getId() + "\" form=\"snoozeForm\"",
-                        "href=\"/office/alerts/snooze?items=" + stcwKey + "&amp;returnTo=/office\"", ">Snooze selected</span>",
-                        "<form id=\"snoozeForm\" action=\"/office/alerts/snooze\" method=\"get\" data-selection");
+        assertThat(overview).contains("href=\"/office/alerts/snooze?items=" + stcwKey + "&amp;returnTo=/office\"",
+                "href=\"/office/alerts/snooze?items=VETTING_INSPECTION:" + alder.getId() + "&amp;returnTo=/office\"");
+        assertThat(overview).doesNotContain("name=\"items\"", "snoozeForm");
         // In Greek too.
-        assertThat(html(get("/office").param("lang", "el"))).contains("Αναβολή επιλεγμένων");
+        assertThat(html(get("/office").param("lang", "el"))).contains(">Αναβολή</span>");
         assertThat(html(get("/office/alerts/snooze").param("items", stcwKey).param("lang", "el")))
                 .contains("Ανανέωση σε εξέλιξη", "Έως τη λήξη του", ">Αναβολή</button>");
         // The audit log names the actions.

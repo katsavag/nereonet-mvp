@@ -18,7 +18,7 @@ to exactly what they count (each tested in `CertificatePlanningFlowTest`):
   lists" before, P65 the By category tile before): `?status=expired,30&activeShips=true`;
 - the ship page's **Certificates** tab count (expired or within 90 days): the tab's **List** view with `?status=expired,90` (the List view opens with all).
 P43: the crew member's name in the list links to their page (`/office/crew/{id}/edit`), as in the Crew list; each
-row has a checkbox and **Snooze**, a snoozed certificate's row is muted with "Snoozed by … until …" and **Undo**,
+row that can be snoozed has **Snooze**, a snoozed certificate's row is muted with "Snoozed by … until …" and **Undo**,
 and the Status filter has **Snoozed** (`?status=snoozed`; the states leave snoozed certificates out, All has them, see [27](27-snoozing.md)).
 **Export** (page header) downloads the list as filtered, searched and sorted, every page, as an Excel workbook (P39): `certificates-<date>.xls`, sheet "Certificates", with the columns
 `imo_number, ship_name, crew_member, rank, type, number, expires_on, days_left, status` (rank as its code,

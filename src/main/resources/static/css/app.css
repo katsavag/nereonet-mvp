@@ -2438,12 +2438,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     border-bottom: 1px solid var(--nn-divider);
 }
 .list-selection-all { display: none; }
-/* A count with no sentence while nothing is selected (the snooze lists) takes no room; from 768px, where the
-   select-all checkbox is not in this line, the line itself is not shown until a row is selected. */
-.list-selection-count:empty { display: none; }
-@media (min-width: 768px) {
-    .list-selection:has(> .list-selection-count:empty) { display: none; }
-}
 @media (max-width: 767.98px) {
     .list-selection-all {
         display: flex;
@@ -3018,7 +3012,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
      - .snooze-items: the snooze page's review of the selection: one .snooze-item per alert (its checkbox when there
        are several), the badge, the title and the vessel and date (.snooze-item-meta).
      - .snooze-durations: the duration choices, the date input under "Until a date" (.snooze-date).
-     - .snooze-list-form: the lists' empty GET form; the rows' checkboxes belong to it by their form attribute.
    --------------------------------------------------------------------------------------------------------------- */
 .data-table > tbody > tr.is-snoozed > * { --bs-table-bg: var(--nn-page); }
 .data-table > tbody > tr.is-snoozed .cell-primary a,
@@ -3103,7 +3096,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     max-width: 14rem;
     margin: var(--nn-space-1) 0 var(--nn-space-2);
 }
-.snooze-list-form { display: none; }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -3531,11 +3523,11 @@ a.stat-chip:hover .stat-chip-label,
        four across from 1200px, two across from 768px, two across on phones too (the numbers stay short).
      - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
        (.overview-side, 5/12); under each other below that, Needs attention first.
-     - .attention: the "Needs attention" card. Header: title, the number of open items and Snooze selected
+     - .attention: the "Needs attention" card. Header: title and the number of open items
        (.attention-header-tools; with a chip selected, "Open the full list" too). .attention-chips: the filter chips by category (.chip, with its count; the current
        one filled) and the order (Most urgent / By date, a view-switch). .attention-filter: a vessel filter
        (/office?shipId=...), with the way back to all.
-     - .attention-item: one open item, compact: the checkbox of a snoozable item (.attention-select), then the status
+     - .attention-item: one open item, compact: the status
        badge with an icon and the kind (.attention-meta), the title linking to the record (.attention-title, a 40px
        touch target) and the context (.attention-context: vessel · person · date; the vessel's name in the body
        colour and semibold, so the vessel is read before acting), then the actions (.attention-action: the secondary
@@ -3738,7 +3730,6 @@ a.stat-chip:hover .stat-chip-label,
     align-items: center;
     gap: var(--nn-space-3);
 }
-.attention .list-selection { border-bottom: 1px solid var(--nn-divider); }
 
 .status-badge-icon::before { display: none; }
 .status-badge-icon > svg {
@@ -3782,15 +3773,10 @@ a.stat-chip:hover .stat-chip-label,
 
 .attention-item {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: var(--nn-space-2) var(--nn-space-3);
     padding-block: var(--nn-space-2);
-}
-.attention-select {
-    grid-row: 1 / span 2;
-    width: var(--nn-touch-target);
-    min-height: var(--nn-touch-target);
 }
 .attention-text { min-width: 0; }
 .attention-meta {
@@ -3819,7 +3805,6 @@ a.stat-chip:hover .stat-chip-label,
     color: var(--nn-text);
 }
 .attention-action {
-    grid-column: 2;
     display: flex;
     flex-wrap: wrap;
     gap: var(--nn-space-2);
@@ -3828,8 +3813,7 @@ a.stat-chip:hover .stat-chip-label,
 /* From 1200px: the badge, then the title over the context (each one line, cut with an ellipsis), the actions on the
    right. The card is 7/12 of the page, so two text columns side by side would be too narrow for the badges. */
 @media (min-width: 1200px) {
-    .attention-item { grid-template-columns: auto minmax(0, 1fr) auto; }
-    .attention-select { grid-row: auto; }
+    .attention-item { grid-template-columns: minmax(0, 1fr) auto; }
     .attention-text {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -3849,7 +3833,7 @@ a.stat-chip:hover .stat-chip-label,
         white-space: nowrap;
     }
     .attention-title { padding-block: var(--nn-space-1); line-height: 1.4; }
-    .attention-action { grid-column: auto; flex-wrap: nowrap; }
+    .attention-action { flex-wrap: nowrap; }
 }
 
 .attention-empty-title {
@@ -5331,8 +5315,11 @@ a.stat-chip:hover .stat-chip-label,
        number, status badge and item count, one line under them, the actions at the right (under it on phones, each
        button as wide as it can be). .is-overdue: a delivery whose date has passed, a warning border (the line under
        the number says it in words, with a warning icon).
-     - .order-attention: the line above the current order that links to In progress, a warning badge in a link as
-       high as a touch target.
+     - .order-attention: the row above the current order that links to In progress, a .home-row with the icon and
+       the words in the warning text colour.
+     - .order-empty: the current order with nothing in it, a compact card: a small icon beside the title, the
+       sentence under them and, for the Master, the link to the requests waiting (.order-empty-link, as high as a
+       touch target).
    --------------------------------------------------------------------------------------------------------------- */
 .order-progress-list {
     display: grid;
@@ -5350,10 +5337,30 @@ a.stat-chip:hover .stat-chip-label,
     padding: var(--nn-space-3) var(--nn-space-4);
 }
 .order-progress-card.is-overdue { border-color: var(--nn-warning-border); }
-.order-attention {
+.order-attention { margin-bottom: var(--nn-space-3); }
+.order-attention .home-row-icon,
+.order-attention .home-row-title { color: var(--nn-warning-text); }
+.order-empty .empty-state {
+    flex-flow: row wrap;
+    justify-content: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
+    padding: var(--nn-space-4) var(--nn-card-padding);
+}
+.order-empty .empty-state-icon { width: 2rem; height: 2rem; margin: 0; }
+.order-empty .empty-state-icon > svg { width: 20px; height: 20px; }
+.order-empty .empty-state-title { margin: 0; font-size: var(--nn-font-body); }
+.order-empty .empty-state-text,
+.order-empty .empty-state-actions {
+    flex-basis: 100%;
+    max-width: none;
+    margin: 0;
+}
+.order-empty-link {
     display: inline-flex;
     align-items: center;
+    justify-self: center;
     min-height: var(--nn-touch-target);
+    font-size: var(--nn-font-sm);
 }
 .order-progress-main {
     flex: 1 1 18rem;

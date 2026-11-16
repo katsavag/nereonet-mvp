@@ -2,14 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.title}, ~{::main})}">
 <body>
 <!-- Vessel order of the Master's own ship, in three views switched by links under the header (?view=, the tab
-     labels with their count when above zero). English only, as every crew screen.
-     Current order (default, and for an unknown ?view=): the OPEN order, the approved requests added up by item. Each
+     labels with their count when above zero). English only, as every crew screen. Without ?view= the page opens on
+     Current order while it has lines, else on In progress when there are orders in progress, else on Current order.
+     Current order (?view=current, and an unknown ?view=): the OPEN order, the approved requests added up by item. Each
      line says who asked for it; its quantity can be changed and the line removed, each a small form that saves at
      once (nobody is notified). Under the lines, "Send to office" with the requested port, the date needed by and an
      optional note; after sending the order is read-only (/ship/orders/{id}). The Chief cook (canManage false) sees
      the same lines and who asked, with no quantity inputs, no Remove and no Send to office: one line says only the
      Master can change or send the order. Above the order, when orders in progress need this user, one warning
-     line that links to In progress: "1 delivery to receive" (the Master), "1 delivery to count" (the Chief cook).
+     row that links to In progress: "1 delivery to receive" (the Master), "1 delivery to count" (the Chief cook).
+     Empty: a compact card, "Nothing to order yet"; for the Master with requests waiting (approvalsWaiting, from
+     NavigationAdvice) also a link to Approvals.
      In progress (?view=progress): one card per order sent and not received yet, most urgent first, with its status,
      number of items and one line: the delivery port and date once scheduled ("Delivery was due 12 Nov 2026, Antwerp"
      with a warning icon once the date has passed), else when it was sent. The Master has Confirm receipt (the
@@ -28,7 +31,7 @@
     <div class="request-filters">
     <nav th:replace="~{layout/parts :: viewSwitch(#{order.view.label}, ~{::orderViews})}">
         <th:block th:fragment="orderViews">
-            <a class="view-switch-link" th:href="@{/ship/order}" th:aria-current="${tab == 'current'} ? 'page'">
+            <a class="view-switch-link" th:href="@{/ship/order(view='current')}" th:aria-current="${tab == 'current'} ? 'page'">
                 <span th:text="#{order.current.heading}">Current order</span>
             </a>
             <a class="view-switch-link" th:href="@{/ship/order(view='progress')}" th:aria-current="${tab == 'progress'} ? 'page'">
@@ -119,15 +122,22 @@
 
     <th:block th:if="${tab == 'current'}">
     <!-- Nothing urgent hides behind a tab: the orders in progress that need this user. -->
-    <p th:if="${op.attention > 0}" class="mb-3">
-        <a class="order-attention" th:href="@{/ship/order(view='progress')}"
-           th:with="text=${canManage} ? #{order.attention.receive(${op.attention})} : #{order.attention.count(${op.attention})}"><span
-                th:replace="~{layout/parts :: statusIcon('warning', ${text}, 'alert')}"></span></a>
-    </p>
+    <a th:if="${op.attention > 0}" class="home-row order-attention" th:href="@{/ship/order(view='progress')}">
+        <span class="home-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+             stroke-linejoin="round" focusable="false"><path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/></svg></span>
+        <span class="home-row-main"><span class="home-row-title"
+                th:text="${canManage} ? #{order.attention.receive(${op.attention})} : #{order.attention.count(${op.attention})}">2 deliveries to count</span></span>
+        <svg class="profile-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>
+    </a>
 
-    <div th:if="${v.empty}" class="card">
+    <div th:if="${v.empty}" class="card order-empty"
+         th:with="waiting=${canManage and approvalsWaiting != null and approvalsWaiting > 0}">
         <div th:replace="~{layout/parts :: emptyState(icon='order', title=#{order.empty.title},
-                text=#{order.empty.text}, action=null)}"></div>
+                text=#{order.empty.text}, action=${waiting} ? ~{::waitingLink} : null)}">
+            <a th:fragment="waitingLink" class="order-empty-link" th:href="@{/ship/approvals}"
+               th:text="#{order.empty.waiting(${approvalsWaiting})}">3 requests are waiting for you</a>
+        </div>
     </div>
 
     <th:block th:unless="${v.empty}">

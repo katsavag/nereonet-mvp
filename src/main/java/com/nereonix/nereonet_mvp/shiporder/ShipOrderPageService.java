@@ -170,16 +170,16 @@ public class ShipOrderPageService {
 
     /**
      * Vessel order for the Master or the Chief cook. view: "progress" or "received"; anything else is the current
-     * order. list: the page and page size of those two views.
+     * order. Without a view (null) the page opens where the work is: the current order while it has lines, else
+     * the orders in progress when there are any, else the current order's empty state. list: the page and page
+     * size of those two views.
      */
     @Transactional(readOnly = true)
     public OrderPage page(String email, String view, ListQuery list) {
         User user = reader(email);
         Ship ship = ship(user);
         if (VIEW_PROGRESS.equals(view)) {
-            Page<InProgress> inProgress = inProgress(ship, list);
-            return new OrderPage(ship, VIEW_PROGRESS, null, inProgress, null, inProgress.getTotalElements(),
-                    orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), 0);
+            return progressPage(ship, list);
         }
         if (VIEW_RECEIVED.equals(view)) {
             Page<ShipOrder> received = ListQueries.page(list, page -> orderRepository
@@ -195,8 +195,18 @@ public class ShipOrderPageService {
                 .filter(order -> order.getStatus() == ShipOrderStatus.CONFIRMED
                         && (master || order.getDeliveryCountStatus().editable()))
                 .count();
-        return new OrderPage(ship, VIEW_CURRENT, view(ship, open), null, null, progress.size(),
+        OrderView current = view(ship, open);
+        if (view == null && current.isEmpty() && !progress.isEmpty()) {
+            return progressPage(ship, list);
+        }
+        return new OrderPage(ship, VIEW_CURRENT, current, null, null, progress.size(),
                 orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), attention);
+    }
+
+    private OrderPage progressPage(Ship ship, ListQuery list) {
+        Page<InProgress> inProgress = inProgress(ship, list);
+        return new OrderPage(ship, VIEW_PROGRESS, null, inProgress, null, inProgress.getTotalElements(),
+                orderRepository.countByShipIdAndStatusIn(ship.getId(), RECEIVED), 0);
     }
 
     // One page of the ship's orders in progress: SENT and CONFIRMED, most urgent first (the scheduled deliveries by

@@ -42,6 +42,9 @@ public class ShipOrderController {
     /** The model flag: true for the Master (edit, send, confirm receipt), false for the Chief cook (read only). */
     static final String CAN_MANAGE = "canManage";
 
+    // Back to the Current order view by name: without ?view= the page may open on In progress.
+    private static final String CURRENT_ORDER = "redirect:/ship/order?view=" + ShipOrderPageService.VIEW_CURRENT;
+
     /** True for the Chief cook, who counts a scheduled delivery (DeliveryCountController). */
     static final String CAN_COUNT = "canCount";
 
@@ -59,8 +62,9 @@ public class ShipOrderController {
         this.quantityRules = quantityRules;
     }
 
-    // view: "progress" or "received"; without it, or with anything else, the current order. listRequest: the page
-    // and the page size of those two views (10 a page as on every list).
+    // view: "progress" or "received"; anything else is the current order. Without it the page opens where the work
+    // is (ShipOrderPageService.page). listRequest: the page and the page size of those two views (10 a page as on
+    // every list).
     @GetMapping("/ship/order")
     public String order(@AuthenticationPrincipal CurrentUser currentUser, @RequestParam(required = false) String view,
                         @ModelAttribute ListRequest listRequest, Model model) {
@@ -100,12 +104,12 @@ public class ShipOrderController {
                        @Validated @ModelAttribute("sendForm") SendOrderForm sendForm, BindingResult bindingResult,
                        Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            return showOrder(currentUser, null, ListRequest.EMPTY, model);
+            return showOrder(currentUser, ShipOrderPageService.VIEW_CURRENT, ListRequest.EMPTY, model);
         }
         Send send = pageService.send(currentUser.getUsername(), sendForm);
         if (!send.sent()) {
             redirectAttributes.addFlashAttribute("errorMessage", "order.nothingToSend");
-            return "redirect:/ship/order";
+            return CURRENT_ORDER;
         }
         redirectAttributes.addFlashAttribute("successMessage", "order.sent");
         return "redirect:/ship/orders/" + send.order().getId();
@@ -122,7 +126,7 @@ public class ShipOrderController {
     public String detail(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id, Model model) {
         ShipOrderPageService.OrderView view = pageService.detail(currentUser.getUsername(), id);
         if (view.order().getStatus() == ShipOrderStatus.OPEN) {
-            return "redirect:/ship/order";
+            return CURRENT_ORDER;
         }
         boolean canManage = pageService.canManage(currentUser.getUsername());
         model.addAttribute("view", view);
@@ -157,11 +161,11 @@ public class ShipOrderController {
         return switch (change) {
             case DONE -> {
                 redirectAttributes.addFlashAttribute("successMessage", successKey);
-                yield "redirect:/ship/order";
+                yield CURRENT_ORDER;
             }
             case NOT_OPEN -> {
                 redirectAttributes.addFlashAttribute("errorMessage", "order.notOpen");
-                yield "redirect:/ship/order";
+                yield CURRENT_ORDER;
             }
             case NOT_FOUND -> throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         };

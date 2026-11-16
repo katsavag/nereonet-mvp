@@ -194,6 +194,7 @@ class MessageKeysTest {
             "order.hint",
             "order.empty.title",
             "order.empty.text",
+            "order.empty.waiting",
             "order.lineCount",
             "order.askedBy",
             "order.line.actions",

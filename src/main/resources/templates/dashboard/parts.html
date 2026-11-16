@@ -57,7 +57,7 @@
      chips (All and each category with its count) are links, so they work without JavaScript; with a chip selected
      whose kind has a full list elsewhere (AttentionType.Group.listUrl) the header links to it. Each row: the status
      badge with an icon and the kind, the title linking to the record, the vessel, the date and one action; a kind
-     that can be snoozed also has its checkbox (form snoozeForm, in the page) and Snooze. overviewUrl: the page as
+     that can be snoozed also has Snooze. overviewUrl: the page as
      it is, sent as returnTo so the forms come back to it. -->
 <section th:fragment="attention(d, list, groups, overviewUrl)" class="card attention overview-main" id="attention"
          aria-labelledby="attentionTitle">
@@ -68,7 +68,6 @@
                th:href="@{${d.group.listUrl()}}" th:text="#{dashboard.attention.fullList}">Open the full list</a>
             <p class="attention-total"><span class="visually-hidden" th:text="#{dashboard.attention.totalLabel}">Open items:</span>
                 <span class="num" th:text="${d.items.totalElements}">11</span></p>
-            <button th:unless="${d.items.isEmpty()}" th:replace="~{alert/parts :: snoozeSelected('snoozeForm')}"></button>
         </div>
     </div>
 
@@ -123,19 +122,10 @@
         </p>
     </div>
 
-    <th:block th:unless="${d.items.isEmpty()}"><div th:replace="~{alert/parts :: selectionLine('snoozeForm')}"></div></th:block>
-
     <ul th:unless="${d.items.isEmpty()}" class="list-group list-group-flush attention-list">
         <li th:each="item, st : ${d.items}" class="list-group-item attention-item"
             th:with="type=${item.type().name()}, titleId=${'attention' + st.index}, alert=${item.alert()},
                      alertKey=${alert != null} ? ${alert.key().param()} : null">
-            <!-- The checkbox and Snooze of an item that can be snoozed. -->
-            <label th:if="${alertKey != null}" class="select-target attention-select">
-                <input class="form-check-input" type="checkbox" name="items" th:value="${alertKey}" form="snoozeForm"
-                       data-select-row th:attr="aria-label=#{snooze.selectItem(${st.count})}">
-            </label>
-            <span th:unless="${alertKey != null}" class="attention-select" aria-hidden="true"></span>
-
             <!-- a. Expired certificate, b. certificate expiring within 30 days -->
             <th:block th:if="${type == 'CERTIFICATE_EXPIRED' or type == 'CERTIFICATE_EXPIRING'}"
                       th:with="url=@{/office/crew/{u}/certificates/{id}/edit(u=${item.userId}, id=${item.id}, returnTo=${overviewUrl})}">
