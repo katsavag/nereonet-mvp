@@ -6839,10 +6839,18 @@ html.is-offline .voice-hold {
 /* ---------------------------------------------------------------------------------------------------------------
    Requests: the Chief cook's and crew's requests to the Master, shiprequest/list.html (its rows are
    .approval-row), detail.html and form.html.
-     - .request-pick-row: one item of the form, its name (the label of the quantity), on the cook's Running low rows
-       its stock and status, then the quantity field and the unit; an error on its own line under the row. 56px high,
-       a phone target. The quantity field is wide enough for 123456.125 and tall enough for a finger.
+     - .request-pick-row: one item of the form, a grid with fixed columns after the name, so the quantity fields and
+       the units of a card stand under each other: its name (the label of the quantity, it wraps), on the cook's
+       Running low rows the stock and status (one width, whatever the badge says), then the quantity field and the
+       unit (.request-pick-qty, two fixed columns; the unit column fits "bottle"); an error on its own line under the
+       row. On phones the name has the first line; the stock (or Remove) is on the left of the second and the field
+       with its unit on the right. 56px high, a phone target. The quantity field is wide enough for 123456.125 and
+       tall enough for a finger.
      - .request-group-low: the Running low card, with the warning colour on its left edge (the heading says it).
+     - .request-columns: Provisions and Personal items, side by side in equal columns from 992px; a card alone
+       (the other missing, or hidden by the search) takes the full width.
+     - .request-new: the cook's new-items card; a page that comes back at #newItems leaves it clear of the top bar.
+       Its two radios are rows as high as a touch target.
      - js/request-form.js hides the rows and groups that do not match the search with [hidden].
      - .request-filters: the list's four filters (and the three views of Vessel order); on phones they share the
        full width, so all of them fit.
@@ -6861,42 +6869,72 @@ html.is-offline .voice-hold {
 .request-group[hidden],
 .request-pick-row[hidden] { display: none; }
 .request-group-low { border-left: 4px solid var(--nn-warning-border); }
-.request-pick-row {
+@media (min-width: 992px) {
+    .request-columns {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        align-items: start;
+        column-gap: var(--nn-space-4);
+    }
+}
+.request-new { scroll-margin-top: 5rem; }
+.request-new .form-check {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nn-space-3);
+    min-height: var(--nn-touch-target);
+    padding-left: 0;
+}
+.request-new .form-check-input { flex: none; margin: 0; }
+.request-new .form-check-label { flex: 1; }
+.request-pick-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--nn-space-2) var(--nn-space-3);
     min-height: 3.5rem;   /* 56px */
 }
+.request-group-low .request-pick-row { grid-template-columns: minmax(0, 1fr) 11.5rem auto; }
+.request-new-lines > .request-pick-row { grid-template-columns: minmax(0, 1fr) auto auto; }
 .request-pick-name {
-    flex: 1 1 10rem;
     min-width: 0;
     margin: 0;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 .request-pick-stock {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--nn-space-2);
-    font-size: var(--nn-font-sm);
-    color: var(--nn-text-secondary);
-}
-.request-pick-qty {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
     align-items: center;
     gap: var(--nn-space-1) var(--nn-space-2);
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.request-pick-qty {
+    display: grid;
+    grid-template-columns: 7.5rem 3.5rem;
+    align-items: center;
+    gap: var(--nn-space-1) var(--nn-space-2);
 }
 /* The limit under the field and its unit ("Up to 2000 kg"), right-aligned with them. */
-.request-pick-qty > .quantity-hint { flex-basis: 100%; margin-top: 0; text-align: end; }
-.request-qty-input { width: 7.5rem; min-height: 2.75rem; text-align: end; }
-.request-pick-unit { min-width: 2.5rem; color: var(--nn-text-secondary); }
-.request-pick-error { flex-basis: 100%; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
+.request-pick-qty > .quantity-hint { grid-column: 1 / -1; margin-top: 0; text-align: end; }
+.request-pick-qty > .quantity-hint:empty { display: none; }
+.request-qty-input { min-height: 2.75rem; text-align: end; }
+.request-pick-unit { color: var(--nn-text-secondary); overflow-wrap: anywhere; }
+.request-pick-error { grid-column: 1 / -1; margin: 0; font-size: var(--nn-font-sm); color: var(--nn-danger-text); }
 .request-new-lines { margin-top: var(--nn-space-4); border-top: 1px solid var(--nn-border); }
 .request-new-lines > .request-pick-row { padding-inline: 0; }
+@media (max-width: 575.98px) {
+    .request-pick-row,
+    .request-group-low .request-pick-row,
+    .request-new-lines > .request-pick-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .request-pick-name { grid-column: 1 / -1; }
+    .request-pick-stock { justify-content: flex-start; }
+    .request-pick-qty { grid-column: 2; grid-row: 2; }
+    .request-new-remove { grid-column: 1; grid-row: 2; justify-self: start; min-height: var(--nn-touch-target); }
+}
 
 
 /* ---------------------------------------------------------------------------------------------------------------

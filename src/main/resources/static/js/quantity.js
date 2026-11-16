@@ -9,6 +9,8 @@
 //  - The rule can change on the page: set data-quantity-max / -decimals / -unit and dispatch "quantity-rule" on the
 //    input (js/item-search.js, Add an item). data-quantity-unit-field="newUnit": the unit is chosen in that field, and
 //    the rule comes from the units JSON of [data-quantity-texts] (unknown units: countable).
+//  - A part of the page put in later (js/request-form.js) dispatches "nn:fragment" on itself: its fields are set up
+//    as the page's were.
 (function () {
     'use strict';
 
@@ -138,7 +140,7 @@
         return units[key] || units[''];
     }
 
-    document.querySelectorAll('input[data-quantity]').forEach(input => {
+    function bind(input) {
         // A field the server marked invalid stays so until it is changed.
         input.dataset.quantityServerError = input.classList.contains('is-invalid') ? 'true' : 'false';
         input.addEventListener('input', () => {
@@ -162,5 +164,10 @@
             clean(input);
             check(input);
         }
+    }
+
+    document.querySelectorAll('input[data-quantity]').forEach(bind);
+    document.addEventListener('nn:fragment', event => {
+        event.target.querySelectorAll('input[data-quantity]').forEach(bind);
     });
 })();

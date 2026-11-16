@@ -179,7 +179,7 @@ public class ShipRequestService {
         for (RequestLine line : request.getLines()) {
             if (line.isNewItem()) {
                 form.getNewItems().add(new RequestForm.NewLine(line.getNewItemName(), line.getNewItemUnit(),
-                        plain(line.getQuantity())));
+                        line.getNewItemCategory(), plain(line.getQuantity())));
             } else {
                 quantities.merge(line.getItem().getId(), plain(line.getQuantity()), (a, b) -> a);
             }
@@ -214,6 +214,7 @@ public class ShipRequestService {
             form.setNewItems(posted.getNewItems());
             form.setNewName(posted.getNewName());
             form.setNewUnit(posted.getNewUnit());
+            form.setNewCategory(posted.getNewCategory());
             form.setNewQuantity(posted.getNewQuantity());
         }
         return new Read(form, !quantities.isEmpty());
@@ -252,7 +253,8 @@ public class ShipRequestService {
 
     /**
      * "Add to request" (the Chief cook only): the typed new item becomes a new-item line of the form, its fields are
-     * emptied. A name is required (at most Item.NAME_MAX_LENGTH), the unit optional (one of ItemUnits),
+     * emptied. A name is required (at most Item.NAME_MAX_LENGTH), the unit optional (one of ItemUnits), the category
+     * Provisions unless Personal items is chosen,
      * the quantity above zero (the order's quantity rule); a name already on the list or already added is refused,
      * so the person picks it there. False, with the errors, when refused.
      */
@@ -287,7 +289,8 @@ public class ShipRequestService {
         if (errors.hasErrors()) {
             return false;
         }
-        form.getNewItems().add(new RequestForm.NewLine(name, form.getNewUnit(), form.getNewQuantity()));
+        form.getNewItems().add(new RequestForm.NewLine(name, form.getNewUnit(), form.getNewCategory(),
+                form.getNewQuantity()));
         form.clearNewItemFields();
         return true;
     }
@@ -396,6 +399,7 @@ public class ShipRequestService {
             RequestLine requestLine = new RequestLine();
             requestLine.setNewItemName(line.getName());
             requestLine.setNewItemUnit(line.getUnit());
+            requestLine.setNewItemCategory(line.getCategory());
             requestLine.setQuantity(check.value());
             lines.add(requestLine);
         }

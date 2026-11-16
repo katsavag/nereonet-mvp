@@ -406,6 +406,8 @@ class MessageKeysTest {
             "request.form.newItem.remove",
             "request.form.newItem.removeLabel",
             "request.form.newItem.removing",
+            "request.form.newItem.category",
+            "request.form.newItem.added",
             "request.form.send",
             "request.form.sending",
             "request.form.error.nameRequired",

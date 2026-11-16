@@ -14,8 +14,8 @@ another ship is a 404.
 - **A request** (`/ship/approvals/{id}`): who asked, when, its status ("Waiting for the master", "Approved",
   "Declined", "Cancelled"), who approved or declined it and when ("Approved" / "Declined"), and for a declined one the reason; then its lines in one card per
   category (Provisions, then Personal items): name, quantity and unit. A line for an item not in the ship's list
-  yet has a **New item** badge (also on the office's request page, 15; such a line is under Provisions, as only
-  the Chief cook asks for new items, and the CSV has the name and unit given).
+  yet has a **New item** badge (also on the office's request page, 15; such a line is under the category the
+  Chief cook chose for it, Provisions or Personal items, and the CSV has the name and unit given).
 - **Submitting** (`core/request/RequestService.submit`, called by the Chief cook's and crew's Requests pages, [31](31-requests.md)): saves
   the request as PENDING with its lines (each line has either an item of the ship or a new item name, optionally
   with a unit; quantity above zero), records "Request submitted" in the audit log (`Request #12, 3 lines`, by the

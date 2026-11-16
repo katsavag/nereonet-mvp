@@ -265,7 +265,8 @@ public class RequestService {
         return requestRepository.findForDecision(requestId, master.getShip().getId()).orElse(null);
     }
 
-    // The ship's item with the line's new item name, or a new active Provisions item (recorded in the audit log).
+    // The ship's item with the line's new item name, or a new active item of the line's category, without a storage
+    // place (recorded in the audit log).
     private Item itemFor(Ship ship, RequestLine line, User master) {
         Item existing = itemRepository.findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(ship.getId(),
                 line.getNewItemName().strip()).orElse(null);
@@ -277,7 +278,7 @@ public class RequestService {
         item.setName(line.getNewItemName().strip());
         item.setUnit(line.getNewItemUnit() == null || line.getNewItemUnit().isBlank()
                 ? NEW_ITEM_DEFAULT_UNIT : line.getNewItemUnit().strip());
-        item.setCategory(ItemCategory.PROVISIONS);
+        item.setCategory(line.getNewItemCategory());
         item.setActive(true);
         item.setCreatedAt(Instant.now());
         itemRepository.save(item);
@@ -320,6 +321,9 @@ public class RequestService {
             line.setNewItemUnit(null);
         } else {
             line.setNewItemName(line.getNewItemName().strip());
+            if (line.getNewItemCategory() == null) {
+                line.setNewItemCategory(ItemCategory.PROVISIONS);
+            }
             if (line.getNewItemUnit() != null) {
                 line.setNewItemUnit(line.getNewItemUnit().isBlank() ? null : line.getNewItemUnit().strip());
             }

@@ -23,17 +23,19 @@ ask, they decide (21, 22), and gets 403. A request is not an order: only an appr
   gets 404. While it is PENDING it has **Edit** and **Cancel request**; afterwards it is read only and says why
   ("The master approved this request…", "…declined…", "You cancelled this request…").
 - **New request** (`/ship/requests/new`) and **Edit** (`/ship/requests/{id}/edit`), one form: the vessel's active
-  items of both categories, grouped **Provisions** then **Personal items**, each by name; each item a row with its
-  name, a quantity field and the unit. A blank quantity means not picked; a picked one must be above zero with at
+  items of both categories, grouped **Provisions** then **Personal items**, each by name (side by side from 992px);
+  each item a row with its name, a quantity field and the unit, in fixed columns so the fields line up. A blank quantity means not picked; a picked one must be above zero with at
   most 3 decimals (`ShipOrderService.isValidQuantity`, the order's rule; "2,5" is read as 2.5), its error under
   the row. No item names are typed. With JavaScript a **Search items** field filters the rows by name as you type
   (`js/request-form.js`, P50's pattern; without it the whole list shows) and Enter never sends the form.
   - The Chief cook only: the provisions **Out of stock** or **Low** (`StockService`) come first, under **Running
     low**, Out of stock first, each with what is on board and its status badge. Crew members never see stock.
   - The Chief cook only: **Add an item that is not on the list**: Name (required, 100 characters), Unit (optional,
-    chosen from the list of `core/form/ItemUnits`) and Quantity, **Add to request**: it becomes a new-item line under the fields, with its quantity and
-    **Remove**. Add and Remove post the form and show it again with everything typed kept, so they work without
-    JavaScript. A name already on the list ("basmati RICE") is refused: "Basmati rice is on the list: enter its
+    chosen from the list of `core/form/ItemUnits`), **Which list does it belong to?** (Provisions, the default, or
+    Personal items; `RequestLine.newItemCategory`) and Quantity, **Add to request**: it becomes a new-item line
+    under the fields, with its category, its quantity and **Remove**. Add and Remove post the form to `#newItems`
+    and show it again at that card with everything typed kept, so they work without JavaScript; with it,
+    `js/request-form.js` sends them with fetch and replaces only that card. A name already on the list ("basmati RICE") is refused: "Basmati rice is on the list: enter its
     quantity there." Something typed there when **Send to the master** is pressed is added first. On approval
     `RequestService.approve` turns the line into an item ([22](22-approving-requests.md)).
   - **Send to the master** builds the `ItemRequest` and calls `RequestService.submit` (saved PENDING, audited, the

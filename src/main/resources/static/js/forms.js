@@ -2,7 +2,8 @@
 // error summary still links to the fields, and the forms submit as usual.
 //  - [data-counter-for]: the counter under a field with a character limit, hidden until the text reaches 75 % of
 //    the limit, then "3,200 / 4,000" while typing. Texts come from data-template / data-over-template, where
-//    {count}, {max} and {over} are replaced.
+//    {count}, {max} and {over} are replaced. A part of the page put in later (js/request-form.js) dispatches
+//    "nn:fragment" on itself, and its counters are set up too.
 //  - .error-summary: gets focus when the page loads (in a modal: when the modal has opened); its links focus the
 //    field and scroll its label into view, and start with the field's label ("Title: Too long.").
 //  - input[type=file][data-file-info]: the chosen file's name and size, and a warning when it is larger than
@@ -41,7 +42,7 @@
     }
 
     // Character counters
-    document.querySelectorAll('[data-counter-for]').forEach(counter => {
+    function bindCounter(counter) {
         const field = document.getElementById(counter.dataset.counterFor);
         const max = Number(counter.dataset.max);
         if (!field || !max) {
@@ -57,6 +58,11 @@
         };
         field.addEventListener('input', update);
         update();
+    }
+
+    document.querySelectorAll('[data-counter-for]').forEach(bindCounter);
+    document.addEventListener('nn:fragment', event => {
+        event.target.querySelectorAll('[data-counter-for]').forEach(bindCounter);
     });
 
     // Error summary

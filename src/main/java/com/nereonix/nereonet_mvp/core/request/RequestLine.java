@@ -2,6 +2,7 @@ package com.nereonix.nereonet_mvp.core.request;
 
 import java.math.BigDecimal;
 
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -11,6 +12,8 @@ import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,7 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // One line of an item request: an item of the ship's list, or (item null) a new item the Chief cook asks for that is
-// not in the list yet, by name and unit. Exactly one of the two (RequestService.submit checks it). The quantity is
+// not in the list yet, by name, unit and category. Exactly one of the two (RequestService.submit checks it). The quantity is
 // in the item's unit. On a database from before P33 item_id is still not null; RequestSchemaMigration drops that.
 @Entity
 @Getter
@@ -45,6 +48,13 @@ public class RequestLine {
     @Column(length = Item.UNIT_MAX_LENGTH)
     private String newItemUnit;
 
+    // The list a new item belongs to, chosen by the Chief cook. Read only for a new item; a line of an item on the
+    // list keeps the default. The lines from before this column are provisions.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @ColumnDefault("'PROVISIONS'")
+    private ItemCategory newItemCategory = ItemCategory.PROVISIONS;
+
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
 
@@ -69,8 +79,8 @@ public class RequestLine {
         return item != null ? item.getUnit() : newItemUnit;
     }
 
-    /** The item's category. A new item has none yet: only the Chief cook asks for new items, and they are provisions. */
+    /** The item's category, or the one the Chief cook chose for the new item. */
     public ItemCategory getCategory() {
-        return item != null ? item.getCategory() : ItemCategory.PROVISIONS;
+        return item != null ? item.getCategory() : newItemCategory;
     }
 }

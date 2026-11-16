@@ -5,8 +5,8 @@ Approving and declining a request, and the ship order (P34, the Master only). `c
 - **Buttons**: a PENDING request (`/ship/approvals/{id}`) has **Approve** and **Decline** in its header; any other
   status has none. A request is decided as a whole; quantities are adjusted later, on the ship order.
 - **Approve** (`POST /ship/approvals/{id}/approve`): APPROVED, with who and when. Each new-item line is linked to
-  the ship's item of that name (ignoring case) or, if there is none, to a new active Provisions item with the name
-  and unit asked for (`pcs` when no unit was given; "Item added" in the audit log). Then
+  the ship's item of that name (ignoring case) or, if there is none, to a new active item with the name,
+  unit and category asked for (`pcs` when no unit was given; no storage place; "Item added" in the audit log). Then
   `ShipOrderService.addApprovedRequest` adds the lines to the ship's OPEN order. Nothing is sent to the office.
 - **Decline**: a modal with a required **Reason** (up to 500 characters). `POST /ship/approvals/{id}/decline`:
   REJECTED with the reason, who and when. An empty reason shows the request again with the modal open and the

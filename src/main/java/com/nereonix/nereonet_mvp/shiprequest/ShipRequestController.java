@@ -25,7 +25,8 @@ import com.nereonix.nereonet_mvp.shiprequest.ShipRequestService.Read;
 // for the Master, editing and cancelling it. SecurityConfig limits /ship/requests/** to CHIEF_COOK and CREW_MEMBER
 // (the Master decides on /ship/approvals and gets 403 here). Anyone else's request is a 404. English only, as every
 // crew screen. The form works without JavaScript: Add and Remove (the cook's new items) post the form and show it
-// again with everything typed kept; js/request-form.js only adds the search.
+// again with everything typed kept; js/request-form.js adds the search and sends Add and Remove with fetch, taking
+// the new-items card out of the page that comes back.
 @Controller
 public class ShipRequestController {
 
