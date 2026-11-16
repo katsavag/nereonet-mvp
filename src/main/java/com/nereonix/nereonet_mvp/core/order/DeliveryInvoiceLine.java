@@ -27,7 +27,7 @@ import lombok.Setter;
  * The line's match to the order (InvoiceMatchService): the order line or, for an item of the vessel not on the
  * order, the item; how the invoice's unit converts to the item's (packFactor: one invoice unit is this many of the
  * item's unit; null when it cannot be worked out); and, for a line matched to an item not on the order, the cook's
- * count and the Master's change, in the item's unit. CHECK is the office's "match to review",
+ * count and the Master's change, in the item's unit. CHECK and AI are the office's "match to review",
  * conversionToReview its "conversion to review".
  * Every reader of an invoice's lines leaves out the ones removedOnBoard (CountSheet.of and InvoiceComparison.of do it
  * for their callers).
@@ -101,9 +101,15 @@ public class DeliveryInvoiceLine {
     @Column(length = 20)
     private InvoiceMatch match;
 
-    // The order line it is (MATCHED, CHECK, LEARNED, CHOSEN); null for an item not on the order, PICK, NOT_ORDERED.
+    // The order line it is (MATCHED, CHECK, LEARNED, AI, CHOSEN); null for an item not on the order, PICK, NOT_ORDERED.
     @ManyToOne
     private ShipOrderLine orderLine;
+
+    // Claude was asked about this line once (InvoiceMatchService.applyClaude), whatever came of it: it is not asked
+    // again. A page read again makes new lines.
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean aiMatchTried;
 
     // The item it is: the order line's, or a vessel item not on the order. Null for PICK and NOT_ORDERED.
     @ManyToOne

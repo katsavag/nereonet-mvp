@@ -33,7 +33,7 @@ with each difference. `core/order/InvoiceComparison` (pure), `InvoiceComparisonS
   there is no award.
 - **To review** (what the ship was deliberately not asked about, P62, P63): the invoice's checks that failed
   ("Page 1: the lines add up to ..."), a different order reference, lines read with a flag (corrected, hard to read,
-  quantity not read), matches to review ("FETA 2KG → Feta cheese") and conversions to review ("BASMATI RICE 10KG,
+  quantity not read), matches to review ("FETA 2KG → Feta cheese"; one Claude made says "matched by Claude") and conversions to review ("BASMATI RICE 10KG,
   BAG → × 10 kg"). **Correct** confirms one (a match or a conversion is then learned for the supplier,
   `InvoiceMatchService.learn`); **Change**: another product (`/office/orders/{id}/invoice/lines/{lineId}/match`: the
   order's lines, the vessel's other items, which become a line added on receipt with nothing received, or Not

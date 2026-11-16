@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nereonix.nereonet_mvp.core.ai.InvoiceLineMatcher;
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReader;
 import com.nereonix.nereonet_mvp.core.ai.InvoiceReadingException;
 import com.nereonix.nereonet_mvp.core.ai.PageReading;
@@ -47,6 +48,8 @@ import jakarta.persistence.LockModeType;
  * soon as it is read, so a page that fails keeps the others' lines. When no page waits, finish runs InvoiceChecks over
  * every page read, stores the values and flags, compares the order reference and sets the status: READ, PARTLY_READ
  * or FAILED (no line read). Re-reading replaces a page's lines while the order is CONFIRMED, never after.
+ * Then, once per reading, the lines the word matching could not place go to Claude (matchWithClaude: descriptions
+ * and item names only); whatever happens there, the reading has ended and the count can start.
  * Only the page images go to the InvoiceReader. Audit: "Invoice photographed" (pages) and "Invoice read" (lines read,
  * lines flagged). A reading that never finishes (the server restarted meanwhile) is given up after
  * app.invoice.reading-stalled-after: its waiting pages count as timed out.
@@ -77,6 +80,8 @@ public class InvoiceReadingService {
     private final DeliveryInvoiceLineRepository lineRepository;
     private final LibraryFileStorage fileStorage;
     private final InvoiceReader reader;
+    private final InvoiceMatchService matchService;
+    private final InvoiceLineMatcher lineMatcher;
     private final AuditService auditService;
     private final EntityManager entityManager;
     private final TransactionTemplate transactions;
@@ -87,7 +92,8 @@ public class InvoiceReadingService {
 
     public InvoiceReadingService(OrderReceiptFileRepository fileRepository, DeliveryInvoiceRepository invoiceRepository,
                                  DeliveryInvoiceLineRepository lineRepository, LibraryFileStorage fileStorage,
-                                 InvoiceReader reader, AuditService auditService,
+                                 InvoiceReader reader, InvoiceMatchService matchService,
+                                 InvoiceLineMatcher lineMatcher, AuditService auditService,
                                  EntityManager entityManager, PlatformTransactionManager transactionManager,
                                  @Qualifier("applicationTaskExecutor") TaskExecutor executor,
                                  @Value("${app.invoice.read-in-background:true}") boolean background,
@@ -98,6 +104,8 @@ public class InvoiceReadingService {
         this.lineRepository = lineRepository;
         this.fileStorage = fileStorage;
         this.reader = reader;
+        this.matchService = matchService;
+        this.lineMatcher = lineMatcher;
         this.auditService = auditService;
         this.entityManager = entityManager;
         this.transactions = new TransactionTemplate(transactionManager);
@@ -259,6 +267,43 @@ public class InvoiceReadingService {
                 }
                 finish(orderId);
             });
+        }
+        matchWithClaude(orderId);
+    }
+
+    // The lines the word matching could not place go to Claude, once: a sure answer links the line (InvoiceMatch.AI),
+    // anything else leaves it a new item's row. The call itself is in no transaction. It never fails the reading: no
+    // key, a timeout, a refusal or any error is one line in the log.
+    private void matchWithClaude(Long orderId) {
+        try {
+            InvoiceMatchService.ClaudeRequest request = transactions.execute(status -> {
+                ShipOrder order = entityManager.find(ShipOrder.class, orderId, LockModeType.PESSIMISTIC_WRITE);
+                return order == null ? null : matchService.claudeRequest(order);
+            });
+            if (request == null) {
+                return;
+            }
+            List<InvoiceLineMatcher.Match> matches = List.of();
+            String failure = null;
+            try {
+                matches = lineMatcher.match(request.lines(), request.candidates());
+            } catch (RuntimeException e) {
+                failure = e instanceof IllegalStateException ? e.getMessage() : e.getClass().getSimpleName();
+            }
+            List<InvoiceLineMatcher.Match> answer = matches;
+            Integer linked = transactions.execute(status -> {
+                ShipOrder order = entityManager.find(ShipOrder.class, orderId, LockModeType.PESSIMISTIC_WRITE);
+                return order == null ? 0 : matchService.applyClaude(order, request, answer);
+            });
+            if (failure != null) {
+                log.warn("Invoice of order {}: {} lines not matched by Claude ({})", orderId, request.lines().size(),
+                        failure);
+            } else {
+                log.info("Invoice of order {}: {} of {} lines matched by Claude", orderId, linked,
+                        request.lines().size());
+            }
+        } catch (RuntimeException e) {
+            log.warn("Invoice of order {}: lines not matched by Claude ({})", orderId, e.getClass().getSimpleName());
         }
     }
 

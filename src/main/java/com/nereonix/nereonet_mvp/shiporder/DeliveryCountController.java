@@ -329,7 +329,7 @@ public class DeliveryCountController {
         model.addAttribute("order", order);
         model.addAttribute("line", line);
         model.addAttribute("q", q == null ? "" : q.strip());
-        model.addAttribute("choices", matchService.choices(order, q));
+        model.addAttribute("choices", matchService.choices(order, line, q));
         return "shiporder/count-choose";
     }
 

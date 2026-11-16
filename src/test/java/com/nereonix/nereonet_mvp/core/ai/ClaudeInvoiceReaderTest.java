@@ -295,11 +295,11 @@ class ClaudeInvoiceReaderTest {
     }
 
     @Test
-    void theInvoiceModelIsOpusByDefault() {
+    void theInvoiceModelIsHaikuByDefault() {
         ClaudeSettings defaults = new ClaudeSettings("", "", "", Duration.ZERO, "", Duration.ZERO, 1, false);
-        assertThat(defaults.invoiceModel()).isEqualTo("claude-opus-5-5");
+        assertThat(defaults.invoiceModel()).isEqualTo("claude-haiku-5-5");
         assertThat(defaults.invoiceTimeout()).isEqualTo(Duration.ofSeconds(120));
-        assertThat(defaults.toString()).contains("claude-opus-5-5");
+        assertThat(defaults.toString()).contains("claude-haiku-5-5");
     }
 
     // The key as sent: the SDK puts it in x-api-key or in Authorization as a Bearer token.

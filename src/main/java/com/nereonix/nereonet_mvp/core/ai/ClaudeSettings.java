@@ -7,16 +7,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The Claude settings, app.claude.* (ClaudeCountExtractor, ClaudeInvoiceReader):
+ * The Claude settings, app.claude.* (ClaudeCountExtractor, ClaudeInvoiceLineMatcher, ClaudeInvoiceReader):
  *   base-url     default https://api.anthropic.com (no trailing slash)
  *   api-key      ANTHROPIC_API_KEY, from the environment or the local .env (gitignored). Never logged, never in a page,
  *                an audit entry or an error message.
- *   model            counting by voice, default claude-haiku-5-5 (Claude Haiku 5.5)
+ *   model            counting by voice and matching invoice lines (ClaudeInvoiceLineMatcher), default claude-haiku-5-5 (Claude Haiku 5.5)
  *   timeout          how long one count answer may take, default 30s
- *   invoice-model    reading an invoice page, default claude-opus-5-5 (Claude Opus 5.5)
+ *   invoice-model    reading an invoice page, default claude-haiku-5-5 (Claude Haiku 5.5)
  *   invoice-timeout  how long reading one invoice page may take, default 120s
  *   max-retries  how many times the SDK tries again after a 429, a 5xx, no connection or a timeout, default 1
- *   fake         true: FakeCountExtractor answers instead of Claude (dev screens and tests), with no key needed.
+ *   fake         true: FakeCountExtractor and FakeInvoiceLineMatcher answer instead of Claude (dev screens and tests), with no key needed.
  *                The invoice reader has its own switch, app.invoice.fake.
  */
 @Component
@@ -24,7 +24,7 @@ public class ClaudeSettings {
 
     public static final String DEFAULT_BASE_URL = "https://api.anthropic.com";
     public static final String DEFAULT_MODEL = "claude-haiku-5-5";
-    public static final String DEFAULT_INVOICE_MODEL = "claude-opus-5-5";
+    public static final String DEFAULT_INVOICE_MODEL = "claude-haiku-5-5";
 
     private final String baseUrl;
     private final String apiKey;

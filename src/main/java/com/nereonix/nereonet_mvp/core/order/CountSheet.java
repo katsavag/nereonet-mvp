@@ -249,7 +249,16 @@ public final class CountSheet {
 
         /** Any matched invoice line is an uncertain match (the office's "match to review"). */
         public boolean isMatchToReview() {
-            return invoiceLines.stream().anyMatch(line -> line.getMatch() == InvoiceMatch.CHECK);
+            return invoiceLines.stream().anyMatch(line -> line.getMatch() == InvoiceMatch.CHECK
+                    || line.getMatch() == InvoiceMatch.AI);
+        }
+
+        /**
+         * The invoice line Claude matched to this row (InvoiceMatch.AI), or null: the reference then shows the
+         * invoice's own wording and "Matched by Claude", with "Not this item" for the cook.
+         */
+        public DeliveryInvoiceLine getClaudeLine() {
+            return invoiceLines.stream().filter(line -> line.getMatch() == InvoiceMatch.AI).findFirst().orElse(null);
         }
 
         public boolean isConversionToReview() {

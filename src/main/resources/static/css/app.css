@@ -6963,7 +6963,8 @@ html.is-offline .voice-hold {
        A row as the invoice says is plain. .is-different (on .count-row-form) gives the row a thin left border in the
        warning colour, .is-empty the same in the danger colour; the words say it. .is-none dims the input (0).
      - .count-ref-link: the two small links at the end of a new item's reference line ("It is an item we have",
-       "Not on the invoice: remove"; the second is a button that looks like a link), a touch target high.
+       "Not on the invoice: remove"; the second is a button that looks like a link) and "Not this item" on a row
+       Claude matched, a touch target high.
      - .count-row-link: a "Not ordered" row, only a name and Change on its right; with the quiet
        remove button they are .count-row-actions. .count-line-action: the small ghost buttons "Not on the invoice:
        remove" and "Put back", a touch target high. .count-fix-lines: the remove buttons under "Read wrong?".

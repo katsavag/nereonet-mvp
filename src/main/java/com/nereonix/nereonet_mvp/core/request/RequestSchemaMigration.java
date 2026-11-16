@@ -12,12 +12,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
+import com.nereonix.nereonet_mvp.core.order.InvoiceMatch;
 
 /**
  * Hibernate (ddl-auto: update) never changes a column it created. On a database from before P33 that leaves
  * request_line.item_id not null (a line for a new item has no item), and the check constraints PostgreSQL got for
- * item_request.status and notification.type without CANCELLED and REQUEST. On startup this drops the not null and
- * re-creates both constraints from the enums. Each statement gives the same result when run again, so it runs on
+ * item_request.status and notification.type without CANCELLED and REQUEST, and for delivery_invoice_line.match without
+ * AI. On startup this drops the not null and re-creates the constraints from the enums. Each statement gives the same result when run again, so it runs on
  * every startup; on a new database it changes nothing. Plain SQL, before anything saves a request.
  */
 @Component
@@ -40,6 +41,7 @@ public class RequestSchemaMigration implements ApplicationRunner {
         jdbc.execute("alter table request_line alter column item_id drop not null");
         recreateCheck("item_request", "status", names(RequestStatus.values()));
         recreateCheck("notification", "type", names(NotificationType.values()));
+        recreateCheck("delivery_invoice_line", "match", names(InvoiceMatch.values()));
     }
 
     // The constraint PostgreSQL names <table>_<column>_check for Hibernate's inline check.

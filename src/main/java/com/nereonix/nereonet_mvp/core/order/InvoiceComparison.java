@@ -443,7 +443,8 @@ public final class InvoiceComparison {
         for (DeliveryInvoiceLine line : lines) {
             String key = "match:" + line.getId();
             // To review, or reviewed already (kept, with the decision).
-            if ((line.getMatch() == InvoiceMatch.CHECK && line.getItem() != null) || decisions.containsKey(key)) {
+            if (((line.getMatch() == InvoiceMatch.CHECK || line.getMatch() == InvoiceMatch.AI) && line.getItem() != null)
+                    || decisions.containsKey(key)) {
                 items.add(new ReviewItem(key, ReviewKind.MATCH, null, line, decisions.get(key)));
             }
         }

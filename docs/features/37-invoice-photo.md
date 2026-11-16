@@ -34,7 +34,7 @@ invoice only helps: **Count without the invoice** is always there, and a reading
   (15 min): its pages "timed out", to read again. While reading, the pages cannot change (409).
 - **Reading a page** (P70, `core/ai/ClaudeInvoiceReader`): Claude's Messages API through the Anthropic Java SDK,
   one call per page, with the key of counting by voice (`ANTHROPIC_API_KEY`) and its own model and timeout
-  (`app.claude.invoice-model`, default `claude-opus-5-5`; `app.claude.invoice-timeout`, 120 s). **Only the page is
+  (`app.claude.invoice-model`, default `claude-haiku-5-5`; `app.claude.invoice-timeout`, 120 s). **Only the page is
   sent** (its image, or the PDF as a document): no crew names, no order data. The rules (the system prompt) ask for
   every value as text, copied as the page writes it, never computed, corrected or guessed, an empty value for what
   is not there, and a confidence from 0 to 1 per line (how sure Claude is of the line's numbers); the answer is JSON

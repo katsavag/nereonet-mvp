@@ -11,9 +11,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nereonix.nereonet_mvp.core.ai.InvoiceLineMatcher;
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -32,6 +34,8 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * the name learned for its supplier and description (SupplierItemName), else InvoiceMatcher over the order's lines
  * not removed, else over the vessel's other active items, else PICK (a new item's row). The pack factor is worked out per match
  * (InvoiceMatcher.conversion). Callers hold the order's row lock (DeliveryCountService, OrderReceiptService).
+ * At the end of the invoice's reading (InvoiceReadingService) the lines that ended as PICK go to Claude once
+ * (claudeRequest, applyClaude): a sure answer links the line as AI, anything else leaves it PICK.
  */
 @Service
 public class InvoiceMatchService {
@@ -42,16 +46,19 @@ public class InvoiceMatchService {
     private final SupplierRepository supplierRepository;
     private final SupplierItemNameRepository nameRepository;
     private final AuditService auditService;
+    private final double aiMatchMin;
 
     public InvoiceMatchService(DeliveryInvoiceRepository invoiceRepository, DeliveryInvoiceLineRepository lineRepository,
                                ItemRepository itemRepository, SupplierRepository supplierRepository,
-                               SupplierItemNameRepository nameRepository, AuditService auditService) {
+                               SupplierItemNameRepository nameRepository, AuditService auditService,
+                               @Value("${app.invoice.ai-match-min:0.8}") double aiMatchMin) {
         this.invoiceRepository = invoiceRepository;
         this.lineRepository = lineRepository;
         this.itemRepository = itemRepository;
         this.supplierRepository = supplierRepository;
         this.nameRepository = nameRepository;
         this.auditService = auditService;
+        this.aiMatchMin = aiMatchMin;
     }
 
     /** The count's rows of an order, its invoice's lines as matched so far. */
@@ -123,20 +130,127 @@ public class InvoiceMatchService {
                         .forEach(auto -> auto.line().setMatch(InvoiceMatch.CHECK)));
     }
 
+    /**
+     * What goes to Claude for an order's invoice, and what its numbers stand for: lineIds the invoice line of each
+     * line, targets the order line or the vessel item of each candidate, both in the request's order (no 1 first).
+     */
+    public record ClaudeRequest(List<InvoiceLineMatcher.Line> lines, List<InvoiceLineMatcher.Candidate> candidates,
+                                List<Long> lineIds, List<Target> targets) {
+    }
+
+    /** A candidate: a line of the order (orderLineId), or an item of the vessel not on it (itemId). */
+    public record Target(Long orderLineId, Long itemId) {
+    }
+
+    /**
+     * At the end of the invoice's reading (the order locked): matches the lines as ensureMatched, then gathers the
+     * ones that ended as PICK and Claude was never asked about, with the candidates: the order's lines not removed
+     * first, then the vessel's other active items. Null when there is nothing to ask.
+     */
+    @Transactional
+    public ClaudeRequest claudeRequest(ShipOrder order) {
+        ensureMatched(order);
+        DeliveryInvoice invoice = invoiceRepository.findByOrderId(order.getId()).orElse(null);
+        if (invoice == null || !CountSheet.read(invoice) || order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return null;
+        }
+        List<DeliveryInvoiceLine> open = lineRepository.findAllByInvoiceIdOrderByPageAscIdAsc(invoice.getId()).stream()
+                .filter(line -> line.getMatch() == InvoiceMatch.PICK && !line.isAiMatchTried() && !line.isRemovedOnBoard()
+                        && line.getDescription() != null && !line.getDescription().isBlank())
+                .toList();
+        List<InvoiceLineMatcher.Candidate> candidates = new ArrayList<>();
+        List<Target> targets = new ArrayList<>();
+        for (ShipOrderLine line : order.getLines()) {
+            if (!line.isRemoved()) {
+                targets.add(new Target(line.getId(), null));
+                candidates.add(new InvoiceLineMatcher.Candidate(targets.size(), line.getItem().getName(),
+                        line.getItem().getUnit()));
+            }
+        }
+        for (Item item : otherItems(order)) {
+            targets.add(new Target(null, item.getId()));
+            candidates.add(new InvoiceLineMatcher.Candidate(targets.size(), item.getName(), item.getUnit()));
+        }
+        if (open.isEmpty() || candidates.isEmpty()) {
+            return null;
+        }
+        List<InvoiceLineMatcher.Line> lines = new ArrayList<>();
+        for (DeliveryInvoiceLine line : open) {
+            lines.add(new InvoiceLineMatcher.Line(lines.size() + 1, line.getDescription(), line.getUnit()));
+        }
+        return new ClaudeRequest(List.copyOf(lines), List.copyOf(candidates),
+                open.stream().map(DeliveryInvoiceLine::getId).toList(), List.copyOf(targets));
+    }
+
+    /**
+     * Claude's answer for a request (the order locked; empty when the call failed): every line asked about is marked
+     * as tried. A line is linked as AI when the answer names a candidate and is at least app.invoice.ai-match-min
+     * sure, the line is still as it was (PICK, not removed, not counted) and the candidate is still a line of the
+     * order or an active item off it; the unit conversion is worked out as for a MATCHED line. Nothing is learned.
+     * One audit entry when something was linked ("Order #12, 3 invoice lines matched by Claude"). The lines linked.
+     */
+    @Transactional
+    public int applyClaude(ShipOrder order, ClaudeRequest request, List<InvoiceLineMatcher.Match> matches) {
+        DeliveryInvoice invoice = invoiceRepository.findByOrderId(order.getId()).orElse(null);
+        if (invoice == null) {
+            return 0;
+        }
+        Map<Long, DeliveryInvoiceLine> byId = lineRepository.findAllByInvoiceIdOrderByPageAscIdAsc(invoice.getId())
+                .stream().collect(Collectors.toMap(DeliveryInvoiceLine::getId, Function.identity()));
+        Map<Integer, InvoiceLineMatcher.Match> answers = matches.stream()
+                .collect(Collectors.toMap(InvoiceLineMatcher.Match::line, Function.identity(), (a, b) -> a));
+        boolean open = order.getStatus() == ShipOrderStatus.CONFIRMED && order.getDeliveryCountStatus().editable();
+        List<Item> others = otherItems(order);
+        int linked = 0;
+        for (int i = 0; i < request.lineIds().size(); i++) {
+            DeliveryInvoiceLine line = byId.get(request.lineIds().get(i));
+            if (line == null) {
+                continue;
+            }
+            line.setAiMatchTried(true);
+            InvoiceLineMatcher.Match match = answers.get(i + 1);
+            if (!open || match == null || match.confidence() < aiMatchMin || match.candidate() < 1
+                    || match.candidate() > request.targets().size() || line.getMatch() != InvoiceMatch.PICK
+                    || line.isRemovedOnBoard() || line.getCountedQuantity() != null) {
+                continue;
+            }
+            Target target = request.targets().get(match.candidate() - 1);
+            ShipOrderLine orderLine = target.orderLineId() == null ? null : order.getLines().stream()
+                    .filter(l -> l.getId().equals(target.orderLineId()) && !l.isRemoved()).findFirst().orElse(null);
+            Item item = orderLine != null ? orderLine.getItem() : target.itemId() == null ? null
+                    : others.stream().filter(o -> o.getId().equals(target.itemId())).findFirst().orElse(null);
+            if (item == null) {
+                continue;
+            }
+            link(line, InvoiceMatch.AI, orderLine, item, conversion(line, item));
+            linked++;
+        }
+        if (linked > 0) {
+            auditService.record("ORDER_INVOICE_CLAUDE_MATCHED", order.getShip(), "Order #" + order.getId() + ", " + linked
+                    + (linked == 1 ? " invoice line" : " invoice lines") + " matched by Claude", invoice.getReadBy());
+        }
+        return linked;
+    }
+
     /** What the cook may choose for an invoice line: the order lines nothing is matched to yet, then the vessel's items. */
     public record Choices(List<ShipOrderLine> orderLines, List<Item> items) {
     }
 
-    /** The choices, optionally only those whose name has the words typed (query). */
+    /**
+     * The choices for an invoice line, optionally only those whose name has the words typed (query). What only this
+     * line is matched to stays a choice ("Not this item" on a line Claude matched: the cook may keep it).
+     */
     @Transactional(readOnly = true)
-    public Choices choices(ShipOrder order, String query) {
+    public Choices choices(ShipOrder order, DeliveryInvoiceLine invoiceLine, String query) {
         CountSheet sheet = sheet(order);
         Set<Long> matched = new HashSet<>();
         sheet.getRows().stream().filter(row -> row.getOrderLine() != null && !row.getInvoiceLines().isEmpty())
+                .filter(row -> !onlyOf(row, invoiceLine))
                 .forEach(row -> matched.add(row.getOrderLine().getId()));
         // The vessel's items off the order that have a row of their own already.
         Set<Long> extras = new HashSet<>();
         sheet.getRows().stream().filter(row -> row.getExtra() != null && !row.isNewItem())
+                .filter(row -> !onlyOf(row, invoiceLine))
                 .forEach(row -> extras.add(row.getItem().getId()));
         String folded = InvoiceMatcher.fold(query == null ? "" : query.strip());
         List<ShipOrderLine> lines = order.getLines().stream()
@@ -147,6 +261,11 @@ public class InvoiceMatchService {
         List<Item> items = otherItems(order).stream().filter(item -> !extras.contains(item.getId()))
                 .filter(item -> InvoiceMatcher.fold(item.getName()).contains(folded)).toList();
         return new Choices(lines, items);
+    }
+
+    // The row is made of this invoice line alone.
+    private static boolean onlyOf(CountSheet.Row row, DeliveryInvoiceLine line) {
+        return row.getInvoiceLines().size() == 1 && row.getInvoiceLines().getFirst().getId().equals(line.getId());
     }
 
     /**

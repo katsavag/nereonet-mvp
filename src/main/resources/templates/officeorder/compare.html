@@ -104,8 +104,10 @@
                                     : #{officeorder.compare.review.lineNoNumber(${l.page}, ${l.description})}">Page 1, line 12: FISH FILLET HAKE</th:block>
                             <span class="compare-flags"><th:block th:replace="~{officeorder/compare :: flags(${l})}"></th:block></span>
                         </span>
-                        <span th:case="'MATCH'" th:text="#{officeorder.compare.review.match(${l.description},
-                                ${l.item != null} ? ${l.item.name} : #{officeorder.compare.match.notOrdered})}">Match to review: FISH FILLET HAKE → Fish fillets</span>
+                        <!-- A match Claude made (InvoiceMatch.AI) says so: "Match to review, matched by Claude: ...". -->
+                        <span th:case="'MATCH'" th:with="to=${l.item != null} ? ${l.item.name} : #{officeorder.compare.match.notOrdered}"
+                              th:text="${l.match != null and l.match.name() == 'AI'} ? #{officeorder.compare.review.matchClaude(${l.description}, ${to})}
+                                      : #{officeorder.compare.review.match(${l.description}, ${to})}">Match to review: FISH FILLET HAKE → Fish fillets</span>
                         <span th:case="'CONVERSION'" th:text="#{officeorder.compare.review.conversion(${l.description}, ${l.unit} ?: '',
                                 ${@money.quantity(l.packFactor)}, ${l.item.unit})}">Conversion to review: RICE 10KG, BAG → × 10 kg</span>
                     </th:block>

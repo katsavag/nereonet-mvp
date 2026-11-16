@@ -604,6 +604,8 @@ class MessageKeysTest {
             "order.count.new.heading",
             "order.count.ref.notOnOrder",
             "order.count.ref.haveIt",
+            "order.count.ref.claude",
+            "order.count.ref.notThis",
             "order.approve.new.heading",
             "order.approve.new.hint",
             "order.count.notOrdered.heading",

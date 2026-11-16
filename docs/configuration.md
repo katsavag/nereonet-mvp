@@ -36,16 +36,17 @@ Set these environment variables:
 | `ASSEMBLYAI_FAKE` | optional; `true` answers with a fixed sentence instead of AssemblyAI (dev screens without a key), default `false` |
 | `ANTHROPIC_API_KEY` | optional (P57, P69, P70); the Anthropic key with which Claude turns the text into count lines (see [34](features/34-voice-count.md)) and reads the photographed delivery invoice (see [37](features/37-invoice-photo.md)); without it invoices are not read. Environment or `.env` only |
 | `ANTHROPIC_BASE_URL` | optional; default `https://api.anthropic.com` |
-| `CLAUDE_MODEL` | optional; the model that counts by voice, default `claude-haiku-5-5` (Claude Haiku 5.5) |
+| `CLAUDE_MODEL` | optional; the model that counts by voice and matches the invoice lines the word matching could not place (P85), default `claude-haiku-5-5` (Claude Haiku 5.5) |
 | `CLAUDE_TIMEOUT` | optional; how long one count answer may take, default `30s` |
-| `CLAUDE_INVOICE_MODEL` | optional (P70); the model that reads an invoice page, default `claude-opus-5-5` (Claude Opus 5.5) |
+| `CLAUDE_INVOICE_MODEL` | optional (P70); the model that reads an invoice page, default `claude-haiku-5-5` (Claude Haiku 5.5) |
 | `CLAUDE_INVOICE_TIMEOUT` | optional; how long reading one invoice page may take, default `120s` |
 | `CLAUDE_MAX_RETRIES` | optional; tries again after a 429, a 5xx, no connection or a timeout, default `1` |
 | `INVOICE_MIN_CONFIDENCE` | optional; default `0.85`, below it an invoice line is flagged "check" |
+| `INVOICE_AI_MATCH_MIN` | optional (P85); default `0.8`, how sure Claude must be (0 to 1) for an invoice line the word matching could not place to be linked to the item it names (see [38](features/38-invoice-guided-count.md)) |
 | `INVOICE_READING_STALLED_AFTER` | optional; default `15m`, a reading not finished by then is given up |
 | `INVOICE_FAKE` | optional (P69); `true` "reads" the sample invoice instead of Claude (dev screens without a key), default `false` |
 | `INVOICE_SAMPLE_DIR` | optional; default `samples/invoice`, the sample invoice the fake reader reads |
-| `CLAUDE_FAKE` | optional; `true` matches item names with simple rules instead of Claude, default `false` |
+| `CLAUDE_FAKE` | optional; `true` matches item names with simple rules instead of Claude (and matches no invoice line), default `false` |
 | `QUANTITY_MAX_KG`, `QUANTITY_MAX_LT` | optional (P60); the most one request, order or receipt line may hold in kg / lt, default `2000` (see [35](features/35-input-limits.md)) |
 | `QUANTITY_MAX_G`, `QUANTITY_MAX_ML` | optional; the same in g / ml, default `50000` |
 | `QUANTITY_MAX_COUNTABLE` | optional; the same for pcs, box and every other countable or unknown unit, default `5000` |

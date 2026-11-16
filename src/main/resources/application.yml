@@ -148,11 +148,11 @@ app:
   claude:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     api-key: ${ANTHROPIC_API_KEY:}
-    # Counting by voice: Claude Haiku 5.5.
+    # Counting by voice, and matching the invoice lines the word matching could not place: Claude Haiku 5.5.
     model: ${CLAUDE_MODEL:claude-haiku-5-5}
     timeout: ${CLAUDE_TIMEOUT:30s}
-    # Reading a photographed invoice page (core/ai/ClaudeInvoiceReader): Claude Opus 5.5, one call per page.
-    invoice-model: ${CLAUDE_INVOICE_MODEL:claude-opus-5-5}
+    # Reading a photographed invoice page (core/ai/ClaudeInvoiceReader): Claude Haiku 5.5, one call per page.
+    invoice-model: ${CLAUDE_INVOICE_MODEL:claude-haiku-5-5}
     invoice-timeout: ${CLAUDE_INVOICE_TIMEOUT:120s}
     # Tries again after a 429, a 5xx, no connection or a timeout, this many times.
     max-retries: ${CLAUDE_MAX_RETRIES:1}
@@ -165,6 +165,9 @@ app:
     fake: ${INVOICE_FAKE:false}
     # A line Claude is less sure of than this is flagged "check" (for the office).
     min-confidence: ${INVOICE_MIN_CONFIDENCE:0.85}
+    # An invoice line the word matching could not place is linked to the item Claude names (core/ai/InvoiceLineMatcher)
+    # only when Claude is at least this sure, from 0 to 1; below it the line stays a new item's row.
+    ai-match-min: ${INVOICE_AI_MATCH_MIN:0.8}
     # Read the pages in the background while the progress page reloads itself (false in the tests: at once).
     read-in-background: true
     # A reading not finished after this long (the server restarted meanwhile) is given up: its pages "timed out".

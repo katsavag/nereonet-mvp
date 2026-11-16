@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.count.choose.title}, ~{::main})}">
 <body>
-<!-- "Choose the product": what an invoice line nothing was found for is. A short list: the order's lines nothing
-     is matched to yet, then the vessel's other items, then Not ordered (never stocked, it goes to the office). One
+<!-- "Choose the product": what an invoice line nothing was found for is, or one Claude matched ("Not this item").
+     A short list: the order's lines nothing else is matched to, then the vessel's other items, then Not ordered (never stocked, it goes to the office). One
      radio list and Choose, without JavaScript; Find narrows the list by name (?q=). The product chosen is remembered
      for this supplier's description. English only. Model: order, line (DeliveryInvoiceLine), q,
      choices (InvoiceMatchService.Choices). -->

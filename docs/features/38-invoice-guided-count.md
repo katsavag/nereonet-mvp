@@ -5,12 +5,28 @@ P62 are matched to the order's lines; the cook counts each row against what the 
 unit, changing only the numbers that differ, and saves the list once; the Master sees only the differences and approves in one step. Without an
 invoice (none photographed, or not read) the order is the reference. Ship screens English only; prices, the
 invoice's checks and the uncertain matches are kept for the office (P64).
-- **Matching** (`core/order/InvoiceMatcher`, pure; `InvoiceMatchService.ensureMatched`, when the count opens):
+- **Matching** (`core/order/InvoiceMatcher`, pure; `InvoiceMatchService.ensureMatched`, at the end of the invoice's
+  reading and when the count opens):
   names folded (case, accents, punctuation, final sigma), stop words and plurals dropped, pack sizes ("10KG",
   "6X1,5LT", "33cl") kept apart. Per invoice line, in order: a name learned for this supplier (LEARNED); the
   order's lines (MATCHED when clearly ahead, CHECK when likely); the vessel's other items, a row of their own;
   otherwise a new item's row (PICK). Two lines matched to the same order line: the second is CHECK. The supplier
   is found by its name (company forms dropped); an unknown one is learned under its name as read.
+- **Claude matches what the words could not** (P85; `core/ai/InvoiceLineMatcher`: `ClaudeInvoiceLineMatcher`, and
+  `FakeInvoiceLineMatcher`, which matches nothing, with `CLAUDE_FAKE`): once per reading, at the end of the background
+  reading (`InvoiceReadingService.matchWithClaude`), never when a page opens, the lines that ended as PICK go to
+  Claude in one call (Messages API, `app.claude.model`, low effort, structured output). **Sent**: per line a number,
+  the description and the unit as the invoice has them; per candidate a number, the item's name and unit (the order's
+  lines first, then the vessel's other active items); nothing else. The answer (per line a candidate or 0, and how
+  sure from 0 to 1) is checked in Java (`InvoiceMatchAnswer`: a line or a candidate not sent is ignored). At least
+  `app.invoice.ai-match-min` (0.8) sure: the line is linked as AI, its unit worked out as for a MATCHED line; else it
+  stays PICK. `delivery_invoice_line.ai_match_tried` keeps a line from being asked twice (a page read again makes new
+  lines). No key, a timeout, a refusal or any error: one line in the log, the lines stay PICK. Never learned by
+  itself: only a person's choice is (the choose page, the office's **Correct** or **Change**). The cook's row is the
+  item's, its reference "Invoice 20 kg (MINCED BEEF FROZEN) · Matched by Claude" with **Not this item** (the choose
+  page, where the item Claude chose stays a choice); the Master's rows show the same words; for the office it is a
+  match to review ([39](39-invoice-comparison.md)). Audit: "Invoice lines matched by Claude" (`Order #12, 3 invoice
+  lines matched by Claude`), one per reading that linked something.
 - **Units** (`InvoiceMatcher.conversion`): the same unit counts in the item's; another unit of the same measure
   (g for kg) or a pack whose size the description gives ("BASMATI RICE 10KG", BAG, for kg: 10) counts in the
   invoice's unit ("Basmati rice, 10 kg bag", "Invoice 12 bags") and stores the item's (110 kg). Anything that
@@ -84,7 +100,7 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   file (the invoice photos count). It closes the order as 24 with the approved numbers, puts the provisions in the
   store ([33](33-delivery-into-store.md)), notifies the office and the cook. P51's form posts redirect here while a count waits.
 - **Kept for the office**: per order line the invoiced quantity and invoice line, and the marks match to review
-  (CHECK) and conversion to review; the vessel's items not on the order become lines "added on receipt" (ordered
+  (CHECK, AI) and conversion to review; the vessel's items not on the order become lines "added on receipt" (ordered
   0); so does a new item's row that arrived (above 0): approval first makes the item on the vessel
   (`RequestService.itemFor`, as the approval of a request: the name as shown, the unit, PROVISIONS, active, no
   storage place, ITEM_CREATED; a name the vessel has, ignoring case, is that item), links the invoice line to it and
