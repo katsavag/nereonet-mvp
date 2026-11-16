@@ -30,7 +30,7 @@ import com.nereonix.nereonet_mvp.core.user.User;
  * Matches the lines read from an order's invoice to the order and keeps the names learned. ensureMatched runs
  * when the count or the approval opens: every invoice line not matched yet (new, or read again) is matched once, by
  * the name learned for its supplier and description (SupplierItemName), else InvoiceMatcher over the order's lines
- * not removed, else over the vessel's other active items, else PICK. The pack factor is worked out per match
+ * not removed, else over the vessel's other active items, else PICK (a new item's row). The pack factor is worked out per match
  * (InvoiceMatcher.conversion). Callers hold the order's row lock (DeliveryCountService, OrderReceiptService).
  */
 @Service
@@ -136,7 +136,8 @@ public class InvoiceMatchService {
                 .forEach(row -> matched.add(row.getOrderLine().getId()));
         // The vessel's items off the order that have a row of their own already.
         Set<Long> extras = new HashSet<>();
-        sheet.getRows().stream().filter(row -> row.getExtra() != null).forEach(row -> extras.add(row.getItem().getId()));
+        sheet.getRows().stream().filter(row -> row.getExtra() != null && !row.isNewItem())
+                .forEach(row -> extras.add(row.getItem().getId()));
         String folded = InvoiceMatcher.fold(query == null ? "" : query.strip());
         List<ShipOrderLine> lines = order.getLines().stream()
                 .filter(line -> !line.isRemoved() && !matched.contains(line.getId()))
@@ -190,7 +191,7 @@ public class InvoiceMatchService {
     /** The item has a row with an invoice line on this sheet. */
     public static boolean onInvoice(CountSheet sheet, Long itemId) {
         return sheet.getRows().stream()
-                .anyMatch(row -> row.getItem().getId().equals(itemId) && !row.getInvoiceLines().isEmpty());
+                .anyMatch(row -> itemId.equals(row.getItem().getId()) && !row.getInvoiceLines().isEmpty());
     }
 
     /**

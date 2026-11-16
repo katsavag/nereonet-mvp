@@ -117,7 +117,10 @@
 <!-- A row of the delivery count (CountSheet.Row): its reference, one muted line under the name. "Ordered 10 bags ·
      Invoice 12 bags" (the invoice's quantity in its own unit; after a person's correction "Invoice 21 bags (corrected,
      photo read 12)"), "Invoice: not read", "Not on the invoice"; without a read invoice only "Ordered 12 kg".
-     A row with a line the cook added by hand says "Invoice 5 kg (added by hand)".
+     A row with a line the cook added by hand says "Invoice 5 kg (added by hand)". A new item's row (r.newItem: an
+     invoice line matched to nothing) says "Invoice 20 kg · not on the order" and, with fix, ends with two small links
+     in place of "Read wrong?": "It is an item we have" (the choose page) and "Not on the invoice: remove" (a submit
+     button of 'countLineForm' that looks like a link).
      fix (true on the cook's count; false: the Master's and the read-only lines): the line ends with the small link
      "Read wrong?" ("Enter it" for a quantity not read): the summary of a details element, which opens "The paper
      invoice says", the number and Correct invoice under the line (only for a row with one invoice line,
@@ -140,8 +143,20 @@
         <span th:if="${r.addedByHand}" th:text="#{order.count.ref.added}">(added by hand)</span>
         <span th:if="${src == 'NOT_READ'}" th:text="#{order.count.ref.notRead}">Invoice: not read</span>
         <span th:if="${src == 'NOT_ON_INVOICE'}" th:text="#{order.count.ref.notOnInvoice}">Not on the invoice</span>
+        <th:block th:if="${r.newItem}"><span aria-hidden="true">·</span>
+            <span th:text="#{order.count.ref.notOnOrder}">not on the order</span></th:block>
     </th:block>
-    <th:block th:if="${fix and !r.invoiceLines.isEmpty()}">
+    <th:block th:if="${fix and r.newItem}">
+        <!-- The dot is inside each link's box so it never ends a line on its own. -->
+        <span class="count-ref-link"><span aria-hidden="true">·</span>
+            <a th:href="@{/ship/orders/{id}/count/choose/{line}(id=${order.id}, line=${r.extra.id})}"
+               th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.ref.haveIt}">It is an item we have</a></span>
+        <span class="count-ref-link"><span aria-hidden="true">·</span>
+            <button type="submit" form="countLineForm"
+                    th:formaction="@{/ship/orders/{id}/count/lines/{line}/remove(id=${order.id}, line=${r.extra.id})}"
+                    th:attr="aria-describedby=${'name-' + i}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button></span>
+    </th:block>
+    <th:block th:if="${fix and !r.newItem and !r.invoiceLines.isEmpty()}">
         <details class="count-fix" th:open="${fixErr}">
             <!-- The dot is inside the summary so it never ends a line on its own. -->
             <summary th:attr="aria-describedby=${'name-' + i}"><span aria-hidden="true">·</span>
@@ -212,6 +227,7 @@
      The root says how the number stands, for the left border of the list's row and for js/count.js: is-empty (no
      number), is-different (not what the invoice says), is-none (0).
      Fields: q-{key} the number, none-{key} Did not arrive, note-{key} the note.
+     A new item's row (r.newItem) has the badge "New item" after its name and no note; everything else is the same.
      r: the row; value: the input's text ('' for none); error: the message of a refused number, or null; need: true
      after a Save that left the row without a number; note: the note's text ('' for none), or null for a row
      without a note field (the Master's); fix: countRef's (false: the Master's). -->
@@ -226,9 +242,11 @@
               data-less=${vsOrder} ? #{order.count.diff.lessOrdered('{n}')} : #{order.count.diff.less('{n}')},
               data-more=${vsOrder} ? #{order.count.diff.moreOrdered('{n}')} : #{order.count.diff.more('{n}')}">
     <div class="count-row-head">
-        <span class="count-row-name" th:id="${'name-' + i}" th:text="${r.name}">Basmati rice, 10 kg bag</span>
+        <span th:unless="${r.newItem}" class="count-row-name" th:id="${'name-' + i}" th:text="${r.name}">Basmati rice, 10 kg bag</span>
+        <span th:if="${r.newItem}" class="count-row-name" th:id="${'name-' + i}">[[${r.name}]]
+            <span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></span>
         <div th:replace="~{shiporder/parts :: countRef(${r}, ${fix})}"></div>
-        <details th:if="${note != null}" class="count-fix" th:open="${!note.isEmpty()}">
+        <details th:if="${note != null and !r.newItem}" class="count-fix" th:open="${!note.isEmpty()}">
             <summary th:attr="aria-describedby=${'name-' + i}"><span aria-hidden="true">·</span>
                 <span class="count-fix-link" th:text="#{order.count.addNote}">Add a note</span></summary>
             <div class="count-fix-form">

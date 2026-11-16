@@ -44,7 +44,7 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
  *   POST /ship/orders/{id}/count/lines             Add a line from the paper invoice: item (its id), quantity
  *   POST /ship/orders/{id}/count/lines/{lineId}/remove    Not on the invoice: remove (an invoice line left out)
  *   POST /ship/orders/{id}/count/lines/{lineId}/restore   Put back
- *   GET  /ship/orders/{id}/count/choose/{lineId}   Choose the product of an invoice line (?q= narrows the list)
+ *   GET  /ship/orders/{id}/count/choose/{lineId}   "It is an item we have": the item of an invoice line (?q= narrows)
  *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
  *   GET  /ship/orders/{id}/count/send              the summary with Send to Master; back to the list while rows are
  *                                                  still to do
@@ -161,11 +161,6 @@ public class DeliveryCountController {
             redirectAttributes.addFlashAttribute("leftEmpty", empty.stream().map(CountSheet.Row::getKey).toList());
             return "redirect:/ship/orders/" + id + "/count#" + empty.getFirst().getAnchor();
         }
-        if (!sheet.getPicks().isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "order.count.save.picks");
-            redirectAttributes.addFlashAttribute("errorArgs", new Object[] {sheet.getPicks().size()});
-            return "redirect:/ship/orders/" + id + "/count#countPicksTitle";
-        }
         redirectAttributes.addFlashAttribute("successMessage", "order.count.saved");
         return "redirect:/ship/orders/" + id + "/count/send";
     }
@@ -235,6 +230,7 @@ public class DeliveryCountController {
         CountSheet sheet = matchService.sheet(order);
         DeliveryInvoiceLine line = invoiceLine(order, lineId);
         CountSheet.Row row = sheet.rowOf(lineId);
+        // A new item's row is gone with its line; an ordered row stays.
         DeliveryCountService.Result result = countService.removeLine(pageService.cook(email), id, lineId, true);
         if (result != DeliveryCountService.Result.DONE) {
             return refused(order, result, redirectAttributes);
@@ -311,7 +307,7 @@ public class DeliveryCountController {
         redirectAttributes.addFlashAttribute("successArgs", new Object[] {chosen.getName(), plain(check.value()),
                 chosen.getUnit()});
         CountSheet.Row row = matchService.sheet(order).getRows().stream()
-                .filter(r -> r.getItem().getId().equals(chosen.getId())).findFirst().orElse(null);
+                .filter(r -> chosen.getId().equals(r.getItem().getId())).findFirst().orElse(null);
         return "redirect:/ship/orders/" + id + "/count" + (row == null ? "" : "#" + row.getAnchor());
     }
 
@@ -449,9 +445,8 @@ public class DeliveryCountController {
 
     private DeliveryInvoiceLine invoiceLine(ShipOrder order, Long lineId) {
         CountSheet sheet = matchService.sheet(order);
-        return Stream.concat(sheet.getPicks().stream(), Stream.concat(
-                        sheet.getNotOrdered().stream(),
-                        sheet.getRows().stream().flatMap(row -> row.getInvoiceLines().stream())))
+        return Stream.concat(sheet.getNotOrdered().stream(),
+                        sheet.getRows().stream().flatMap(row -> row.getInvoiceLines().stream()))
                 .filter(line -> line.getId().equals(lineId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }

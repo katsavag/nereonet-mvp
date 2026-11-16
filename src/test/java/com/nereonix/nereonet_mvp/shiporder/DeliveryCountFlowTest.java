@@ -70,7 +70,7 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
  * The Chief cook counts what arrived and the Master approves it. Without a read invoice the order is the
  * reference ("Ordered 30 pcs", Arrived prefilled with 30, one Save for the whole list); with one, its lines are matched to the order and guide the count in the
  * invoice's unit ("Basmati rice, 10 kg bag · Invoice 12 bags"), the lines nothing was found for are chosen by the
- * cook ("Choose the product", learned for the supplier), the Master approves the differences in one step, and the
+ * cook ("It is an item we have", learned for the supplier), the Master approves the differences in one step, and the
  * receipt keeps for the office what the invoice said and the marks. Who may do what. Signed in as the office unless a
  * request says otherwise.
  */
@@ -321,8 +321,9 @@ class DeliveryCountFlowTest {
                         "Eggs", "Invoice 30 pcs", "value=\"30\"", "Feta cheese", "Invoice 10 kg", "value=\"10\"",
                         "Olive oil, 5 lt can", "Invoice 4 cans", "value=\"4\"", "Tomatoes", "Invoice 25 kg",
                         "Shower gel", "Not on the invoice",
-                        "On the invoice, not found on the order", "SPARKLING DRINK XYZ", "Choose the product",
-                        "PAPER NAPKINS", "Choose the product")
+                        "On the invoice, not on the order", "Paper napkins", "New item", "Invoice 10 pcs",
+                        "not on the order", "It is an item we have", "Not on the invoice: remove",
+                        "Sparkling drink xyz", "New item", "Invoice 24 pcs")
                 .doesNotContain("120", "1.85", "price");
         assertThat(eggs.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
@@ -353,12 +354,12 @@ class DeliveryCountFlowTest {
                 .andExpect(flash().attribute("errorMessage", "order.count.save.left"));
         assertThat(fetaLine.getCountedQuantity()).isEqualByComparingTo("10");
         assertThat(olive.getCountedQuantity()).isEqualByComparingTo("20");
-        // Every row has a number now, two invoice lines are still to choose.
+        // Every ordered row has a number now; the rows of the two lines not on the order were not sent.
         mockMvc.perform(save("o" + gelLine.getId(), "6"))
-                .andExpect(redirectedUrl("/ship/orders/" + id + "/count#countPicksTitle"))
-                .andExpect(flash().attribute("errorMessage", "order.count.save.picks"));
+                .andExpect(redirectedUrl("/ship/orders/" + id + "/count#row-i" + napkins.getId()))
+                .andExpect(flash().attribute("errorMessage", "order.count.save.left"));
 
-        // Choose the product: the order's lines nothing is matched to, the vessel's other items, Not ordered.
+        // It is an item we have: the order's lines nothing is matched to, the vessel's other items, Not ordered.
         String choose = as(cook, get("/ship/orders/{id}/count/choose/{l}", id, drink.getId()));
         assertThat(choose).contains("Choose the product", "SPARKLING DRINK XYZ", "On this order", "Shower gel",
                         "Other items of the vessel", "Lemonade", "Not ordered")

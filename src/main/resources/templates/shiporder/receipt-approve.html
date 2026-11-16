@@ -4,7 +4,8 @@
 <!-- "Approve the delivery": the Master's one short page when the Chief cook's count waits (it takes the
      place of the receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
      cook's note, and Change: that one row's input with "Did not arrive" and Confirm, the changeRow fragment below; a
-     changed row says "Changed from 23"),
+     changed row says "Changed from 23"), "New items in this delivery" (the invoice lines not on the order that
+     arrived: name, "20 kg arrived"; approving adds them to the vessel's items),
      the invoice numbers the cook corrected ("Invoice 21 bottles (corrected, photo read 12)"), the invoice lines he
      removed or added by hand ("Removed by the Chief cook: OLIVE OIL 5LT, 12 BOTTLE"),
      Show all (every row, read only, Change per row) and the invoice's photos, the cook's note for the Master. Approve
@@ -46,14 +47,23 @@
                     <th:block th:replace="~{::approveLine(${r}, '')}"></th:block>
                 </th:block>
             </li>
-            <li th:each="l : ${sheet.picks}" class="list-group-item count-different-line">
-                <span class="count-row-name" th:text="${l.description}">CHEESE 2KG</span>
-                <span class="count-different-what" th:text="#{order.approve.notChosen}">On the invoice, not found on the order</span>
-            </li>
         </ul>
     </section>
     <p th:if="${sheet.differentTotal == 0}" class="approve-none"
        th:text="${sheet.invoiceRead} ? #{order.approve.none} : #{order.approve.noneOrdered}">Everything arrived as invoiced.</p>
+
+    <!-- The invoice lines that are not on the order and arrived: approving makes each an item of the vessel. -->
+    <section th:unless="${sheet.newItems.isEmpty()}" class="count-different" aria-labelledby="approveNewTitle">
+        <h2 class="h6 fw-semibold" id="approveNewTitle" th:text="#{order.approve.new.heading}">New items in this delivery</h2>
+        <ul class="list-group">
+            <li th:each="r : ${sheet.newItems}" class="list-group-item count-different-line">
+                <span class="count-row-name" th:text="${r.name}">Minced beef frozen</span>
+                <span class="count-different-what"
+                      th:text="#{order.count.line.arrived(${r.text(r.result)}, ${r.unit(r.result)})}">20 kg arrived</span>
+            </li>
+        </ul>
+        <p class="text-meta mt-2" th:text="#{order.approve.new.hint}">Approving adds these to the vessel's items and to the inventory.</p>
+    </section>
 
     <!-- The invoice numbers the Chief cook corrected (the photo read them wrong), also where the count then agrees. -->
     <section th:unless="${sheet.corrected.isEmpty()}" class="count-different" aria-labelledby="approveCorrectedTitle">

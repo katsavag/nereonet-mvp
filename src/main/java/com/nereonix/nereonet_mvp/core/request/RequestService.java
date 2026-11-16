@@ -268,17 +268,26 @@ public class RequestService {
     // The ship's item with the line's new item name, or a new active item of the line's category, without a storage
     // place (recorded in the audit log).
     private Item itemFor(Ship ship, RequestLine line, User master) {
-        Item existing = itemRepository.findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(ship.getId(),
-                line.getNewItemName().strip()).orElse(null);
+        return itemFor(ship, line.getNewItemName(), line.getNewItemUnit(), line.getNewItemCategory(), master);
+    }
+
+    /**
+     * The ship's item with this name (ignoring case), or a new active item with the name, the unit (none: pcs) and
+     * the category, without a storage place, recorded as ITEM_CREATED by the Master. Also what the approval of a
+     * delivery count does with an invoice line that is not on the order (OrderReceiptService.approveCount).
+     */
+    @Transactional
+    public Item itemFor(Ship ship, String name, String unit, ItemCategory category, User master) {
+        Item existing = itemRepository.findFirstByShipIdAndNameIgnoreCaseOrderByIdAsc(ship.getId(), name.strip())
+                .orElse(null);
         if (existing != null) {
             return existing;
         }
         Item item = new Item();
         item.setShip(ship);
-        item.setName(line.getNewItemName().strip());
-        item.setUnit(line.getNewItemUnit() == null || line.getNewItemUnit().isBlank()
-                ? NEW_ITEM_DEFAULT_UNIT : line.getNewItemUnit().strip());
-        item.setCategory(line.getNewItemCategory());
+        item.setName(name.strip());
+        item.setUnit(unit == null || unit.isBlank() ? NEW_ITEM_DEFAULT_UNIT : unit.strip());
+        item.setCategory(category);
         item.setActive(true);
         item.setCreatedAt(Instant.now());
         itemRepository.save(item);

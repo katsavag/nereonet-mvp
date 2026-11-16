@@ -91,7 +91,7 @@ public class DeliveryCountService {
 
     /**
      * The cook saves the count, all its rows at once (CountSheet.Row key: "o12" an order line, "i34" an invoice line
-     * matched to an item not on the order): per row what arrived in the item's unit (0: nothing; null: not counted)
+     * not on the order: matched to an item of the vessel, or a new item, counted in the invoice's unit): per row what arrived in the item's unit (0: nothing; null: not counted)
      * and an optional note. Rows not in the map stay as they are. DRAFT (RETURNED kept, the Master's note stays on
      * top until he sends again).
      * NOT_CONFIRMED, RECEIVED, WRONG_STATE (sent already): nothing changed. IllegalArgumentException, before anything
@@ -223,7 +223,7 @@ public class DeliveryCountService {
     }
 
     /**
-     * Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
+     * "It is an item we have": the cook says what an invoice line nothing was found for is: a line of the order not
      * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
      * to the office). The product chosen is learned for the supplier. Refusals as saveRows; IllegalArgumentException for
      * a line of another order's invoice or a product it cannot be.
@@ -242,7 +242,7 @@ public class DeliveryCountService {
 
     /**
      * The cook sends the count to the Master with an optional note (at most COUNT_NOTE_MAX_LENGTH). Every row must
-     * be counted and every invoice line chosen (what did not arrive is counted as 0): NOT_FINISHED while
+     * be counted (what did not arrive is counted as 0): NOT_FINISHED while
      * CountSheet.getToDoTotal is above zero, nothing changed. SENT_TO_MASTER; recorded as "Delivery counted"; the
      * ship's enabled Masters get "Order 12: delivery counted by Demo Cook, waiting for your approval", linking to the
      * approval. Other refusals as saveRows.

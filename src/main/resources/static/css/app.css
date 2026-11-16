@@ -6962,7 +6962,9 @@ html.is-offline .voice-hold {
        the "Did not arrive" buttons of all rows form straight columns; the words are under the input.
        A row as the invoice says is plain. .is-different (on .count-row-form) gives the row a thin left border in the
        warning colour, .is-empty the same in the danger colour; the words say it. .is-none dims the input (0).
-     - .count-row-link: a row with only a name and a link on its right (Choose the product, Change); with the quiet
+     - .count-ref-link: the two small links at the end of a new item's reference line ("It is an item we have",
+       "Not on the invoice: remove"; the second is a button that looks like a link), a touch target high.
+     - .count-row-link: a "Not ordered" row, only a name and Change on its right; with the quiet
        remove button they are .count-row-actions. .count-line-action: the small ghost buttons "Not on the invoice:
        remove" and "Put back", a touch target high. .count-fix-lines: the remove buttons under "Read wrong?".
      - .count-removed: "Removed invoice lines", muted: a small heading and plain rows with the list's thin rule.
@@ -6994,6 +6996,11 @@ html.is-offline .voice-hold {
 .count-fix > summary { display: inline-block; padding: var(--nn-space-3) 0; margin: calc(-1 * var(--nn-space-3)) 0;
     cursor: pointer; }
 .count-fix-link { color: var(--bs-link-color); text-decoration: underline; }
+.count-ref-link { display: inline-block; padding: var(--nn-space-3) 0; margin: calc(-1 * var(--nn-space-3)) 0;
+    color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
+.count-ref-link > button { padding: 0; border: 0; background: none; font: inherit; color: var(--bs-link-color);
+    text-decoration: underline; }
+.count-row-name > .status-badge { margin-left: var(--nn-space-1); vertical-align: text-bottom; }
 .count-fix > summary::-webkit-details-marker { display: none; }
 .count-fix-form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2);
     margin: var(--nn-space-2) 0 var(--nn-space-1); }
@@ -7016,7 +7023,6 @@ html.is-offline .voice-hold {
 .count-change { font-size: var(--nn-font-sm); }
 .count-row-note, .count-note, .count-returned q { white-space: pre-line; }
 .count-row-note { color: var(--nn-text-secondary); }
-.count-choose { min-height: var(--nn-touch-target); }
 .count-row-single { flex-basis: 100%; }
 .count-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
 .count-line-action { display: inline-flex; align-items: center; min-height: var(--nn-touch-target); white-space: nowrap; }

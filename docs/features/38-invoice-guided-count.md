@@ -9,7 +9,7 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   names folded (case, accents, punctuation, final sigma), stop words and plurals dropped, pack sizes ("10KG",
   "6X1,5LT", "33cl") kept apart. Per invoice line, in order: a name learned for this supplier (LEARNED); the
   order's lines (MATCHED when clearly ahead, CHECK when likely); the vessel's other items, a row of their own;
-  otherwise the cook chooses (PICK). Two lines matched to the same order line: the second is CHECK. The supplier
+  otherwise a new item's row (PICK). Two lines matched to the same order line: the second is CHECK. The supplier
   is found by its name (company forms dropped); an unknown one is learned under its name as read.
 - **Units** (`InvoiceMatcher.conversion`): the same unit counts in the item's; another unit of the same measure
   (g for kg) or a pack whose size the description gives ("BASMATI RICE 10KG", BAG, for kg: 10) counts in the
@@ -45,7 +45,7 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   (corrected, photo read 12)", also on the Master's approval ("Invoice numbers corrected by the Chief
   cook") and beside the office's flags; a row already counted keeps its count, compared with the new number.
   **Not on the invoice: remove** (P83; a small quiet button under the number in "Read wrong?", one per invoice line
-  of the row, and at the end of each line of the two sections below; `POST .../count/lines/{lineId}/remove`,
+  of the row, a link at the end of a new item's reference, and at the end of each "Not ordered" line; `POST .../count/lines/{lineId}/remove`,
   `DeliveryCountService.removeLine`): the line the photo read wrong is kept as read
   (`DeliveryInvoiceLine.removedOnBoard`) and left out of the count, its totals, the differences and the office's
   comparison; an ordered row then reads "Not on the invoice" and is counted against the order. No confirmation: at
@@ -60,11 +60,16 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   Removing, putting back and adding are the vessel's Chief cook's, while the count is not with the Master, each one
   audit entry ("Invoice line removed on board", "put back", "added"); the Master's approval lists them ("Removed by
   the Chief cook: OLIVE OIL 5LT, 12 BOTTLE", "Added by hand by the Chief cook: Basmati rice, 5 kg"). Lines
-  on the invoice not found: "On the invoice, not found on the order", **Choose the product**
+  on the invoice matched to nothing (P84): a last group "On the invoice, not on the order", each an ordinary row with
+  the badge **New item**: the invoice's description in sentence case ("Minced beef frozen"), the invoice's unit in the
+  app's spelling ("KG" is "kg"; a unit not in the dropdown stays as the invoice has it) with that unit's rule,
+  "Invoice 20 kg · not on the order", **Arrived** prefilled with the invoice's quantity, counted with **Save count**
+  like any row (no note). Two small links end its reference: **It is an item we have**
   (`.../count/choose/{lineId}`: the order's lines not matched, the vessel's other items, a search, or **Not
-  ordered**); a choice is learned for the supplier ("Invoice line matched by hand" in the audit log). The page that
+  ordered**; a choice is learned for the supplier, "Invoice line matched by hand" in the audit log, and the row
+  becomes that item's) and **Not on the invoice: remove**. The page that
   sends the count (`.../count/send`): the summary (two tiles, the differences with **Change**, back to that row, an
-  optional note) and **Send to Master**. Sending needs every row counted and every invoice line chosen (P77:
+  optional note) and **Send to Master**. Sending needs every row counted (P77:
   `DeliveryCountService.send` answers NOT_FINISHED, "Count every item before sending. 3 still to do."; opening the
   page before that leads back to the list with the same words). Counts already saved are kept when the invoice is
   read again. Count by
@@ -73,15 +78,19 @@ invoice's checks and the uncertain matches are kept for the office (P64).
 - **The Master** (`/ship/orders/{id}/receipt` while a count waits, `shiporder/receipt-approve.html`): "Approve the
   delivery", who counted, the two tiles, the differences with **Change** (that row's input and **Did not arrive**,
   in the row's unit, saved with **Confirm**: "Changed from 23"),
-  **Show all**, the invoice photos, **Send back to cook** (as 36, his changes dropped) and **Approve**
+  **New items in this delivery** (the rows not on the order that arrived, "Minced beef frozen 20 kg arrived",
+  "Approving adds these to the vessel's items and to the inventory."), **Show all**, the invoice photos, **Send back to cook** (as 36, his changes dropped) and **Approve**
   (`POST .../receipt/approve`): received at the time the cook sent the count unless **Change date**; at least one
   file (the invoice photos count). It closes the order as 24 with the approved numbers, puts the provisions in the
   store ([33](33-delivery-into-store.md)), notifies the office and the cook. P51's form posts redirect here while a count waits.
 - **Kept for the office**: per order line the invoiced quantity and invoice line, and the marks match to review
   (CHECK) and conversion to review; the vessel's items not on the order become lines "added on receipt" (ordered
-  0); the CHECK lines the cook counted are learned at approval.
+  0); so does a new item's row that arrived (above 0): approval first makes the item on the vessel
+  (`RequestService.itemFor`, as the approval of a request: the name as shown, the unit, PROVISIONS, active, no
+  storage place, ITEM_CREATED; a name the vessel has, ignoring case, is that item), links the invoice line to it and
+  stocks what arrived; one that did not arrive (0) makes nothing and stays a line not on the order; the CHECK lines the cook counted are learned at approval.
 - Tests: `core/order/InvoiceMatcherTest`, `shiporder/DeliveryCountFlowTest` (without an invoice end to end; with
   one: rows, units, choosing, learning, approval and what is kept; a quantity not read; access).
-- To try it: as in [37](37-invoice-photo.md), photograph the sample invoice and press **Done: start counting**; change a few numbers, choose
-  a product for a line not found, **Save count** and **Send to Master**; as `master.demo@example.com` open the
+- To try it: as in [37](37-invoice-photo.md), photograph the sample invoice and press **Done: start counting**; change a few numbers, count
+  the lines not on the order as new items (or link one with **It is an item we have**), **Save count** and **Send to Master**; as `master.demo@example.com` open the
   notification, change a row and **Approve**.

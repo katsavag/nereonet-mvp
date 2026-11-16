@@ -3,13 +3,14 @@
 <body>
 <!-- "Count what arrived", the Chief cook's, phone first: one list and one Save. Under the title one line of help.
      One form around every row (core/order/CountSheet) by category: each order line not removed by the office, and each
-     invoice line matched to a vessel item not on the order. A row (shiporder/parts :: countRow) has its name, under it
+     invoice line matched to a vessel item not on the order; then a last group "On the invoice, not on the order": each
+     invoice line matched to nothing, a row like the others with the badge "New item", the invoice's name and unit, and
+     at the end of its reference the links "It is an item we have" and "Not on the invoice: remove". A row (shiporder/parts :: countRow) has its name, under it
      the reference ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read, and "Add a
      note"), the input "Arrived" and "Did not arrive". The input holds the saved count; a row never saved holds the
      invoice's quantity (the quantity ordered without an invoice; nothing when there is none to go by). After the rows,
-     only when there are any: "On the invoice, not found on the order" (one row per invoice line nothing was found for,
-     with Choose the product) and "Not ordered" (the lines he said were not ordered, with Change); each of these lines
-     ends with the quiet "Not on the invoice: remove", as "Read wrong?" does on a row. Then, muted, "Removed invoice
+     only when there are any: "Not ordered" (the lines he said were not ordered, with Change and the quiet "Not on the
+     invoice: remove", as "Read wrong?" has on a row). Then, muted, "Removed invoice
      lines (2)" (each line as the photo read it, with Put back; hidden while there are none) and, with a read invoice,
      "Add a line from the paper invoice": the item (the order's first, then the vessel's others), the quantity and
      Add line, one line from 768px. js/count.js shows the chosen item's unit beside the quantity.
@@ -47,7 +48,8 @@
     <form method="post" novalidate th:action="@{${baseUrl}}" th:data-draft="@{${baseUrl}}" data-count-form>
         <section th:each="g, it : ${groups}" class="card mb-3 count-group" th:attr="aria-labelledby=${'countGroup' + it.index}">
             <div class="card-header py-3">
-                <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
+                <h2 class="h5 fw-bold mb-0" th:id="${'countGroup' + it.index}"
+                    th:text="${g.category != null} ? #{${g.category.labelKey()}} : #{order.count.new.heading}">Provisions</h2>
             </div>
             <ul class="list-group list-group-flush">
                 <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}"
@@ -57,28 +59,6 @@
                              note=${sent ? typed.notes().get(r.key) : (r.note ?: '')},
                              error=${sent ? typed.errors().get(r.key) : null}">
                     <div th:replace="~{shiporder/parts :: countRow(${r}, ${value}, ${error}, ${left}, ${note}, true)}"></div>
-                </li>
-            </ul>
-        </section>
-
-        <section th:unless="${sheet.picks.isEmpty()}" class="card mb-3 count-picks" aria-labelledby="countPicksTitle">
-            <div class="card-header py-3">
-                <h2 class="h5 fw-bold mb-0" id="countPicksTitle" th:text="#{order.count.picks.heading}">On the invoice, not found on the order</h2>
-            </div>
-            <ul class="list-group list-group-flush">
-                <li th:each="l : ${sheet.picks}" class="list-group-item count-row count-row-link" th:id="${'pick-' + l.id}">
-                    <div class="count-row-head">
-                        <span class="count-row-name" th:id="${'pickName-' + l.id}" th:text="${l.description}">BASMATI 10KG</span>
-                        <span class="count-ref" th:if="${l.quantity != null}"
-                              th:text="#{order.count.ref.invoice(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.unit} ?: '')}">Invoice 12 BAG</span>
-                    </div>
-                    <div class="count-row-actions">
-                        <a class="btn btn-outline-primary count-choose" th:href="@{${baseUrl + '/choose/' + l.id}}"
-                           th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.picks.choose}">Choose the product</a>
-                        <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
-                                th:formaction="@{${baseUrl + '/lines/' + l.id + '/remove'}}"
-                                th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button>
-                    </div>
                 </li>
             </ul>
         </section>

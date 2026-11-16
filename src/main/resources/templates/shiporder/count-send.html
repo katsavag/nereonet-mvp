@@ -35,12 +35,6 @@
                    th:href="@{${baseUrl + '#' + r.anchor}}"
                    th:attr="aria-describedby=${'diff-' + r.key}" th:text="#{order.count.change}">Change</a>
             </li>
-            <li th:each="l : ${sheet.picks}" class="list-group-item count-different-line">
-                <span class="count-row-name" th:id="${'diffPick-' + l.id}" th:text="${l.description}">CHEESE 2KG</span>
-                <span class="count-different-what" th:text="#{order.count.line.choose}">Not counted: choose the product</span>
-                <a th:unless="${readOnly}" class="count-change" th:href="@{${baseUrl + '/choose/' + l.id}}"
-                   th:attr="aria-describedby=${'diffPick-' + l.id}" th:text="#{order.count.change}">Change</a>
-            </li>
         </ul>
     </section>
 

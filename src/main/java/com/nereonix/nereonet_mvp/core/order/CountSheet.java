@@ -6,20 +6,24 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import com.nereonix.nereonet_mvp.core.form.ItemUnits;
+import com.nereonix.nereonet_mvp.core.form.QuantityRules;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 
 /**
  * The rows of a delivery count: what the Chief cook counts and the Master approves, built from the order's lines
- * and the invoice's lines as matched (InvoiceMatchService). One row per order line not removed by the office, and one
- * per invoice line matched to a vessel item not on the order. With a read invoice each row's reference is the
+ * and the invoice's lines as matched (InvoiceMatchService). One row per order line not removed by the office, one
+ * per invoice line matched to a vessel item not on the order, and one per invoice line matched to nothing (PICK: a
+ * new item, named and counted as the invoice has it, Row.isNewItem). With a read invoice each row's reference is the
  * invoice's quantity, counted in the invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags"); an order line
  * the invoice does not have is "Not on the invoice", an invoice quantity not read "Invoice: not read". Without a read
- * invoice the reference is the quantity ordered. picks: the invoice lines nothing was found for (the cook chooses);
- * notOrdered: the ones he said were not ordered; removed: the ones he removed (DeliveryInvoiceLine.removedOnBoard),
+ * invoice the reference is the quantity ordered.
+ * notOrdered: the invoice lines the cook said were not ordered; removed: the ones he removed (DeliveryInvoiceLine.removedOnBoard),
  * which are in no row and no total. Quantities are kept in the item's unit; a row shows them in its own.
  */
 public final class CountSheet {
@@ -36,7 +40,10 @@ public final class CountSheet {
         NO_INVOICE
     }
 
-    /** One row: an order line (orderLine) or an invoice line matched to an item not on the order (extra). */
+    /**
+     * One row: an order line (orderLine) or an invoice line not on the order (extra), matched to an item of the vessel
+     * or to nothing (isNewItem).
+     */
     public static final class Row {
         private final String key;
         private final Item item;
@@ -71,6 +78,14 @@ public final class CountSheet {
         public Item getItem() { return item; }
         public ShipOrderLine getOrderLine() { return orderLine; }
         public DeliveryInvoiceLine getExtra() { return extra; }
+
+        /**
+         * An invoice line matched to nothing: getItem is not an item of the vessel yet (no id) but the invoice's
+         * description in sentence case, its unit in the app's spelling, PROVISIONS. The Master's approval makes it one.
+         */
+        public boolean isNewItem() {
+            return extra != null && extra.getItem() == null;
+        }
         /** The invoice lines matched to it (none for an order line not on the invoice). */
         public List<DeliveryInvoiceLine> getInvoiceLines() { return invoiceLines; }
         public Source getSource() { return source; }
@@ -277,20 +292,18 @@ public final class CountSheet {
         }
     }
 
-    /** The rows of one category. */
+    /** The rows of one category; category null: the new items ("On the invoice, not on the order"). */
     public record Group(ItemCategory category, List<Row> rows) {
     }
 
     private final List<Row> rows;
-    private final List<DeliveryInvoiceLine> picks;
     private final List<DeliveryInvoiceLine> notOrdered;
     private final List<DeliveryInvoiceLine> removed;
     private final boolean invoiceRead;
 
-    private CountSheet(List<Row> rows, List<DeliveryInvoiceLine> picks, List<DeliveryInvoiceLine> notOrdered,
-                       List<DeliveryInvoiceLine> removed, boolean invoiceRead) {
+    private CountSheet(List<Row> rows, List<DeliveryInvoiceLine> notOrdered, List<DeliveryInvoiceLine> removed,
+                       boolean invoiceRead) {
         this.rows = rows;
-        this.picks = picks;
         this.notOrdered = notOrdered;
         this.removed = removed;
         this.invoiceRead = invoiceRead;
@@ -308,7 +321,6 @@ public final class CountSheet {
         List<DeliveryInvoiceLine> removed = allLines.stream().filter(DeliveryInvoiceLine::isRemovedOnBoard).toList();
         List<DeliveryInvoiceLine> invoiceLines = allLines.stream().filter(l -> !l.isRemovedOnBoard()).toList();
         List<Row> rows = new ArrayList<>();
-        List<DeliveryInvoiceLine> picks = new ArrayList<>();
         List<DeliveryInvoiceLine> notOrdered = new ArrayList<>();
         for (ShipOrderLine line : order.getLines()) {
             if (line.isRemoved()) {
@@ -328,7 +340,7 @@ public final class CountSheet {
         if (read) {
             for (DeliveryInvoiceLine l : invoiceLines) {
                 if (l.getMatch() == null || l.getMatch() == InvoiceMatch.PICK) {
-                    picks.add(l);
+                    rows.add(newItemRow(l));
                 } else if (l.getMatch() == InvoiceMatch.NOT_ORDERED) {
                     notOrdered.add(l);
                 } else if (l.getOrderLine() == null && l.getItem() != null) {
@@ -336,11 +348,50 @@ public final class CountSheet {
                 }
             }
         }
-        rows.sort(Comparator.comparing((Row row) -> row.getItem().getCategory())
+        rows.sort(Comparator.comparing(Row::isNewItem)
+                .thenComparing(row -> row.getItem().getCategory())
                 .thenComparing(row -> row.getItem().getName(), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(Row::getKey));
-        return new CountSheet(List.copyOf(rows), List.copyOf(picks), List.copyOf(notOrdered), read ? removed : List.of(),
-                read);
+        return new CountSheet(List.copyOf(rows), List.copyOf(notOrdered), read ? removed : List.of(), read);
+    }
+
+    // The row of an invoice line matched to nothing: counted in the invoice's unit against the invoice's quantity.
+    private static Row newItemRow(DeliveryInvoiceLine line) {
+        Item item = new Item();
+        item.setName(newItemName(line.getDescription()));
+        item.setUnit(newItemUnit(line.getUnit()));
+        item.setCategory(ItemCategory.PROVISIONS);
+        BigDecimal invoiced = line.getQuantity() == null ? null : sum(List.of(line.getQuantity()));
+        return new Row("i" + line.getId(), item, null, line, List.of(line), BigDecimal.ONE, null, null, null, invoiced,
+                invoiced == null ? Source.NOT_READ : Source.INVOICE);
+    }
+
+    // The invoice's description in sentence case ("MINCED BEEF FROZEN": "Minced beef frozen"), cut to an item's name.
+    private static String newItemName(String description) {
+        String text = description == null ? "" : description.strip();
+        if (text.length() > Item.NAME_MAX_LENGTH) {
+            text = text.substring(0, Item.NAME_MAX_LENGTH).strip();
+        }
+        return text.isEmpty() ? text
+                : text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    // The invoice's unit in the app's spelling ("KG", "Kgs": "kg"; "PCS": "pcs"); a unit that is not one of the
+    // dropdown's (ItemUnits) stays as the invoice has it; none: pcs.
+    private static String newItemUnit(String invoiceUnit) {
+        String unit = invoiceUnit == null ? "" : invoiceUnit.strip();
+        String app = switch (QuantityRules.kindOf(unit)) {
+            case KG -> "kg";
+            case LT -> "lt";
+            case G -> "g";
+            case ML -> "ml";
+            default -> QuantityRules.normalize(unit);
+        };
+        if (ItemUnits.listed(app)) {
+            return app;
+        }
+        return unit.isEmpty() ? "pcs"
+                : unit.length() > Item.UNIT_MAX_LENGTH ? unit.substring(0, Item.UNIT_MAX_LENGTH) : unit;
     }
 
     // A row against the invoice lines matched to it: in the invoice's unit when they all share one, else the item's.
@@ -379,8 +430,11 @@ public final class CountSheet {
 
     public List<Row> getRows() { return rows; }
 
-    /** The invoice lines nothing was found for: "On the invoice, not found on the order". */
-    public List<DeliveryInvoiceLine> getPicks() { return picks; }
+    /** The new items that arrived (above 0): the Master's "New items in this delivery". */
+    public List<Row> getNewItems() {
+        return rows.stream().filter(row -> row.isNewItem() && row.getResultItem() != null
+                && row.getResultItem().signum() > 0).toList();
+    }
 
     public List<DeliveryInvoiceLine> getNotOrdered() { return notOrdered; }
 
@@ -393,7 +447,7 @@ public final class CountSheet {
                 .filter(DeliveryInvoiceLine::isAddedOnBoard).toList();
     }
 
-    /** The row this invoice line is part of, or null (a line to choose, not ordered, or removed). */
+    /** The row this invoice line is part of, or null (not ordered, or removed). */
     public Row rowOf(Long invoiceLineId) {
         return rows.stream().filter(row -> row.getInvoiceLines().stream().anyMatch(l -> l.getId().equals(invoiceLineId)))
                 .findFirst().orElse(null);
@@ -414,16 +468,16 @@ public final class CountSheet {
         return rows.stream().filter(Row::hasCount).toList();
     }
 
-    /** Every product to count: the rows and the invoice lines still to choose. */
+    /** Every product to count. */
     public int getTotal() {
-        return rows.size() + picks.size();
+        return rows.size();
     }
 
     public int getCountedTotal() {
         return getDone().size();
     }
 
-    /** Still to do: the rows not counted and the products to choose. */
+    /** Still to do: the rows without a number. */
     public int getToDoTotal() {
         return getTotal() - getCountedTotal();
     }
@@ -443,15 +497,21 @@ public final class CountSheet {
         return rows.size() - getDifferent().size();
     }
 
-    /** The products that differ: the rows and the products never chosen. */
     public int getDifferentTotal() {
-        return getDifferent().size() + picks.size();
+        return getDifferent().size();
     }
 
-    /** The rows by category (provisions first), by name within one. */
+    /** The rows by category (provisions first), by name within one; the new items are a last group of their own. */
     public static List<Group> groups(List<Row> rows) {
         Map<ItemCategory, List<Row>> byCategory = new EnumMap<>(ItemCategory.class);
-        rows.forEach(row -> byCategory.computeIfAbsent(row.getItem().getCategory(), c -> new ArrayList<>()).add(row));
-        return byCategory.entrySet().stream().map(e -> new Group(e.getKey(), List.copyOf(e.getValue()))).toList();
+        rows.stream().filter(row -> !row.isNewItem())
+                .forEach(row -> byCategory.computeIfAbsent(row.getItem().getCategory(), c -> new ArrayList<>()).add(row));
+        List<Group> groups = new ArrayList<>();
+        byCategory.forEach((category, list) -> groups.add(new Group(category, List.copyOf(list))));
+        List<Row> newItems = rows.stream().filter(Row::isNewItem).toList();
+        if (!newItems.isEmpty()) {
+            groups.add(new Group(null, newItems));
+        }
+        return groups;
     }
 }

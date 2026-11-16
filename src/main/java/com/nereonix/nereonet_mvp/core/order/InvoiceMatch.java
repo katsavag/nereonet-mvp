@@ -11,9 +11,12 @@ public enum InvoiceMatch {
     CHECK,
     /** The supplier's description was matched before (SupplierItemName): linked automatically. */
     LEARNED,
-    /** Nothing likely: the cook chooses the product ("On the invoice, not found on the order"). */
+    /**
+     * Nothing likely: a row of its own, counted as the invoice has it ("On the invoice, not on the order", a new
+     * item). The cook may say it is an item the vessel has (CHOSEN) or that it was not ordered (NOT_ORDERED).
+     */
     PICK,
-    /** The cook chose the product. */
+    /** The cook chose the product, or the Master's approval made the line a new item of the vessel. */
     CHOSEN,
     /** The cook chose "Not ordered": never stocked, it goes to the office. */
     NOT_ORDERED;

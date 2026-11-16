@@ -28,10 +28,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.audit.AuditService;
+import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.library.LibraryFileStorage;
 import com.nereonix.nereonet_mvp.core.notification.NotificationService;
 import com.nereonix.nereonet_mvp.core.notification.NotificationType;
+import com.nereonix.nereonet_mvp.core.request.RequestService;
 import com.nereonix.nereonet_mvp.core.ship.Ship;
 import com.nereonix.nereonet_mvp.core.stock.StockService;
 import com.nereonix.nereonet_mvp.core.user.Role;
@@ -95,6 +97,7 @@ public class OrderReceiptService {
     private final InvoiceMatchService matchService;
     private final ShipOrderLineRepository orderLineRepository;
     private final InvoiceComparisonService comparisonService;
+    private final RequestService requestService;
 
     public OrderReceiptService(OrderReceiptFileRepository fileRepository, UserRepository userRepository,
                                LibraryFileStorage fileStorage, AuditService auditService,
@@ -103,7 +106,8 @@ public class OrderReceiptService {
                                DeliveryInvoiceRepository invoiceRepository,
                                DeliveryInvoiceLineRepository invoiceLineRepository,
                                InvoiceMatchService matchService, ShipOrderLineRepository orderLineRepository,
-                               InvoiceComparisonService comparisonService) {
+                               InvoiceComparisonService comparisonService, RequestService requestService) {
+        this.requestService = requestService;
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
@@ -411,7 +415,8 @@ public class OrderReceiptService {
      * Approve: the Master approves the Chief cook's count sent to them in one step, as confirmReceipt: what
      * arrived of each row is the Master's change or the cook's count (a row not counted: nothing arrived), in the
      * item's unit, with the cook's note; receivedAt (the plain receipt's rules), by default when the cook sent the count. An
-     * invoice line matched to a vessel item not on the order becomes a line added on receipt (ordered 0). Each line
+     * invoice line matched to a vessel item not on the order becomes a line added on receipt (ordered 0); so does a
+     * new item's row that arrived (above 0), after its item is made on the vessel (newItem). Each line
      * keeps for the office what the invoice said (invoicedQuantity, invoiceLine) and the marks "match to review" and
      * "conversion to review"; the uncertain matches the cook confirmed are learned for the supplier (the office may correct
      * them). Then CLOSED, stocked and notified as confirmReceipt. NOT_CONFIRMED, NO_COUNT, NO_FILE: nothing changed.
@@ -436,18 +441,28 @@ public class OrderReceiptService {
         Map<Long, ShipOrderLine> added = new java.util.HashMap<>();
         for (CountSheet.Row row : sheet.getRows()) {
             BigDecimal received = row.getResultItem() == null ? BigDecimal.ZERO : row.getResultItem();
-            ShipOrderLine line = row.getOrderLine();
+            boolean newItem = row.isNewItem();
+            if (newItem && received.signum() == 0) {
+                // A new item that did not arrive: no item, no line; the invoice line stays not on the order.
+                continue;
+            }
+            Item item = newItem ? newItem(order, row, master) : row.getItem();
+            // A new item whose name the vessel had may be on the order already (the rows of new items come last).
+            ShipOrderLine line = !newItem ? row.getOrderLine() : order.getLines().stream()
+                    .filter(l -> !l.isRemoved() && l.getItem().getId().equals(item.getId())).findFirst().orElse(null);
             if (line == null) {
                 // An item not on the order: one line per item, added on receipt.
-                line = added.computeIfAbsent(row.getItem().getId(), itemId -> {
+                line = added.computeIfAbsent(item.getId(), itemId -> {
                     ShipOrderLine created = new ShipOrderLine();
                     created.setOrder(order);
-                    created.setItem(row.getItem());
+                    created.setItem(item);
                     created.setQuantity(BigDecimal.ZERO);
                     created.setAddedOnReceipt(true);
                     order.getLines().add(orderLineRepository.save(created));
                     return created;
                 });
+            }
+            if (row.getExtra() != null) {
                 row.getExtra().setOrderLine(line);
                 line.setCountedQuantity(add(line.getCountedQuantity(), row.getCountedItem()));
             }
@@ -484,6 +499,19 @@ public class OrderReceiptService {
 
     private static BigDecimal add(BigDecimal a, BigDecimal b) {
         return a == null ? b : b == null ? a : a.add(b);
+    }
+
+    // The item of a new item's row that arrived: the vessel's item with that name, or a new one (as the approval of a
+    // request makes it: PROVISIONS, active, no storage place, ITEM_CREATED). The invoice line is linked to it, one
+    // invoice unit being one of the item's.
+    private Item newItem(ShipOrder order, CountSheet.Row row, User master) {
+        Item item = requestService.itemFor(order.getShip(), row.getItem().getName(), row.getItem().getUnit(),
+                row.getItem().getCategory(), master);
+        DeliveryInvoiceLine line = row.getExtra();
+        line.setMatch(InvoiceMatch.CHOSEN);
+        line.setItem(item);
+        line.setPackFactor(BigDecimal.ONE);
+        return item;
     }
 
     // The receipt confirmed: the lines' received quantities and notes, CLOSED, the count approved, the store, the
