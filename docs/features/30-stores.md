@@ -28,8 +28,8 @@ the Master's rules): the Master and crew members get 403. The pages always show 
   that filter, tinted when above zero) and **Last count** (a link to History; the date of the latest COUNT movement, or "Not counted
   yet") and **Requests waiting**: the cook's own requests still waiting for the Master, a link to
   Requests filtered to Waiting ([31](31-requests.md)); **Next delivery** ("Antwerp, 20 Nov 2026", a link to that order,
-  read only for the cook, 32; "None scheduled" without one). Five tiles in a row from 1200 px; below, two per row,
-  Next delivery across the row.
+  read only for the cook, 32; "None scheduled" without one). The five are one strip of chips (`.stat-strip`), each one line, the label and its value in bold: one row on a
+  desktop, wrapping to two on a phone.
   Then the search (part of the
   name, ignoring case, `?q=`) and the status filter (All, Low, Out of stock; `?status=low|out`), in the shared
   filter bar with its chips (P19), handled on the server. The items follow in one card per storage place,
@@ -70,7 +70,7 @@ the Master's rules): the Master and crew members get 403. The pages always show 
     created" by the cook) and counts it. A name the vessel already has (ignoring case): "This item is already on the
     list." and nothing is saved. One new item per save. So the Chief cook adds items to the vessel's list without
     the Master or the office.
-  - **History** (the Last count tile on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
+  - **History** (the Last count chip on Inventory) opens `/ship/stores/history`: every movement of the vessel, newest first, 50 a
     page (`StockService.HISTORY_PAGE_SIZE`, Newer and Older): date and time, item (a link), type, before, after,
     difference ("+20", "-3", "0"), who. Filter by type (All, Count, Delivery received) and by UTC days From and To
     (both included; not a date: its error under the field, nothing filtered). P58: the dates use the shared

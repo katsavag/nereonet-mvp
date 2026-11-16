@@ -127,10 +127,10 @@ class StoresFlowTest {
         assertThat(html.indexOf(">Dry store</h2>")).isPositive().isLessThan(html.indexOf(">Other</h2>"));
         assertThat(html.indexOf(">Other</h2>")).isLessThan(html.indexOf(">Salt</a>"));
         // The summary: 1 Low, 1 Out of stock, never counted.
-        assertThat(html).containsPattern("(?s)<span class=\"stores-fact-label\">Low</span>\\s*"
-                        + "<span class=\"stores-fact-value num\">1</span>")
-                .containsPattern("(?s)<span class=\"stores-fact-label\">Out of stock</span>\\s*"
-                        + "<span class=\"stores-fact-value num\">1</span>")
+        assertThat(html).containsPattern("(?s)<span class=\"stat-chip-label\">Low</span>\\s*"
+                        + "<span class=\"stat-chip-value num\">1</span>")
+                .containsPattern("(?s)<span class=\"stat-chip-label\">Out of stock</span>\\s*"
+                        + "<span class=\"stat-chip-value num\">1</span>")
                 .contains("Not counted yet");
         // The sidebar counter: Low plus Out of stock.
         assertThat(html).containsPattern("<span[^>]*>Inventory</span>\\s*<span class=\"nav-count num\""
@@ -452,15 +452,15 @@ class StoresFlowTest {
     @Test
     void theNextDeliveryLinksToItsOrder() throws Exception {
         assertThat(page("/ship/stores", cook)).containsPattern("(?s)Next delivery</span>\\s*"
-                + "<span class=\"stores-fact-value stores-fact-none\">None scheduled</span>");
+                + "<span class=\"stat-chip-value\">None scheduled</span>");
 
         ShipOrder later = order(LocalDate.of(2026, 12, 3), "Piraeus");
         ShipOrder next = order(LocalDate.of(2026, 11, 20), "Antwerp");
 
         String html = page("/ship/stores", cook);
-        assertThat(html).containsPattern("(?s)<a class=\"stores-fact\" href=\"/ship/orders/" + next.getId() + "\">\\s*"
-                        + "<span class=\"stores-fact-label\">Next delivery</span>\\s*"
-                        + "<span class=\"stores-fact-value stores-fact-date\">Antwerp, 20 Nov 2026</span>")
+        assertThat(html).containsPattern("(?s)<a class=\"stat-chip\" href=\"/ship/orders/" + next.getId() + "\">\\s*"
+                        + "<span class=\"stat-chip-label\">Next delivery</span>\\s*"
+                        + "<span class=\"stat-chip-value\">Antwerp, 20 Nov 2026</span>")
                 .doesNotContain("None scheduled", "/ship/orders/" + later.getId());
         // The link opens the order, read only for the cook.
         assertThat(page("/ship/orders/" + next.getId(), cook)).contains("Only the Master can change or send the order.");

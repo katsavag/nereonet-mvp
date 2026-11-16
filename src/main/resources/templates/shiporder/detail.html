@@ -2,8 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{order.number(${view.order.id})}, ~{::main})}">
 <body>
 <!-- One past order of the Master's ship, read-only: its status, who sent it and when, the requested port, needed
-     by date and note and, once the office has set them, the confirmed port and delivery date; then its lines by
-     category with who asked for each. Once the delivery is scheduled, "Confirm receipt" (the one primary action);
+     by date and, once the office has set them, the confirmed port and delivery date, then the note (a grid of
+     facts, layout "Facts grid" in app.css); then its lines by category with who asked for each, two cards per row
+     from 992px. Once the delivery is scheduled, "Confirm receipt" (the one primary action);
      once received, when and by whom, the delivery receipt's files (each opens in a new tab) and per line what arrived.
      The Chief cook (canManage false) reads the same page with no Confirm receipt and without the receipt's files;
      one line says only the Master can change or send the order.
@@ -39,56 +40,68 @@
     <th:block th:unless="${canManage}"><p th:replace="~{shiporder/parts :: readOnlyNote}"></p></th:block>
 
     <div class="card mb-4">
-        <dl class="card-body row mb-0">
-            <dt class="col-sm-4 col-lg-3" th:text="#{order.status}">Status</dt>
-            <dd class="col-sm-8 col-lg-9"><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span>
-                <!-- Pending says whom it waits for. -->
-                <span th:if="${order.status.name() == 'SENT'}" class="d-block small text-body-secondary mt-1"
-                      th:text="#{order.status.SENT.waiting}">Waiting for the office to schedule the delivery</span></dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{order.sentBy}">Sent</dt>
-            <dd class="col-sm-8 col-lg-9">
-                <span th:text="${order.sentBy} ? ${order.sentBy.fullName} : #{audit.deletedUser}">Ship Master</span>
-                · <time th:replace="~{layout/parts :: localTime(${order.sentAt})}"></time>
-            </dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{order.requestedPort}">Requested port</dt>
-            <dd class="col-sm-8 col-lg-9" th:text="${order.requestedPort}">Rotterdam</dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{order.neededBy}">Needed by</dt>
-            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${order.neededBy})}"></time></dd>
-            <th:block th:if="${order.officeNote != null}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{order.officeNote}">Note to the office</dt>
-                <dd class="col-sm-8 col-lg-9 order-note" th:text="${order.officeNote}">Please deliver before noon.</dd>
-            </th:block>
-            <th:block th:if="${order.confirmedPort != null}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{order.confirmedPort}">Confirmed port</dt>
-                <dd class="col-sm-8 col-lg-9" th:text="${order.confirmedPort}">Antwerp</dd>
-            </th:block>
-            <th:block th:if="${order.deliveryDate != null}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{order.deliveryDate}">Delivery date</dt>
-                <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localDate(${order.deliveryDate})}"></time></dd>
-            </th:block>
+        <dl class="card-body facts-grid">
+            <div class="fact">
+                <dt th:text="#{order.status}">Status</dt>
+                <dd><span th:replace="~{shiporder/parts :: statusBadge(${order.status})}"></span>
+                    <!-- Pending says whom it waits for. -->
+                    <span th:if="${order.status.name() == 'SENT'}" class="d-block text-meta mt-1"
+                          th:text="#{order.status.SENT.waiting}">Waiting for the office to schedule the delivery</span></dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{order.sentBy}">Sent</dt>
+                <dd>
+                    <span th:text="${order.sentBy} ? ${order.sentBy.fullName} : #{audit.deletedUser}">Ship Master</span>
+                    · <time th:replace="~{layout/parts :: localTime(${order.sentAt})}"></time>
+                </dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{order.requestedPort}">Requested port</dt>
+                <dd th:text="${order.requestedPort}">Rotterdam</dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{order.neededBy}">Needed by</dt>
+                <dd><time th:replace="~{layout/parts :: localDate(${order.neededBy})}"></time></dd>
+            </div>
+            <div th:if="${order.confirmedPort != null}" class="fact">
+                <dt th:text="#{order.confirmedPort}">Confirmed port</dt>
+                <dd th:text="${order.confirmedPort}">Antwerp</dd>
+            </div>
+            <div th:if="${order.deliveryDate != null}" class="fact">
+                <dt th:text="#{order.deliveryDate}">Delivery date</dt>
+                <dd><time th:replace="~{layout/parts :: localDate(${order.deliveryDate})}"></time></dd>
+            </div>
+            <div th:if="${order.officeNote != null}" class="fact fact-wide">
+                <dt th:text="#{order.officeNote}">Note to the office</dt>
+                <dd class="order-note" th:text="${order.officeNote}">Please deliver before noon.</dd>
+            </div>
             <!-- The receipt on board. -->
             <th:block th:if="${order.receivedAt != null}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{order.receipt.receivedLine}">Received</dt>
-                <dd class="col-sm-8 col-lg-9">
-                    <time th:replace="~{layout/parts :: localTime(${order.receivedAt})}"></time>
-                    <span th:text="#{order.receipt.by(${order.receivedBy} ? ${order.receivedBy.fullName} : #{audit.deletedUser})}">by Ship Master</span>
-                </dd>
+                <div class="fact">
+                    <dt th:text="#{order.receipt.receivedLine}">Received</dt>
+                    <dd>
+                        <time th:replace="~{layout/parts :: localTime(${order.receivedAt})}"></time>
+                        <span th:text="#{order.receipt.by(${order.receivedBy} ? ${order.receivedBy.fullName} : #{audit.deletedUser})}">by Ship Master</span>
+                    </dd>
+                </div>
                 <!-- The Chief cook's count the Master approved. -->
-                <th:block th:if="${order.countApproved and order.countSentAt != null}">
-                    <dt class="col-sm-4 col-lg-3" th:text="#{order.count.countedLine}">Counted</dt>
-                    <dd class="col-sm-8 col-lg-9" th:text="#{order.count.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
+                <div th:if="${order.countApproved and order.countSentAt != null}" class="fact">
+                    <dt th:text="#{order.count.countedLine}">Counted</dt>
+                    <dd th:text="#{order.count.countedBy(${order.countedBy} ? ${order.countedBy.fullName} : #{audit.deletedUser},
                             ${@dates.utcDate(order.countSentAt)})}">By Demo Cook on 14 Nov 2026</dd>
-                </th:block>
-                <dt th:if="${canManage}" class="col-sm-4 col-lg-3" th:text="#{order.receipt.files}">Delivery receipt</dt>
-                <dd th:if="${canManage}" class="col-sm-8 col-lg-9">
-                    <ul class="receipt-files list-unstyled mb-0">
-                        <li th:each="f : ${receiptFiles}" class="receipt-file">
-                            <a th:href="@{/ship/orders/{o}/receipt/files/{f}(o=${order.id}, f=${f.id})}" target="_blank"
-                               rel="noopener" class="text-break" th:text="${f.fileName}">receipt.jpg</a>
-                            <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
-                        </li>
-                    </ul>
-                </dd>
+                </div>
+                <div th:if="${canManage}" class="fact fact-wide">
+                    <dt th:text="#{order.receipt.files}">Delivery receipt</dt>
+                    <dd>
+                        <ul class="receipt-files list-unstyled mb-0">
+                            <li th:each="f : ${receiptFiles}" class="receipt-file">
+                                <a th:href="@{/ship/orders/{o}/receipt/files/{f}(o=${order.id}, f=${f.id})}" target="_blank"
+                                   rel="noopener" class="text-break" th:text="${f.fileName}">receipt.jpg</a>
+                                <span class="small text-body-secondary"><span th:replace="~{core/library/parts :: fileSize(${f.fileSize})}"></span></span>
+                            </li>
+                        </ul>
+                    </dd>
+                </div>
             </th:block>
         </dl>
     </div>

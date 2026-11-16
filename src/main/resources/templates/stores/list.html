@@ -2,8 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{stores.title}, ~{::main})}">
 <body>
 <!-- The Chief cook's store: the stock of their own ship's provisions. English only, as every crew screen.
-     One action in the header, Count. Summary: Low and Out of stock (each a link to that filter), the date of the last
-     count ("Not counted yet"; the tile is the link to History, every movement of the vessel),
+     One action in the header, Count. Summary, one strip of chips (layout "Stat strip" in app.css): Low and Out of
+     stock (each a link to that filter, tinted above zero), the date of the last
+     count ("Not counted yet"; the chip is the link to History, every movement of the vessel, and says so),
      the cook's requests waiting for the Master (to Requests, Waiting), and the next delivery, port
      and date, linking to its order (read only for the cook), or "None scheduled".
      Then the search and the status filter (All, Low, Out of stock; GET, handled on the server) and the items in
@@ -21,50 +22,52 @@
         </th:block>
     </header>
 
-    <section class="stores-summary" aria-labelledby="storesSummaryTitle">
+    <section aria-labelledby="storesSummaryTitle">
         <h2 class="visually-hidden" id="storesSummaryTitle" th:text="#{stores.summary.heading}">Summary</h2>
-        <ul class="stores-facts">
+        <ul class="stat-strip">
             <li>
-                <a class="stores-fact" th:href="@{/ship/stores(status='low')}" th:classappend="${s.counts.low > 0} ? 'is-low'">
-                    <span class="stores-fact-label" th:text="#{stores.status.LOW}">Low</span>
-                    <span class="stores-fact-value num" th:text="${s.counts.low}">2</span>
+                <a class="stat-chip" th:href="@{/ship/stores(status='low')}" th:classappend="${s.counts.low > 0} ? 'is-warning'">
+                    <span class="stat-chip-label" th:text="#{stores.status.LOW}">Low</span>
+                    <span class="stat-chip-value num" th:text="${s.counts.low}">2</span>
                 </a>
             </li>
             <li>
-                <a class="stores-fact" th:href="@{/ship/stores(status='out')}" th:classappend="${s.counts.out > 0} ? 'is-out'">
-                    <span class="stores-fact-label" th:text="#{stores.status.OUT}">Out of stock</span>
-                    <span class="stores-fact-value num" th:text="${s.counts.out}">1</span>
+                <a class="stat-chip" th:href="@{/ship/stores(status='out')}" th:classappend="${s.counts.out > 0} ? 'is-danger'">
+                    <span class="stat-chip-label" th:text="#{stores.status.OUT}">Out of stock</span>
+                    <span class="stat-chip-value num" th:text="${s.counts.out}">1</span>
                 </a>
             </li>
+            <!-- The chevron is for the eye; the hidden words give the link's name its end: "Last count 16 Nov 2026, open history". -->
             <li>
-                <a class="stores-fact" th:href="@{/ship/stores/history}">
-                    <span class="stores-fact-label" th:text="#{stores.summary.lastCount}">Last count</span>
-                    <span th:if="${s.lastCount != null}" class="stores-fact-value stores-fact-date"><time
+                <a class="stat-chip" th:href="@{/ship/stores/history}" th:classappend="${s.lastCount == null} ? 'is-empty'">
+                    <span class="stat-chip-label" th:text="#{stores.summary.lastCount}">Last count</span>
+                    <span th:if="${s.lastCount != null}" class="stat-chip-value"><time
                             th:replace="~{layout/parts :: utcDate(${s.lastCount})}"></time></span>
-                    <span th:if="${s.lastCount == null}" class="stores-fact-value stores-fact-none"
+                    <span th:if="${s.lastCount == null}" class="stat-chip-value"
                           th:text="#{stores.summary.notCounted}">Not counted yet</span>
-                    <span class="text-meta" th:text="#{stores.log.title}">History</span>
+                    <span class="visually-hidden" th:text="#{stores.summary.openHistory}">, open history</span>
+                    <span class="stat-chip-more" aria-hidden="true">›</span>
                 </a>
             </li>
             <!-- The cook's own requests still waiting for the Master (requestsWaiting, from NavigationAdvice), to
                  Requests filtered to Waiting. -->
             <li>
-                <a class="stores-fact" th:href="@{/ship/requests(status='waiting')}">
-                    <span class="stores-fact-label" th:text="#{stores.summary.requestsWaiting}">Requests waiting</span>
-                    <span class="stores-fact-value num" th:text="${requestsWaiting ?: 0}">1</span>
+                <a class="stat-chip" th:href="@{/ship/requests(status='waiting')}">
+                    <span class="stat-chip-label" th:text="#{stores.summary.requestsWaiting}">Requests waiting</span>
+                    <span class="stat-chip-value num" th:text="${requestsWaiting ?: 0}">1</span>
                 </a>
             </li>
             <!-- The vessel's order with a scheduled delivery, to that order. -->
-            <li class="stores-fact-wide">
-                <a th:if="${s.nextDelivery != null}" class="stores-fact" th:href="@{/ship/orders/{id}(id=${s.nextDelivery.id})}">
-                    <span class="stores-fact-label" th:text="#{stores.summary.nextDelivery}">Next delivery</span>
-                    <span class="stores-fact-value stores-fact-date"
+            <li>
+                <a th:if="${s.nextDelivery != null}" class="stat-chip" th:href="@{/ship/orders/{id}(id=${s.nextDelivery.id})}">
+                    <span class="stat-chip-label" th:text="#{stores.summary.nextDelivery}">Next delivery</span>
+                    <span class="stat-chip-value"
                           th:text="#{stores.summary.nextDelivery.value(${s.nextDelivery.confirmedPort},
                                   ${@dates.date(s.nextDelivery.deliveryDate)})}">Antwerp, 20 Nov 2026</span>
                 </a>
-                <div th:if="${s.nextDelivery == null}" class="stores-fact">
-                    <span class="stores-fact-label" th:text="#{stores.summary.nextDelivery}">Next delivery</span>
-                    <span class="stores-fact-value stores-fact-none" th:text="#{stores.summary.noDelivery}">None scheduled</span>
+                <div th:if="${s.nextDelivery == null}" class="stat-chip is-empty">
+                    <span class="stat-chip-label" th:text="#{stores.summary.nextDelivery}">Next delivery</span>
+                    <span class="stat-chip-value" th:text="#{stores.summary.noDelivery}">None scheduled</span>
                 </div>
             </li>
         </ul>

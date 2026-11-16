@@ -183,7 +183,11 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     (`form-page form-page-aside`: the ship's particulars beside an item or library form, `ship/parts :: formAside`;
     the template beside the import upload) it goes beside the form from 1200 px and under it below. Card grids
     (`.card-grid`: ship Overview, an announcement's acknowledged / pending lists) have 1 column, 2 from 992 px and
-    3 from 1600 px (`.card-grid-3`).
+    3 from 1600 px (`.card-grid-3`); with `.card-grid-start` each card is as high as its content and a card alone
+    takes the row (the line groups of an order or a request, the places of the inventory count). The facts of one
+    record are a `dl.facts-grid` (label over value; 1, 2, 3 and 4 per row at 0, 576, 992 and 1200 px).
+    A few numbers above a list are a strip (`.stat-strip` of `.stat-chip`). A page whose content is the numbers
+    uses the large tiles (Overview, the Home pages, a delivery count's summary), which share one look in app.css.
 
   - sidebar navigation (P07): the navy sidebar (`layout/layout.html`, entries `layout/parts :: navItem`) has small
     uppercase group labels:

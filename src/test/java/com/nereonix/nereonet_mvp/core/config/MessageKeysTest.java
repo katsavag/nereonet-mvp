@@ -302,6 +302,7 @@ class MessageKeysTest {
             "stores.summary.heading",
             "stores.summary.lastCount",
             "stores.summary.notCounted",
+            "stores.summary.openHistory",
             "stores.search",
             "stores.filter.status",
             "stores.filter.all",

@@ -18,7 +18,7 @@
      switch; Crew tab bar.
    Shared components: Confirmations; Dates and times; Error pages; Saving on a bad connection; Required notices;
      List filters, sort and pages; View switch; Row selection; Import from a file; Empty states; Snoozing alerts;
-     Date range.
+     Date range; Facts grid; Stat strip and tiles.
    Features: Vessel page; Overview; Sign-in and registration; Forgot password; Rank and access; Certificates;
      Library; Notifications; Crew Home; Home cards; Crew News; My profile and My crew; Approvals; Vessel order;
      Vetting; SIRE 2.0; Required documents; Suppliers and quotes; Vessel data; Receipt on board; Stores;
@@ -1283,7 +1283,9 @@ fieldset:disabled button.btn {
      - main.form-page: a form keeps its 720px column, centred in the content area; .form-page-aside adds a second
        column from 1200px for related context (.form-aside: the ship, or help beside the form).
      - .card-grid: cards of a detail page: 1 column, 2 from 992px, 3 from 1600px with .card-grid-3 (small cards);
-       .card-grid-wide spans the row until there are 3 columns.
+       .card-grid-wide spans the row until there are 3 columns. .card-grid-start: each card as high as its own
+       content, and a card alone takes the whole row (the line groups of an order or a request, the storage places
+       of the inventory count).
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-rail-width: 4rem;           /* 64px */
@@ -1612,8 +1614,10 @@ fieldset:disabled button.btn {
 }
 @media (min-width: 992px) {
     .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .card-grid > .card-grid-wide { grid-column: 1 / -1; }
+    .card-grid > .card-grid-wide,
+    .card-grid-start > :only-child { grid-column: 1 / -1; }
 }
+.card-grid-start { align-items: start; }
 @media (min-width: 1600px) {
     .card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .card-grid-3 > .card-grid-wide { grid-column: auto; }
@@ -3147,6 +3151,133 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 
 
+/* ---------------------------------------------------------------------------------------------------------------
+   Facts grid: the facts of one record (an order, a request, an inventory item) at the top of its page.
+     - dl.facts-grid: one div.fact per fact, its dt (the label, small and muted) over its dd (the value). One per row
+       on phones, two from 576px, three from 992px, four from 1200px.
+     - .fact-wide: a long value (a note, a reason, a list of files) takes two columns: the whole row up to 991px.
+   Use: <dl class="card-body facts-grid"><div class="fact"><dt>Status</dt><dd>...</dd></div> ...</dl>
+   --------------------------------------------------------------------------------------------------------------- */
+.facts-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nn-space-3) var(--nn-space-5);
+    margin: 0;
+}
+.fact { min-width: 0; }
+.fact > dt {
+    font-size: var(--nn-font-sm);
+    font-weight: 400;
+    color: var(--nn-text-secondary);
+}
+.fact > dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+@media (min-width: 576px) {
+    .facts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fact-wide { grid-column: span 2; }
+}
+@media (min-width: 992px) {
+    .facts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+    .facts-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Stat strip and tiles: numbers at the top of a page. A few numbers above a list are a strip; a page whose content
+   is the numbers uses the large tiles.
+     - ul.stat-strip: one row of chips that wraps, each as wide as its text.
+     - .stat-chip: one line, a touch target high: .stat-chip-label (small, muted), then .stat-chip-value (bold, the
+       size of ordinary text; with .num for a number). A link when it leads somewhere (a div when not);
+       .stat-chip-more: a muted chevron that ends a chip whose label does not say where it goes (Last count,
+       to History; the words are in a visually hidden span).
+       .is-warning / .is-danger tint a chip with something in it (the number says it, the tint repeats it);
+       .is-empty: a value that is words for nothing ("None scheduled"), muted.
+       Use: <ul class="stat-strip"><li><a class="stat-chip is-warning" href="..."><span class="stat-chip-label">Low</span>
+            <span class="stat-chip-value num">4</span></a></li> ...</ul>
+     - The large tiles keep their own layout in their features: .overview-tile-link (Overview), .home-card (the
+       crew's and the Master's Home) and .count-tile (a delivery count's summary). Here is what they share with each
+       other and with the strip: the surface, the card's border, radius and shadow (--nn-shadow, as every .card; a
+       chip has a button's radius and no shadow), the padding, the label small and muted, the number in the title
+       size and bold, the hover of a link (a darker border, the label underlined) and the warning tone.
+   --------------------------------------------------------------------------------------------------------------- */
+.stat-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nn-space-2);
+    margin: 0 0 var(--nn-space-4);
+    padding: 0;
+    list-style: none;
+}
+.stat-chip,
+.overview-tile-link,
+.home-card,
+.count-tile {
+    color: var(--nn-text);
+    background-color: var(--nn-surface);
+    border: 1px solid var(--nn-border);
+    text-decoration: none;
+}
+.overview-tile-link,
+.home-card,
+.count-tile {
+    padding: var(--nn-space-3) var(--nn-space-4);
+    border-radius: var(--nn-radius-card);
+    box-shadow: var(--nn-shadow);
+}
+.stat-chip {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    align-content: center;
+    gap: 0 var(--nn-space-2);
+    min-height: 2.75rem;             /* 44px */
+    padding: var(--nn-space-1) var(--nn-space-3);
+    border-color: var(--nn-divider);
+    border-radius: var(--nn-radius-control);
+}
+a.stat-chip:hover,
+.overview-tile-link:hover,
+.home-card:hover {
+    color: var(--nn-text);
+    border-color: var(--nn-field-border);
+}
+a.stat-chip:hover .stat-chip-label,
+.overview-tile-link:hover .overview-tile-label,
+.home-card:hover .home-card-label { text-decoration: underline; }
+.stat-chip-label,
+.stat-chip-more,
+.overview-tile-label,
+.home-card-label,
+.count-tile {
+    font-size: var(--nn-font-sm);
+    color: var(--nn-text-secondary);
+}
+.stat-chip-value { font-weight: 700; }
+.stat-chip.is-empty .stat-chip-value { font-weight: 600; color: var(--nn-text-secondary); }
+/* Phones: tighter, so the five chips of the Inventory take three lines. */
+@media (max-width: 575.98px) {
+    .stat-chip { gap: 0 var(--nn-space-1); padding-left: var(--nn-space-2); padding-right: var(--nn-space-2); }
+    .stat-chip-value { font-size: var(--nn-font-sm); }
+}
+.overview-tile-number,
+.home-card-count,
+.count-tile-num {
+    font-size: var(--nn-font-title);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--nn-text);
+}
+.stat-chip.is-warning,
+.count-tile.is-different { background-color: var(--nn-warning-bg); border-color: var(--nn-warning-border); }
+.stat-chip.is-warning .stat-chip-value,
+.count-tile.is-different .count-tile-num { color: var(--nn-warning-text); }
+.stat-chip.is-danger { background-color: var(--nn-danger-bg); border-color: var(--nn-danger-border); }
+.stat-chip.is-danger .stat-chip-value { color: var(--nn-danger-text); }
+
+
 
 /* ===============================================================================================================
    FEATURES
@@ -3333,7 +3464,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Overview: dashboard/dashboard.html, the office home page: more at a glance, less scrolling.
-     - .overview-tiles: four stat tiles (.overview-tile, one link each: icon, the number, its label, a detail line),
+     - .overview-tiles: four stat tiles (.overview-tile, one link each: icon, the number, its label, a detail line;
+       their look is in "Stat strip and tiles"),
        four across from 1200px, two across from 768px, two across on phones too (the numbers stay short).
      - .overview-columns: from 1200px "Needs attention" (.overview-main, 7/12) beside the stacked cards
        (.overview-side, 5/12); under each other below that, Needs attention first.
@@ -3357,7 +3489,6 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-status-icon-size: 12px;
-    --nn-tile-number: 2rem;          /* 32px */
 }
 
 .overview-tiles {
@@ -3377,16 +3508,8 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     grid-template-rows: auto auto auto;
     column-gap: var(--nn-space-3);
     height: 100%;
-    padding: var(--nn-space-3) var(--nn-space-4);
-    color: var(--nn-text);
-    background-color: var(--nn-surface);
-    border: 1px solid var(--nn-divider);
-    border-radius: var(--nn-radius-card);
-    text-decoration: none;
     transition: border-color .15s ease-in-out;
 }
-.overview-tile-link:hover { color: var(--nn-text); border-color: var(--nn-field-border); }
-.overview-tile-link:hover .overview-tile-label { text-decoration: underline; }
 .overview-tile-icon {
     grid-row: 1 / span 3;
     display: inline-flex;
@@ -3399,16 +3522,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     color: var(--nn-primary-text);
 }
 .overview-tile-icon > svg { width: 20px; height: 20px; }
-.overview-tile-number {
-    font-size: var(--nn-tile-number);
-    font-weight: 700;
-    line-height: 1.1;
-}
-.overview-tile-label {
-    font-size: var(--nn-font-sm);
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
+.overview-tile-label { overflow-wrap: anywhere; }
 .overview-tile-detail {
     font-size: var(--nn-font-xs);
     color: var(--nn-text-secondary);
@@ -3416,7 +3530,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 }
 /* Phones: no icon, so the number, label and detail stack in one column (two columns would squeeze the label). */
 @media (max-width: 575.98px) {
-    .overview-tile-link { grid-template-columns: minmax(0, 1fr); padding: var(--nn-space-3); }
+    .overview-tile-link { grid-template-columns: minmax(0, 1fr); }
     .overview-tile-icon { display: none; }
 }
 
@@ -4523,8 +4637,9 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 /* ---------------------------------------------------------------------------------------------------------------
    Home cards: the Master's home (masterhome/home.html) and the crew Home's cards (shiphome/home.html).
      - .home-cards: one column on phones, two from 768px.
-     - .home-card: a whole card that is one link, at least 72px high: icon, label, the number on the right. Quiet by
-       default (muted number); .is-due (something to do) has the primary tint and a bold number.
+     - .home-card: a whole card that is one link, at least 72px high: icon, label, the number on the right;
+       .is-due (something to do) has the primary tint. The look it shares with the other tiles is in "Stat strip
+       and tiles".
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-home-card-height: 4.5rem;   /* 72px */
@@ -4547,16 +4662,7 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
     gap: var(--nn-space-3);
     height: 100%;
     min-height: var(--nn-home-card-height);
-    padding: var(--nn-space-3) var(--nn-space-4);
-    background-color: var(--nn-surface);
-    border: 1px solid var(--nn-border);
-    border-radius: var(--nn-radius-card);
-    box-shadow: var(--nn-shadow);
-    color: var(--nn-text-secondary);
-    text-decoration: none;
 }
-.home-card:hover { color: var(--nn-text); background-color: var(--nn-hover); }
-.home-card:hover .home-card-label { text-decoration: underline; }
 .home-card-icon {
     display: inline-flex;
     flex-shrink: 0;
@@ -4569,22 +4675,15 @@ html.is-offline body { padding-bottom: var(--nn-offline-room); }
 .home-card-label {
     flex: 1 1 auto;
     min-width: 0;
-    font-weight: 600;
     overflow-wrap: anywhere;
 }
-.home-card-count {
-    flex-shrink: 0;
-    font-size: var(--nn-font-title);
-    color: var(--nn-text-secondary);
-}
+.home-card-count { flex-shrink: 0; }
 .home-card.is-due {
     background-color: var(--nn-primary-bg);
     border-color: var(--nn-primary-border);
-    color: var(--nn-text);
 }
 .home-card.is-due .home-card-icon,
 .home-card.is-due .home-card-count { color: var(--nn-primary-text); }
-.home-card.is-due .home-card-count { font-weight: 700; }
 
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -6578,53 +6677,12 @@ input.supplier-currency { max-width: 7rem; }
 
 /* ---------------------------------------------------------------------------------------------------------------
    Stores: the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
-     - .stores-facts / .stores-fact: the summary, one tile per fact (Low, Out of stock, Last count, Requests waiting
-       Next delivery), five per row from 1200px, else two with Next delivery (.stores-fact-wide)
-       across the row; a tile is a link when it leads to a list or an order. .is-low and .is-out tint a tile
-       with something in it (the number says it, the tint repeats it).
+     - The summary (Low, Out of stock, Last count, Requests waiting, Next delivery) is the shared .stat-strip.
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
      - .stores-places: the cards of the storage places, two per row from 768px (one per row on phones, where two
        columns are too narrow for name, quantity and status).
      - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
    --------------------------------------------------------------------------------------------------------------- */
-.stores-summary { margin-bottom: var(--nn-space-4); }
-.stores-facts {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--nn-space-3);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.stores-fact-wide { grid-column: 1 / -1; }
-@media (min-width: 1200px) {
-    .stores-facts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-    .stores-fact-wide { grid-column: auto; }
-}
-.stores-fact {
-    display: flex;
-    flex-direction: column;
-    gap: var(--nn-space-1);
-    height: 100%;
-    padding: var(--nn-space-3) var(--nn-space-4);
-    background-color: var(--nn-surface);
-    border: 1px solid var(--nn-border);
-    border-radius: var(--nn-radius-card);
-    box-shadow: var(--nn-shadow);
-    color: var(--nn-text);
-    text-decoration: none;
-}
-a.stores-fact:hover { background-color: var(--nn-hover); color: var(--nn-text); }
-a.stores-fact:hover .stores-fact-label { text-decoration: underline; }
-.stores-fact-label { font-size: var(--nn-font-sm); color: var(--nn-text-secondary); }
-.stores-fact-value { font-size: var(--nn-font-title); font-weight: 700; }
-.stores-fact-date,
-.stores-fact-none { font-size: 1rem; font-weight: 600; }
-.stores-fact-none { color: var(--nn-text-secondary); }
-.stores-fact.is-low { background-color: var(--nn-warning-bg); border-color: var(--nn-warning-border); }
-.stores-fact.is-low .stores-fact-value { color: var(--nn-warning-text); }
-.stores-fact.is-out { background-color: var(--nn-danger-bg); border-color: var(--nn-danger-border); }
-.stores-fact.is-out .stores-fact-value { color: var(--nn-danger-text); }
 .stores-places {
     display: grid;
     gap: var(--nn-space-4);
@@ -6974,8 +7032,8 @@ html.is-offline .voice-hold {
      - .count-bar: the count page's Save bar (.stores-count-bar): the sentence on the left, .count-bar-actions on the
        right; on a phone the sentence, then the two buttons on one line, Save the wider.
      - .count-row-single: the Master's one row in its own form, Confirm under it.
-     - .count-tiles: the two tiles of a summary (same / different); .is-different repeats the warning colour on the
-       number (the words say it).
+     - .count-tiles: the two tiles of a summary (same / different); .is-different is the warning tone (the words
+       say it). Their look is in "Stat strip and tiles".
      - .count-different-line: one line of the differences: the name, what arrived, the note, Change on the right.
      - .receipt-changed-line: the Master's "Changed from 23", in words and bold.
      - .home-card-note: the line under the Master's Deliveries card label.
@@ -7078,10 +7136,7 @@ html.is-offline .voice-hold {
 }
 .count-send-button, .approve-button { width: 100%; min-height: 48px; }
 .count-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }
-.count-tile { display: flex; flex-direction: column; margin: 0; padding: var(--nn-space-3) var(--nn-space-4);
-    border: 1px solid var(--nn-border); border-radius: var(--nn-radius-card); background-color: var(--nn-surface); }
-.count-tile-num { font-size: 2rem; font-weight: 700; line-height: 1.1; }
-.count-tile.is-different .count-tile-num { color: var(--nn-warning-text); }
+.count-tile { display: flex; flex-direction: column; margin: 0; }
 .count-different, .count-all, .approve-invoice { margin-bottom: var(--nn-space-4); }
 .count-different-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nn-space-1) var(--nn-space-3);
     scroll-margin-top: 5rem; }

@@ -5,7 +5,7 @@
      "Save count".
      - Count by voice first (stores/parts :: voiceCard, js/stores-voice.js), always there: when the server is not set
        up or there is nothing to count it says so and has no button. Then the link to a voice count waiting for review.
-     - Every active provisions item, by storage place as on Inventory ("Other" last): a row is the name, one quantity
+     - Every active provisions item, by storage place as on Inventory ("Other" last; two cards per row from 992px): a row is the name, one quantity
        field with the quantity the inventory has now, and the unit. The hidden shown[id] is the quantity the page
        showed, so a row left as it was writes nothing.
      - "Add an item that is not on the list": name, unit, quantity counted and where it is kept (the vessel's places
@@ -43,7 +43,8 @@
                     text=#{stores.empty.text}, action=null)}"></div>
         </div>
 
-        <section th:each="g, it : ${s.groups}" class="card mb-4" th:with="groupId=${'storesCountPlace' + it.index}"
+        <div th:unless="${s.groups.isEmpty()}" class="card-grid card-grid-start mb-4">
+        <section th:each="g, it : ${s.groups}" class="card" th:with="groupId=${'storesCountPlace' + it.index}"
                  th:attr="aria-labelledby=${groupId}">
             <div class="card-header d-flex justify-content-between align-items-center py-3">
                 <h2 class="h5 fw-bold mb-0" th:id="${groupId}"
@@ -73,6 +74,7 @@
                 </li>
             </ul>
         </section>
+        </div>
 
         <!-- An item on the shelf that is not on the list: saved, and counted, by the same "Save count". -->
         <section class="card stores-add" aria-labelledby="countAddTitle">

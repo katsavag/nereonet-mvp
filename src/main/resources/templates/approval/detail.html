@@ -2,7 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/layout :: layout(#{request.number(${detail.request.id})}, ~{::main})}">
 <body>
 <!-- One request of the Master's ship: who asked and when, its status (and who approved or declined it, when, and why it was
-     declined), then its lines by category (Provisions, then Personal items): name, quantity and unit. A line for an
+     declined; a grid of facts, "Facts grid" in app.css), then its lines by category (Provisions, then Personal items;
+     two cards per row from 992px): name and quantity with its unit. A line for an
      item not in the ship's list yet has a "New item" badge. English only. A PENDING request has Approve and Decline: Approve posts at once; Decline opens a modal asking for the reason. Model: detail (ApprovalService.Detail),
      declineForm (DeclineForm). -->
 <main th:with="request=${detail.request}, pending=${detail.request.status.name() == 'PENDING'}">
@@ -23,30 +24,35 @@
     </header>
 
     <div class="card mb-4">
-        <dl class="card-body row mb-0">
-            <dt class="col-sm-4 col-lg-3" th:text="#{approval.requestedBy}">Asked by</dt>
-            <dd class="col-sm-8 col-lg-9"><th:block th:replace="~{approval/parts :: person(${request.requestedBy})}"></th:block></dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{approval.requestedAt}">Asked</dt>
-            <dd class="col-sm-8 col-lg-9"><time th:replace="~{layout/parts :: localTime(${request.createdAt})}"></time></dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{approval.status}">Status</dt>
-            <dd class="col-sm-8 col-lg-9" th:classappend="${request.decidedAt == null} ? 'mb-0'">
-                <span th:replace="~{approval/parts :: statusBadge(${request.status})}"></span>
-            </dd>
-            <th:block th:if="${request.decidedAt != null}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{'approval.decision.' + ${request.status.name()}}">Approved</dt>
-                <dd class="col-sm-8 col-lg-9" th:classappend="${request.status.name() != 'REJECTED'} ? 'mb-0'">
-                    <span th:text="${request.decidedBy} ? ${request.decidedBy.fullName} : #{audit.deletedUser}">John Smith</span>
+        <dl class="card-body facts-grid">
+            <div class="fact">
+                <dt th:text="#{approval.requestedBy}">Asked by</dt>
+                <dd><th:block th:replace="~{approval/parts :: person(${request.requestedBy})}"></th:block></dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{approval.requestedAt}">Asked</dt>
+                <dd><time th:replace="~{layout/parts :: localTime(${request.createdAt})}"></time></dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{approval.status}">Status</dt>
+                <dd><span th:replace="~{approval/parts :: statusBadge(${request.status})}"></span></dd>
+            </div>
+            <div th:if="${request.decidedAt != null}" class="fact">
+                <dt th:text="#{'approval.decision.' + ${request.status.name()}}">Approved</dt>
+                <dd>
+                    <span th:text="${request.decidedBy} ? ${request.decidedBy.fullName} : #{audit.deletedUser}">Ship Master</span>
                     · <time th:replace="~{layout/parts :: localTime(${request.decidedAt})}"></time>
                 </dd>
-            </th:block>
-            <th:block th:if="${request.status.name() == 'REJECTED'}">
-                <dt class="col-sm-4 col-lg-3" th:text="#{approval.reason}">Reason</dt>
-                <dd class="col-sm-8 col-lg-9 mb-0 approval-reason" th:text="${request.rejectionReason}">Not needed this month.</dd>
-            </th:block>
+            </div>
+            <div th:if="${request.status.name() == 'REJECTED'}" class="fact fact-wide">
+                <dt th:text="#{approval.reason}">Reason</dt>
+                <dd class="approval-reason" th:text="${request.rejectionReason}">Not needed this month.</dd>
+            </div>
         </dl>
     </div>
 
-    <section th:each="g, it : ${detail.groups}" class="card mb-4" th:with="groupId=${'lineGroup' + it.index}"
+    <div class="card-grid card-grid-start mb-4">
+    <section th:each="g, it : ${detail.groups}" class="card" th:with="groupId=${'lineGroup' + it.index}"
              th:attr="aria-labelledby=${groupId}">
         <div class="card-header d-flex justify-content-between align-items-center py-3">
             <h2 class="h5 fw-bold mb-0" th:id="${groupId}" th:text="#{${g.category.labelKey()}}">Provisions</h2>
@@ -58,20 +64,19 @@
                 <tr class="small text-body-secondary">
                     <th scope="col" th:text="#{item.name}">Name</th>
                     <th scope="col" class="text-end" th:text="#{request.quantity}">Quantity</th>
-                    <th scope="col" th:text="#{item.unit}">Unit</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="line : ${g.lines}">
                     <td><span class="fw-semibold" th:text="${line.name}">Basmati rice</span>
                         <th:block th:if="${line.newItem}"><span th:replace="~{layout/parts :: status('info', #{request.newItem})}"></span></th:block></td>
-                    <td class="text-end font-monospace" th:text="${line.quantity.stripTrailingZeros().toPlainString()}">25</td>
-                    <td th:text="${line.unit} ?: #{approval.unit.none}">kg</td>
+                    <td class="text-end num text-nowrap" th:text="${line.quantity.stripTrailingZeros().toPlainString()} + ' ' + (${line.unit} ?: #{approval.unit.none})">25 kg</td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </section>
+    </div>
 
     <!-- Decline: the reason is required and goes to the person who asked. Posted empty, the page comes back with the
          modal open and the error. -->

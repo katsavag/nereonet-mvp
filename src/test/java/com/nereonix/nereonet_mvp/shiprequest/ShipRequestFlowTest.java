@@ -374,8 +374,8 @@ class ShipRequestFlowTest {
         assertThat(all).containsPattern("<span[^>]*>Requests</span>\\s*<span class=\"nav-count num\""
                 + " aria-hidden=\"true\">1</span>");
         assertThat(page("/ship/stores", cook)).containsPattern(
-                "(?s)href=\"/ship/requests\\?status=waiting\">\\s*<span class=\"stores-fact-label\">Requests waiting</span>"
-                        + "\\s*<span class=\"stores-fact-value num\">1</span>");
+                "(?s)href=\"/ship/requests\\?status=waiting\">\\s*<span class=\"stat-chip-label\">Requests waiting</span>"
+                        + "\\s*<span class=\"stat-chip-value num\">1</span>");
         // The Chief cook's Requests is a tab with the number (no card on Home); crew members keep the card.
         assertThat(page("/ship", cook)).doesNotContain("data-card=\"requests\"")
                 .containsPattern("(?s)<a class=\"tab-bar-link\" href=\"/ship/requests\">.*?"

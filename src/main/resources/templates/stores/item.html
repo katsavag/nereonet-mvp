@@ -16,15 +16,23 @@
     </header>
 
     <div class="card mb-4">
-        <dl class="card-body row mb-0">
-            <dt class="col-sm-4 col-lg-3" th:text="#{stores.item.quantity}">In stock</dt>
-            <dd class="col-sm-8 col-lg-9"><span th:replace="~{stores/parts :: quantity(${l.quantity}, ${item.unit})}"></span></dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{stores.item.status}">Status</dt>
-            <dd class="col-sm-8 col-lg-9"><span th:replace="~{stores/parts :: statusBadge(${l.status})}"></span></dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{stores.item.unit}">Unit</dt>
-            <dd class="col-sm-8 col-lg-9" th:text="${item.unit}">kg</dd>
-            <dt class="col-sm-4 col-lg-3" th:text="#{stores.item.place}">Place</dt>
-            <dd class="col-sm-8 col-lg-9 mb-0" th:text="${item.place != null} ? ${item.place} : #{stores.item.placeNone}">Dry store</dd>
+        <dl class="card-body facts-grid">
+            <div class="fact">
+                <dt th:text="#{stores.item.quantity}">In stock</dt>
+                <dd><span th:replace="~{stores/parts :: quantity(${l.quantity}, ${item.unit})}"></span></dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{stores.item.status}">Status</dt>
+                <dd><span th:replace="~{stores/parts :: statusBadge(${l.status})}"></span></dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{stores.item.unit}">Unit</dt>
+                <dd th:text="${item.unit}">kg</dd>
+            </div>
+            <div class="fact">
+                <dt th:text="#{stores.item.place}">Place</dt>
+                <dd th:text="${item.place != null} ? ${item.place} : #{stores.item.placeNone}">Dry store</dd>
+            </div>
         </dl>
     </div>
 
