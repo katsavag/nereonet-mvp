@@ -5,6 +5,13 @@
 //    sends nothing. Coming back to the page (Back, pageshow) gives the buttons back. A form whose answer is a file
 //    download (data-file, the office's order export) leaves the page as it is, so it is never made busy: its
 //    buttons stay usable, and no timer has to give them back.
+//  - window.nnBusy(control, label, slow): the busy control, for the page scripts that send something themselves.
+//    The control (a button, or a label that looks like one) is disabled and shows the spinner and the words (label,
+//    else its data-busy-label, else "Saving…") in a polite live region. After 10 seconds the words become "Still
+//    working. The connection is slow." (data-slow on offlineBanner; never with slow === false, for a wait that is
+//    not the connection's). It returns {say(words), done()}: say changes the words and starts the 10 seconds again;
+//    done puts the control back as it was. Whoever makes a control busy calls done when it ends, also on a failure.
+//    The forms above use the same, so their buttons change their words after 10 seconds too.
 //  - Drafts: a form with data-draft="<its page's URL>" keeps its fields in localStorage while the user types, under
 //    that URL and the signed-in user (<body data-user>), so another user on the same PC never sees it. Never file
 //    inputs, passwords or hidden fields, nor a field marked data-draft-skip. Opening the form with a draft that differs
@@ -27,6 +34,8 @@
     const notice = document.getElementById('draftNotice');
     const user = document.body.dataset.user || '';
     const busyLabel = (banner && banner.dataset.busy) || 'Saving…';
+    const slowLabel = (banner && banner.dataset.slow) || '';
+    const SLOW_MS = 10000;
     const DRAFT = 'nn.draft.';
     const PENDING = 'nn.draft.pending';
     const lang = document.documentElement.lang || undefined;
@@ -253,48 +262,70 @@
         return navigator.onLine === false;
     }
 
+    function busy(control, label, slow) {
+        const isInput = control.tagName === 'INPUT';
+        const idle = isInput ? control.value : Array.from(control.childNodes);
+        const width = control.style.minWidth;
+        const text = document.createElement('span');
+        let timer = null;
+        const say = words => {
+            clearTimeout(timer);
+            if (isInput) {
+                control.value = words;
+            } else {
+                text.textContent = words;
+            }
+            if (slow !== false && slowLabel && words !== slowLabel) {
+                timer = setTimeout(() => say(slowLabel), SLOW_MS);
+            }
+        };
+        if (!isInput) {
+            control.style.minWidth = control.offsetWidth + 'px'; // the button does not shrink under the pointer
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner-border spinner-border-sm';
+            spinner.setAttribute('aria-hidden', 'true');
+            text.setAttribute('role', 'status');
+            control.replaceChildren(spinner, text);
+        }
+        control.classList.add('is-busy');
+        control.disabled = true;
+        say(label || control.dataset.busyLabel || busyLabel);
+        return {
+            say: say,
+            done: () => {
+                clearTimeout(timer);
+                control.disabled = false;
+                control.classList.remove('is-busy');
+                if (isInput) {
+                    control.value = idle;
+                } else {
+                    control.replaceChildren(...idle);
+                    control.style.minWidth = width;
+                }
+            }
+        };
+    }
+    window.nnBusy = busy;
+
     function setBusy(form, submitter) {
         const buttons = Array.from(form.elements).filter(isSubmit);
         const button = submitter && isSubmit(submitter) ? submitter : buttons[0];
         buttons.forEach(element => {
             element.disabled = true;
         });
-        if (!button) {
-            return;
+        if (button) {
+            form._busy = busy(button);
         }
-        const label = button.dataset.busyLabel || busyLabel;
-        if (button.tagName === 'INPUT') {
-            button.dataset.idleLabel = button.value;
-            button.value = label;
-        } else {
-            button.dataset.idleWidth = button.style.minWidth;
-            button.style.minWidth = button.offsetWidth + 'px'; // the button does not shrink under the pointer
-            button._idle = Array.from(button.childNodes);
-            const spinner = document.createElement('span');
-            spinner.className = 'spinner-border spinner-border-sm';
-            spinner.setAttribute('aria-hidden', 'true');
-            const text = document.createElement('span');
-            text.setAttribute('role', 'status');
-            text.textContent = label;
-            button.replaceChildren(spinner, text);
-        }
-        button.classList.add('is-busy');
     }
 
     function setIdle(form) {
         delete form.dataset.sending;
+        if (form._busy) {
+            form._busy.done();
+            form._busy = null;
+        }
         Array.from(form.elements).filter(isSubmit).forEach(button => {
             button.disabled = false;
-            if (!button.classList.contains('is-busy')) {
-                return;
-            }
-            button.classList.remove('is-busy');
-            if (button.tagName === 'INPUT') {
-                button.value = button.dataset.idleLabel;
-            } else {
-                button.replaceChildren(...(button._idle || []));
-                button.style.minWidth = button.dataset.idleWidth || '';
-            }
         });
     }
 

@@ -8,7 +8,7 @@
 //    could be "Add to request"); in the new item's fields it presses "Add to request".
 //  - "Add to request" and "Remove" (the submit buttons inside #newItems) send the form with fetch and put the
 //    #newItems of the page that comes back in place of the one here; the rest of the page (scroll, search, typed
-//    quantities) is not touched. The pressed button is busy meanwhile. Then the focus goes to Name and
+//    quantities) is not touched. The pressed button is busy meanwhile (js/save.js, nnBusy). Then the focus goes to Name and
 //    [data-request-live] says "Added: Saffron"; with errors, to the first wrong field; after Remove, to the card's
 //    heading. When the request fails or the answer has no #newItems (signed out, the request decided meanwhile), the
 //    form is posted the plain way.
@@ -57,28 +57,6 @@
             }
         });
 
-        // The look of js/save.js's busy button; the card that comes back has a fresh one.
-        function busy(button) {
-            const idle = Array.from(button.childNodes);
-            const width = button.style.minWidth;
-            button.style.minWidth = button.offsetWidth + 'px';
-            const spinner = document.createElement('span');
-            spinner.className = 'spinner-border spinner-border-sm';
-            spinner.setAttribute('aria-hidden', 'true');
-            const text = document.createElement('span');
-            text.setAttribute('role', 'status');
-            text.textContent = button.dataset.busyLabel || button.textContent;
-            button.replaceChildren(spinner, text);
-            button.classList.add('is-busy');
-            button.disabled = true;
-            return () => {
-                button.disabled = false;
-                button.classList.remove('is-busy');
-                button.replaceChildren(...idle);
-                button.style.minWidth = width;
-            };
-        }
-
         function show(fresh, adding, name) {
             const wrong = fresh.querySelector('.is-invalid');
             if (live) {
@@ -106,7 +84,7 @@
             const name = nameField ? nameField.value.trim() : '';
             const data = new URLSearchParams(new FormData(form));
             data.append(button.name, button.value);
-            const idle = busy(button);
+            const working = window.nnBusy(button); // js/save.js
             fetch(form.getAttribute('action'), {method: 'POST', body: data, credentials: 'same-origin'})
                 .then(response => {
                     if (!response.ok) {
@@ -119,6 +97,7 @@
                     if (!fresh) {
                         throw new Error('No card in the answer');
                     }
+                    working.done(); // the card that comes in has fresh buttons
                     card.replaceWith(fresh);
                     fresh.dispatchEvent(new CustomEvent('nn:fragment', {bubbles: true}));
                     show(fresh, adding, name);
@@ -126,7 +105,7 @@
                 })
                 .catch(() => {
                     sending = false;
-                    idle();
+                    working.done();
                     plain = true;
                     if (form.requestSubmit) {
                         form.requestSubmit(button);

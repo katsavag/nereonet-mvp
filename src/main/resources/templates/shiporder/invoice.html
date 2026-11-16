@@ -37,7 +37,8 @@
             are kept.</p>
         <form th:action="@{${baseUrl + '/read'}}" method="post">
             <input type="hidden" name="again" value="true">
-            <button type="submit" class="btn btn-outline-secondary" th:text="#{order.invoice.readAgain}">Read again</button>
+            <button type="submit" class="btn btn-outline-secondary" th:data-busy-label="#{order.invoice.busy.read}"
+                    th:text="#{order.invoice.readAgain}">Read again</button>
         </form>
     </div>
 
@@ -68,13 +69,14 @@
                 <div th:if="${p.failed and !notReadNow}" class="invoice-page-note is-warning" role="note">
                     <p class="fw-semibold mb-2" th:text="#{order.invoice.pageFailed(${p.number})}">Page 2 could not be read</p>
                     <form th:action="@{${fileUrl + '/read'}}" method="post">
-                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:text="#{order.invoice.readAgain}">Read again</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" th:data-busy-label="#{order.invoice.busy.read}"
+                                th:text="#{order.invoice.readAgain}">Read again</button>
                     </form>
                 </div>
                 <div class="invoice-page-actions">
                     <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="replace" th:value="${p.file.id}">
-                        <label class="btn btn-outline-secondary btn-sm invoice-pick">
+                        <label class="btn btn-outline-secondary btn-sm invoice-pick" th:data-busy-label="#{save.busy.sending}">
                             <span th:text="#{order.invoice.retake}">Retake</span>
                             <span class="visually-hidden" th:text="${pageName}">Page 1</span>
                             <input type="file" name="file" accept="image/*" capture="environment" required
@@ -83,7 +85,7 @@
                         <button type="submit" class="btn btn-outline-secondary btn-sm" data-invoice-upload th:text="#{order.invoice.upload}">Upload</button>
                     </form>
                     <form th:action="@{${fileUrl + '/remove'}}" method="post">
-                        <button type="submit" class="btn btn-ghost btn-sm">
+                        <button type="submit" class="btn btn-ghost btn-sm" th:data-busy-label="#{order.invoice.busy.remove}">
                             <span th:text="#{order.invoice.remove}">Remove</span>
                             <span class="visually-hidden" th:text="${pageName}">Page 1</span>
                         </button>
@@ -98,7 +100,8 @@
         <h2 th:if="${pages.isEmpty()}" class="visually-hidden" id="invoiceAddTitle" th:text="#{order.invoice.addPage}">Add page</h2>
         <div class="invoice-add-controls">
             <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
-                <label class="btn invoice-pick invoice-pick-main" th:classappend="${pages.isEmpty()} ? 'btn-primary' : 'btn-outline-secondary'">
+                <label class="btn invoice-pick invoice-pick-main" th:classappend="${pages.isEmpty()} ? 'btn-primary' : 'btn-outline-secondary'"
+                       th:data-busy-label="#{save.busy.sending}">
                     <span th:text="#{order.invoice.takePhoto}">Take a photo</span>
                     <input type="file" name="file" accept="image/*" capture="environment" required class="invoice-file"
                            th:data-page="${pages.size() + 1}">
@@ -106,7 +109,7 @@
                 <button type="submit" class="btn btn-outline-secondary" data-invoice-upload th:text="#{order.invoice.upload}">Upload</button>
             </form>
             <form class="invoice-upload" th:action="@{${baseUrl + '/pages'}}" method="post" enctype="multipart/form-data">
-                <label class="btn btn-outline-secondary invoice-pick invoice-pick-main">
+                <label class="btn btn-outline-secondary invoice-pick invoice-pick-main" th:data-busy-label="#{save.busy.sending}">
                     <span th:text="#{order.invoice.chooseFile}">Choose a file</span>
                     <input type="file" name="file" accept="image/*,application/pdf" required class="invoice-file"
                            th:data-page="${pages.size() + 1}">
@@ -128,7 +131,8 @@
 
     <div class="form-actions invoice-actions">
         <form th:unless="${pages.isEmpty()}" th:action="@{${baseUrl + '/read'}}" method="post">
-            <button type="submit" class="btn btn-primary" th:text="#{order.invoice.done}">Done: start counting</button>
+            <button type="submit" class="btn btn-primary" th:data-busy-label="#{order.invoice.busy.read}"
+                    th:text="#{order.invoice.done}">Done: start counting</button>
         </form>
         <a class="btn btn-ghost" th:href="@{${next}}" th:text="#{order.invoice.without}">Count without the invoice</a>
     </div>

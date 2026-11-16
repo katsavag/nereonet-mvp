@@ -321,7 +321,9 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     All of it is `js/save.js`, on every page; without the script every form still submits. No offline
     queue and no service worker:
     - sent once: when a POST form is sent, all its submit buttons are disabled and the one pressed shows a spinner
-      and "Saving…" (sign-in "Signing in…", sign-out "Signing out…": `data-busy-label`).
+      and "Saving…" (sign-in "Signing in…", sign-out "Signing out…": `data-busy-label`); after 10 seconds the
+      words become "Still working. The connection is slow." A page script that sends something itself makes
+      the pressed control busy the same way with `window.nnBusy(control, label)` and calls `done()` when it ends.
       A second click, a double click or Enter sends nothing more. Back to the page (browser Back, `pageshow`) gives
       the buttons back. A form answered with a download (`data-file`, the order export, P36) leaves the page as it
       is, so it is never made busy. The

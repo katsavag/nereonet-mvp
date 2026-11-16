@@ -2018,8 +2018,9 @@ fieldset:disabled button.btn {
 
 /* ---------------------------------------------------------------------------------------------------------------
    Saving on a bad connection: js/save.js, layout/parts :: offlineBanner, draftNotice.
-     - .is-busy: the button of a form on its way: a spinner and "Saving…". Disabled, but at full opacity with a
-       progress cursor: it is working, not unavailable. The other buttons of the form are disabled as usual.
+     - .is-busy: the button of a form on its way, or any control a page script made busy (window.nnBusy): a spinner
+       and "Saving…". Disabled, but at full opacity with a progress cursor: it is working, not unavailable. The
+       other buttons of the form are disabled as usual. With prefers-reduced-motion the spinner does not turn.
      - .offline-banner: "No connection. Your text is kept on this device." Fixed at the bottom of the window, right of
        the sidebar from 768px, in the warning pair with a dot before the text (the words say it, not the colour).
        Empty, and so not shown, while online; the page gets room at the bottom so it never covers a Save button.
@@ -2031,10 +2032,12 @@ fieldset:disabled button.btn {
     --nn-offline-room: 6rem;         /* room under the page while the banner shows (two lines on a phone) */
 }
 
+.btn.is-busy,
 .btn.is-busy:disabled {
     opacity: 1;
     cursor: progress;
 }
+@media (prefers-reduced-motion: reduce) { .is-busy .spinner-border { animation: none; } }
 .btn.is-busy .spinner-border-sm {
     --bs-spinner-width: .875rem;
     --bs-spinner-height: .875rem;
@@ -6739,8 +6742,9 @@ html.is-offline .stores-count-bar { bottom: calc(var(--nn-count-bar-bottom) + va
      - .voice-hold: press and hold. It floats: fixed at the bottom right, 16px from the edge and 16px above the Save
        bar (and the tab bar on phones), a round 64px primary button, the microphone over "Hold to speak". Never the
        long-press menu, a text selection or a scroll while held (touch-action, user-select). .is-recording: red, it
-       grows sideways into a pill with the pulsing dot, "Release to send" and the timer; .voice-card.is-busy:
-       processing. Hidden (the hidden attribute) until the microphone can be used.
+       grows sideways into a pill with the pulsing dot, "Release to send" and the timer; .is-busy (js/save.js):
+       the same pill in the primary colour with the spinner and "Sending…", at most as wide as the screen. Hidden
+       (the hidden attribute) until the microphone can be used.
      - .voice-status: one line in the card; data-tone (set by the script) gives it its colour.
      - .voice-row.is-low: a row the extractor was not sure of, with the warning colour on its left edge. */
 .voice-enable[hidden],
@@ -6799,7 +6803,15 @@ html.is-offline .voice-hold {
 @keyframes voice-pulse { 50% { transform: scale(1.5); opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .is-recording .voice-dot { animation: none; } }
 .voice-timer { font-variant-numeric: tabular-nums; }
-.voice-card.is-busy .voice-hold { cursor: progress; }
+.voice-hold.is-busy {
+    flex-direction: row;
+    gap: var(--nn-space-2);
+    width: auto;
+    max-width: calc(100vw - 2 * var(--nn-space-4));
+    padding: 0 var(--nn-space-4);
+    font-size: var(--nn-font-sm);
+    text-align: start;
+}
 .voice-status { min-height: 1.5rem; margin: var(--nn-space-3) 0 var(--nn-space-2); font-size: var(--nn-font-sm);
     scroll-margin-top: 5rem; }
 .voice-status:empty { display: none; }
@@ -6807,7 +6819,6 @@ html.is-offline .voice-hold {
 .voice-status[data-tone="error"] { color: var(--nn-danger-text); }
 .voice-status[data-tone="warning"],
 .voice-status[data-tone="hint"] { color: var(--nn-warning-text); }
-.voice-status[data-tone="busy"] { color: var(--nn-text-secondary); }
 .voice-limit { margin-top: var(--nn-space-2); }
 
 .voice-transcript { font-size: var(--nn-font-body); color: var(--nn-text); }

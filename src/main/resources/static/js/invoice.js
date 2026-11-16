@@ -5,7 +5,9 @@
 //    as a thumbnail. A photo is made smaller first: at most 2000 px on its long side, JPEG at quality 0.8 (the camera's
 //    orientation applied), so a 4 MB photo is about 500 KB on the satellite link; a PDF, a HEIC the browser cannot
 //    decode, or a photo that would not get smaller goes as it is. The server's refusal is shown in its words; a
-//    dropped connection says so with Try again (the pages already sent are kept on the server).
+//    dropped connection says so with Try again (the pages already sent are kept on the server). The button that was
+//    pressed (Take a photo, Choose a file, Retake) is busy meanwhile (js/save.js, nnBusy); Remove, Read again and
+//    Done: start counting are ordinary forms, busy through js/save.js.
 //  - The Upload buttons are hidden: nothing to press.
 //  - The progress page asks /reading/status every 2 seconds, shows its text ("Reading page 2 of 2") and goes on as
 //    soon as the reading is done (the meta refresh does the same, more slowly, without the script).
@@ -182,6 +184,9 @@
         const n = Number(input.dataset.page) || 1;
         lastAttempt = input;
         setBusy(true);
+        // The picker is a label around the input: busy takes the input out of the page, done puts it back.
+        const picker = input.closest('label');
+        const working = picker ? window.nnBusy(picker) : null;
         try {
             show(page.dataset.preparing.replace('{n}', String(n)), false, false);
             const smaller = await shrink(file);
@@ -191,6 +196,9 @@
             await send(form, smaller, n);
             window.location.reload(); // the page comes back with the new thumbnail
         } catch (failure) {
+            if (working) {
+                working.done();
+            }
             setBusy(false);
             if (failure && failure.message === null) {
                 form.submit();

@@ -190,6 +190,7 @@
     async function sendAll(submitter) {
         uploading = true;
         setButtons(true);
+        const working = submitter ? window.nnBusy(submitter) : null; // js/save.js, which takes over when the form goes
         const pending = files().filter(file => !sent.has(file));
         try {
             if (pending.some(file => canResize && /^image\/(jpeg|png)$/.test(file.type) && !smaller.has(file))) {
@@ -210,6 +211,9 @@
             }
         } catch (message) {
             uploading = false;
+            if (working) {
+                working.done();
+            }
             setButtons(false);
             if (message === null) {
                 readyToSend = true; // the server answers the form, files and all
@@ -223,6 +227,9 @@
         input.value = '';
         listChosen();
         uploading = false;
+        if (working) {
+            working.done();
+        }
         setButtons(false);
         readyToSend = true;
         if (form.requestSubmit) {

@@ -22,17 +22,20 @@
      heading and that sentence, no button, and the page does not load js/stores-voice.js. Otherwise null:
      - Without JavaScript: "Enable microphone" is disabled and a line says that counting by voice needs JavaScript;
        js/stores-voice.js removes the line and enables the button when it starts.
-     - "Enable microphone" asks for the microphone once (the browser's prompt would otherwise break the first hold).
+     - "Enable microphone" asks for the microphone once (the browser's prompt would otherwise break the first hold),
+       busy with "Asking the browser…" meanwhile.
        When voice cannot be used in this browser, the status line says why (the data-off-* texts).
      - "Hold to speak" (button[data-voice-hold]) floats at the bottom right of the screen, above the Save bar: hidden
        until the microphone can be used; records while held (pointer or Space/Enter) and sends on release to action,
-       with the form's CSRF token. It follows the card in the Tab order.
+       with the form's CSRF token; from the release until the review opens it is busy, "Sending…" and then "Working
+       out what you said…". It follows the card in the Tab order.
      The texts the script shows are in data-* attributes. hint: the line under the heading.
      Use: <section th:replace="~{stores/parts :: voiceCard(@{/ship/stores/count/voice}, #{stores.voice.hint}, null)}"></section> -->
 <section th:fragment="voiceCard(action, hint, off)" class="card mb-4 voice-card" aria-labelledby="voiceHeading"
          th:attr="data-voice=${off == null} ? 'on' : null,
                   data-release=#{stores.voice.release}, data-hold=#{stores.voice.hold},
-                  data-recording=#{stores.voice.recording}, data-processing=#{stores.voice.processing},
+                  data-recording=#{stores.voice.recording}, data-sending=#{save.busy.sending},
+                  data-working=#{stores.voice.working},
                   data-too-short=#{stores.voice.tooShort}, data-not-sent=#{stores.voice.notSent},
                   data-off-unsupported=#{stores.voice.off.unsupported},
                   data-off-insecure=#{stores.voice.off.insecure}, data-off-denied=#{stores.voice.off.denied},
@@ -50,7 +53,8 @@
                   th:action="${action}"></form>
             <div class="voice-controls">
                 <button type="button" class="btn btn-outline-secondary voice-enable" data-voice-enable disabled
-                        aria-describedby="voiceEnableHint" th:text="#{stores.voice.enable}">Enable microphone</button>
+                        aria-describedby="voiceEnableHint" th:data-busy-label="#{stores.voice.asking}"
+                        th:text="#{stores.voice.enable}">Enable microphone</button>
                 <span class="voice-enable-hint small text-body-secondary" id="voiceEnableHint" data-voice-enable-hint
                       th:text="#{stores.voice.enableHint}">The browser asks for the microphone once.</span>
                 <button type="button" class="btn btn-primary voice-hold" data-voice-hold hidden disabled

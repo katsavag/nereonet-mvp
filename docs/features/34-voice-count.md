@@ -45,7 +45,8 @@ anything reaches the store. One recording may name one item or many.
   turns red with a pulsing dot, "Release to send" and a running timer. No long-press menu or text selection
   (`touch-action: none`, `user-select: none`, `contextmenu` cancelled). Under half a second: "Hold the button while
   you speak." and nothing is sent. On release it posts `POST /ship/stores/count/voice` (multipart `audio`, the
-  form's CSRF token, `Accept: application/json`) with "Processing..."; the answer is the review's address or the
+  form's CSRF token, `Accept: application/json`); the floating button is busy meanwhile and cannot be held again,
+  with a spinner and "Sending…", then "Working out what you said…"; the answer is the review's address or the
   failure in plain words, and after a timeout, a provider error or no connection the recording is kept with **Try
   again**. No `MediaRecorder`, no secure context, the microphone blocked or missing: there is no floating button
   and the card says why.

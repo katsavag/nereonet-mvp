@@ -13,10 +13,13 @@
 //  - Holding never opens the long-press menu or selects text: touch-action and user-select none (app.css), the
 //    contextmenu event cancelled, and the touch's implicit pointer capture released so that leaving the button stops.
 //  - Shorter than half a second: nothing is sent, "Hold the button while you speak."
-//  - On release: the recording is posted to the form's action (multipart "audio", the form's CSRF token, Accept:
-//    application/json) with "Processing...". The answer is the review's address (the page goes there) or the failure
-//    in plain words; when sending again may help (timeout, provider error, no connection) the recording is kept and
-//    "Try again" sends it again. A new hold replaces it. An answer that is not JSON (the session expired): reload.
+//  - On release: the floating button is busy (js/save.js, nnBusy) and cannot be held again: "Sending…" while the
+//    recording is posted to the form's action (multipart "audio", the form's CSRF token, Accept: application/json),
+//    "Working out what you said…" once it has left, until the review opens or the failure shows. The answer is the
+//    review's address (the page goes there) or the failure in plain words; when sending again may help (timeout,
+//    provider error, no connection) the recording is kept and "Try again" (busy the same way while it runs) sends it
+//    again. A new hold replaces it. An answer that is not JSON (the session expired): reload.
+//  - "Enable microphone" is busy while the browser is being asked.
 //  - No MediaRecorder, no secure context (HTTPS outside localhost), the microphone blocked or missing: there is no
 //    floating button and the card says why.
 (function () {
@@ -48,6 +51,7 @@
     let tick = null;
     let limit = null;
     let pending = null;
+    let working = null; // the busy button (window.nnBusy) from the release until the answer
     let used = false;   // the cook has pressed a button of the card: from then on its messages are scrolled to
 
     if (noScript) {
@@ -131,11 +135,17 @@
 
     enable.addEventListener('click', () => {
         used = true;
+        // The browser's prompt waits for the cook, not for the connection: the words stay as they are.
+        const asking = window.nnBusy(enable, null, false);
         navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
             stream.getTracks().forEach(track => track.stop());
+            asking.done();
             ready();
             hold.focus();
-        }).catch(refused);
+        }).catch(error => {
+            asking.done();
+            refused(error);
+        });
     });
 
     function showTime() {
@@ -200,6 +210,8 @@
         pressed = false;
         idle();
         if (recorder && recorder.state !== 'inactive') {
+            say('');
+            working = window.nnBusy(hold, text.sending);
             recorder.stop();
         } else {
             // Released before the microphone was ready: nothing recorded.
@@ -214,11 +226,12 @@
         recorder = null;
         chunks = [];
         if (held < MIN_MS || !blob.size) {
+            rest();
             say(text.tooShort, 'hint');
             return;
         }
         pending = blob;
-        send();
+        send(hold);
     }
 
     function extension(type) {
@@ -228,10 +241,17 @@
         return type.indexOf('ogg') >= 0 ? 'ogg' : 'webm';
     }
 
+    function rest() {
+        if (working) {
+            working.done();
+            working = null;
+        }
+    }
+
     function failed(message, again) {
         sending = false;
+        rest();
         hold.disabled = false;
-        card.classList.remove('is-busy');
         if (!again) {
             pending = null;
         }
@@ -239,8 +259,9 @@
         say(message, 'error');
     }
 
-    function send() {
-        if (!pending) {
+    // control: the button that was pressed, the floating one (busy since the release) or Try again.
+    function send(control) {
+        if (!pending || sending) {
             return;
         }
         if (navigator.onLine === false) {
@@ -248,35 +269,53 @@
             return;
         }
         sending = true;
+        say('');
+        working = working || window.nnBusy(control, text.sending);
         hold.disabled = true;
-        retry.hidden = true;
-        card.classList.add('is-busy');
-        say(text.processing, 'busy');
         const body = new FormData(form);
         body.append('audio', pending, 'count.' + extension(pending.type));
-        fetch(form.action, {
-            method: 'POST',
-            body: body,
-            headers: {Accept: 'application/json'},
-            credentials: 'same-origin'
-        }).then(response => {
-            const type = response.headers.get('Content-Type') || '';
+        // XMLHttpRequest, not fetch: it tells when the recording has left, and the words change then.
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', form.action);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.upload.addEventListener('load', () => {
+            if (working) {
+                working.say(text.working);
+            }
+        });
+        xhr.addEventListener('load', () => {
+            const type = xhr.getResponseHeader('Content-Type') || '';
             if (type.indexOf('application/json') < 0) {
                 window.location.reload();
                 return;
             }
-            return response.json().then(data => {
-                if (response.ok && data.reviewUrl) {
-                    pending = null;
-                    window.location.assign(data.reviewUrl);
-                    return;
-                }
-                failed(data.error, data.retry);
-            });
-        }).catch(() => failed(text.notSent, true));
+            let data;
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) {
+                failed(text.notSent, true);
+                return;
+            }
+            if (xhr.status >= 200 && xhr.status < 300 && data.reviewUrl) {
+                pending = null;
+                window.location.assign(data.reviewUrl); // busy until the review opens
+                return;
+            }
+            failed(data.error, data.retry);
+        });
+        ['error', 'abort', 'timeout'].forEach(type => xhr.addEventListener(type, () => failed(text.notSent, true)));
+        xhr.send(body);
     }
 
-    retry.addEventListener('click', send);
+    retry.addEventListener('click', () => send(retry));
+    // Back to this page from the browser's cache: nothing is on its way any more.
+    window.addEventListener('pageshow', event => {
+        if (event.persisted && sending) {
+            sending = false;
+            rest();
+            hold.disabled = false;
+        }
+    });
 
     hold.addEventListener('pointerdown', event => {
         if (event.button !== 0) {

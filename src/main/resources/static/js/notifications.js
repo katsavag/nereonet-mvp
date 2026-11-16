@@ -194,7 +194,9 @@
             buttons.forEach(button => {
                 button.disabled = true;
             });
+            const working = window.nnBusy(submitter || buttons[0]); // js/save.js
             send(form).then(data => {
+                working.done();
                 const rows = all ? Array.from(document.querySelectorAll('[data-notification].is-unread'))
                     : [form.closest('[data-notification]')];
                 const focused = buttons.indexOf(document.activeElement) >= 0 || document.activeElement === document.body;
@@ -212,6 +214,7 @@
                     focusAfter(place);
                 }
             }).catch(() => {
+                working.done();
                 buttons.forEach(button => {
                     button.disabled = false;
                 });

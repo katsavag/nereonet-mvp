@@ -519,10 +519,11 @@
      the browser reports no connection; the script then fills it with data-text ("No connection. Your text is kept on
      this device.", on a page with a draft form) or data-text-plain, and empties it when the connection is back. A live
      region, so screen readers hear both. data-blocked is the message the script puts next to the button of a form
-     sent while offline (the form is not sent). data-busy is the default label of a button whose form is being sent. -->
+     sent while offline (the form is not sent). data-busy is the default label of a button whose form is being sent, data-slow
+     what it says after 10 seconds ("Still working. The connection is slow."). -->
 <div th:fragment="offlineBanner" id="offlineBanner" class="offline-banner" role="status"
      th:data-text="#{save.offline}" th:data-text-plain="#{save.offline.plain}"
-     th:data-blocked="#{save.offline.blocked}" th:data-busy="#{save.busy}"></div>
+     th:data-blocked="#{save.offline.blocked}" th:data-busy="#{save.busy}" th:data-slow="#{save.busy.slow}"></div>
 
 <!-- draftNotice: once per signed-in page (layout/layout.html). js/save.js copies it to the top of a form whose draft it
      restored, writes data-template into the text with the draft's time (UTC) as a <time> in place of {time}, and makes
