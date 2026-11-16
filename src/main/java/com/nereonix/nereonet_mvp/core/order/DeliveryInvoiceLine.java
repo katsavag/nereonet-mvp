@@ -150,6 +150,30 @@ public class DeliveryInvoiceLine {
 
     private java.time.Instant officeChangedAt;
 
+    // A person corrected the quantity (the Chief cook on the count, the office on View invoice): when. Null while the
+    // quantity is the reader's, or was put back to what the photo read.
+    private java.time.Instant quantityCorrectedAt;
+
+    /** The quantity is a person's, not the photo's: "(corrected, photo read 12)". */
+    public boolean isQuantityCorrected() {
+        return quantityCorrectedAt != null;
+    }
+
+    /**
+     * A person corrects the quantity the photo read wrong, or did not read: it replaces quantity, and readQuantity
+     * stays as the photo gave it. False, and nothing changed, when the line says that number already.
+     */
+    public boolean correctQuantity(BigDecimal value) {
+        if (quantity != null && quantity.compareTo(value) == 0) {
+            return false;
+        }
+        quantity = value;
+        quantityNotRead = false;
+        quantityCorrectedAt = readQuantity != null && readQuantity.compareTo(value) == 0 ? null
+                : java.time.Instant.now();
+        return true;
+    }
+
     /** P64: the office corrected this line. */
     public boolean isChangedByOffice() {
         return officeChangedAt != null;

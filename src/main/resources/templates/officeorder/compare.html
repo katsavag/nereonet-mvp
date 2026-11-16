@@ -250,12 +250,15 @@
     </div>
 </section>
 
-<!-- The flags of an invoice line in words: corrected, hard to read, quantity not read, changed by the office. -->
+<!-- The flags of an invoice line in words: corrected, hard to read, quantity not read, changed by the office; then,
+     where a person (the Chief cook, the office) corrected the quantity, "(corrected, photo read 12)". -->
 <th:block th:fragment="flags(l)">
     <span th:if="${l.corrected}" class="badge status-badge status-info" th:text="#{officeorder.compare.flag.corrected}">corrected</span>
     <span th:if="${l.needsCheck}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.check}">hard to read</span>
     <span th:if="${l.quantityNotRead}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.quantityNotRead}">quantity not read</span>
     <span th:if="${l.changedByOffice}" class="badge status-badge status-neutral" th:text="#{officeorder.compare.flag.office}">changed by the office</span>
+    <span th:if="${l.quantityCorrected}" class="small text-body-secondary"
+          th:text="${l.readQuantity != null} ? #{officeorder.compare.flag.quantityCorrected(${@money.quantity(l.readQuantity)})} : #{officeorder.compare.flag.quantityEntered}">(corrected, photo read 12)</span>
 </th:block>
 
 </body>

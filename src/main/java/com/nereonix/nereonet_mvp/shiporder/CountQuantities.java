@@ -25,7 +25,7 @@ final class CountQuantities {
     }
 
     /**
-     * What was typed, in the item's unit. Nothing typed: the row's reference (one tap: "12 arrived"), or "Enter what
+     * What was typed, in the item's unit. Nothing typed (the input emptied): the row's reference, or "Enter what
      * arrived" when it has none. The reference itself is always accepted, even above the maximum.
      */
     static Check read(QuantityRules rules, CountSheet.Row row, String typed) {

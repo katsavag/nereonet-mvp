@@ -1,9 +1,10 @@
-// The delivery count's rows (P63, shiporder/parts :: countRow): the cook's count and the Master's Change. Only an
-// enhancement: every row is its own form and works without this script (the server confirms the number typed, or the
-// reference when nothing is typed).
-//  - Typing a number other than the reference turns the button "12 arrived" into "Confirm 23", and says the difference
-//    in words under the row ("2 kg less than the invoice"); emptied again, the button is "12 arrived" again. A row
-//    without a reference keeps "Confirm" until a number is typed.
+// The delivery count's rows (shiporder/parts :: countRow): the cook's count and the Master's Change. Only an
+// enhancement: every row is its own form and works without this script (the server confirms the number in the input
+// and says the difference after Confirm).
+//  - The number in "Arrived" (prefilled with the invoice's) and in "The paper invoice says" is selected on focus, so
+//    typing replaces it.
+//  - Typing a number other than the reference says the difference in words under the row ("2 more than the invoice",
+//    "3 fewer than the invoice", "Did not arrive" for 0); the same number again, or none, says nothing.
 //  - "Add a note" opens the row's one-line note in place (without the script it reloads the page with it open).
 (function () {
     'use strict';
@@ -22,39 +23,31 @@
         return String(Math.round(value * 1000) / 1000);
     }
 
+    document.querySelectorAll('.count-row-form input[data-quantity]').forEach(input => {
+        input.addEventListener('focus', () => input.select());
+    });
+
     document.querySelectorAll('form[data-count-row]').forEach(form => {
         const data = form.dataset;
         const input = form.querySelector('input[name="quantity"]');
-        const button = form.querySelector('[data-count-button]');
         const diff = form.querySelector('[data-count-diff]');
         const reference = number(data.reference);
 
         const update = () => {
             const value = number(input.value);
-            if (value === null) {
-                button.textContent = data.arrived;
+            if (value === null || value === reference) {
                 diff.textContent = '';
-                return;
-            }
-            const shown = input.value.trim().replace(',', '.');
-            if (reference !== null && value === reference) {
-                button.textContent = data.arrived;
+            } else if (value === 0) {
+                diff.textContent = data.none;
+            } else if (reference === null) {
                 diff.textContent = '';
-                return;
+            } else {
+                diff.textContent = (value < reference ? data.less : data.more)
+                    .replace('{n}', plain(Math.abs(value - reference)));
             }
-            button.textContent = data.confirm.replace('{n}', shown);
-            if (reference === null) {
-                diff.textContent = '';
-                return;
-            }
-            const by = Math.abs(value - reference);
-            const unit = by === 1 ? data.unitOne : data.unitMany;
-            diff.textContent = (value < reference ? data.less : data.more).replace('{n}', plain(by))
-                .replace('{unit}', unit || '').replace(/\s+/g, ' ');
         };
-        if (input && button && diff) {
+        if (input && diff) {
             input.addEventListener('input', update);
-            update();
         }
 
         const open = form.querySelector('[data-count-note-open]');

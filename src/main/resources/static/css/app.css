@@ -6903,7 +6903,9 @@ html.is-offline .voice-hold {
    The delivery count and the Master's approval: shiporder/count.html, count-choose.html, count-left.html,
    count-send.html and receipt-approve.html.
      - .count-tabs: To do and Done (the ship tabs' look, as plain links).
-     - .count-row: one row, phone first: the name and its reference on one line (wrapping), then the input with its
+     - .count-row: one row, the same on phone and desktop: the name, under it the muted reference line (.count-ref,
+       ending with the small link "Read wrong?": .count-fix, whose form opens under the line, smaller than the count's),
+       the label "Arrived" (.count-arrived), then the input with its
        unit and the one button side by side, both at least 48px high (P60), the difference in words (.count-diff,
        hidden while empty) and Add a note. The button takes the rest of the line.
      - .count-finish: Finish and what is left, at the bottom.
@@ -6916,10 +6918,24 @@ html.is-offline .voice-hold {
 .count-tabs { margin-bottom: var(--nn-space-4); }
 .count-empty { color: var(--nn-text-secondary); }
 .count-row { padding-top: var(--nn-space-3); padding-bottom: var(--nn-space-3); scroll-margin-top: 5rem; }
-.count-row-form { display: grid; gap: var(--nn-space-2); }
-.count-row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nn-space-1) var(--nn-space-3); }
+.count-row-form, .count-row-form > form { display: grid; gap: var(--nn-space-2); }
+.count-row-head { display: grid; gap: var(--nn-space-1); }
+.count-done-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--nn-space-3); }
 .count-row-name { font-weight: 600; }
-.count-ref, .count-done-value { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
+.count-ref, .count-arrived { color: var(--nn-text-secondary); font-size: var(--nn-font-sm); }
+.count-arrived { margin-bottom: calc(-1 * var(--nn-space-1)); }
+.count-fix { display: inline; }
+.count-fix > summary { display: inline-block; padding: var(--nn-space-3) 0; margin: calc(-1 * var(--nn-space-3)) 0;
+    cursor: pointer; }
+.count-fix-link { color: var(--bs-link-color); text-decoration: underline; }
+.count-fix > summary::-webkit-details-marker { display: none; }
+.count-fix-form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2);
+    margin: var(--nn-space-2) 0 var(--nn-space-1); }
+.count-fix-form > label { margin: 0; }
+.count-fix-form > .invalid-feedback { flex-basis: 100%; }
+.count-fix-qty { width: 8rem; flex: 0 0 auto; flex-wrap: nowrap; }
+.count-fix-qty .form-control, .count-fix-qty .input-group-text, .count-fix-form > .btn { min-height: var(--nn-touch-target); }
+.count-fix-qty .form-control { text-align: end; min-width: 0; }
 .count-row-controls { display: flex; align-items: stretch; gap: var(--nn-space-2); }
 .count-qty { width: 9.5rem; flex: 0 0 auto; flex-wrap: nowrap; }
 .count-qty .form-control, .count-qty .input-group-text, .count-confirm { min-height: 48px; }
@@ -6967,7 +6983,6 @@ html.is-offline .voice-hold {
     color: var(--nn-text-secondary); }
 @media (min-width: 576px) {
     .count-finish-button, .count-send-button, .approve-button { width: auto; min-width: 14rem; }
-    .count-confirm { flex: 0 0 auto; min-width: 10rem; }
 }
 
 

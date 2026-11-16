@@ -104,7 +104,50 @@ public final class CountSheet {
             return orderLine == null ? null : orderLine.getQuantity();
         }
 
-        /** What one tap confirms ("12 arrived"): the invoice's quantity, or without an invoice the quantity ordered. */
+        /** The quantity ordered as the reference line shows it: in the row's unit when that is exact, else the item's. */
+        public BigDecimal getOrderedShown() {
+            return orderedInRow() ? toRow(getOrdered()) : getOrdered();
+        }
+
+        /** The unit of getOrderedShown. */
+        public String getOrderedUnit() {
+            return orderedInRow() ? unit(toRow(getOrdered())) : item.getUnit();
+        }
+
+        private boolean orderedInRow() {
+            return isPacked() && getOrdered() != null && toItem(toRow(getOrdered())).compareTo(getOrdered()) == 0;
+        }
+
+        /**
+         * The invoice line whose quantity the cook can correct on this row ("Read wrong?"): the one line matched to
+         * it, when its unit converts. Null for a row not on the invoice or made of several lines.
+         */
+        public DeliveryInvoiceLine getInvoiceLine() {
+            return invoiceLines.size() == 1 && invoiceLines.getFirst().getPackFactor() != null
+                    ? invoiceLines.getFirst() : null;
+        }
+
+        /** The invoice line's quantity for one in the row's unit (what the cook says the paper invoice says). */
+        public BigDecimal toInvoice(BigDecimal rowQuantity) {
+            return isPacked() ? rowQuantity
+                    : rowQuantity.divide(getInvoiceLine().getPackFactor(), 3, RoundingMode.HALF_UP);
+        }
+
+        /** A person corrected the invoice's quantity: "(corrected, photo read 12)". */
+        public boolean isCorrected() {
+            return invoiceLines.stream().anyMatch(DeliveryInvoiceLine::isQuantityCorrected);
+        }
+
+        /** What the photo read where a person corrected it, in the row's unit; null when it read no quantity. */
+        public BigDecimal getPhotoRead() {
+            return sum(invoiceLines.stream().map(line -> {
+                BigDecimal read = line.isQuantityCorrected() ? line.getReadQuantity() : line.getQuantity();
+                return read == null || isPacked() ? read
+                        : line.getPackFactor() == null ? null : read.multiply(line.getPackFactor());
+            }).toList());
+        }
+
+        /** What "Arrived" is prefilled with: the invoice's quantity, or without an invoice the quantity ordered. */
         public BigDecimal getReference() {
             return switch (source) {
                 case INVOICE -> invoiced;
@@ -199,11 +242,6 @@ public final class CountSheet {
             }
             BigDecimal value = quantity.stripTrailingZeros();
             return (value.scale() < 0 ? value.setScale(0) : value).toPlainString();
-        }
-
-        /** The unit for one ("bag"), for js/count.js. */
-        public String getUnitOne() {
-            return unit(BigDecimal.ONE);
         }
 
         /** The anchor of the row on the page. */
@@ -350,6 +388,11 @@ public final class CountSheet {
     /** The rows not as the invoice (or the order) says, in the sheet's order. */
     public List<Row> getDifferent() {
         return rows.stream().filter(Row::isDifferent).toList();
+    }
+
+    /** The rows whose invoice quantity a person corrected, in the sheet's order. */
+    public List<Row> getCorrected() {
+        return rows.stream().filter(Row::isCorrected).toList();
     }
 
     /** The rows counted as the invoice (or the order) says. */

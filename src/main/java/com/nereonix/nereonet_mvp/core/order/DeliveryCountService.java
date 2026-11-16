@@ -120,6 +120,40 @@ public class DeliveryCountService {
     }
 
     /**
+     * The cook corrects what the photo read of a row's invoice line (CountSheet.Row.getInvoiceLine): what the paper
+     * invoice says, in the row's unit. The line's quantity is replaced and what the photo read is kept
+     * (DeliveryInvoiceLine.correctQuantity, as the office's correction); the count of the row stays, so its difference
+     * is against the new number. Recorded as "Invoice quantity corrected on board" with the old and the new value.
+     * Refusals as saveRow; IllegalArgumentException for a row without one invoice line to correct or a quantity that
+     * is not one.
+     */
+    @Transactional
+    public Result correctInvoice(User cook, Long orderId, String key, BigDecimal rowQuantity) {
+        ShipOrder order = lockForCook(cook, orderId);
+        Result refused = refuseCount(order);
+        if (refused != null) {
+            return refused;
+        }
+        CountSheet.Row row = matchService.sheet(order).row(key == null ? "" : key);
+        DeliveryInvoiceLine line = row == null ? null : row.getInvoiceLine();
+        if (line == null) {
+            throw new IllegalArgumentException("Not a row with an invoice line to correct: " + key);
+        }
+        if (!OrderReceiptService.isValidReceivedQuantity(rowQuantity)) {
+            throw new IllegalArgumentException("An invoice quantity is zero or more");
+        }
+        String before = line.getQuantity() == null ? "not read" : line.getQuantity().stripTrailingZeros().toPlainString();
+        BigDecimal quantity = row.toInvoice(rowQuantity);
+        if (line.correctQuantity(quantity)) {
+            auditService.record("ORDER_INVOICE_QUANTITY_CORRECTED", order.getShip(), "Order #" + order.getId()
+                    + ", page " + line.getPage() + (line.getLineNumber() == null ? "" : " line " + line.getLineNumber())
+                    + " \"" + line.getDescription() + "\": quantity " + before + " -> "
+                    + quantity.stripTrailingZeros().toPlainString(), cook);
+        }
+        return Result.DONE;
+    }
+
+    /**
      * Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
      * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
      * to the office). The product chosen is learned for the supplier. Refusals as saveRow; IllegalArgumentException for

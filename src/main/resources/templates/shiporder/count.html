@@ -4,13 +4,16 @@
 <!-- "Count what arrived", the Chief cook's, phone first. The rows (core/order/CountSheet) by category: each
      order line not removed by the office, and each invoice line matched to a vessel item not on the order. Two tabs,
      links that work without JavaScript: To do (the rows not counted; a row leaves it when confirmed, so the list only
-     gets shorter) and Done (?tab=done: what was counted, with Change, ?change=key). A To do row has only its name with
-     the reference on the same line ("Invoice: 12 bags"), one empty input with the unit, and one button ("12 arrived";
-     shiporder/parts :: countRow). At the end, only when there are any, "On the invoice, not found on the order": one
-     row per invoice line nothing was found for, with Choose the product. Finish at the bottom, with what is left.
+     gets shorter) and Done (?tab=done: the name, "Arrived 23 kg", the difference in words, with Change, ?change=key,
+     which opens the same row again). A row (shiporder/parts :: countRow) has its name, under it the reference
+     ("Ordered 10 bags · Invoice 12 bags", with "Read wrong?" to correct what the photo read), the input "Arrived"
+     prefilled with the reference, and Confirm. At the end, only when there are any, "On the invoice, not found on the
+     order": one row per invoice line nothing was found for, with Choose the product. Finish at the bottom, with what
+     is left.
      Nothing goes into the store here. A count sent back by the Master shows the Master's note on top.
      English only. Model: order, sheet (CountSheet), done (the Done tab), groups (CountSheet.Group of the tab), change
-     (the row open in Done), openNote, rowError (DeliveryCountController.RowError), noteMax, invoicePages. -->
+     (the row open in Done), openNote, rowError and fixError (DeliveryCountController.RowError: a count refused, a
+     correction of the invoice refused), noteMax, invoicePages. -->
 <main class="count-page" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})})}">
@@ -47,7 +50,7 @@
             </div>
             <ul class="list-group list-group-flush">
                 <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}">
-                    <form th:replace="~{shiporder/parts :: countRow(${r}, null, ${rowError}, ${openNote}, 'todo', ${baseUrl + '/row'}, ${baseUrl}, null)}"></form>
+                    <form th:replace="~{shiporder/parts :: countRow(${r}, null, ${rowError}, ${openNote}, 'todo', ${baseUrl + '/row'}, ${baseUrl}, null, ${baseUrl + '/invoice'})}"></form>
                 </li>
             </ul>
         </section>
@@ -61,7 +64,7 @@
                     <div class="count-row-head">
                         <span class="count-row-name" th:id="${'pickName-' + l.id}" th:text="${l.description}">BASMATI 10KG</span>
                         <span class="count-ref" th:if="${l.quantity != null}"
-                              th:text="#{order.count.ref.invoice(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.unit} ?: '')}">Invoice: 12 BAG</span>
+                              th:text="#{order.count.ref.invoice(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.unit} ?: '')}">Invoice 12 BAG</span>
                     </div>
                     <a class="btn btn-outline-primary count-choose" th:href="@{${baseUrl + '/choose/' + l.id}}"
                        th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.picks.choose}">Choose the product</a>
@@ -81,17 +84,20 @@
                 <li th:each="r : ${g.rows}" class="list-group-item count-row" th:id="${r.anchor}">
                     <!-- th:if on a wrapper: th:replace runs before th:if on the same element. -->
                     <th:block th:if="${change == r.key}">
-                        <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.counted)}, ${rowError}, ${openNote}, 'done', ${baseUrl + '/row'}, ${baseUrl + '?tab=done&change=' + r.key}, null)}"></form>
+                        <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.counted)}, ${rowError}, ${openNote}, 'done', ${baseUrl + '/row'}, ${baseUrl + '?tab=done&change=' + r.key}, null, ${baseUrl + '/invoice'})}"></form>
                     </th:block>
-                    <th:block th:unless="${change == r.key}">
-                        <div class="count-row-head">
+                    <div th:unless="${change == r.key}" class="count-row-form">
+                        <div class="count-done-head">
                             <span class="count-row-name" th:id="${'name-' + r.key}" th:text="${r.name}">Tomatoes</span>
-                            <span class="count-done-value num" th:text="${r.text(r.counted) + ' ' + r.unit(r.counted)}">23 kg</span>
+                            <a class="count-change" th:href="@{${baseUrl + '?tab=done&change=' + r.key + '#' + r.anchor}}"
+                               th:attr="aria-describedby=${'name-' + r.key}" th:text="#{order.count.change}">Change</a>
                         </div>
+                        <p class="mb-0" th:text="#{order.count.done.arrived(${r.text(r.counted)}, ${r.unit(r.counted)})}">Arrived 23 kg</p>
+                        <p class="count-diff"><th:block th:replace="~{shiporder/parts :: countDiff(${r}, ${r.counted})}"></th:block></p>
+                        <!-- A corrected invoice number is never silent. -->
+                        <th:block th:if="${r.corrected}"><div th:replace="~{shiporder/parts :: countRef(${r}, null, null)}"></div></th:block>
                         <q th:if="${r.note != null}" class="d-block small count-row-note" th:text="${r.note}">2 kg rotten</q>
-                        <a class="count-change" th:href="@{${baseUrl + '?tab=done&change=' + r.key + '#' + r.anchor}}"
-                           th:attr="aria-describedby=${'name-' + r.key}" th:text="#{order.count.change}">Change</a>
-                    </th:block>
+                    </div>
                 </li>
             </ul>
         </section>
@@ -115,8 +121,8 @@
 
     <!-- Finish: what is left, saved as he goes. -->
     <section class="count-finish" id="countFinish" aria-labelledby="countFinishText">
-        <p id="countFinishText" class="mb-2" th:text="#{order.count.finish.left(${sheet.toDoTotal})}">6 still to do. Your count
-            is saved as you go.</p>
+        <p id="countFinishText" class="mb-2" th:text="#{order.count.finish.left(${sheet.toDoTotal})}">6 still to do. Each item
+            is saved when you confirm it.</p>
         <a class="btn btn-primary count-finish-button" th:href="@{${baseUrl + '/send'}}" th:text="#{order.count.finish}">Finish</a>
     </section>
 

@@ -322,10 +322,9 @@ public class InvoiceComparisonService {
         }
         DeliveryInvoiceLine line = invoiceLine(comparison, invoiceLineId);
         List<String> changes = new ArrayList<>();
-        if (correction.quantity() != null && !same(correction.quantity(), line.getQuantity())) {
-            changes.add("quantity " + text(line.getQuantity()) + " -> " + text(correction.quantity()));
-            line.setQuantity(correction.quantity());
-            line.setQuantityNotRead(false);
+        String quantityBefore = text(line.getQuantity());
+        if (correction.quantity() != null && line.correctQuantity(correction.quantity())) {
+            changes.add("quantity " + quantityBefore + " -> " + text(correction.quantity()));
         }
         if (correction.unitPrice() != null && !same(correction.unitPrice(), line.getUnitPrice())) {
             changes.add("unit price " + text(line.getUnitPrice()) + " -> " + text(correction.unitPrice()));

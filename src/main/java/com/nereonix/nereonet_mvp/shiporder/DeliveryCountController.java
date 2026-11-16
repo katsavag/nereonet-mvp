@@ -31,12 +31,13 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
  * against the invoice read from its photos, then sends the count to the Master, who approves it
  * (OrderReceiptController). Nothing here touches the store. SecurityConfig gives /ship/orders/{id}/count/** to
  * CHIEF_COOK only; DeliveryCountService refuses anyone but the ship's enabled Chief cook as well; another ship's order
- * is a 404. English only, as every crew page. Everything works without JavaScript (js/count.js only names the button
- * after the number typed, says the difference and opens the note in place).
+ * is a 404. English only, as every crew page. Everything works without JavaScript (js/count.js only selects the number
+ * on focus, says the difference as it is typed and opens the note in place).
  * <pre>
  *   GET  /ship/orders/{id}/count                   To do (?tab=done: Done; ?change=o12: that row's input in Done;
  *                                                  ?note=o12: that row's note open); once sent, what was sent
  *   POST /ship/orders/{id}/count/row               one row confirmed: key, quantity (empty: the reference), note
+ *   POST /ship/orders/{id}/count/invoice           Read wrong? what the paper invoice says of one row: key, quantity
  *   GET  /ship/orders/{id}/count/choose/{lineId}   Choose the product of an invoice line (?q= narrows the list)
  *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
  *   GET  /ship/orders/{id}/count/send              Finish: the rows still to do (?anyway: on regardless), or the
@@ -88,8 +89,8 @@ public class DeliveryCountController {
     }
 
     /**
-     * One row confirmed: the number typed (in the row's unit) or, with nothing typed, the row's reference ("12
-     * arrived"); the note optional. Back to the tab, at the next row still to do; a refused number comes back with
+     * One row confirmed: the number in its input (in the row's unit; prefilled with the row's reference, which an empty
+     * one confirms too); the note optional. Back to the tab, at the next row still to do; a refused number comes back with
      * its error under the row.
      */
     @PostMapping(BASE + "/row")
@@ -139,7 +140,56 @@ public class DeliveryCountController {
                 : next != null ? "#" + next : "#countFinish");
     }
 
-    @GetMapping({BASE + "/row"})
+    /**
+     * Read wrong? The cook says what the paper invoice says of one row (in the row's unit; a line not read: Enter
+     * it). Back to the same row, on the tab it is on; a refused number comes back with its error in the open form.
+     */
+    @PostMapping(BASE + "/invoice")
+    public String correctInvoice(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                                 @RequestParam(required = false) String key,
+                                 @RequestParam(required = false) String quantity,
+                                 @RequestParam(required = false) String change, Model model,
+                                 RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = prepare(email, id);
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return notCountable(order, redirectAttributes);
+        }
+        if (!order.getDeliveryCountStatus().editable()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.alreadySent");
+            return "redirect:/ship/orders/" + id + "/count";
+        }
+        CountSheet sheet = matchService.sheet(order);
+        CountSheet.Row row = sheet.row(key == null ? "" : key);
+        if (row == null || row.getInvoiceLine() == null) {
+            // A row gone meanwhile (the invoice read again): the count as it is now.
+            return "redirect:/ship/orders/" + id + "/count";
+        }
+        // A row already counted is on Done; its input stays open when it was (Change).
+        boolean done = row.hasCount();
+        String open = done && change != null ? key : null;
+        QuantityRules.Check check = quantity == null || quantity.isBlank()
+                ? new QuantityRules.Check(null, "order.count.fix.required", null)
+                : CountQuantities.rule(quantityRules, row).check(quantity, row.getInvoiced());
+        if (check.ok() && !OrderReceiptService.isValidReceivedQuantity(row.toInvoice(check.value()))) {
+            check = new QuantityRules.Check(null, "order.count.fix.required", null);
+        }
+        if (!check.ok()) {
+            model.addAttribute("fixError", new RowError(key, quantity, pageService.message(check.code(), check.args())));
+            return show(order, sheet, done, open, null, null, model);
+        }
+        DeliveryCountService.Result result = countService.correctInvoice(pageService.cook(email), id, key, check.value());
+        if (result != DeliveryCountService.Result.DONE) {
+            return refused(order, result, redirectAttributes);
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "order.count.fix.saved");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {row.getName(), plain(check.value()),
+                row.unit(check.value())});
+        return "redirect:/ship/orders/" + id + "/count" + (done ? "?tab=done" + (open != null ? "&change=" + key : "") : "")
+                + "#" + row.getAnchor();
+    }
+
+    @GetMapping({BASE + "/row", BASE + "/invoice"})
     public String toCount(@PathVariable Long id) {
         return "redirect:/ship/orders/" + id + "/count";
     }

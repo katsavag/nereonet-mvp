@@ -13,18 +13,27 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   is found by its name (company forms dropped); an unknown one is learned under its name as read.
 - **Units** (`InvoiceMatcher.conversion`): the same unit counts in the item's; another unit of the same measure
   (g for kg) or a pack whose size the description gives ("BASMATI RICE 10KG", BAG, for kg: 10) counts in the
-  invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags") and stores the item's (110 kg). Anything that
+  invoice's unit ("Basmati rice, 10 kg bag", "Invoice 12 bags") and stores the item's (110 kg). Anything that
   cannot be worked out counts in the item's unit. A factor worked out (not learned) is marked to review.
 - **Data model** (nullable columns, Hibernate adds them): `delivery_invoice_line` match, order line, item, pack
   factor and label, conversion to review, counted, note, approved; `ship_order_line` approved, invoiced quantity,
   invoice line, match to review, conversion to review, added on receipt; new `supplier_item_name` (supplier or
   supplier name, description key, item, pack factor, who, when).
 - **The count** (`shiporder/DeliveryCountController`, `core/order/CountSheet`, `shiporder/count.html`,
-  `js/count.js`, phone first): **To do** and **Done**. One row per line, by category: the name, the reference
-  ("Invoice: 12 bags", "Ordered: 30 pcs", "Invoice: not read", "Not on the invoice"), one empty input with the unit
-  and one button ("12 arrived" until a number is typed, then "Confirm 11"; "Confirm" with no reference), the
-  difference in words and **Add a note**. Each row is saved on its own (`POST .../count/row`, P60's receipt rule
-  in the row's unit) and the page goes to the next row to do; Done lists what was counted with **Change**. Lines
+  `js/count.js`, phone first): **To do** and **Done**. One row per line, by category: the name, under it the reference
+  ("Ordered 10 bags · Invoice 12 bags", "Ordered 30 pcs", "Invoice: not read", "Not on the invoice"), the input
+  **Arrived** with the unit, prefilled with the reference (the invoice's quantity, or the quantity ordered without an
+  invoice; empty when there is none) and one button, **Confirm**; the difference in words ("2 more than the invoice",
+  "3 fewer than the invoice", "Did not arrive") and **Add a note**. Each row is saved on its own
+  (`POST .../count/row`, P60's receipt rule in the row's unit) and the page goes to the next row to do; Done lists
+  what was counted ("Arrived 12 bags", the difference) with **Change**, which opens the same row again. **Read
+  wrong?** at the end of the reference (a `details`, no JavaScript needed; "Enter it" for a quantity not read; only
+  a row with one invoice line) opens "The paper invoice says" with **Correct invoice** (`POST .../count/invoice`,
+  `DeliveryCountService.correctInvoice`): the invoice line's quantity is replaced and what the photo read stays
+  (`DeliveryInvoiceLine.correctQuantity`, shared with the office's correction; `quantity_corrected_at`), recorded as
+  "Invoice quantity corrected on board" with the old and the new value. The reference then reads "Invoice 21 bottles
+  (corrected, photo read 12)", also on Done, on the Master's approval ("Invoice numbers corrected by the Chief
+  cook") and beside the office's flags; a row already confirmed keeps its count, compared with the new number. Lines
   on the invoice not found: "On the invoice, not found on the order", **Choose the product**
   (`.../count/choose/{lineId}`: the order's lines not matched, the vessel's other items, a search, or **Not
   ordered**); a choice is learned for the supplier ("Invoice line matched by hand" in the audit log). **Finish**:

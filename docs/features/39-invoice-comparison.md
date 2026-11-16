@@ -52,7 +52,8 @@ with each difference. `core/order/InvoiceComparison` (pure), `InvoiceComparisonS
   the page's checks (and the invoice's). **Correct this line** (while not matched): quantity, unit price, amount,
   description, an empty field keeps its value (a quantity 0 or more with at most 3 decimals, a unit price with 4, an
   amount with 2, up to 1000000; "1,5" and "1.5" both read). The values as read stay (`readQuantity`, ...,
-  `descriptionRead`), with who changed it and when ("As read: ...", "Changed by"). On phones the photo is above the
+  `descriptionRead`), with who changed it and when ("As read: ...", "Changed by"); a quantity a person corrected
+  (the office here, or the Chief cook on the count, [38](38-invoice-guided-count.md)) says "(corrected, photo read 12)" beside the flags. On phones the photo is above the
   lines; side by side from 992 px.
 - **Overview** ([4](04-overview.md)): "Order #12 · invoice to match", kind "Invoice to match" in the Orders category
   (`AttentionType.ORDER_INVOICE`), "3 lines differ" or "All lines agree: confirm", with **Compare**; most

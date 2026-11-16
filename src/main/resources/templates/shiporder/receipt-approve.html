@@ -4,6 +4,7 @@
 <!-- "Approve the delivery": the Master's one short page when the Chief cook's count waits (it takes the
      place of the receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
      cook's note, and Change: that one row's input, shiporder/parts :: countRow; a changed row says "Changed from 23"),
+     the invoice numbers the cook corrected ("Invoice 21 bottles (corrected, photo read 12)"),
      Show all (every row, read only, Change per row) and the invoice's photos, the cook's note for the Master. Approve
      (large: the receipt's confirm in one step; the time received is when the cook sent the count, Change date opens
      the receipt's date and time field) and Send back to cook (a note required). No prices, no invoice checks, no uncertain
@@ -37,7 +38,7 @@
         <ul class="list-group count-different-list">
             <li th:each="r : ${sheet.different}" class="list-group-item count-different-line" th:id="${all ? null : r.anchor}">
                 <th:block th:if="${!all and change == r.key}">
-                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, null)}"></form>
+                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, null, null)}"></form>
                 </th:block>
                 <th:block th:unless="${!all and change == r.key}">
                     <th:block th:replace="~{::approveLine(${r}, '')}"></th:block>
@@ -51,6 +52,17 @@
     </section>
     <p th:if="${sheet.differentTotal == 0}" class="approve-none"
        th:text="${sheet.invoiceRead} ? #{order.approve.none} : #{order.approve.noneOrdered}">Everything arrived as invoiced.</p>
+
+    <!-- The invoice numbers the Chief cook corrected (the photo read them wrong), also where the count then agrees. -->
+    <section th:unless="${sheet.corrected.isEmpty()}" class="count-different" aria-labelledby="approveCorrectedTitle">
+        <h2 class="h6 fw-semibold" id="approveCorrectedTitle" th:text="#{order.approve.corrected}">Invoice numbers corrected by the Chief cook</h2>
+        <ul class="list-group">
+            <li th:each="r : ${sheet.corrected}" class="list-group-item count-different-line">
+                <span class="count-row-name" th:text="${r.name}">Olive oil, 5 lt can</span>
+                <div th:replace="~{shiporder/parts :: countRef(${r}, null, null)}"></div>
+            </li>
+        </ul>
+    </section>
 
     <p class="approve-links">
         <a th:href="@{${baseUrl + '?all#approveAllTitle'}}" th:text="#{order.approve.showAll(${sheet.rows.size()})}">Show all 40</a>
@@ -66,7 +78,7 @@
         <ul class="list-group">
             <li th:each="r : ${sheet.rows}" class="list-group-item count-different-line" th:id="${r.anchor}">
                 <th:block th:if="${change == r.key}">
-                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, 'all')}"></form>
+                    <form th:replace="~{shiporder/parts :: countRow(${r}, ${r.text(r.result)}, ${rowError}, null, 'todo', ${baseUrl + '/change'}, null, 'all', null)}"></form>
                 </th:block>
                 <th:block th:unless="${change == r.key}">
                     <th:block th:replace="~{::approveLine(${r}, 'all&')}"></th:block>

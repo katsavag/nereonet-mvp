@@ -68,8 +68,8 @@ import com.nereonix.nereonet_mvp.core.user.UserService;
 
 /**
  * P61 and P63, the Chief cook counts what arrived and the Master approves it. Without a read invoice the order is the
- * reference ("Ordered: 30 pcs", "30 arrived"); with one, its lines are matched to the order and guide the count in the
- * invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags"), the lines nothing was found for are chosen by the
+ * reference ("Ordered 30 pcs", Arrived prefilled with 30); with one, its lines are matched to the order and guide the count in the
+ * invoice's unit ("Basmati rice, 10 kg bag · Invoice 12 bags"), the lines nothing was found for are chosen by the
  * cook ("Choose the product", learned for the supplier), the Master approves the differences in one step, and the
  * receipt keeps for the office what the invoice said and the marks. Who may do what. Signed in as the office unless a
  * request says otherwise.
@@ -124,13 +124,13 @@ class DeliveryCountFlowTest {
 
     @Test
     void withoutAnInvoiceTheCookCountsAgainstTheOrderAndTheMasterApprovesIt() throws Exception {
-        // The count: To do and Done, one row per line with the quantity ordered, one empty input and one button.
+        // The count: To do and Done, one row per line with the quantity ordered, the input prefilled with it and one button.
         String page = as(cook, get("/ship/orders/{id}/count", id));
-        assertThat(page).contains("Count what arrived", "To do", "Done", "3 still to do. Your count is saved as you go.",
+        assertThat(page).contains("Count what arrived", "To do", "Done", "3 still to do. Each item is saved when you confirm it.",
                         "Finish", "name=\"quantity\"")
-                .containsSubsequence("Provisions", "Eggs", "Ordered: 30 pcs", "30 arrived", "Tomatoes", "Ordered: 25 kg",
-                        "25 arrived", "Personal items", "Shower gel", "Ordered: 6 pcs", "6 arrived")
-                .doesNotContain("value=\"30\"", "Save draft", "Count by voice");
+                .containsSubsequence("Provisions", "Eggs", "Ordered 30 pcs", "Arrived", "value=\"30\"", ">Confirm<", "Tomatoes",
+                        "Ordered 25 kg", "value=\"25\"", "Personal items", "Shower gel", "Ordered 6 pcs", "value=\"6\"")
+                .doesNotContain("30 arrived", "Read wrong?", "Save draft", "Count by voice");
 
         // One tap: the eggs as ordered; back at the next row still to do.
         mockMvc.perform(row("o" + eggLine.getId(), "", ""))
@@ -150,12 +150,13 @@ class DeliveryCountFlowTest {
 
         // To do only gets shorter; Done lists what was counted, with Change.
         assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Shower gel", "1 still to do")
-                .doesNotContain("Ordered: 30 pcs");
+                .doesNotContain("Ordered 30 pcs");
         assertThat(as(cook, get("/ship/orders/{id}/count", id).param("tab", "done")))
-                .containsSubsequence("Eggs", "30 pcs", "Change", "Tomatoes", "23 kg", "2 kg rotten, sent back", "Change")
+                .containsSubsequence("Eggs", "Change", "Arrived 30 pcs", "Tomatoes", "Change", "Arrived 23 kg",
+                        "2 fewer than ordered", "2 kg rotten, sent back")
                 .doesNotContain("Shower gel");
         assertThat(as(cook, get("/ship/orders/{id}/count", id).param("tab", "done")
-                .param("change", "o" + tomatoLine.getId()))).contains("value=\"23\"", "Confirm 23");
+                .param("change", "o" + tomatoLine.getId()))).contains("value=\"23\"", ">Confirm<");
 
         // Finish with a row still to do: it says so.
         assertThat(as(cook, get("/ship/orders/{id}/count/send", id))).contains("1 product is not counted yet",
@@ -303,16 +304,16 @@ class DeliveryCountFlowTest {
         DeliveryInvoiceLine drink = invoiceLine(invoice, "SPARKLING DRINK XYZ", "PCS", "24");
         DeliveryInvoiceLine napkins = invoiceLine(invoice, "PAPER NAPKINS", "PCS", "10");
 
-        // The count: the invoice's quantity per row, in its unit; never a price, never the ordered quantity.
+        // The count: the invoice's quantity per row, in its unit, with what was ordered beside it; never a price.
         String page = as(cook, get("/ship/orders/{id}/count", id));
-        assertThat(page).containsSubsequence("Basmati rice, 10 kg bag", "Invoice: 12 bags", "bags", "12 arrived",
-                        "Eggs", "Invoice: 30 pcs", "30 arrived", "Feta cheese", "Invoice: 10 kg", "10 arrived",
-                        "Olive oil, 5 lt can", "Invoice: 4 cans", "4 arrived", "Tomatoes", "Invoice: 25 kg",
+        assertThat(page).containsSubsequence("Basmati rice, 10 kg bag", "Invoice 12 bags", "Read wrong?", "value=\"12\"",
+                        "Eggs", "Invoice 30 pcs", "value=\"30\"", "Feta cheese", "Invoice 10 kg", "value=\"10\"",
+                        "Olive oil, 5 lt can", "Invoice 4 cans", "value=\"4\"", "Tomatoes", "Invoice 25 kg",
                         "Shower gel", "Not on the invoice", ">Confirm<",
                         "On the invoice, not found on the order", "SPARKLING DRINK XYZ", "Choose the product",
                         "PAPER NAPKINS", "Choose the product")
                 .contains("8 still to do")
-                .doesNotContain("Ordered:", "120", "1.85", "price");
+                .doesNotContain("120", "1.85", "price");
         assertThat(eggs.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getMatch()).isEqualTo(InvoiceMatch.MATCHED);
         assertThat(rice.getOrderLine().getId()).isEqualTo(riceLine.getId());
@@ -365,7 +366,7 @@ class DeliveryCountFlowTest {
         });
         assertThat(audit("ORDER_INVOICE_LINE_MATCHED")).extracting(AuditEntry::getDetails)
                 .containsExactly("Order #" + id + ": \"SPARKLING DRINK XYZ\" is Lemonade");
-        assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Lemonade", "Invoice: 24 pcs", "24 arrived");
+        assertThat(as(cook, get("/ship/orders/{id}/count", id))).contains("Lemonade", "Invoice 24 pcs", "value=\"24\"");
         mockMvc.perform(row("i" + drink.getId(), "", ""));
         // Not ordered: never a row, the office sees it.
         mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, napkins.getId()).param("choice", "none")

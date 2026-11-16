@@ -35,7 +35,7 @@
                 <input class="form-check-input" type="radio" name="choice" th:id="${'o' + l.id}" th:value="${'o' + l.id}">
                 <label class="form-check-label" th:for="${'o' + l.id}">
                     <span th:text="${l.item.name}">Basmati rice</span>
-                    <span class="text-body-secondary small" th:text="#{order.count.ref.ordered(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.item.unit})}">Ordered: 120 kg</span>
+                    <span class="text-body-secondary small" th:text="#{order.count.ref.ordered(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.item.unit})}">Ordered 120 kg</span>
                 </label>
             </div>
         </fieldset>
