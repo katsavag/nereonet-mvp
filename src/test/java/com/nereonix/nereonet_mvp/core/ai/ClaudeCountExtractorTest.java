@@ -71,7 +71,7 @@ class ClaudeCountExtractorTest {
         });
         server.start();
         settings = new ClaudeSettings("http://127.0.0.1:" + server.getAddress().getPort() + "/", KEY, MODEL,
-                Duration.ofSeconds(2), 0, false);
+                Duration.ofSeconds(2), "", Duration.ZERO, 0, false);
         extractor = new ClaudeCountExtractor(settings);
         answer = message("{\"counts\": [{\"item_id\": 11, \"quantity\": 5, \"words\": \"five tomatoes\", "
                 + "\"confidence\": 0.9}, {\"item_id\": 77, \"quantity\": 3, \"words\": \"three herrings\", "
@@ -159,7 +159,7 @@ class ClaudeCountExtractorTest {
 
     @Test
     void theDefaultModelIsHaiku() {
-        ClaudeSettings defaults = new ClaudeSettings("", "", "", Duration.ZERO, 1, false);
+        ClaudeSettings defaults = new ClaudeSettings("", "", "", Duration.ZERO, "", Duration.ZERO, 1, false);
         assertThat(defaults.model()).isEqualTo("claude-haiku-5-5");
         assertThat(defaults.baseUrl()).isEqualTo("https://api.anthropic.com");
         assertThat(defaults.configured()).isFalse();

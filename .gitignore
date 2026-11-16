@@ -37,6 +37,3 @@ build/
 
 ### Local secrets (P45: VESSELAPI_API_KEY) ###
 .env
-
-### Local OCR models (P67: det.onnx, rec.onnx, rec.yml) ###
-/models/

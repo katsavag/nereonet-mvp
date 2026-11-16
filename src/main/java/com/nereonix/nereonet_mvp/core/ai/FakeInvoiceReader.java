@@ -29,10 +29,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads instead of the local OCR when app.invoice.fake is true: dev screens without the models, and the tests. Whatever
+ * Reads instead of Claude when app.invoice.fake is true: dev screens without a key, and the tests. Whatever
  * the photo shows, page 1 is page 1 of the synthetic sample invoice A-4471 (samples/invoice/, app.invoice.sample-dir;
- * read from the working directory) and page 2 its page 2: their lines and text are written out as the OCR writes them
- * (a markdown table, Greek number format 1.234,56) and go through the same InvoicePageParser as the local OCR's.
+ * read from the working directory) and page 2 its page 2: their lines and text are written out as markdown
+ * (a table, Greek number format 1.234,56) and read back by InvoicePageParser.
  * Page 3 and later have no table. Every line's confidence is 0.97.
  * Tests change that with fail, failPage, noTable, dropLine, lowConfidence, change and orderReference; reset undoes it.
  */
@@ -85,7 +85,7 @@ public class FakeInvoiceReader implements InvoiceReader {
         return orderReference != null ? reading.withOrderReference(orderReference) : reading;
     }
 
-    /** The markdown the fake "OCR" gives for this page. */
+    /** This page of the sample as markdown. */
     public synchronized String markdown(int pageNumber) {
         JsonNode invoice = sample();
         StringBuilder md = new StringBuilder();
@@ -168,17 +168,17 @@ public class FakeInvoiceReader implements InvoiceReader {
         noTable.add(page);
     }
 
-    /** This line of the sample is not in the OCR output (a fold in the paper). */
+    /** This line of the sample is not read (a fold in the paper). */
     public synchronized void dropLine(int no) {
         dropped.add(no);
     }
 
-    /** This line's block has a low confidence (0.5). */
+    /** This line has a low confidence (0.5). */
     public synchronized void lowConfidence(int no) {
         low.add(no);
     }
 
-    /** This line's quantity, unit price and amount as the OCR writes them (null: unchanged; "" : empty cell). */
+    /** This line's quantity, unit price and amount as read (null: unchanged; "" : empty cell). */
     public synchronized void change(int no, String quantity, String unitPrice, String amount) {
         changes.put(no, new String[] {quantity, unitPrice, amount});
     }

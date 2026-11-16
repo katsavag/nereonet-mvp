@@ -8,7 +8,7 @@ RightShip (P40, `RIGHTSHIP_BASE_URL`, see [25](features/25-vetting.md)) and Vess
 while `VESSELAPI_API_KEY` is set, and only when a user presses **Look up by IMO** or **Refresh from VesselAPI**, see
 29), and for counting the store by voice AssemblyAI (P57, `https://api.assemblyai.com`, the recording) and Claude
 (P69, `https://api.anthropic.com`, the text and the vessel's provisions), only while both `ASSEMBLYAI_API_KEY` and
-`ANTHROPIC_API_KEY` are set, and only when the Chief cook sends a recording (see [34](features/34-voice-count.md)). The photographed delivery invoice is read on the server (P67, nothing is sent, see [37](features/37-invoice-photo.md)). (The VesselFinder map of the ship
+`ANTHROPIC_API_KEY` are set, and only when the Chief cook sends a recording (see [34](features/34-voice-count.md)). The photographed delivery invoice is read by Claude too (P70, `https://api.anthropic.com`, only the page's image or PDF), only while `ANTHROPIC_API_KEY` is set, and only when the ship presses **Done: start counting** or **Read again** (see [37](features/37-invoice-photo.md)). (The VesselFinder map of the ship
 page is a separate experiment, `SHIP_MAP_ENABLED`.)
 
 - `vendor/bootstrap/`: Bootstrap 5.3.8 (`bootstrap.min.css`, `bootstrap.bundle.min.js`), unchanged from the

@@ -6,9 +6,9 @@ package com.nereonix.nereonet_mvp.core.ai;
  */
 public class InvoiceReadingException extends RuntimeException {
 
-    /** TIMEOUT: the reader took too long (FakeInvoiceReader can say so). PROVIDER_ERROR: the OCR failed or the page
-     *  cannot be decoded. NOT_CONFIGURED: the OCR models are missing. A page without a table is not a failure: it is
-     *  a PageReading without lines. */
+    /** TIMEOUT: Claude took too long. PROVIDER_ERROR: Claude failed or refused, or the page cannot be sent (HEIC).
+     *  NOT_CONFIGURED: no Anthropic key. A page without a table is not a failure: it is a PageReading without
+     *  lines. */
     public enum Reason {
         TIMEOUT, PROVIDER_ERROR, NOT_CONFIGURED
     }

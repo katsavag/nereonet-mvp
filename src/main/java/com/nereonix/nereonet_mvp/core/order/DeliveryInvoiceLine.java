@@ -22,7 +22,7 @@ import lombok.Setter;
 /**
  * One line of a delivery invoice as read. quantity, unitPrice and amount are the values after the checks
  * (InvoiceChecks: a recovered one is flagged corrected); readQuantity, readUnitPrice and readAmount what the page
- * gave (null: unreadable), rawText the row as the OCR wrote it. A line whose quantity was not read (quantityNotRead)
+ * gave (null: unreadable), rawText the row as the reader gave it. A line whose quantity was not read (quantityNotRead)
  * has no quantity: the count shows "Invoice: not read".
  * The line's match to the order (InvoiceMatchService): the order line or, for an item of the vessel not on the
  * order, the item; how the invoice's unit converts to the item's (packFactor: one invoice unit is this many of the

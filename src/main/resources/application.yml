@@ -148,28 +148,22 @@ app:
   claude:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     api-key: ${ANTHROPIC_API_KEY:}
-    # Claude Haiku 5.5.
+    # Counting by voice: Claude Haiku 5.5.
     model: ${CLAUDE_MODEL:claude-haiku-5-5}
     timeout: ${CLAUDE_TIMEOUT:30s}
+    # Reading a photographed invoice page (core/ai/ClaudeInvoiceReader): Claude Opus 5.5, one call per page.
+    invoice-model: ${CLAUDE_INVOICE_MODEL:claude-opus-5-5}
+    invoice-timeout: ${CLAUDE_INVOICE_TIMEOUT:120s}
     # Tries again after a 429, a 5xx, no connection or a timeout, this many times.
     max-retries: ${CLAUDE_MAX_RETRIES:1}
     fake: ${CLAUDE_FAKE:false}
-  # P67: the local OCR that reads the photographed delivery invoice on the server (core/ai/LocalInvoiceReader):
-  # PaddleOCR models in ONNX, nothing leaves the server, no key. The models are files, not in the repository
-  # (docs/configuration.md says where to get them): det.onnx, rec.onnx and rec.yml (or dict.txt) in model-dir.
-  ocr:
-    model-dir: ${OCR_MODEL_DIR:models/ocr}
-    # The page is scaled down to this many pixels on its long side to find the text.
-    max-side: ${OCR_MAX_SIDE:1600}
-    # CPU threads one reading uses.
-    threads: ${OCR_THREADS:2}
-  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks), read by the local OCR
-  # above. Off while the models are missing (and not fake): the photos are still kept as the receipt's files, nothing
-  # is read.
+  # P62: the photographed delivery invoice (core/order/InvoiceReadingService, InvoiceChecks), read by Claude
+  # (core/ai/ClaudeInvoiceReader, app.claude above): only the page's image or PDF is sent. Off while ANTHROPIC_API_KEY
+  # is empty (and not fake): the photos are still kept as the receipt's files, nothing is read.
   invoice:
-    # true: FakeInvoiceReader "reads" the sample invoice instead of the local OCR (dev screens and tests).
+    # true: FakeInvoiceReader "reads" the sample invoice instead of Claude (dev screens and tests).
     fake: ${INVOICE_FAKE:false}
-    # A line whose OCR block is less sure than this is flagged "check" (for the office).
+    # A line Claude is less sure of than this is flagged "check" (for the office).
     min-confidence: ${INVOICE_MIN_CONFIDENCE:0.85}
     # Read the pages in the background while the progress page reloads itself (false in the tests: at once).
     read-in-background: true

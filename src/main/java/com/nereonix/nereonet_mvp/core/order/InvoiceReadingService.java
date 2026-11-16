@@ -63,7 +63,7 @@ public class InvoiceReadingService {
         STARTED,
         // Every page is read already: on to the count.
         NOTHING_TO_READ,
-        // No reader configured (no OCR models): the photos are kept, on to the count.
+        // No reader configured (no Anthropic key): the photos are kept, on to the count.
         NOT_CONFIGURED,
         NO_PAGES,
         ALREADY_READING,

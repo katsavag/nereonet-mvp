@@ -16,7 +16,7 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * P62: the markdown table parser and the number formats. The sample invoice A-4471 (samples/invoice/) written out as
- * the OCR writes it is read back line for line as its expected JSON says; English and Greek headers; 1,234.56 and
+ * the fake writes it is read back line for line as its expected JSON says; English and Greek headers; 1,234.56 and
  * 1.234,56; a table given apart with a placeholder; totals in the text and in the table; a description going on to
  * the next row; a cell that is not a number is not read.
  */
@@ -68,7 +68,7 @@ class InvoicePageParserTest {
     }
 
     @Test
-    void labelsAsTheLocalOcrReadsThemGreekAndLatinLettersMixed() {
+    void labelsWithGreekAndLatinLettersMixed() {
         PageReading reading = InvoicePageParser.parse("""
                 Kestrel Ship Supply S.A.
                 Αρ. Τιμολογίου / Iηνοίce Νο: A-4471 Σελίδα 1 από 2/ Page 1 of 2

@@ -14,8 +14,9 @@ import java.util.regex.Pattern;
 import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
 
 /**
- * Turns one page's OCR output (markdown text, and its tables as markdown) into a PageReading. Plain Java, no
- * model: the same for the local OCR (OcrLayout) and the fake.
+ * Turns one page written as markdown (its text, and its tables as markdown) into a PageReading. Plain Java, no
+ * model: FakeInvoiceReader's sample pages are read with it (ClaudeInvoiceReader gets the fields from Claude and
+ * shares only InvoiceNumbers).
  *
  * The table of lines is the first markdown table whose header row names its columns, in English or Greek (accents and
  * case do not matter, a cell may hold both: "Περιγραφή / Description"):
@@ -32,7 +33,7 @@ import com.nereonix.nereonet_mvp.core.ai.PageReading.ReadLine;
  */
 public final class InvoicePageParser {
 
-    /** A table of the OCR output and how sure the OCR is of it (null: not said). */
+    /** A table given apart from the text and the confidence of its lines (null: not said). */
     public record Table(String markdown, Double confidence) {
     }
 
@@ -46,7 +47,7 @@ public final class InvoicePageParser {
 
     private static final Pattern INVOICE_NUMBER = Pattern.compile(
             "(?iu)(?:invoice\\s*(?:no|number|nr|#)\\.?|αρ\\.?\\s*τιμολογιου|αριθμοσ\\s*τιμολογιου)"
-                    // A second label after a slash ("Αρ. Τιμολογίου / Invoice No:"), however the OCR read it.
+                    // A second label after a slash ("Αρ. Τιμολογίου / Invoice No:"), however it is written.
                     + "(?:\\s*/[^:\\n]{1,25}:)?\\s*[:#.]?\\s*"
                     + "([A-Z0-9Α-Ω][A-Z0-9Α-Ω/\\-]{0,29})");
     private static final Pattern DATE = Pattern.compile(
@@ -193,7 +194,7 @@ public final class InvoicePageParser {
                 || c.contains("product")) {
             return Column.DESCRIPTION;
         }
-        // "Α/Α No" as the OCR may read it, Greek and Latin letters mixed ("α/a no"): by its last word.
+        // "Α/Α No" with Greek and Latin letters mixed ("α/a no"): by its last word.
         if (c.contains("α/α") || c.contains("a/a") || c.matches("(?:no\\.?|#|line|nr\\.?|s/n|α\\.α\\.?)")
                 || c.matches(".*[\\s/](?:no|νο)\\.?")) {
             return Column.NO;

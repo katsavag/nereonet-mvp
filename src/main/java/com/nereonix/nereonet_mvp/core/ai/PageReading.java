@@ -17,8 +17,8 @@ public record PageReading(boolean tableFound, List<ReadLine> lines, String suppl
 
     /**
      * One line of the table as read. no: the line number (No, Α/Α); a number is null when its cell is empty or not a
-     * number that can be read. raw: the row as the OCR gave it. confidence: from 0 to 1, how sure the OCR is of the
-     * block the line is in; null when it did not say.
+     * number that can be read. raw: the row's cells as the reader gave them. confidence: from 0 to 1, how sure the
+     * reader is of the line's numbers; null when it did not say.
      */
     public record ReadLine(Integer no, String description, String unit, BigDecimal quantity, BigDecimal unitPrice,
                            BigDecimal amount, String raw, Double confidence) {
