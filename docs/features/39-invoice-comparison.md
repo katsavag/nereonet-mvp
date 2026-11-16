@@ -16,6 +16,10 @@ with each difference. `core/order/InvoiceComparison` (pure), `InvoiceComparisonS
   the order was awarded through a request for quotes, [28](28-suppliers-and-quotes.md)), the invoiced total and the value of the differences;
   **View invoice**. Then **To review** (only when there is something), the lines that differ, the lines that agree
   folded ("37 lines agree: show") and **Mark as matched**.
+- **Changed on board by the Chief cook** (only when there is something, [38](38-invoice-guided-count.md)): the
+  invoice lines the cook removed on the count as not on the paper invoice (they are in no row, no point to review, no
+  total and not on View invoice) and the ones added by hand (a row like any other; flagged "added by hand by the
+  Chief cook").
 - **A row** per order line not removed, and per invoice line linked to no order line. What differs, in words
   (`InvoiceComparison.DiffKind`): "Received 10 kg less than invoiced: a credit to claim", "Received ... more than
   invoiced", "Invoiced 5 kg more (less) than ordered", "Not ordered" (an invoice line the cook marked so, never
@@ -66,7 +70,8 @@ with each difference. `core/order/InvoiceComparison` (pure), `InvoiceComparisonS
   invoice's unit).
 - **Audit**: "Invoice difference accepted", "Invoice point marked correct", "Invoice line product changed by office",
   "Invoice pack conversion changed by office", "Invoice line corrected by office" (before and after), "Invoice
-  matched" (lines, the differences accepted and their notes).
+  matched" (lines, the differences accepted and their notes); from the count, "Invoice line removed on board", "put
+  back on board" and "added on board".
 - **Data model** (Hibernate adds them): `ship_order.invoice_status`, `invoice_diff_lines` (default 0),
   `invoice_matched_at`, `invoice_matched_by_id`; `delivery_invoice_line.description_read`, `office_changed_by_id`,
   `office_changed_at`; new table `invoice_decision` (order, item key, kind ACCEPTED / CONFIRMED / CHANGED, detail,

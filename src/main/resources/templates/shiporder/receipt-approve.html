@@ -5,7 +5,8 @@
      place of the receipt form then). Who counted and when, the two tiles, the rows that are different (one line each, with the
      cook's note, and Change: that one row's input with "Did not arrive" and Confirm, the changeRow fragment below; a
      changed row says "Changed from 23"),
-     the invoice numbers the cook corrected ("Invoice 21 bottles (corrected, photo read 12)"),
+     the invoice numbers the cook corrected ("Invoice 21 bottles (corrected, photo read 12)"), the invoice lines he
+     removed or added by hand ("Removed by the Chief cook: OLIVE OIL 5LT, 12 BOTTLE"),
      Show all (every row, read only, Change per row) and the invoice's photos, the cook's note for the Master. Approve
      (large: the receipt's confirm in one step; the time received is when the cook sent the count, Change date opens
      the receipt's date and time field) and Send back to cook (a note required). No prices, no invoice checks, no uncertain
@@ -62,6 +63,19 @@
                 <span class="count-row-name" th:text="${r.name}">Olive oil, 5 lt can</span>
                 <div th:replace="~{shiporder/parts :: countRef(${r}, false)}"></div>
             </li>
+        </ul>
+    </section>
+
+    <!-- The invoice lines the Chief cook removed (the photo read what the paper does not have) or added by hand. -->
+    <section th:unless="${sheet.removed.isEmpty() and sheet.added.isEmpty()}" class="count-different" aria-labelledby="approveLinesTitle">
+        <h2 class="h6 fw-semibold" id="approveLinesTitle" th:text="#{order.approve.lines}">Invoice lines changed by the Chief cook</h2>
+        <ul class="list-group">
+            <li th:each="l : ${sheet.removed}" class="list-group-item count-different-line"
+                th:with="what=${l.description + (l.quantity != null ? ', ' + l.quantity.stripTrailingZeros().toPlainString() + ' ' + (l.unit ?: '') : '')}"
+                th:text="#{order.approve.removed(${what})}">Removed by the Chief cook: OLIVE OIL 5LT, 12 BOTTLE</li>
+            <li th:each="l : ${sheet.added}" class="list-group-item count-different-line"
+                th:with="what=${l.description + ', ' + l.quantity.stripTrailingZeros().toPlainString() + ' ' + (l.unit ?: '')}"
+                th:text="#{order.approve.added(${what})}">Added by hand by the Chief cook: Basmati rice, 5 kg</li>
         </ul>
     </section>
 

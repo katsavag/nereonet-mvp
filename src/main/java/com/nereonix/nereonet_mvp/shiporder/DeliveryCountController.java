@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.nereonix.nereonet_mvp.core.form.QuantityRules;
+import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.order.CountSheet;
 import com.nereonix.nereonet_mvp.core.order.DeliveryCountService;
 import com.nereonix.nereonet_mvp.core.order.DeliveryInvoiceLine;
@@ -40,6 +41,9 @@ import com.nereonix.nereonet_mvp.core.security.CurrentUser;
  *   GET  /ship/orders/{id}/count                   the list, the saved numbers in its inputs; once sent, what was sent
  *   POST /ship/orders/{id}/count                   Save count: every row's q-{key}, none-{key}, note-{key}
  *   POST /ship/orders/{id}/count/invoice           Read wrong? what the paper invoice says of one row: key, quantity
+ *   POST /ship/orders/{id}/count/lines             Add a line from the paper invoice: item (its id), quantity
+ *   POST /ship/orders/{id}/count/lines/{lineId}/remove    Not on the invoice: remove (an invoice line left out)
+ *   POST /ship/orders/{id}/count/lines/{lineId}/restore   Put back
  *   GET  /ship/orders/{id}/count/choose/{lineId}   Choose the product of an invoice line (?q= narrows the list)
  *   POST /ship/orders/{id}/count/choose/{lineId}   choice: o12 (an order line), i34 (a vessel item) or none
  *   GET  /ship/orders/{id}/count/send              the summary with Send to Master; back to the list while rows are
@@ -72,6 +76,10 @@ public class DeliveryCountController {
 
     /** A refused quantity: the row, what was typed and the error in words. */
     public record RowError(String key, String value, String message) {
+    }
+
+    /** A line added by hand refused: the item chosen, the quantity typed, and the error of each in words (or null). */
+    public record AddError(Long item, String quantity, String itemMessage, String quantityMessage) {
     }
 
     /** What the page shows instead of the saved count: what was typed per row (key: text), the notes, the errors. */
@@ -206,9 +214,105 @@ public class DeliveryCountController {
         return "redirect:/ship/orders/" + id + "/count#" + row.getAnchor();
     }
 
-    @GetMapping(BASE + "/invoice")
+    @GetMapping({BASE + "/invoice", BASE + "/lines", BASE + "/lines/{lineId}/remove", BASE + "/lines/{lineId}/restore"})
     public String toCount(@PathVariable Long id) {
         return "redirect:/ship/orders/" + id + "/count";
+    }
+
+    /**
+     * Not on the invoice: remove. An invoice line the photo read wrong (or one added by hand) is left out of the
+     * count; it stays listed under "Removed invoice lines" with Put back. Back to the row it was part of.
+     */
+    @PostMapping(BASE + "/lines/{lineId}/remove")
+    public String removeLine(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                             @PathVariable Long lineId, RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = prepare(email, id);
+        String refused = notEditable(order, redirectAttributes);
+        if (refused != null) {
+            return refused;
+        }
+        CountSheet sheet = matchService.sheet(order);
+        DeliveryInvoiceLine line = invoiceLine(order, lineId);
+        CountSheet.Row row = sheet.rowOf(lineId);
+        DeliveryCountService.Result result = countService.removeLine(pageService.cook(email), id, lineId, true);
+        if (result != DeliveryCountService.Result.DONE) {
+            return refused(order, result, redirectAttributes);
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "order.count.line.removed");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {line.getDescription()});
+        return "redirect:/ship/orders/" + id + "/count#"
+                + (row != null && row.getOrderLine() != null ? row.getAnchor() : "countRemovedTitle");
+    }
+
+    /** Put back: a removed invoice line is on the count again, as it was. Back to its row. */
+    @PostMapping(BASE + "/lines/{lineId}/restore")
+    public String restoreLine(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                              @PathVariable Long lineId, RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = prepare(email, id);
+        String refused = notEditable(order, redirectAttributes);
+        if (refused != null) {
+            return refused;
+        }
+        DeliveryInvoiceLine line = matchService.sheet(order).getRemoved().stream()
+                .filter(l -> l.getId().equals(lineId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        DeliveryCountService.Result result = countService.removeLine(pageService.cook(email), id, lineId, false);
+        if (result != DeliveryCountService.Result.DONE) {
+            return refused(order, result, redirectAttributes);
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "order.count.line.restored");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {line.getDescription()});
+        CountSheet.Row row = matchService.sheet(order).rowOf(lineId);
+        return "redirect:/ship/orders/" + id + "/count" + (row == null ? "" : "#" + row.getAnchor());
+    }
+
+    /**
+     * Add a line from the paper invoice: an item of the vessel the photo missed, with the quantity the paper says
+     * (the item's unit and rule). An item that has an invoice line already is refused at the select. Back to the
+     * item's row; a refused line comes back with its errors in the block.
+     */
+    @PostMapping(BASE + "/lines")
+    public String addLine(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long id,
+                          @RequestParam(required = false) String item,
+                          @RequestParam(required = false) String quantity, Model model,
+                          RedirectAttributes redirectAttributes) {
+        String email = currentUser.getUsername();
+        ShipOrder order = prepare(email, id);
+        String refused = notEditable(order, redirectAttributes);
+        if (refused != null) {
+            return refused;
+        }
+        CountSheet sheet = matchService.sheet(order);
+        if (!sheet.isInvoiceRead()) {
+            return "redirect:/ship/orders/" + id + "/count";
+        }
+        InvoiceMatchService.Choices choices = matchService.addable(order);
+        Item chosen = Stream.concat(choices.orderLines().stream().map(ShipOrderLine::getItem), choices.items().stream())
+                .filter(i -> i.getId().toString().equals(item == null ? "" : item.strip())).findFirst().orElse(null);
+        String typed = quantity == null ? "" : quantity.strip();
+        String itemError = chosen == null ? "order.count.add.itemRequired"
+                : InvoiceMatchService.onInvoice(sheet, chosen.getId()) ? "order.count.add.onInvoice" : null;
+        QuantityRules.Check check = chosen == null ? null
+                : quantityRules.forItem(chosen, QuantityRules.Use.RECEIPT).check(typed);
+        if (itemError != null || !check.ok()) {
+            model.addAttribute("addError", new AddError(chosen == null ? null : chosen.getId(), typed,
+                    itemError == null ? null : pageService.message(itemError),
+                    check == null || check.ok() ? null : pageService.message(check.code(), check.args())));
+            return show(order, sheet, null, model);
+        }
+        DeliveryCountService.Result result = countService.addLine(pageService.cook(email), id, chosen.getId(),
+                check.value());
+        if (result != DeliveryCountService.Result.DONE) {
+            return refused(order, result, redirectAttributes);
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "order.count.add.saved");
+        redirectAttributes.addFlashAttribute("successArgs", new Object[] {chosen.getName(), plain(check.value()),
+                chosen.getUnit()});
+        CountSheet.Row row = matchService.sheet(order).getRows().stream()
+                .filter(r -> r.getItem().getId().equals(chosen.getId())).findFirst().orElse(null);
+        return "redirect:/ship/orders/" + id + "/count" + (row == null ? "" : "#" + row.getAnchor());
     }
 
 
@@ -352,7 +456,8 @@ public class DeliveryCountController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    // typed: what the refused Save sent, shown instead of the saved count (null: the saved count).
+    // typed: what the refused Save sent, shown instead of the saved count (null: the saved count). addable: what a
+    // line added by hand may be (null without a read invoice: no block).
     private String show(ShipOrder order, CountSheet sheet, Typed typed, Model model) {
         model.addAttribute("order", order);
         model.addAttribute("sheet", sheet);
@@ -360,6 +465,7 @@ public class DeliveryCountController {
         model.addAttribute("typed", typed);
         model.addAttribute("noteMax", ShipOrderLine.NOTE_MAX_LENGTH);
         model.addAttribute("invoicePages", receiptService.invoicePages(order.getId()).size());
+        model.addAttribute("addable", sheet.isInvoiceRead() ? matchService.addable(order) : null);
         return "shiporder/count";
     }
 
@@ -370,6 +476,18 @@ public class DeliveryCountController {
         model.addAttribute("readOnly", readOnly);
         model.addAttribute("countNoteMax", ShipOrder.COUNT_NOTE_MAX_LENGTH);
         return "shiporder/count-send";
+    }
+
+    // Where to go when the cook cannot change the count now (not scheduled, received, with the Master); else null.
+    private static String notEditable(ShipOrder order, RedirectAttributes redirectAttributes) {
+        if (order.getStatus() != ShipOrderStatus.CONFIRMED) {
+            return notCountable(order, redirectAttributes);
+        }
+        if (!order.getDeliveryCountStatus().editable()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "order.count.alreadySent");
+            return "redirect:/ship/orders/" + order.getId() + "/count";
+        }
+        return null;
     }
 
     private static String refused(ShipOrder order, DeliveryCountService.Result result,

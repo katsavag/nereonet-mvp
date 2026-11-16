@@ -6962,7 +6962,12 @@ html.is-offline .voice-hold {
        the "Did not arrive" buttons of all rows form straight columns; the words are under the input.
        A row as the invoice says is plain. .is-different (on .count-row-form) gives the row a thin left border in the
        warning colour, .is-empty the same in the danger colour; the words say it. .is-none dims the input (0).
-     - .count-row-link: a row with only a name and a link on its right (Choose the product, Change).
+     - .count-row-link: a row with only a name and a link on its right (Choose the product, Change); with the quiet
+       remove button they are .count-row-actions. .count-line-action: the small ghost buttons "Not on the invoice:
+       remove" and "Put back", a touch target high. .count-fix-lines: the remove buttons under "Read wrong?".
+     - .count-removed: "Removed invoice lines", muted: a small heading and plain rows with the list's thin rule.
+     - .count-add: "Add a line from the paper invoice": the select, the quantity and Add line stacked on a phone, one
+       line from 768px.
      - .count-bar: the count page's Save bar (.stores-count-bar): the sentence on the left, .count-bar-actions on the
        right; on a phone the sentence, then the two buttons on one line, Save the wider.
      - .count-row-single: the Master's one row in its own form, Confirm under it.
@@ -7013,6 +7018,30 @@ html.is-offline .voice-hold {
 .count-row-note { color: var(--nn-text-secondary); }
 .count-choose { min-height: var(--nn-touch-target); }
 .count-row-single { flex-basis: 100%; }
+.count-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nn-space-2) var(--nn-space-3); }
+.count-line-action { display: inline-flex; align-items: center; min-height: var(--nn-touch-target); white-space: nowrap; }
+.count-fix-lines > li { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--nn-space-2); }
+.count-fix-lines .count-line-action { margin-left: calc(-1 * var(--bs-btn-padding-x)); }
+@media (max-width: 767.98px) {
+    /* Wrapped under the name, the ghost button's words start where the name does. */
+    .count-row-actions > .count-line-action, .count-removed-line > .count-line-action {
+        margin-left: calc(-1 * var(--bs-btn-padding-x)); }
+}
+.count-removed, .count-add { margin: 0 0 var(--nn-space-4); padding: 0 var(--nn-space-4); }
+.count-removed-title { font-weight: 600; margin-bottom: var(--nn-space-1); }
+.count-removed-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0 var(--nn-space-3); padding: var(--nn-space-1) 0; border-top: 1px solid var(--nn-border);
+    color: var(--nn-text-secondary); }
+.count-removed-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--nn-space-2); min-width: 0; }
+.count-add-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--nn-space-3); }
+.count-add-form .form-label { margin-bottom: var(--nn-space-1); font-size: var(--nn-font-sm); }
+.count-add-form .form-select, .count-add-form .form-control, .count-add-form .input-group-text,
+.count-add-form > .btn { min-height: var(--nn-touch-target); }
+.count-add-qty .form-control { text-align: end; }
+/* No unit shown yet (nothing chosen, or no script): the input keeps its right corners. */
+.count-add-qty .form-control:has(+ [hidden]) { border-top-right-radius: var(--nn-radius-control);
+    border-bottom-right-radius: var(--nn-radius-control); }
+.count-add-hint { margin-top: var(--nn-space-2); }
 .count-bar-actions { display: flex; gap: var(--nn-space-2); }
 .count-bar-actions > .btn { flex: 0 1 auto; white-space: nowrap; }
 .count-bar-actions > .btn-primary { flex-grow: 1; }
@@ -7031,6 +7060,14 @@ html.is-offline .voice-hold {
     .count-none { margin-left: 0; }
     .count-bar-actions { margin-left: auto; }
     .count-bar-actions > .btn { flex: 0 0 auto; }
+    .count-add-form { grid-template-columns: minmax(0, 1fr) 11rem auto; gap: 0 var(--nn-space-3); max-width: 44rem; }
+    .count-add-item, .count-add-qty { display: contents; }
+    .count-add-item > * { grid-column: 1; }
+    .count-add-qty > * { grid-column: 2; }
+    .count-add-form .form-label { grid-row: 1; }
+    .count-add-form .form-select, .count-add-form .input-group, .count-add-form > .btn { grid-row: 2; }
+    .count-add-form > .btn { grid-column: 3; }
+    .count-add-form .invalid-feedback { grid-row: 3; }
 }
 .count-send-button, .approve-button { width: 100%; min-height: 48px; }
 .count-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nn-space-3); margin-bottom: var(--nn-space-4); }

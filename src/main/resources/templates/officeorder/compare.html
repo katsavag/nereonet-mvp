@@ -2,7 +2,8 @@
 <!-- "Order, delivery and invoice", the card of the office's order page (officeorder/detail.html) for an order
      received with a read invoice (InvoiceComparison). Summary first: all agree or "3 of 40 lines differ", the invoice
      (supplier, number, date, net, total), the lines by category, the ordered value at the quoted prices, the invoiced
-     total and the value of the differences, and View invoice. Then To review (only when there is something: the
+     total and the value of the differences, and View invoice. Then, when the Chief cook removed invoice lines on the
+     count or added one by hand, "Changed on board by the Chief cook" in words. Then To review (only when there is something: the
      invoice's checks that failed, a different order reference, lines read with a flag, matches and conversions to
      review; each Correct or Change), the lines that differ (Ordered, Received, Invoiced with the invoice's own unit in
      small text, the differences in words, the prices against the quote, the notes, the money at stake, and Accept with
@@ -71,6 +72,19 @@
             <svg th:replace="~{layout/parts :: icon('external')}"></svg>
             <span th:text="#{officeorder.compare.viewInvoice}">View invoice</span>
         </a>
+    </div>
+
+    <!-- What the Chief cook changed of the invoice on the count: the removed lines are in no row and no total above. -->
+    <div th:unless="${c.removedOnBoard.isEmpty() and c.addedOnBoard.isEmpty()}" class="card-body border-top">
+        <h3 class="h6 fw-semibold" th:text="#{officeorder.compare.onBoard.heading}">Changed on board by the Chief cook</h3>
+        <ul class="list-plain">
+            <li th:each="l : ${c.removedOnBoard}"
+                th:with="what=${l.description + (l.quantity != null ? ', ' + @money.quantity(l.quantity) + ' ' + (l.unit ?: '') : '')}"
+                th:text="${l.addedOnBoard} ? #{officeorder.compare.onBoard.addedRemoved(${what})} : #{officeorder.compare.onBoard.removed(${what}, ${l.page})}">Removed, not on the paper invoice: OLIVE OIL 5LT, 12 BOTTLE (page 1)</li>
+            <li th:each="l : ${c.addedOnBoard}"
+                th:with="what=${l.description + ', ' + @money.quantity(l.quantity) + ' ' + (l.unit ?: '')}"
+                th:text="#{officeorder.compare.onBoard.added(${what})}">Added by hand, missed by the photo: Basmati rice, 5 kg</li>
+        </ul>
     </div>
 
     <!-- To review: what the vessel was deliberately not asked about. Each Correct or Change. -->
@@ -250,13 +264,15 @@
     </div>
 </section>
 
-<!-- The flags of an invoice line in words: corrected, hard to read, quantity not read, changed by the office; then,
+<!-- The flags of an invoice line in words: corrected, hard to read, quantity not read, changed by the office, added by
+     hand by the Chief cook; then,
      where a person (the Chief cook, the office) corrected the quantity, "(corrected, photo read 12)". -->
 <th:block th:fragment="flags(l)">
     <span th:if="${l.corrected}" class="badge status-badge status-info" th:text="#{officeorder.compare.flag.corrected}">corrected</span>
     <span th:if="${l.needsCheck}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.check}">hard to read</span>
     <span th:if="${l.quantityNotRead}" class="badge status-badge status-warning" th:text="#{officeorder.compare.flag.quantityNotRead}">quantity not read</span>
     <span th:if="${l.changedByOffice}" class="badge status-badge status-neutral" th:text="#{officeorder.compare.flag.office}">changed by the office</span>
+    <span th:if="${l.addedOnBoard}" class="badge status-badge status-neutral" th:text="#{officeorder.compare.flag.addedOnBoard}">added by hand by the Chief cook</span>
     <span th:if="${l.quantityCorrected}" class="small text-body-secondary"
           th:text="${l.readQuantity != null} ? #{officeorder.compare.flag.quantityCorrected(${@money.quantity(l.readQuantity)})} : #{officeorder.compare.flag.quantityEntered}">(corrected, photo read 12)</span>
 </th:block>

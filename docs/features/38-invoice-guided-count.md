@@ -16,7 +16,8 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   invoice's unit ("Basmati rice, 10 kg bag", "Invoice 12 bags") and stores the item's (110 kg). Anything that
   cannot be worked out counts in the item's unit. A factor worked out (not learned) is marked to review.
 - **Data model** (nullable columns, Hibernate adds them): `delivery_invoice_line` match, order line, item, pack
-  factor and label, conversion to review, counted, note, approved; `ship_order_line` approved, invoiced quantity,
+  factor and label, conversion to review, counted, note, approved, `removed_on_board` and `added_on_board` (both
+  default false, P83); `ship_order_line` approved, invoiced quantity,
   invoice line, match to review, conversion to review, added on receipt; new `supplier_item_name` (supplier or
   supplier name, description key, item, pack factor, who, when).
 - **The count** (`shiporder/DeliveryCountController`, `core/order/CountSheet`, `shiporder/count.html`,
@@ -42,7 +43,23 @@ invoice's checks and the uncertain matches are kept for the office (P64).
   (`DeliveryInvoiceLine.correctQuantity`, shared with the office's correction; `quantity_corrected_at`), recorded as
   "Invoice quantity corrected on board" with the old and the new value. The reference then reads "Invoice 21 bottles
   (corrected, photo read 12)", also on the Master's approval ("Invoice numbers corrected by the Chief
-  cook") and beside the office's flags; a row already counted keeps its count, compared with the new number. Lines
+  cook") and beside the office's flags; a row already counted keeps its count, compared with the new number.
+  **Not on the invoice: remove** (P83; a small quiet button under the number in "Read wrong?", one per invoice line
+  of the row, and at the end of each line of the two sections below; `POST .../count/lines/{lineId}/remove`,
+  `DeliveryCountService.removeLine`): the line the photo read wrong is kept as read
+  (`DeliveryInvoiceLine.removedOnBoard`) and left out of the count, its totals, the differences and the office's
+  comparison; an ordered row then reads "Not on the invoice" and is counted against the order. No confirmation: at
+  the end of the list the muted **Removed invoice lines (2)** lists each one as the photo read it with **Put back**
+  (`.../restore`). **Add a line from the paper invoice** (P83; before the bar, with a read invoice;
+  `POST .../count/lines`, `DeliveryCountService.addLine`): a select of the vessel's active items (the order's
+  first, then the others), the quantity (the item's unit and rule) and **Add line** create an invoice line marked
+  `addedOnBoard` (page 0, so a retaken photo keeps it; matched to the item and to its order line when ordered;
+  nothing in the read fields): the row says "Invoice 5 kg (added by hand)" and behaves as any other; it can be
+  removed again. An item that has an invoice line already is refused at the select ("This item is already on the
+  invoice. Use Read wrong? to change its number."); an item not on the vessel is first added in the inventory.
+  Removing, putting back and adding are the vessel's Chief cook's, while the count is not with the Master, each one
+  audit entry ("Invoice line removed on board", "put back", "added"); the Master's approval lists them ("Removed by
+  the Chief cook: OLIVE OIL 5LT, 12 BOTTLE", "Added by hand by the Chief cook: Basmati rice, 5 kg"). Lines
   on the invoice not found: "On the invoice, not found on the order", **Choose the product**
   (`.../count/choose/{lineId}`: the order's lines not matched, the vessel's other items, a search, or **Not
   ordered**); a choice is learned for the supplier ("Invoice line matched by hand" in the audit log). The page that

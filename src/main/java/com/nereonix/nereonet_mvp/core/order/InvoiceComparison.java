@@ -359,15 +359,18 @@ public final class InvoiceComparison {
     private final ShipOrder order;
     private final DeliveryInvoice invoice;
     private final List<DeliveryInvoiceLine> invoiceLines;
+    private final List<DeliveryInvoiceLine> removed;
     private final List<Row> rows;
     private final List<ReviewItem> review;
     private final String currency;
 
     private InvoiceComparison(ShipOrder order, DeliveryInvoice invoice, List<DeliveryInvoiceLine> invoiceLines,
-                              List<Row> rows, List<ReviewItem> review, String currency) {
+                              List<DeliveryInvoiceLine> removed, List<Row> rows, List<ReviewItem> review,
+                              String currency) {
         this.order = order;
         this.invoice = invoice;
         this.invoiceLines = invoiceLines;
+        this.removed = removed;
         this.rows = rows;
         this.review = review;
         this.currency = currency;
@@ -382,9 +385,12 @@ public final class InvoiceComparison {
      * The comparison of a received order. quoted: the awarded quote's price per item unit by item id (empty without
      * an award); currency: the quote's (null: none); decisions: the office's, by key.
      */
-    public static InvoiceComparison of(ShipOrder order, DeliveryInvoice invoice, List<DeliveryInvoiceLine> invoiceLines,
+    public static InvoiceComparison of(ShipOrder order, DeliveryInvoice invoice, List<DeliveryInvoiceLine> allLines,
                                        Map<Long, BigDecimal> quoted, String currency,
                                        Map<String, InvoiceDecision> decisions) {
+        // The lines the Chief cook removed on the count are in no row, no point to review and no total.
+        List<DeliveryInvoiceLine> removed = allLines.stream().filter(DeliveryInvoiceLine::isRemovedOnBoard).toList();
+        List<DeliveryInvoiceLine> invoiceLines = allLines.stream().filter(l -> !l.isRemovedOnBoard()).toList();
         List<Row> rows = new ArrayList<>();
         for (ShipOrderLine line : order.getLines()) {
             if (line.isRemoved()) {
@@ -409,7 +415,7 @@ public final class InvoiceComparison {
                         : row.getCategory().ordinal())
                 .thenComparing(Row::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
                 .thenComparing(Row::getKey));
-        return new InvoiceComparison(order, invoice, invoiceLines, List.copyOf(rows),
+        return new InvoiceComparison(order, invoice, invoiceLines, removed, List.copyOf(rows),
                 review(invoice, invoiceLines, decisions), currency);
     }
 
@@ -461,7 +467,14 @@ public final class InvoiceComparison {
 
     public ShipOrder getOrder() { return order; }
     public DeliveryInvoice getInvoice() { return invoice; }
+    /** The invoice's lines, without the ones the Chief cook removed. */
     public List<DeliveryInvoiceLine> getInvoiceLines() { return invoiceLines; }
+    /** The lines the Chief cook removed on the count ("not on the paper invoice"), as the photo read them. */
+    public List<DeliveryInvoiceLine> getRemovedOnBoard() { return removed; }
+    /** The lines the Chief cook added by hand on the count. */
+    public List<DeliveryInvoiceLine> getAddedOnBoard() {
+        return invoiceLines.stream().filter(DeliveryInvoiceLine::isAddedOnBoard).toList();
+    }
     public List<Row> getRows() { return rows; }
     public List<ReviewItem> getReview() { return review; }
     public String getCurrency() { return currency; }

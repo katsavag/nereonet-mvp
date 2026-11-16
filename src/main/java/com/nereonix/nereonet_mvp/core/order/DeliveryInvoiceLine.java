@@ -29,6 +29,8 @@ import lombok.Setter;
  * item's unit; null when it cannot be worked out); and, for a line matched to an item not on the order, the cook's
  * count and the Master's change, in the item's unit. CHECK is the office's "match to review",
  * conversionToReview its "conversion to review".
+ * Every reader of an invoice's lines leaves out the ones removedOnBoard (CountSheet.of and InvoiceComparison.of do it
+ * for their callers).
  */
 @Entity
 @Getter
@@ -153,6 +155,19 @@ public class DeliveryInvoiceLine {
     // A person corrected the quantity (the Chief cook on the count, the office on View invoice): when. Null while the
     // quantity is the reader's, or was put back to what the photo read.
     private java.time.Instant quantityCorrectedAt;
+
+    // ---- The Chief cook's changes on the count ---------------------------------------------------------------------------
+    // The photo read a line the paper does not have (or one too wrong to use): the line stays as read and is left out
+    // of the count, the differences and the office's comparison until he puts it back.
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean removedOnBoard;
+
+    // A line of the paper the photo missed, added by hand: on page 0 (no photographed page, so reading a page again
+    // keeps it), the item's name as its description, the quantity in the item's unit, nothing in the read fields.
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean addedOnBoard;
 
     /** The quantity is a person's, not the photo's: "(corrected, photo read 12)". */
     public boolean isQuantityCorrected() {

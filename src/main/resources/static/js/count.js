@@ -10,6 +10,7 @@
 //  - The Save bar says what Save will record ("37 as the invoice · 2 different · 1 without a number").
 //  - "Read wrong?": a row whose number is still the invoice's follows the corrected number, so the draft of
 //    js/save.js brings it back with the rest after the correction is saved.
+//  - "Add a line from the paper invoice": the unit of the item chosen is shown beside the quantity.
 // The listeners are on the capture phase, so the draft of js/save.js (a listener on the form) sees the row as this
 // script leaves it. A draft put back before this script runs is read from the fields as they are.
 (function () {
@@ -128,4 +129,17 @@
         }
     });
     total();
+
+    // "Add a line from the paper invoice": the unit of the item chosen, beside the quantity.
+    const addItem = document.querySelector('[data-count-add-item]');
+    const addUnit = document.querySelector('[data-count-add-unit]');
+    if (addItem && addUnit) {
+        const unit = () => {
+            const option = addItem.selectedOptions[0];
+            addUnit.textContent = (option && option.dataset.unit) || '';
+            addUnit.hidden = addUnit.textContent === '';
+        };
+        addItem.addEventListener('change', unit);
+        unit();
+    }
 })();

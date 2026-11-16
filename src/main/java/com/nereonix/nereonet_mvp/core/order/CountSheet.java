@@ -19,7 +19,8 @@ import com.nereonix.nereonet_mvp.core.item.ItemCategory;
  * invoice's quantity, counted in the invoice's unit ("Basmati rice, 10 kg bag · Invoice: 12 bags"); an order line
  * the invoice does not have is "Not on the invoice", an invoice quantity not read "Invoice: not read". Without a read
  * invoice the reference is the quantity ordered. picks: the invoice lines nothing was found for (the cook chooses);
- * notOrdered: the ones he said were not ordered. Quantities are kept in the item's unit; a row shows them in its own.
+ * notOrdered: the ones he said were not ordered; removed: the ones he removed (DeliveryInvoiceLine.removedOnBoard),
+ * which are in no row and no total. Quantities are kept in the item's unit; a row shows them in its own.
  */
 public final class CountSheet {
 
@@ -136,6 +137,11 @@ public final class CountSheet {
         /** A person corrected the invoice's quantity: "(corrected, photo read 12)". */
         public boolean isCorrected() {
             return invoiceLines.stream().anyMatch(DeliveryInvoiceLine::isQuantityCorrected);
+        }
+
+        /** The Chief cook added an invoice line of this row by hand: "(added by hand)". */
+        public boolean isAddedByHand() {
+            return invoiceLines.stream().anyMatch(DeliveryInvoiceLine::isAddedOnBoard);
         }
 
         /** What the photo read where a person corrected it, in the row's unit; null when it read no quantity. */
@@ -278,13 +284,15 @@ public final class CountSheet {
     private final List<Row> rows;
     private final List<DeliveryInvoiceLine> picks;
     private final List<DeliveryInvoiceLine> notOrdered;
+    private final List<DeliveryInvoiceLine> removed;
     private final boolean invoiceRead;
 
     private CountSheet(List<Row> rows, List<DeliveryInvoiceLine> picks, List<DeliveryInvoiceLine> notOrdered,
-                       boolean invoiceRead) {
+                       List<DeliveryInvoiceLine> removed, boolean invoiceRead) {
         this.rows = rows;
         this.picks = picks;
         this.notOrdered = notOrdered;
+        this.removed = removed;
         this.invoiceRead = invoiceRead;
     }
 
@@ -295,8 +303,10 @@ public final class CountSheet {
     }
 
     /** The sheet of an order (CONFIRMED), with its invoice (null: none) and that invoice's lines as matched. */
-    public static CountSheet of(ShipOrder order, DeliveryInvoice invoice, List<DeliveryInvoiceLine> invoiceLines) {
-        boolean read = read(invoice) && !invoiceLines.isEmpty();
+    public static CountSheet of(ShipOrder order, DeliveryInvoice invoice, List<DeliveryInvoiceLine> allLines) {
+        boolean read = read(invoice) && !allLines.isEmpty();
+        List<DeliveryInvoiceLine> removed = allLines.stream().filter(DeliveryInvoiceLine::isRemovedOnBoard).toList();
+        List<DeliveryInvoiceLine> invoiceLines = allLines.stream().filter(l -> !l.isRemovedOnBoard()).toList();
         List<Row> rows = new ArrayList<>();
         List<DeliveryInvoiceLine> picks = new ArrayList<>();
         List<DeliveryInvoiceLine> notOrdered = new ArrayList<>();
@@ -329,7 +339,8 @@ public final class CountSheet {
         rows.sort(Comparator.comparing((Row row) -> row.getItem().getCategory())
                 .thenComparing(row -> row.getItem().getName(), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(Row::getKey));
-        return new CountSheet(List.copyOf(rows), List.copyOf(picks), List.copyOf(notOrdered), read);
+        return new CountSheet(List.copyOf(rows), List.copyOf(picks), List.copyOf(notOrdered), read ? removed : List.of(),
+                read);
     }
 
     // A row against the invoice lines matched to it: in the invoice's unit when they all share one, else the item's.
@@ -372,6 +383,21 @@ public final class CountSheet {
     public List<DeliveryInvoiceLine> getPicks() { return picks; }
 
     public List<DeliveryInvoiceLine> getNotOrdered() { return notOrdered; }
+
+    /** The invoice lines the Chief cook removed, as the photo read them: "Removed invoice lines". */
+    public List<DeliveryInvoiceLine> getRemoved() { return removed; }
+
+    /** The invoice lines the Chief cook added by hand, in the sheet's order. */
+    public List<DeliveryInvoiceLine> getAdded() {
+        return rows.stream().flatMap(row -> row.getInvoiceLines().stream())
+                .filter(DeliveryInvoiceLine::isAddedOnBoard).toList();
+    }
+
+    /** The row this invoice line is part of, or null (a line to choose, not ordered, or removed). */
+    public Row rowOf(Long invoiceLineId) {
+        return rows.stream().filter(row -> row.getInvoiceLines().stream().anyMatch(l -> l.getId().equals(invoiceLineId)))
+                .findFirst().orElse(null);
+    }
 
     public boolean isInvoiceRead() { return invoiceRead; }
 

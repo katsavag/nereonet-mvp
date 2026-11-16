@@ -169,6 +169,60 @@ public class DeliveryCountService {
     }
 
     /**
+     * "Not on the invoice: remove" (removed true) and "Put back" (false): the cook leaves out an invoice line the
+     * photo read wrong, or one he added by hand, and takes it back. The line is kept as it is
+     * (DeliveryInvoiceLine.removedOnBoard); a row counted keeps its count. Recorded as "Invoice line removed on board"
+     * or "Invoice line put back on board"; nothing when the line is that already. Refusals as saveRows;
+     * IllegalArgumentException for a line of another order's invoice.
+     */
+    @Transactional
+    public Result removeLine(User cook, Long orderId, Long invoiceLineId, boolean removed) {
+        ShipOrder order = lockForCook(cook, orderId);
+        Result refused = refuseCount(order);
+        if (refused != null) {
+            return refused;
+        }
+        DeliveryInvoiceLine line = matchService.line(order, invoiceLineId);
+        if (line.isRemovedOnBoard() != removed) {
+            line.setRemovedOnBoard(removed);
+            auditService.record(removed ? "ORDER_INVOICE_LINE_REMOVED" : "ORDER_INVOICE_LINE_RESTORED", order.getShip(),
+                    "Order #" + order.getId() + ": " + describe(line), cook);
+        }
+        return Result.DONE;
+    }
+
+    /**
+     * "Add a line from the paper invoice": the cook adds a line the photo missed, for an item of the vessel
+     * (InvoiceMatchService.addable) that has no invoice line yet, the quantity in the item's unit. Recorded as
+     * "Invoice line added on board". Refusals as saveRows; IllegalArgumentException for a quantity that is not one, an
+     * item it cannot be, or an order without a read invoice.
+     */
+    @Transactional
+    public Result addLine(User cook, Long orderId, Long itemId, BigDecimal quantity) {
+        ShipOrder order = lockForCook(cook, orderId);
+        Result refused = refuseCount(order);
+        if (refused != null) {
+            return refused;
+        }
+        if (!OrderReceiptService.isValidReceivedQuantity(quantity)) {
+            throw new IllegalArgumentException("An invoice quantity is zero or more");
+        }
+        DeliveryInvoiceLine line = matchService.addByHand(order, itemId, quantity);
+        auditService.record("ORDER_INVOICE_LINE_ADDED", order.getShip(), "Order #" + order.getId() + ": "
+                + describe(line), cook);
+        return Result.DONE;
+    }
+
+    // An invoice line for the audit log: where it is on the invoice, its description, quantity and unit.
+    private static String describe(DeliveryInvoiceLine line) {
+        return (line.isAddedOnBoard() ? "added by hand" : "page " + line.getPage()
+                + (line.getLineNumber() == null ? "" : " line " + line.getLineNumber()))
+                + " \"" + line.getDescription() + "\""
+                + (line.getQuantity() == null ? "" : ", " + line.getQuantity().stripTrailingZeros().toPlainString()
+                + (line.getUnit() == null ? "" : " " + line.getUnit()));
+    }
+
+    /**
      * Choose the product: the cook says what an invoice line nothing was found for is: a line of the order not
      * removed (orderLineId), a vessel item not on the order (itemId), or neither ("Not ordered": never stocked, it goes
      * to the office). The product chosen is learned for the supplier. Refusals as saveRows; IllegalArgumentException for

@@ -8,7 +8,11 @@
      note"), the input "Arrived" and "Did not arrive". The input holds the saved count; a row never saved holds the
      invoice's quantity (the quantity ordered without an invoice; nothing when there is none to go by). After the rows,
      only when there are any: "On the invoice, not found on the order" (one row per invoice line nothing was found for,
-     with Choose the product) and "Not ordered" (the lines he said were not ordered, with Change).
+     with Choose the product) and "Not ordered" (the lines he said were not ordered, with Change); each of these lines
+     ends with the quiet "Not on the invoice: remove", as "Read wrong?" does on a row. Then, muted, "Removed invoice
+     lines (2)" (each line as the photo read it, with Put back; hidden while there are none) and, with a read invoice,
+     "Add a line from the paper invoice": the item (the order's first, then the vessel's others), the quantity and
+     Add line, one line from 768px. js/count.js shows the chosen item's unit beside the quantity.
      The bar at the bottom of the screen: what Save will record, in words ("37 as the invoice · 2 different · 1 without
      a number", written by js/count.js; nothing without it), Retake invoice photo (Photograph the invoice when there is
      none) and the one primary button, Save count. Save records every row with a number; a refused number brings the
@@ -16,11 +20,14 @@
      with everything counted it goes on to the page that sends the count to the Master.
      data-draft: js/save.js keeps what is typed in the browser if the connection drops, and removes it once the count
      is saved. "Read wrong?" posts a form of its own (the fixForm-{key} forms after the count's), so what is typed in
-     the other rows comes back from that draft.
+     the other rows comes back from that draft; so do the remove and Put back buttons (countLineForm, each button with
+     its formaction) and the added line (countAddForm).
      Nothing goes into the store here. A count sent back by the Master shows the Master's note on top.
      English only. Model: order, sheet (CountSheet), groups (CountSheet.Group), typed (DeliveryCountController.Typed
      after a refused Save, else null), leftEmpty (the keys of the rows the last Save left without a number, or absent),
-     fixError (DeliveryCountController.RowError: a correction of the invoice refused), noteMax, invoicePages. -->
+     fixError (DeliveryCountController.RowError: a correction of the invoice refused), noteMax, invoicePages,
+     addable (InvoiceMatchService.Choices: what a line added by hand may be; null without a read invoice),
+     addError (DeliveryCountController.AddError: an added line refused, or absent). -->
 <main class="count-page count-sheet" th:with="baseUrl=${'/ship/orders/' + order.id + '/count'}">
     <header th:replace="~{layout/parts :: pageHeader(heading=#{order.count.heading}, crumbs=~{::pageCrumbs},
             eyebrow=#{order.number(${order.id})}, subtitle=#{order.count.help})}">
@@ -65,8 +72,13 @@
                         <span class="count-ref" th:if="${l.quantity != null}"
                               th:text="#{order.count.ref.invoice(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.unit} ?: '')}">Invoice 12 BAG</span>
                     </div>
-                    <a class="btn btn-outline-primary count-choose" th:href="@{${baseUrl + '/choose/' + l.id}}"
-                       th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.picks.choose}">Choose the product</a>
+                    <div class="count-row-actions">
+                        <a class="btn btn-outline-primary count-choose" th:href="@{${baseUrl + '/choose/' + l.id}}"
+                           th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.picks.choose}">Choose the product</a>
+                        <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
+                                th:formaction="@{${baseUrl + '/lines/' + l.id + '/remove'}}"
+                                th:attr="aria-describedby=${'pickName-' + l.id}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button>
+                    </div>
                 </li>
             </ul>
         </section>
@@ -81,10 +93,77 @@
                         <span class="count-row-name" th:id="${'notOrdered-' + l.id}" th:text="${l.description}">CHEESE 2KG</span>
                         <span class="count-ref" th:text="#{order.count.notOrdered.hint}">Not stocked: it goes to the office.</span>
                     </div>
-                    <a class="count-change" th:href="@{${baseUrl + '/choose/' + l.id}}"
-                       th:attr="aria-describedby=${'notOrdered-' + l.id}" th:text="#{order.count.change}">Change</a>
+                    <div class="count-row-actions">
+                        <a class="count-change" th:href="@{${baseUrl + '/choose/' + l.id}}"
+                           th:attr="aria-describedby=${'notOrdered-' + l.id}" th:text="#{order.count.change}">Change</a>
+                        <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
+                                th:formaction="@{${baseUrl + '/lines/' + l.id + '/remove'}}"
+                                th:attr="aria-describedby=${'notOrdered-' + l.id}" th:text="#{order.count.line.remove}">Not on the invoice: remove</button>
+                    </div>
                 </li>
             </ul>
+        </section>
+
+        <!-- The invoice lines the cook removed, as the photo read them. Quiet: no card, plain rows. -->
+        <section th:unless="${sheet.removed.isEmpty()}" class="count-removed" aria-labelledby="countRemovedTitle">
+            <h2 class="text-meta count-removed-title" id="countRemovedTitle"
+                th:text="#{order.count.removed.heading(${sheet.removed.size()})}">Removed invoice lines (2)</h2>
+            <ul class="list-plain">
+                <li th:each="l : ${sheet.removed}" class="count-removed-line">
+                    <span class="count-removed-what" th:id="${'removed-' + l.id}">
+                        <span th:text="${l.description}">OLIVE OIL 5LT</span>
+                        <span class="text-meta" th:if="${l.quantity != null}"
+                              th:text="#{order.count.ref.invoice(${l.quantity.stripTrailingZeros().toPlainString()}, ${l.unit} ?: '')}">Invoice 12 BOTTLE</span>
+                        <span class="text-meta" th:if="${l.addedOnBoard}" th:text="#{order.count.ref.added}">(added by hand)</span>
+                    </span>
+                    <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
+                            th:formaction="@{${baseUrl + '/lines/' + l.id + '/restore'}}"
+                            th:attr="aria-describedby=${'removed-' + l.id}" th:text="#{order.count.line.restore}">Put back</button>
+                </li>
+            </ul>
+        </section>
+
+        <!-- A line the photo missed. Its fields belong to countAddForm (after the count's form), not to Save count. -->
+        <section th:if="${addable != null}" class="count-add" id="countAdd" aria-labelledby="countAddTitle"
+                 th:with="itemErr=${addError != null and addError.itemMessage() != null},
+                          qtyErr=${addError != null and addError.quantityMessage() != null}">
+            <h2 class="h6 fw-semibold" id="countAddTitle" th:text="#{order.count.add.heading}">Add a line from the paper invoice</h2>
+            <div class="count-add-form">
+                <div class="count-add-item">
+                    <label for="addItem" class="form-label" th:text="#{order.count.add.item}">Item</label>
+                    <select id="addItem" name="item" class="form-select" form="countAddForm" data-count-add-item
+                            th:classappend="${itemErr} ? 'is-invalid'"
+                            th:attr="aria-describedby=${itemErr} ? 'addItemError countAddHint' : 'countAddHint', aria-invalid=${itemErr} ? 'true' : null">
+                        <option value="" th:text="#{order.count.add.choose}">Choose the item</option>
+                        <optgroup th:unless="${addable.orderLines().isEmpty()}" th:label="#{order.count.choose.orderLines}">
+                            <option th:each="l : ${addable.orderLines()}" th:value="${l.item.id}" th:data-unit="${l.item.unit}"
+                                    th:selected="${addError != null and addError.item() == l.item.id}"
+                                    th:text="${l.item.name + ' (' + l.item.unit + ')'}">Basmati rice (kg)</option>
+                        </optgroup>
+                        <optgroup th:unless="${addable.items().isEmpty()}" th:label="#{order.count.choose.items}">
+                            <option th:each="item : ${addable.items()}" th:value="${item.id}" th:data-unit="${item.unit}"
+                                    th:selected="${addError != null and addError.item() == item.id}"
+                                    th:text="${item.name + ' (' + item.unit + ')'}">Rice flour (kg)</option>
+                        </optgroup>
+                    </select>
+                    <p th:if="${itemErr}" class="invalid-feedback d-block mb-0" id="addItemError"
+                       th:text="${addError.itemMessage()}">This item is already on the invoice. Use Read wrong? to change its number.</p>
+                </div>
+                <div class="count-add-qty">
+                    <label for="addQuantity" class="form-label" th:text="#{order.count.add.quantity}">Quantity</label>
+                    <span class="input-group">
+                        <input th:replace="~{layout/parts :: quantityInput(id='addQuantity', name='quantity',
+                                value=${addError != null} ? ${addError.quantity()} : '', rule=null, cls='', invalid=${qtyErr},
+                                describedBy=${qtyErr} ? 'addQuantityError' : null, ofForm='countAddForm')}">
+                        <span class="input-group-text" data-count-add-unit hidden></span>
+                    </span>
+                    <p th:if="${qtyErr}" class="invalid-feedback d-block mb-0" id="addQuantityError"
+                       th:text="${addError.quantityMessage()}">Enter a quantity.</p>
+                </div>
+                <button type="submit" class="btn btn-outline-secondary" form="countAddForm" th:text="#{order.count.add.save}">Add line</button>
+            </div>
+            <p class="text-meta count-add-hint" id="countAddHint" th:text="#{order.count.add.hint}">An item that is not on the
+                vessel's list is first added in the inventory.</p>
         </section>
 
         <!-- The one Save of the page, stuck to the bottom of the screen (above the tab bar on phones). The text is
@@ -109,6 +188,9 @@
             <input type="hidden" name="key" th:value="${r.key}">
         </form>
     </th:block>
+    <!-- Remove and Put back (each button names its own formaction), and the line added by hand. -->
+    <form method="post" th:action="@{${baseUrl + '/lines'}}" id="countLineForm" hidden></form>
+    <form method="post" th:action="@{${baseUrl + '/lines'}}" id="countAddForm" hidden></form>
     <script th:src="@{/js/count.js}" defer></script>
 </main>
 </body>

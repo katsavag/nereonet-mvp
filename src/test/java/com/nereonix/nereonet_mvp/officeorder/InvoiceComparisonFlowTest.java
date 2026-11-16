@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,9 @@ import com.nereonix.nereonet_mvp.core.order.DeliveryInvoiceLine;
 import com.nereonix.nereonet_mvp.core.order.DeliveryInvoiceLineRepository;
 import com.nereonix.nereonet_mvp.core.order.DeliveryInvoiceRepository;
 import com.nereonix.nereonet_mvp.core.order.DeliveryInvoiceStatus;
+import com.nereonix.nereonet_mvp.core.order.CountSheet;
 import com.nereonix.nereonet_mvp.core.order.InvoiceMatch;
+import com.nereonix.nereonet_mvp.core.order.InvoiceMatchService;
 import com.nereonix.nereonet_mvp.core.order.InvoiceMatchStatus;
 import com.nereonix.nereonet_mvp.core.order.ShipOrder;
 import com.nereonix.nereonet_mvp.core.order.ShipOrderLine;
@@ -96,6 +99,7 @@ class InvoiceComparisonFlowTest {
     @Autowired ShipOrderLineRepository lineRepository;
     @Autowired DeliveryInvoiceRepository invoiceRepository;
     @Autowired DeliveryInvoiceLineRepository invoiceLineRepository;
+    @Autowired InvoiceMatchService matchService;
     @Autowired SupplierRepository supplierRepository;
     @Autowired SupplierItemNameRepository nameRepository;
     @Autowired NotificationRepository notificationRepository;
@@ -304,7 +308,7 @@ class InvoiceComparisonFlowTest {
         invoice.setCheckNotes(null);
         invoiceLine(invoice, 1, "EGGS LARGE", "PCS", "30", "0.25", "7.50");
         mockMvc.perform(get("/ship/orders/{id}/count", id).with(user(new CurrentUser(cook))));
-        mockMvc.perform(row("o" + eggs.getId(), ""));
+        saveCount(Map.of());
         sendAndApprove();
 
         assertThat(order.getInvoiceStatus()).isEqualTo(InvoiceMatchStatus.TO_MATCH);
@@ -325,12 +329,7 @@ class InvoiceComparisonFlowTest {
                                  String quantity2) throws Exception {
         mockMvc.perform(get("/ship/orders/{id}/count", id).with(user(new CurrentUser(cook))))
                 .andExpect(status().isOk());
-        for (ShipOrderLine line : order.getLines()) {
-            String key = "o" + line.getId();
-            String quantity = key.equals(key1) ? quantity1 : key.equals(key2) ? quantity2 : "";
-            mockMvc.perform(post("/ship/orders/{id}/count/row", id).param("key", key).param("quantity", quantity)
-                    .param("note", key.equals(key1) ? "One bag torn" : "").with(user(new CurrentUser(cook))).with(csrf()));
-        }
+        saveCount(Map.of(key1, quantity1, "note-" + key1, "One bag torn", key2, quantity2));
         mockMvc.perform(post("/ship/orders/{id}/count/choose/{l}", id, notOrdered.getId()).param("choice", "none")
                 .with(user(new CurrentUser(cook))).with(csrf()));
         sendAndApprove();
@@ -347,9 +346,15 @@ class InvoiceComparisonFlowTest {
                 .andExpect(flash().attribute("successMessage", "order.approve.done"));
     }
 
-    private MockHttpServletRequestBuilder row(String key, String quantity) {
-        return post("/ship/orders/{id}/count/row", id).param("key", key).param("quantity", quantity).param("note", "")
-                .with(user(new CurrentUser(cook))).with(csrf());
+    // Save count: every row its reference, but the rows given (key: quantity; "note-" + key: its note).
+    private void saveCount(Map<String, String> typed) throws Exception {
+        MockHttpServletRequestBuilder save = post("/ship/orders/{id}/count", id).with(user(new CurrentUser(cook)))
+                .with(csrf());
+        for (CountSheet.Row row : matchService.sheet(order).getRows()) {
+            save.param("q-" + row.getKey(), typed.getOrDefault(row.getKey(), row.text(row.getReference())));
+            save.param("note-" + row.getKey(), typed.getOrDefault("note-" + row.getKey(), ""));
+        }
+        mockMvc.perform(save);
     }
 
     private org.springframework.test.web.servlet.ResultActions accept(String rowKey, String note) throws Exception {

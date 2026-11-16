@@ -117,13 +117,16 @@
 <!-- A row of the delivery count (CountSheet.Row): its reference, one muted line under the name. "Ordered 10 bags ·
      Invoice 12 bags" (the invoice's quantity in its own unit; after a person's correction "Invoice 21 bags (corrected,
      photo read 12)"), "Invoice: not read", "Not on the invoice"; without a read invoice only "Ordered 12 kg".
+     A row with a line the cook added by hand says "Invoice 5 kg (added by hand)".
      fix (true on the cook's count; false: the Master's and the read-only lines): the line ends with the small link
      "Read wrong?" ("Enter it" for a quantity not read): the summary of a details element, which opens "The paper
-     invoice says", the number and Correct invoice under the line. Only for a row with one invoice line
-     (r.invoiceLine). The row is inside the count's one form, so these two controls belong to a form of their own by
-     its id ('fixForm-' + r.key, which the page writes outside the count's form with the hidden key): the correction
-     changes the invoice's number and nothing else.
-     Model: fixError (DeliveryCountController.RowError, or absent): the number refused, its form open.
+     invoice says", the number and Correct invoice under the line (only for a row with one invoice line,
+     r.invoiceLine), and under them "Not on the invoice: remove" for each invoice line of the row (named when there
+     are several). The row is inside the count's one form, so these controls belong to forms of their own by id:
+     the number to 'fixForm-' + r.key (which the page writes outside the count's form with the hidden key; the
+     correction changes the invoice's number and nothing else), the remove buttons to 'countLineForm', each with its
+     own formaction.
+     Model: order; fixError (DeliveryCountController.RowError, or absent): the number refused, its form open.
      Use: <div th:replace="~{shiporder/parts :: countRef(${r}, false)}"></div> -->
 <div th:fragment="countRef(r, fix)" class="count-ref"
      th:with="src=${r.source.name()}, i=${r.key}, fixErr=${fixError != null and fixError.key() == r.key},
@@ -134,15 +137,16 @@
         <span th:if="${src == 'INVOICE'}" th:text="#{order.count.ref.invoice(${r.text(r.invoiced)}, ${r.unit(r.invoiced)})}">Invoice 12 bags</span>
         <span th:if="${src == 'INVOICE' and r.corrected}"
               th:text="${r.photoRead != null} ? #{order.count.ref.corrected(${r.text(r.photoRead)})} : #{order.count.ref.entered}">(corrected, photo read 12)</span>
+        <span th:if="${r.addedByHand}" th:text="#{order.count.ref.added}">(added by hand)</span>
         <span th:if="${src == 'NOT_READ'}" th:text="#{order.count.ref.notRead}">Invoice: not read</span>
         <span th:if="${src == 'NOT_ON_INVOICE'}" th:text="#{order.count.ref.notOnInvoice}">Not on the invoice</span>
     </th:block>
-    <th:block th:if="${fix and r.invoiceLine != null}">
+    <th:block th:if="${fix and !r.invoiceLines.isEmpty()}">
         <details class="count-fix" th:open="${fixErr}">
             <!-- The dot is inside the summary so it never ends a line on its own. -->
             <summary th:attr="aria-describedby=${'name-' + i}"><span aria-hidden="true">·</span>
-                <span class="count-fix-link" th:text="${src == 'INVOICE'} ? #{order.count.fix.open} : #{order.count.fix.enter}">Read wrong?</span></summary>
-            <div class="count-fix-form" data-count-fix>
+                <span class="count-fix-link" th:text="${src == 'INVOICE' or r.invoiceLine == null} ? #{order.count.fix.open} : #{order.count.fix.enter}">Read wrong?</span></summary>
+            <div th:if="${r.invoiceLine != null}" class="count-fix-form" data-count-fix>
                 <label th:for="${'fix-' + i}" th:text="#{order.count.fix.label}">The paper invoice says</label>
                 <span class="input-group count-fix-qty">
                     <input th:replace="~{layout/parts :: quantityInput(id=${'fix-' + i}, name='quantity',
@@ -156,6 +160,16 @@
                 <p th:if="${fixErr}" class="invalid-feedback d-block mb-0" th:id="${'fixError-' + i}"
                    th:text="${fixError.message()}">Use whole numbers for bags.</p>
             </div>
+            <ul class="list-plain count-fix-lines">
+                <li th:each="l : ${r.invoiceLines}">
+                    <span th:if="${r.invoiceLines.size() > 1}" th:id="${'fixLine-' + l.id}"
+                          th:text="${l.description + (l.quantity != null ? ', ' + l.quantity.stripTrailingZeros().toPlainString() + ' ' + (l.unit ?: '') : '')}">BASMATI RICE 10KG, 12 BAG</span>
+                    <button type="submit" class="btn btn-ghost btn-sm count-line-action" form="countLineForm"
+                            th:formaction="@{/ship/orders/{id}/count/lines/{line}/remove(id=${order.id}, line=${l.id})}"
+                            th:attr="aria-describedby=${r.invoiceLines.size() > 1 ? 'fixLine-' + l.id : 'name-' + i}"
+                            th:text="#{order.count.line.remove}">Not on the invoice: remove</button>
+                </li>
+            </ul>
         </details>
     </th:block>
 </div>

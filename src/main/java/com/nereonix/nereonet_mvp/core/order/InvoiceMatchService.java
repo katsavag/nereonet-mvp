@@ -1,5 +1,6 @@
 package com.nereonix.nereonet_mvp.core.order;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -70,7 +71,7 @@ public class InvoiceMatchService {
             return;
         }
         List<DeliveryInvoiceLine> waiting = lineRepository.findAllByInvoiceIdOrderByPageAscIdAsc(invoice.getId())
-                .stream().filter(line -> line.getMatch() == null).toList();
+                .stream().filter(line -> line.getMatch() == null && !line.isRemovedOnBoard()).toList();
         if (waiting.isEmpty()) {
             return;
         }
@@ -145,6 +146,51 @@ public class InvoiceMatchService {
         List<Item> items = otherItems(order).stream().filter(item -> !extras.contains(item.getId()))
                 .filter(item -> InvoiceMatcher.fold(item.getName()).contains(folded)).toList();
         return new Choices(lines, items);
+    }
+
+    /**
+     * What a line added by hand may be ("Add a line from the paper invoice"): every line of the order not removed, by
+     * the item's name, then the vessel's other active items.
+     */
+    @Transactional(readOnly = true)
+    public Choices addable(ShipOrder order) {
+        List<ShipOrderLine> lines = order.getLines().stream().filter(line -> !line.isRemoved())
+                .sorted(Comparator.comparing(line -> line.getItem().getName(), String.CASE_INSENSITIVE_ORDER)).toList();
+        return new Choices(lines, otherItems(order));
+    }
+
+    /**
+     * A line of the paper invoice the photo missed, added by the cook (the order is locked, the count editable): a new
+     * invoice line marked addedOnBoard, for the item and its order line when it was ordered, the quantity in the item's
+     * unit. IllegalArgumentException without a read invoice, for an item that is not one of addable, or one that has
+     * an invoice line already.
+     */
+    DeliveryInvoiceLine addByHand(ShipOrder order, Long itemId, BigDecimal quantity) {
+        DeliveryInvoice invoice = invoiceRepository.findByOrderId(order.getId()).filter(CountSheet::read)
+                .orElseThrow(() -> new IllegalArgumentException("The order has no read invoice"));
+        ShipOrderLine orderLine = order.getLines().stream()
+                .filter(l -> !l.isRemoved() && l.getItem().getId().equals(itemId)).findFirst().orElse(null);
+        Item item = orderLine != null ? orderLine.getItem()
+                : otherItems(order).stream().filter(i -> i.getId().equals(itemId)).findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Not an item of the vessel"));
+        if (onInvoice(sheet(order), item.getId())) {
+            throw new IllegalArgumentException("The item is on the invoice already");
+        }
+        DeliveryInvoiceLine line = new DeliveryInvoiceLine();
+        line.setInvoice(invoice);
+        line.setPage(0);
+        line.setDescription(cut(item.getName(), DeliveryInvoiceLine.DESCRIPTION_MAX_LENGTH));
+        line.setUnit(cut(item.getUnit(), 30));
+        line.setQuantity(quantity);
+        line.setAddedOnBoard(true);
+        link(line, InvoiceMatch.CHOSEN, orderLine, item, Conversion.SAME);
+        return lineRepository.save(line);
+    }
+
+    /** The item has a row with an invoice line on this sheet. */
+    public static boolean onInvoice(CountSheet sheet, Long itemId) {
+        return sheet.getRows().stream()
+                .anyMatch(row -> row.getItem().getId().equals(itemId) && !row.getInvoiceLines().isEmpty());
     }
 
     /**
