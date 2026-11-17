@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.nereonix.nereonet_mvp.core.list.ListQueries;
 import com.nereonix.nereonet_mvp.core.list.ListQuery;
+import com.nereonix.nereonet_mvp.core.list.TwoColumns;
 import com.nereonix.nereonet_mvp.core.item.Item;
 import com.nereonix.nereonet_mvp.core.item.ItemCategory;
 import com.nereonix.nereonet_mvp.core.item.ItemRepository;
@@ -67,6 +68,11 @@ public class StoresService {
 
         public boolean isEmpty() {
             return groups.isEmpty();
+        }
+
+        /** The places shown, in two columns side by side (Inventory and Count): a card weighs its rows plus 2. */
+        public TwoColumns<PlaceGroup> columns() {
+            return TwoColumns.split(groups, group -> group.levels().size() + 2);
         }
 
         /** The names of the storage places shown, in their order (the choices of "Where it is kept"). */

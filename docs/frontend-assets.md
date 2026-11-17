@@ -185,7 +185,7 @@ page is a separate experiment, `SHIP_MAP_ENABLED`.)
     (`.card-grid`: ship Overview, an announcement's acknowledged / pending lists) have 1 column, 2 from 992 px and
     3 from 1600 px (`.card-grid-3`); with `.card-grid-start` each card is as high as its content and a card alone
     takes the row (the line groups of an order or a request). The storage places of Inventory and Count the inventory
-    flow in two CSS columns (`.card-flow`) that the browser balances again whenever a card opens or closes. The facts of one
+    are two independent columns (`.card-columns`), so closing a card moves up only the cards under it. The facts of one
     record are a `dl.facts-grid` (label over value; 1, 2, 3 and 4 per row at 0, 576, 992 and 1200 px).
     A few numbers above a list are a strip (`.stat-strip` of `.stat-chip`). A page whose content is the numbers
     uses the large tiles (Overview, the Home pages, a delivery count's summary), which share one look in app.css.
