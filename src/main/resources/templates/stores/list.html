@@ -102,11 +102,13 @@
         </div>
     </div>
 
-    <!-- data-fold-store: js/fold-cards.js remembers on this device which cards are closed; not while a search or a
-         filter is on, when every card with a match is open. -->
-    <div th:unless="${s.groups.isEmpty()}" class="stores-places"
+    <!-- The places in two columns from 768px (s.columns(), split once on the server; closing a card moves up only
+         the cards under it). data-fold-store: js/fold-cards.js remembers on this device which cards are closed; not
+         while a search or a filter is on, when every card with a match is open. -->
+    <div th:unless="${s.groups.isEmpty()}" class="card-columns card-columns-md" th:with="cols=${s.columns()}"
          th:attr="data-fold-store=${#strings.isEmpty(list.q) and status == null} ? ${'stores:' + s.ship.id} : null">
-    <th:block th:each="g, it : ${s.groups}" th:with="groupId=${'storesPlace' + it.index},
+    <div th:each="col, c : ${cols.columns()}" class="card-column">
+    <th:block th:each="g, it : ${col}" th:with="groupId=${'storesPlace' + (c.index * cols.left().size() + it.index)},
             low=${g.levels.?[status.name() == 'LOW'].size()}, out=${g.levels.?[status.name() == 'OUT'].size()}">
     <details th:replace="~{layout/parts :: foldCard(id=${groupId},
             title=${g.place != null} ? ${g.place} : #{stores.place.other}, facts=~{::placeFacts}, body=~{::placeRows},
@@ -129,6 +131,7 @@
         </th:block>
     </details>
     </th:block>
+    </div>
     </div>
     <script th:src="@{/js/fold-cards.js}" defer></script>
 </main>

@@ -1284,8 +1284,7 @@ fieldset:disabled button.btn {
        column from 1200px for related context (.form-aside: the ship, or help beside the form).
      - .card-grid: cards of a detail page: 1 column, 2 from 992px, 3 from 1600px with .card-grid-3 (small cards);
        .card-grid-wide spans the row until there are 3 columns. .card-grid-start: each card as high as its own
-       content, and a card alone takes the whole row (the line groups of an order or a request, the storage places
-       of the inventory count).
+       content, and a card alone takes the whole row (the line groups of an order or a request).
    --------------------------------------------------------------------------------------------------------------- */
 :root {
     --nn-rail-width: 4rem;           /* 64px */
@@ -3286,6 +3285,11 @@ a.stat-chip:hover .stat-chip-label,
        under it turns transparent), so nothing jumps.
      - .is-locked: a card that cannot be closed now. No chevron (its room stays, so the names of all cards start on
        one line), the summary takes no click and no focus, and if it is closed all the same its content still shows.
+     - .card-columns > .card-column (Inventory, Count the inventory): the cards in two columns split on the server
+       (core/list/TwoColumns, s.columns()), each column a stack of its cards, so closing a card moves up only the
+       cards under it and no card changes column. Two columns from 992px (from 768px with .card-columns-md, whose
+       gap is the inventory's 16px); below, the columns follow each other. A column alone takes the full width.
+       Use: <div class="card-columns"><div class="card-column" th:each="col : ${cols.columns()}">cards</div></div>
    --------------------------------------------------------------------------------------------------------------- */
 .fold-card { display: block; }
 .fold-card[hidden] { display: none; }
@@ -3330,6 +3334,22 @@ a.stat-chip:hover .stat-chip-label,
 .fold-card.is-locked > .fold-head { pointer-events: none; cursor: default; }
 .fold-card.is-locked .fold-chevron { visibility: hidden; }
 .fold-card.is-locked::details-content { content-visibility: visible; }
+.card-columns,
+.card-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nn-section-gap);
+}
+.card-columns-md,
+.card-columns-md > .card-column { gap: var(--nn-space-4); }
+@media (min-width: 768px) {
+    .card-columns-md { flex-direction: row; align-items: flex-start; }
+    .card-columns-md > .card-column { flex: 1 1 0; min-width: 0; }
+}
+@media (min-width: 992px) {
+    .card-columns { flex-direction: row; align-items: flex-start; }
+    .card-column { flex: 1 1 0; min-width: 0; }
+}
 
 
 
@@ -6720,18 +6740,8 @@ input.supplier-currency { max-width: 7rem; }
    Stores: the Chief cook's store, stores/list.html and item.html, and the Stores card on the cook's home page.
      - The summary (Low, Out of stock, Last count, Requests waiting, Next delivery) is the shared .stat-strip.
      - .stores-row: one item, the name (a .stretched-link, so the whole row opens it), its quantity and its status.
-     - .stores-places: the cards of the storage places, two per row from 768px (one per row on phones, where two
-       columns are too narrow for name, quantity and status).
      - .stores-qty: a quantity with its unit; .stores-card-counts: the two counts on the home page's Stores card.
    --------------------------------------------------------------------------------------------------------------- */
-.stores-places {
-    display: grid;
-    gap: var(--nn-space-4);
-    align-items: start;
-}
-@media (min-width: 768px) {
-    .stores-places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 .stores-row {
     display: flex;
     flex-wrap: wrap;
@@ -6959,7 +6969,9 @@ html.is-offline .voice-hold {
        tall enough for a finger.
      - .request-group-low: the Running low card, with the warning colour on its left edge (the heading says it).
      - .request-columns: Provisions and Personal items, side by side in equal columns from 992px; a card alone
-       (the other missing, or hidden by the search) takes the full width.
+       (the other missing, or hidden by the search) takes the full width. While one is closed and the other open,
+       the closed one keeps its side and is as wide as its header (at most a third of the row) and the open one
+       takes the rest (:has() on the details' open attribute, so no script is needed).
      - .request-new: the cook's new-items card; a page that comes back at #newItems leaves it clear of the top bar.
        Its two radios are rows as high as a touch target.
      - js/request-form.js hides the rows and groups that do not match the search with [hidden].
@@ -6982,11 +6994,14 @@ html.is-offline .voice-hold {
 .request-group-low { border-left: 4px solid var(--nn-warning-border); }
 @media (min-width: 992px) {
     .request-columns {
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(0, 1fr);
-        align-items: start;
+        display: flex;
+        align-items: flex-start;
         column-gap: var(--nn-space-4);
+    }
+    .request-columns > .request-group { flex: 1 1 0; min-width: 0; }
+    .request-columns:has(> .request-group[open]:not([hidden])) > .request-group:not([open]) {
+        flex: 0 1 auto;
+        max-width: calc((100% - var(--nn-space-4)) / 3);
     }
 }
 .request-new { scroll-margin-top: 5rem; }
