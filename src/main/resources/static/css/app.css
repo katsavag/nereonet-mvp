@@ -4747,8 +4747,8 @@ a.stat-chip:hover .stat-chip-label,
    Crew News: announcement/ship-list.html and
    ship-detail.html; read receipts (layout/parts :: readTicks, readReceipt) there and on the office's announcement
    page.
-     - main.news-page: one centred column of at most 720px (--nn-news-width), on phones and desktops alike; 16px body
-       text at line height 1.5.
+     - main.news-page: one column of at most 720px (--nn-news-width), aligned with the other pages, on phones and
+       desktops alike; 16px body text at line height 1.5.
      - .news-group: "New" (not read yet) and "Earlier" (read), each with a small uppercase heading.
      - .news-row: one news item, a card-like row at least 72px high, the whole row one link (the title is a
        .stretched-link). Unread (.is-unread): a dot before it and a bold title. The title on at most two lines, a
@@ -4770,7 +4770,6 @@ a.stat-chip:hover .stat-chip-label,
 
 .news-page {
     max-width: var(--nn-news-width);
-    margin-inline: auto;
     font-size: var(--nn-font-body);
     line-height: 1.5;
 }
