@@ -3285,11 +3285,12 @@ a.stat-chip:hover .stat-chip-label,
        under it turns transparent), so nothing jumps.
      - .is-locked: a card that cannot be closed now. No chevron (its room stays, so the names of all cards start on
        one line), the summary takes no click and no focus, and if it is closed all the same its content still shows.
-     - .card-columns > .card-column (Inventory, Count the inventory): the cards in two columns split on the server
-       (core/list/TwoColumns, s.columns()), each column a stack of its cards, so closing a card moves up only the
-       cards under it and no card changes column. Two columns from 992px (from 768px with .card-columns-md, whose
-       gap is the inventory's 16px); below, the columns follow each other. A column alone takes the full width.
-       Use: <div class="card-columns"><div class="card-column" th:each="col : ${cols.columns()}">cards</div></div>
+     - .card-flow (Inventory, Count the inventory): the cards, in their order, flow down the left column and then
+       down the right one (CSS columns), from 992px (from 768px with .card-flow-md, whose gap is the inventory's
+       16px); one column below. The browser balances the two columns again whenever a card opens or closes, so a
+       card may change column when another card opens or closes (js/fold-cards.js scrolls a clicked card's header
+       back into view). A card alone takes the full width. A little padding keeps focus rings and shadows clear of
+       the column edges. Use: <div class="card-flow"><details th:replace="...foldCard..."></details>...</div>
    --------------------------------------------------------------------------------------------------------------- */
 .fold-card { display: block; }
 .fold-card[hidden] { display: none; }
@@ -3334,21 +3335,23 @@ a.stat-chip:hover .stat-chip-label,
 .fold-card.is-locked > .fold-head { pointer-events: none; cursor: default; }
 .fold-card.is-locked .fold-chevron { visibility: hidden; }
 .fold-card.is-locked::details-content { content-visibility: visible; }
-.card-columns,
-.card-column {
-    display: flex;
-    flex-direction: column;
-    gap: var(--nn-section-gap);
+.card-flow {
+    --nn-flow-gap: var(--nn-section-gap);
+    column-gap: var(--nn-flow-gap);
+    padding: var(--nn-space-1);
+    margin: calc(-1 * var(--nn-space-1));
 }
-.card-columns-md,
-.card-columns-md > .card-column { gap: var(--nn-space-4); }
+.card-flow-md { --nn-flow-gap: var(--nn-space-4); }
+.card-flow > * {
+    break-inside: avoid;
+    margin-bottom: var(--nn-flow-gap);
+}
+.card-flow > :last-child { margin-bottom: 0; }
 @media (min-width: 768px) {
-    .card-columns-md { flex-direction: row; align-items: flex-start; }
-    .card-columns-md > .card-column { flex: 1 1 0; min-width: 0; }
+    .card-flow-md:not(:has(> :only-child)) { column-count: 2; }
 }
 @media (min-width: 992px) {
-    .card-columns { flex-direction: row; align-items: flex-start; }
-    .card-column { flex: 1 1 0; min-width: 0; }
+    .card-flow:not(:has(> :only-child)) { column-count: 2; }
 }
 
 

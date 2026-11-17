@@ -44,12 +44,11 @@
                     text=#{stores.empty.text}, action=null)}"></div>
         </div>
 
-        <!-- The storage places, each a card that can be closed (layout/parts :: foldCard), in two columns from 992px
-             (s.columns(), split once on the server). Nothing is remembered, so every visit starts with every card
-             open. A card with a refused row cannot be closed. -->
-        <div th:unless="${s.groups.isEmpty()}" class="card-columns mb-4" th:with="cols=${s.columns()}">
-        <div th:each="col, c : ${cols.columns()}" class="card-column">
-        <th:block th:each="g, it : ${col}" th:with="groupId=${'storesCountPlace' + (c.index * cols.left().size() + it.index)},
+        <!-- The storage places, each a card that can be closed (layout/parts :: foldCard), flowing in two columns from
+             992px (.card-flow; the browser balances them again whenever a card opens or closes). Nothing is
+             remembered, so every visit starts with every card open. A card with a refused row cannot be closed. -->
+        <div th:unless="${s.groups.isEmpty()}" class="card-flow mb-4">
+        <th:block th:each="g, it : ${s.groups}" th:with="groupId=${'storesCountPlace' + it.index},
                 changed=${form.changed(g.levels)}, refused=${g.countOf(rowErrors.keySet())}">
         <details th:replace="~{layout/parts :: foldCard(id=${groupId},
                 title=${g.place != null} ? ${g.place} : #{stores.place.other}, facts=~{::placeFacts},
@@ -90,7 +89,6 @@
             </th:block>
         </details>
         </th:block>
-        </div>
         </div>
 
         <!-- An item on the shelf that is not on the list: saved, and counted, by the same "Save count". -->

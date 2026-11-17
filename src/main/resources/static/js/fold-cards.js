@@ -9,6 +9,7 @@
 //    cards the person closed (by their data-fold-id) are kept in localStorage on this device and closed again on the
 //    next visit. Only a click or a key on the summary is remembered, never a card a script opened (the search). A
 //    card with a refused field stays open. When storage is not available every card is simply open.
+//  - A card opened or closed with its summary keeps its header in view and the focus (it may change column).
 (function () {
     'use strict';
 
@@ -30,6 +31,21 @@
     }
     window.nnFoldLock = lock;
 
+    // The card the person just opened or closed with its summary. In two flowing columns (.card-flow) the cards
+    // rebalance at once, so that card may move: its header is scrolled back into view and keeps the focus.
+    let clicked = null;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function keepInView(summary) {
+        const box = summary.getBoundingClientRect();
+        if (box.top < 0 || box.bottom > window.innerHeight) {
+            summary.scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+        }
+        if (document.activeElement !== summary) {
+            summary.focus({ preventScroll: true });
+        }
+    }
+
     document.querySelectorAll('details[data-fold]').forEach(card => {
         const summary = card.querySelector(':scope > summary');
         if (summary) {
@@ -37,12 +53,18 @@
                 if (card.classList.contains('is-locked')) {
                     event.preventDefault();
                     card.open = true;
+                    return;
                 }
+                clicked = card;
             });
         }
         card.addEventListener('toggle', () => {
             if (!card.open && card.classList.contains('is-locked')) {
                 card.open = true;
+            }
+            if (summary && clicked === card) {
+                clicked = null;
+                keepInView(summary);
             }
         });
     });
